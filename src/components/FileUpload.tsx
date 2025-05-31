@@ -1,19 +1,23 @@
-
 import { useState, useCallback } from 'react';
 import { Upload, FileText, CheckCircle, Eye, Send, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Transaction } from '@/types/Transaction';
+import { parseTransactionFiles } from '@/utils/transactionParser';
+import TransactionPreview from './TransactionPreview';
 
 interface FileUploadProps {
   onFileUpload: (files: File[]) => void;
 }
 
-type WorkflowStep = 'upload' | 'review' | 'submitted';
+type WorkflowStep = 'upload' | 'review' | 'preview' | 'submitted';
 
 const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
+  const [parsedTransactions, setParsedTransactions] = useState<Transaction[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -62,13 +66,27 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     }
   }, [uploadedFiles.length]);
 
-  const handleSubmit = useCallback(() => {
+  const handleProcessFiles = useCallback(async () => {
+    setIsProcessing(true);
+    try {
+      const transactions = await parseTransactionFiles(uploadedFiles);
+      setParsedTransactions(transactions);
+      setCurrentStep('preview');
+    } catch (error) {
+      console.error('Error processing files:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [uploadedFiles]);
+
+  const handleConfirmData = useCallback((transactions: Transaction[]) => {
     onFileUpload(uploadedFiles);
     setCurrentStep('submitted');
   }, [uploadedFiles, onFileUpload]);
 
   const handleStartOver = useCallback(() => {
     setUploadedFiles([]);
+    setParsedTransactions([]);
     setCurrentStep('upload');
   }, []);
 
@@ -103,9 +121,29 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             currentStep === 'upload' ? "bg-gray-100 text-gray-400" :
             currentStep === 'review' ? "bg-blue-100 text-blue-600" : "bg-green-100 text-green-600"
           )}>
-            {currentStep === 'submitted' ? <CheckCircle className="w-5 h-5" /> : '2'}
+            {['preview', 'submitted'].includes(currentStep) ? <CheckCircle className="w-5 h-5" /> : '2'}
           </div>
           <span className="text-sm font-medium">Review</span>
+        </div>
+        
+        <div className={cn(
+          "w-8 h-1 rounded",
+          ['preview', 'submitted'].includes(currentStep) ? "bg-green-200" : "bg-gray-200"
+        )} />
+        
+        <div className={cn(
+          "flex items-center space-x-2",
+          currentStep === 'preview' ? "text-blue-600" : 
+          currentStep === 'submitted' ? "text-green-600" : "text-gray-400"
+        )}>
+          <div className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
+            currentStep === 'preview' ? "bg-blue-100 text-blue-600" :
+            currentStep === 'submitted' ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
+          )}>
+            {currentStep === 'submitted' ? <CheckCircle className="w-5 h-5" /> : '3'}
+          </div>
+          <span className="text-sm font-medium">Preview</span>
         </div>
         
         <div className={cn(
@@ -121,13 +159,26 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium",
             currentStep === 'submitted' ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"
           )}>
-            {currentStep === 'submitted' ? <CheckCircle className="w-5 h-5" /> : '3'}
+            {currentStep === 'submitted' ? <CheckCircle className="w-5 h-5" /> : '4'}
           </div>
           <span className="text-sm font-medium">Submit</span>
         </div>
       </div>
     </div>
   );
+
+  if (currentStep === 'preview') {
+    return (
+      <>
+        {renderStepIndicator()}
+        <TransactionPreview
+          transactions={parsedTransactions}
+          onConfirm={handleConfirmData}
+          onBack={() => setCurrentStep('review')}
+        />
+      </>
+    );
+  }
 
   if (currentStep === 'submitted') {
     return (
@@ -136,13 +187,13 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         
         <div className="text-center">
           <CheckCircle className="w-16 h-16 text-green-600 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Files Submitted Successfully!</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Data Imported Successfully!</h2>
           <p className="text-gray-600 mb-6">
-            Your {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's have' : ' has'} been processed and your transactions are now available.
+            Your {parsedTransactions.length} transaction{parsedTransactions.length > 1 ? 's have' : ' has'} been imported and categorized.
           </p>
           
           <Button onClick={handleStartOver} variant="outline">
-            Upload More Files
+            Import More Files
           </Button>
         </div>
       </div>
@@ -157,7 +208,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Review Your Files</h2>
           <p className="text-gray-600">
-            Please review the files below before submitting them for processing.
+            Please review the files below before processing them for data extraction.
           </p>
         </div>
 
@@ -187,9 +238,13 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             Add More Files
           </Button>
           
-          <Button onClick={handleSubmit} className="bg-green-600 hover:bg-green-700">
-            <Send className="w-4 h-4 mr-2" />
-            Submit Files ({uploadedFiles.length})
+          <Button 
+            onClick={handleProcessFiles} 
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={isProcessing}
+          >
+            <Eye className="w-4 h-4 mr-2" />
+            {isProcessing ? 'Processing...' : `Process Files (${uploadedFiles.length})`}
           </Button>
         </div>
       </div>
