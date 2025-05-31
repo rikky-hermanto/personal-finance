@@ -5,6 +5,7 @@ import FileUpload from '@/components/FileUpload';
 import CashFlowDashboard from '@/components/CashFlowDashboard';
 import TransactionTable from '@/components/TransactionTable';
 import CategoryManager from '@/components/CategoryManager';
+import DrillDownView from '@/components/DrillDownView';
 import { mockTransactions, categoryRules as initialCategoryRules } from '@/data/mockTransactions';
 import { Transaction, CategoryRule } from '@/types/Transaction';
 
@@ -12,6 +13,7 @@ const Index = () => {
   const [activeView, setActiveView] = useState('dashboard');
   const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
   const [categoryRules, setCategoryRules] = useState<CategoryRule[]>(initialCategoryRules);
+  const [drillDownData, setDrillDownData] = useState<{category: string; month: string} | null>(null);
 
   const handleFileUpload = useCallback((files: File[]) => {
     // Simulate file processing - in real app, this would parse actual files
@@ -34,10 +36,35 @@ const Index = () => {
     // In a real app, you'd re-categorize transactions based on new rules
   }, []);
 
+  const handleCategoryDrillDown = useCallback((category: string, month: string) => {
+    setDrillDownData({ category, month });
+  }, []);
+
+  const handleBackToDashboard = useCallback(() => {
+    setDrillDownData(null);
+  }, []);
+
   const renderContent = () => {
+    // If we're in drill-down mode, show the drill-down view
+    if (drillDownData && activeView === 'dashboard') {
+      return (
+        <DrillDownView
+          transactions={transactions}
+          category={drillDownData.category}
+          month={drillDownData.month}
+          onBack={handleBackToDashboard}
+        />
+      );
+    }
+
     switch (activeView) {
       case 'dashboard':
-        return <CashFlowDashboard transactions={transactions} />;
+        return (
+          <CashFlowDashboard 
+            transactions={transactions} 
+            onCategoryDrillDown={handleCategoryDrillDown}
+          />
+        );
       case 'upload':
         return <FileUpload onFileUpload={handleFileUpload} />;
       case 'transactions':
@@ -71,7 +98,10 @@ const Index = () => {
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} />
+      <Sidebar activeView={activeView} onViewChange={(view) => {
+        setActiveView(view);
+        setDrillDownData(null); // Clear drill-down when switching views
+      }} />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {renderContent()}
