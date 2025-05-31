@@ -1,80 +1,66 @@
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Transaction } from '@/types/Transaction';
-import { TrendingUp, TrendingDown, DollarSign, PieChart, Calendar, ChevronRight } from 'lucide-react';
-import DrillDownView from './DrillDownView';
+import { TrendingUp, TrendingDown, DollarSign, PieChart } from 'lucide-react';
 
 interface CashFlowDashboardProps {
   transactions: Transaction[];
 }
 
 const CashFlowDashboard = ({ transactions }: CashFlowDashboardProps) => {
-  const [drillDownCategory, setDrillDownCategory] = useState<string | null>(null);
-
-  const { currentMonthData, previousMonthData, categoryBreakdown } = useMemo(() => {
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const previousMonth = `${now.getFullYear()}-${String(now.getMonth()).padStart(2, '0')}`;
-
-    const currentMonthTransactions = transactions.filter(t => {
-      const transactionMonth = `${new Date(t.date).getFullYear()}-${String(new Date(t.date).getMonth() + 1).padStart(2, '0')}`;
-      return transactionMonth === currentMonth;
+  const monthlyData = useMemo(() => {
+    const monthlyMap = new Map<string, { income: number; expenses: number; balance: number }>();
+    
+    transactions.forEach(transaction => {
+      const date = new Date(transaction.date);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!monthlyMap.has(monthKey)) {
+        monthlyMap.set(monthKey, { income: 0, expenses: 0, balance: 0 });
+      }
+      
+      const monthData = monthlyMap.get(monthKey)!;
+      if (transaction.type === 'income') {
+        monthData.income += Math.abs(transaction.amount);
+      } else {
+        monthData.expenses += Math.abs(transaction.amount);
+      }
+      monthData.balance = monthData.income - monthData.expenses;
     });
+    
+    return Array.from(monthlyMap.entries())
+      .map(([month, data]) => ({ month, ...data }))
+      .sort((a, b) => b.month.localeCompare(a.month));
+  }, [transactions]);
 
-    const previousMonthTransactions = transactions.filter(t => {
-      const transactionMonth = `${new Date(t.date).getFullYear()}-${String(new Date(t.date).getMonth() + 1).padStart(2, '0')}`;
-      return transactionMonth === previousMonth;
-    });
-
-    const currentMonthData = currentMonthTransactions.reduce(
-      (acc, t) => {
-        if (t.type === 'income') {
-          acc.income += Math.abs(t.amount);
+  const totalData = useMemo(() => {
+    return transactions.reduce(
+      (acc, transaction) => {
+        if (transaction.type === 'income') {
+          acc.totalIncome += Math.abs(transaction.amount);
         } else {
-          acc.expenses += Math.abs(t.amount);
+          acc.totalExpenses += Math.abs(transaction.amount);
         }
         return acc;
       },
-      { income: 0, expenses: 0 }
+      { totalIncome: 0, totalExpenses: 0 }
     );
+  }, [transactions]);
 
-    const previousMonthData = previousMonthTransactions.reduce(
-      (acc, t) => {
-        if (t.type === 'income') {
-          acc.income += Math.abs(t.amount);
-        } else {
-          acc.expenses += Math.abs(t.amount);
-        }
-        return acc;
-      },
-      { income: 0, expenses: 0 }
-    );
-
-    // Category breakdown for current month
-    const categoryMap = new Map<string, { amount: number; transactions: Transaction[] }>();
-    currentMonthTransactions.forEach(t => {
-      if (t.type === 'expense') {
-        if (!categoryMap.has(t.category)) {
-          categoryMap.set(t.category, { amount: 0, transactions: [] });
-        }
-        const categoryData = categoryMap.get(t.category)!;
-        categoryData.amount += Math.abs(t.amount);
-        categoryData.transactions.push(t);
+  const categoryData = useMemo(() => {
+    const categoryMap = new Map<string, number>();
+    
+    transactions.forEach(transaction => {
+      if (transaction.type === 'expense') {
+        const current = categoryMap.get(transaction.category) || 0;
+        categoryMap.set(transaction.category, current + Math.abs(transaction.amount));
       }
     });
-
-    const categoryBreakdown = Array.from(categoryMap.entries())
-      .map(([category, data]) => ({
-        category,
-        amount: data.amount,
-        transactions: data.transactions,
-        previousAmount: previousMonthTransactions
-          .filter(t => t.type === 'expense' && t.category === category)
-          .reduce((sum, t) => sum + Math.abs(t.amount), 0)
-      }))
-      .sort((a, b) => b.amount - a.amount);
-
-    return { currentMonthData, previousMonthData, categoryBreakdown };
+    
+    return Array.from(categoryMap.entries())
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
   }, [transactions]);
 
   const formatCurrency = (amount: number) => {
@@ -85,60 +71,32 @@ const CashFlowDashboard = ({ transactions }: CashFlowDashboardProps) => {
     }).format(amount);
   };
 
-  const currentMonth = new Date().toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const formatMonth = (monthString: string) => {
+    const [year, month] = monthString.split('-');
+    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', {
+      month: 'long',
+      year: 'numeric',
+    });
+  };
 
-  const previousMonth = new Date(new Date().setMonth(new Date().getMonth() - 1)).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  });
-
-  const netWorth = currentMonthData.income - currentMonthData.expenses;
-  const previousNetWorth = previousMonthData.income - previousMonthData.expenses;
-  const netWorthChange = netWorth - previousNetWorth;
-
-  const incomeChange = currentMonthData.income - previousMonthData.income;
-  const expenseChange = currentMonthData.expenses - previousMonthData.expenses;
-
-  if (drillDownCategory) {
-    const categoryData = categoryBreakdown.find(c => c.category === drillDownCategory);
-    if (categoryData) {
-      return (
-        <DrillDownView
-          category={drillDownCategory}
-          transactions={categoryData.transactions}
-          monthTotal={categoryData.amount}
-          previousMonthTotal={categoryData.previousAmount}
-          onBack={() => setDrillDownCategory(null)}
-        />
-      );
-    }
-  }
+  const netWorth = totalData.totalIncome - totalData.totalExpenses;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Financial Dashboard</h2>
-          <p className="text-gray-600">Overview for {currentMonth}</p>
-        </div>
+        <h2 className="text-3xl font-bold text-gray-900">Cash Flow Dashboard</h2>
         <div className="text-sm text-gray-500">
           Last updated: {new Date().toLocaleDateString()}
         </div>
       </div>
 
-      {/* Current Month Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">Income This Month</p>
-              <p className="text-2xl font-bold">{formatCurrency(currentMonthData.income)}</p>
-              <p className="text-green-200 text-sm">
-                {incomeChange >= 0 ? '+' : ''}{formatCurrency(incomeChange)} vs {previousMonth}
-              </p>
+              <p className="text-green-100 text-sm font-medium">Total Income</p>
+              <p className="text-2xl font-bold">{formatCurrency(totalData.totalIncome)}</p>
             </div>
             <TrendingUp className="w-8 h-8 text-green-200" />
           </div>
@@ -147,11 +105,8 @@ const CashFlowDashboard = ({ transactions }: CashFlowDashboardProps) => {
         <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-lg p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-red-100 text-sm font-medium">Expenses This Month</p>
-              <p className="text-2xl font-bold">{formatCurrency(currentMonthData.expenses)}</p>
-              <p className="text-red-200 text-sm">
-                {expenseChange >= 0 ? '+' : ''}{formatCurrency(expenseChange)} vs {previousMonth}
-              </p>
+              <p className="text-red-100 text-sm font-medium">Total Expenses</p>
+              <p className="text-2xl font-bold">{formatCurrency(totalData.totalExpenses)}</p>
             </div>
             <TrendingDown className="w-8 h-8 text-red-200" />
           </div>
@@ -160,107 +115,78 @@ const CashFlowDashboard = ({ transactions }: CashFlowDashboardProps) => {
         <div className={`bg-gradient-to-r ${netWorth >= 0 ? 'from-blue-500 to-blue-600' : 'from-orange-500 to-orange-600'} rounded-lg p-6 text-white`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium">Net This Month</p>
+              <p className="text-blue-100 text-sm font-medium">Net Worth</p>
               <p className="text-2xl font-bold">{formatCurrency(netWorth)}</p>
-              <p className="text-blue-200 text-sm">
-                {netWorthChange >= 0 ? '+' : ''}{formatCurrency(netWorthChange)} vs {previousMonth}
-              </p>
             </div>
             <DollarSign className="w-8 h-8 text-blue-200" />
           </div>
         </div>
+
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-6 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-purple-100 text-sm font-medium">Transactions</p>
+              <p className="text-2xl font-bold">{transactions.length}</p>
+            </div>
+            <PieChart className="w-8 h-8 text-purple-200" />
+          </div>
+        </div>
       </div>
 
-      {/* Spending by Category - Drill Down */}
+      {/* Monthly Breakdown */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h3 className="text-xl font-semibold text-gray-900 mb-4">
-          Spending by Category - {currentMonth}
-        </h3>
-        <div className="space-y-3">
-          {categoryBreakdown.slice(0, 6).map((category) => {
-            const percentage = currentMonthData.expenses > 0 
-              ? (category.amount / currentMonthData.expenses) * 100 
-              : 0;
-            const change = category.amount - category.previousAmount;
-            const changePercentage = category.previousAmount > 0 
-              ? ((change / category.previousAmount) * 100) 
-              : 0;
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">Monthly Breakdown</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Month</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Income</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Expenses</th>
+                <th className="text-right py-3 px-4 font-medium text-gray-700">Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              {monthlyData.map((month) => (
+                <tr key={month.month} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="py-3 px-4 font-medium">{formatMonth(month.month)}</td>
+                  <td className="py-3 px-4 text-right text-green-600 font-medium">
+                    {formatCurrency(month.income)}
+                  </td>
+                  <td className="py-3 px-4 text-right text-red-600 font-medium">
+                    {formatCurrency(month.expenses)}
+                  </td>
+                  <td className={`py-3 px-4 text-right font-bold ${
+                    month.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {formatCurrency(month.balance)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
+      {/* Top Expense Categories */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h3 className="text-xl font-semibold text-gray-900 mb-4">Top Expense Categories</h3>
+        <div className="space-y-3">
+          {categoryData.map((category, index) => {
+            const percentage = (category.amount / totalData.totalExpenses) * 100;
             return (
-              <div 
-                key={category.category} 
-                className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => setDrillDownCategory(category.category)}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <div>
-                    <p className="font-medium text-gray-900">{category.category}</p>
-                    <p className="text-sm text-gray-500">
-                      {category.transactions.length} transactions
-                    </p>
-                  </div>
+              <div key={category.category} className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className={`w-3 h-3 rounded-full mr-3 bg-blue-${(index + 1) * 100}`}></div>
+                  <span className="font-medium text-gray-700">{category.category}</span>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{formatCurrency(category.amount)}</p>
-                    <p className="text-sm text-gray-500">{percentage.toFixed(1)}% of expenses</p>
-                    <p className={`text-xs ${change >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      {change >= 0 ? '+' : ''}{changePercentage.toFixed(1)}% vs last month
-                    </p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-gray-400" />
+                <div className="text-right">
+                  <div className="font-semibold text-gray-900">{formatCurrency(category.amount)}</div>
+                  <div className="text-sm text-gray-500">{percentage.toFixed(1)}%</div>
                 </div>
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Monthly Comparison</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Current Month</span>
-              <span className="font-semibold">{currentMonth}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Previous Month</span>
-              <span className="font-semibold">{previousMonth}</span>
-            </div>
-            <div className="border-t pt-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Spending Change</span>
-                <span className={`font-semibold ${expenseChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {expenseChange >= 0 ? '+' : ''}{formatCurrency(expenseChange)}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Transaction Summary</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Transactions</span>
-              <span className="font-semibold">{transactions.length}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Categories</span>
-              <span className="font-semibold">{categoryBreakdown.length}</span>
-            </div>
-            <div className="border-t pt-3">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Largest Category</span>
-                <span className="font-semibold">
-                  {categoryBreakdown[0]?.category || 'None'}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
