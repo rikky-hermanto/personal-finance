@@ -39,8 +39,8 @@ const FinancialChart = ({ transactions, type = 'area', height = 200 }: Financial
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-card border border-border rounded-lg p-3 shadow-lg">
-          <p className="text-sm font-medium text-foreground">{label}</p>
+        <div className="bg-white border border-gray-200 rounded-md p-3 shadow-lg">
+          <p className="text-sm font-medium text-gray-900">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-sm" style={{ color: entry.color }}>
               {entry.name}: {new Intl.NumberFormat('id-ID', {
@@ -62,25 +62,25 @@ const FinancialChart = ({ transactions, type = 'area', height = 200 }: Financial
         <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
           <defs>
             <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+              <stop offset="5%" stopColor="#334155" stopOpacity={0.1}/>
+              <stop offset="95%" stopColor="#334155" stopOpacity={0}/>
             </linearGradient>
           </defs>
           <XAxis 
             dataKey="month" 
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+            tick={{ fontSize: 12, fill: '#64748b' }}
           />
           <YAxis hide />
           <Tooltip content={<CustomTooltip />} />
           <Area
             type="monotone"
             dataKey="net"
-            stroke="hsl(var(--primary))"
+            stroke="#334155"
             fillOpacity={1}
             fill="url(#netGradient)"
-            strokeWidth={2}
+            strokeWidth={1.5}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -94,25 +94,25 @@ const FinancialChart = ({ transactions, type = 'area', height = 200 }: Financial
           dataKey="month" 
           axisLine={false}
           tickLine={false}
-          tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+          tick={{ fontSize: 12, fill: '#64748b' }}
         />
         <YAxis hide />
         <Tooltip content={<CustomTooltip />} />
         <Line
           type="monotone"
           dataKey="income"
-          stroke="hsl(var(--success))"
-          strokeWidth={2}
-          dot={{ fill: 'hsl(var(--success))', strokeWidth: 0, r: 3 }}
-          activeDot={{ r: 4, fill: 'hsl(var(--success))' }}
+          stroke="#22c55e"
+          strokeWidth={1.5}
+          dot={{ fill: '#22c55e', strokeWidth: 0, r: 2 }}
+          activeDot={{ r: 3, fill: '#22c55e' }}
         />
         <Line
           type="monotone"
           dataKey="expenses"
-          stroke="hsl(var(--destructive))"
-          strokeWidth={2}
-          dot={{ fill: 'hsl(var(--destructive))', strokeWidth: 0, r: 3 }}
-          activeDot={{ r: 4, fill: 'hsl(var(--destructive))' }}
+          stroke="#dc2626"
+          strokeWidth={1.5}
+          dot={{ fill: '#dc2626', strokeWidth: 0, r: 2 }}
+          activeDot={{ r: 3, fill: '#dc2626' }}
         />
       </LineChart>
     </ResponsiveContainer>

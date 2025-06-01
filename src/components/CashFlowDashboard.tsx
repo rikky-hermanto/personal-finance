@@ -104,81 +104,81 @@ const CashFlowDashboard = ({ transactions, onCategoryDrillDown }: CashFlowDashbo
   const netWorth = totalData.totalIncome - totalData.totalExpenses;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto p-6 space-y-8">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto p-8 space-y-8">
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-semibold text-foreground">Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Your financial overview</p>
+            <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+            <p className="text-gray-600 mt-1">Your financial overview</p>
           </div>
-          <div className="text-xs text-muted-foreground">
+          <div className="text-xs text-gray-500">
             Updated {new Date().toLocaleDateString()}
           </div>
         </div>
 
         {/* Financial Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-sm transition-shadow">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-sm transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-2 mb-2">
-                  <ArrowUpRight className="w-4 h-4 text-success" />
-                  <span className="text-sm text-muted-foreground">Total Income</span>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Total Income</span>
                 </div>
-                <p className="text-2xl font-semibold text-foreground">{formatCurrency(totalData.totalIncome)}</p>
+                <p className="text-xl font-semibold text-gray-900">{formatCurrency(totalData.totalIncome)}</p>
               </div>
-              <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6 text-success" />
+              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-sm transition-shadow">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-sm transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-2 mb-2">
-                  <ArrowDownRight className="w-4 h-4 text-destructive" />
-                  <span className="text-sm text-muted-foreground">Total Expenses</span>
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Total Expenses</span>
                 </div>
-                <p className="text-2xl font-semibold text-foreground">{formatCurrency(totalData.totalExpenses)}</p>
+                <p className="text-xl font-semibold text-gray-900">{formatCurrency(totalData.totalExpenses)}</p>
               </div>
-              <div className="w-12 h-12 bg-destructive/10 rounded-xl flex items-center justify-center">
-                <TrendingDown className="w-6 h-6 text-destructive" />
+              <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                <TrendingDown className="w-5 h-5 text-red-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-sm transition-shadow">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-sm transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-2 mb-2">
-                  <DollarSign className="w-4 h-4 text-primary" />
-                  <span className="text-sm text-muted-foreground">Net Worth</span>
+                  <div className={`w-2 h-2 rounded-full ${netWorth >= 0 ? 'bg-blue-500' : 'bg-red-500'}`}></div>
+                  <span className="text-sm text-gray-600">Net Worth</span>
                 </div>
-                <p className={`text-2xl font-semibold ${netWorth >= 0 ? 'text-success' : 'text-destructive'}`}>
+                <p className={`text-xl font-semibold ${netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(netWorth)}
                 </p>
               </div>
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                netWorth >= 0 ? 'bg-primary/10' : 'bg-destructive/10'
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                netWorth >= 0 ? 'bg-blue-50' : 'bg-red-50'
               }`}>
-                <DollarSign className={`w-6 h-6 ${netWorth >= 0 ? 'text-primary' : 'text-destructive'}`} />
+                <DollarSign className={`w-5 h-5 ${netWorth >= 0 ? 'text-blue-600' : 'text-red-600'}`} />
               </div>
             </div>
           </div>
 
-          <div className="bg-card border border-border rounded-2xl p-6 hover:shadow-sm transition-shadow">
+          <div className="bg-white border border-gray-200 rounded-lg p-6 hover:shadow-sm transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <div className="flex items-center space-x-2 mb-2">
-                  <Activity className="w-4 h-4 text-info" />
-                  <span className="text-sm text-muted-foreground">Transactions</span>
+                  <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                  <span className="text-sm text-gray-600">Transactions</span>
                 </div>
-                <p className="text-2xl font-semibold text-foreground">{transactions.length}</p>
+                <p className="text-xl font-semibold text-gray-900">{transactions.length}</p>
               </div>
-              <div className="w-12 h-12 bg-info/10 rounded-xl flex items-center justify-center">
-                <Activity className="w-6 h-6 text-info" />
+              <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center">
+                <Activity className="w-5 h-5 text-gray-600" />
               </div>
             </div>
           </div>
@@ -187,43 +187,43 @@ const CashFlowDashboard = ({ transactions, onCategoryDrillDown }: CashFlowDashbo
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Cash Flow Chart */}
-          <div className="bg-card border border-border rounded-2xl p-6">
+          <div className="bg-white border border-gray-200 rounded-lg p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-foreground">Cash Flow</h3>
-              <span className="text-xs text-muted-foreground">Last 6 months</span>
+              <h3 className="text-lg font-medium text-gray-900">Cash Flow</h3>
+              <span className="text-xs text-gray-500">Last 6 months</span>
             </div>
             <FinancialChart transactions={transactions} type="area" height={240} />
           </div>
 
           {/* Current Month Spending */}
           {currentMonthData && currentMonthCategoryData.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-medium text-foreground">Top Categories</h3>
-                <span className="text-xs text-muted-foreground">{formatMonth(currentMonthData.month)}</span>
+                <h3 className="text-lg font-medium text-gray-900">Top Categories</h3>
+                <span className="text-xs text-gray-500">{formatMonth(currentMonthData.month)}</span>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {currentMonthCategoryData.map((category, index) => {
                   const percentage = (category.amount / currentMonthData.expenses) * 100;
-                  const colors = ['bg-primary', 'bg-info', 'bg-warning', 'bg-destructive'];
+                  const colors = ['bg-gray-900', 'bg-gray-600', 'bg-green-500', 'bg-red-500'];
                   return (
                     <div 
                       key={category.category} 
-                      className={`group flex items-center justify-between p-4 rounded-xl transition-all duration-200 ${
+                      className={`group flex items-center justify-between p-3 rounded-md transition-all duration-200 ${
                         onCategoryDrillDown 
-                          ? 'hover:bg-accent cursor-pointer' 
+                          ? 'hover:bg-gray-50 cursor-pointer' 
                           : ''
                       }`}
                       onClick={() => onCategoryDrillDown?.(category.category, currentMonthData.month)}
                     >
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-3 h-3 rounded-full ${colors[index % colors.length]}`}></div>
-                        <span className="font-medium text-foreground">{category.category}</span>
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-2 h-2 rounded-full ${colors[index % colors.length]}`}></div>
+                        <span className="font-medium text-gray-900">{category.category}</span>
                       </div>
                       <div className="text-right">
-                        <div className="font-semibold text-foreground">{formatCurrency(category.amount)}</div>
-                        <div className="text-xs text-muted-foreground">{percentage.toFixed(1)}%</div>
+                        <div className="font-semibold text-gray-900">{formatCurrency(category.amount)}</div>
+                        <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
                       </div>
                     </div>
                   );
@@ -231,8 +231,8 @@ const CashFlowDashboard = ({ transactions, onCategoryDrillDown }: CashFlowDashbo
               </div>
               
               {onCategoryDrillDown && (
-                <p className="text-xs text-muted-foreground mt-4 text-center">
-                  Tap any category to view transactions
+                <p className="text-xs text-gray-500 mt-4 text-center">
+                  Click any category to view transactions
                 </p>
               )}
             </div>
@@ -241,68 +241,68 @@ const CashFlowDashboard = ({ transactions, onCategoryDrillDown }: CashFlowDashbo
 
         {/* Current Month Summary */}
         {currentMonthData && (
-          <div className="bg-card border border-border rounded-2xl p-8">
+          <div className="bg-white border border-gray-200 rounded-lg p-8">
             <div className="flex items-center justify-between mb-8">
-              <h2 className="text-xl font-medium text-foreground">
+              <h2 className="text-xl font-medium text-gray-900">
                 {formatMonth(currentMonthData.month)}
               </h2>
-              <div className="text-xs text-muted-foreground">Current month</div>
+              <div className="text-xs text-gray-500">Current month</div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="text-center">
-                <div className="text-3xl font-semibold text-success mb-2">
+                <div className="text-2xl font-semibold text-green-600 mb-2">
                   {formatCurrency(currentMonthData.income)}
                 </div>
-                <div className="text-sm text-muted-foreground mb-2">Income</div>
+                <div className="text-sm text-gray-600 mb-2">Income</div>
                 {previousMonthData && (
                   <div className={`text-xs flex items-center justify-center space-x-1 ${
                     calculatePercentageChange(currentMonthData.income, previousMonthData.income) >= 0 
-                      ? 'text-success' : 'text-destructive'
+                      ? 'text-green-600' : 'text-red-600'
                   }`}>
                     <span>
                       {calculatePercentageChange(currentMonthData.income, previousMonthData.income) >= 0 ? '+' : ''}
                       {calculatePercentageChange(currentMonthData.income, previousMonthData.income).toFixed(1)}%
                     </span>
-                    <span className="text-muted-foreground">vs last month</span>
+                    <span className="text-gray-500">vs last month</span>
                   </div>
                 )}
               </div>
               
               <div className="text-center">
-                <div className="text-3xl font-semibold text-destructive mb-2">
+                <div className="text-2xl font-semibold text-red-600 mb-2">
                   {formatCurrency(currentMonthData.expenses)}
                 </div>
-                <div className="text-sm text-muted-foreground mb-2">Expenses</div>
+                <div className="text-sm text-gray-600 mb-2">Expenses</div>
                 {previousMonthData && (
                   <div className={`text-xs flex items-center justify-center space-x-1 ${
                     calculatePercentageChange(currentMonthData.expenses, previousMonthData.expenses) <= 0 
-                      ? 'text-success' : 'text-destructive'
+                      ? 'text-green-600' : 'text-red-600'
                   }`}>
                     <span>
                       {calculatePercentageChange(currentMonthData.expenses, previousMonthData.expenses) >= 0 ? '+' : ''}
                       {calculatePercentageChange(currentMonthData.expenses, previousMonthData.expenses).toFixed(1)}%
                     </span>
-                    <span className="text-muted-foreground">vs last month</span>
+                    <span className="text-gray-500">vs last month</span>
                   </div>
                 )}
               </div>
               
               <div className="text-center">
-                <div className={`text-3xl font-semibold mb-2 ${currentMonthData.balance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                <div className={`text-2xl font-semibold mb-2 ${currentMonthData.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {formatCurrency(currentMonthData.balance)}
                 </div>
-                <div className="text-sm text-muted-foreground mb-2">Net</div>
+                <div className="text-sm text-gray-600 mb-2">Net</div>
                 {previousMonthData && (
                   <div className={`text-xs flex items-center justify-center space-x-1 ${
                     calculatePercentageChange(currentMonthData.balance, previousMonthData.balance) >= 0 
-                      ? 'text-success' : 'text-destructive'
+                      ? 'text-green-600' : 'text-red-600'
                   }`}>
                     <span>
                       {calculatePercentageChange(currentMonthData.balance, previousMonthData.balance) >= 0 ? '+' : ''}
                       {calculatePercentageChange(currentMonthData.balance, previousMonthData.balance).toFixed(1)}%
                     </span>
-                    <span className="text-muted-foreground">vs last month</span>
+                    <span className="text-gray-500">vs last month</span>
                   </div>
                 )}
               </div>

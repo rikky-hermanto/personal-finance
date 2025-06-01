@@ -21,33 +21,33 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
 
   return (
     <div className={cn(
-      "bg-background border-r border-border h-screen flex flex-col transition-all duration-300 ease-in-out",
+      "bg-white border-r border-gray-200 h-screen flex flex-col transition-all duration-300 ease-in-out",
       collapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
-      <div className="p-6 border-b border-border/60 flex items-center justify-between">
+      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
               <BarChart3 className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">Finance</h1>
-              <p className="text-xs text-muted-foreground">Personal tracker</p>
+              <h1 className="text-base font-semibold text-gray-900">Finance</h1>
+              <p className="text-xs text-gray-500">Personal tracker</p>
             </div>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-lg hover:bg-accent transition-colors duration-200"
+          className="p-2 rounded-md hover:bg-gray-50 transition-colors duration-200"
         >
-          {collapsed ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
+          {collapsed ? <Menu className="w-4 h-4 text-gray-600" /> : <X className="w-4 h-4 text-gray-600" />}
         </button>
       </div>
       
       {/* Navigation */}
       <nav className="flex-1 p-4">
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -56,16 +56,16 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
                 <button
                   onClick={() => onViewChange(item.id)}
                   className={cn(
-                    "w-full flex items-center text-left rounded-xl transition-all duration-200 group",
-                    collapsed ? "px-3 py-3 justify-center" : "px-4 py-3",
+                    "w-full flex items-center text-left rounded-md transition-all duration-200 group",
+                    collapsed ? "px-3 py-3 justify-center" : "px-3 py-2",
                     isActive
-                      ? "bg-primary text-white shadow-sm"
-                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                   )}
                   title={collapsed ? item.label : undefined}
                 >
                   <Icon className={cn(
-                    "w-5 h-5 flex-shrink-0",
+                    "w-4 h-4 flex-shrink-0",
                     !collapsed && "mr-3"
                   )} />
                   {!collapsed && (

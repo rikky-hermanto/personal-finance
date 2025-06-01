@@ -61,11 +61,11 @@ const Index = () => {
         );
       case 'upload':
         return (
-          <div className="min-h-screen bg-background p-6">
+          <div className="min-h-screen bg-white p-8">
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">
-                <h1 className="text-3xl font-semibold text-foreground">Upload Transactions</h1>
-                <p className="text-muted-foreground mt-2">Import your bank statements and transaction files</p>
+                <h1 className="text-2xl font-semibold text-gray-900">Upload Transactions</h1>
+                <p className="text-gray-600 mt-2">Import your bank statements and transaction files</p>
               </div>
               <FileUpload onFileUpload={handleFileUpload} />
             </div>
@@ -73,11 +73,11 @@ const Index = () => {
         );
       case 'transactions':
         return (
-          <div className="min-h-screen bg-background p-6">
+          <div className="min-h-screen bg-white p-8">
             <div className="max-w-7xl mx-auto">
               <div className="mb-8">
-                <h1 className="text-3xl font-semibold text-foreground">Transactions</h1>
-                <p className="text-muted-foreground mt-2">View and manage all your transactions</p>
+                <h1 className="text-2xl font-semibold text-gray-900">Transactions</h1>
+                <p className="text-gray-600 mt-2">View and manage all your transactions</p>
               </div>
               <TransactionTable 
                 transactions={transactions} 
@@ -88,11 +88,11 @@ const Index = () => {
         );
       case 'categories':
         return (
-          <div className="min-h-screen bg-background p-6">
+          <div className="min-h-screen bg-white p-8">
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">
-                <h1 className="text-3xl font-semibold text-foreground">Categories</h1>
-                <p className="text-muted-foreground mt-2">Manage transaction categories and rules</p>
+                <h1 className="text-2xl font-semibold text-gray-900">Categories</h1>
+                <p className="text-gray-600 mt-2">Manage transaction categories and rules</p>
               </div>
               <CategoryManager 
                 categoryRules={categoryRules}
@@ -103,15 +103,15 @@ const Index = () => {
         );
       case 'settings':
         return (
-          <div className="min-h-screen bg-background p-6">
+          <div className="min-h-screen bg-white p-8">
             <div className="max-w-4xl mx-auto">
               <div className="mb-8">
-                <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
-                <p className="text-muted-foreground mt-2">Manage your preferences and configuration</p>
+                <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+                <p className="text-gray-600 mt-2">Manage your preferences and configuration</p>
               </div>
-              <div className="bg-card border border-border rounded-2xl p-8">
-                <h3 className="text-lg font-medium text-foreground mb-4">Application Settings</h3>
-                <p className="text-muted-foreground">Settings panel coming soon...</p>
+              <div className="bg-white border border-gray-200 rounded-lg p-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Application Settings</h3>
+                <p className="text-gray-600">Settings panel coming soon...</p>
               </div>
             </div>
           </div>
@@ -122,7 +122,7 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background w-full">
+    <div className="flex h-screen bg-white w-full">
       <Sidebar activeView={activeView} onViewChange={(view) => {
         setActiveView(view);
         setDrillDownData(null);
