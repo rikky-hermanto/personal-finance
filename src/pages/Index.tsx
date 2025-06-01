@@ -16,11 +16,7 @@ const Index = () => {
   const [drillDownData, setDrillDownData] = useState<{category: string; month: string} | null>(null);
 
   const handleFileUpload = useCallback((files: File[]) => {
-    // Simulate file processing - in real app, this would parse actual files
     console.log('Files uploaded:', files.map(f => f.name));
-    
-    // Show success message or update UI
-    // For now, we're using mock data that's already loaded
   }, []);
 
   const handleTransactionUpdate = useCallback((id: string, updates: Partial<Transaction>) => {
@@ -33,7 +29,6 @@ const Index = () => {
 
   const handleCategoryRulesUpdate = useCallback((rules: CategoryRule[]) => {
     setCategoryRules(rules);
-    // In a real app, you'd re-categorize transactions based on new rules
   }, []);
 
   const handleCategoryDrillDown = useCallback((category: string, month: string) => {
@@ -45,7 +40,6 @@ const Index = () => {
   }, []);
 
   const renderContent = () => {
-    // If we're in drill-down mode, show the drill-down view
     if (drillDownData && activeView === 'dashboard') {
       return (
         <DrillDownView
@@ -83,11 +77,16 @@ const Index = () => {
         );
       case 'settings':
         return (
-          <div className="max-w-2xl mx-auto p-6">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">Settings</h2>
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Application Settings</h3>
-              <p className="text-gray-600">Settings panel coming soon...</p>
+          <div className="max-w-4xl mx-auto p-8">
+            <div className="space-y-6">
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
+                <p className="text-gray-500 text-sm mt-1">Manage your preferences and configuration</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Application Settings</h3>
+                <p className="text-gray-500">Settings panel coming soon...</p>
+              </div>
             </div>
           </div>
         );
@@ -97,15 +96,13 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-25 w-full">
       <Sidebar activeView={activeView} onViewChange={(view) => {
         setActiveView(view);
-        setDrillDownData(null); // Clear drill-down when switching views
+        setDrillDownData(null);
       }} />
       <main className="flex-1 overflow-auto">
-        <div className="p-6">
-          {renderContent()}
-        </div>
+        {renderContent()}
       </main>
     </div>
   );
