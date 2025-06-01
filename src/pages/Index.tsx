@@ -60,43 +60,69 @@ const Index = () => {
           />
         );
       case 'upload':
-        return <FileUpload onFileUpload={handleFileUpload} />;
+        return (
+          <div className="min-h-screen bg-background p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-8">
+                <h1 className="text-3xl font-semibold text-foreground">Upload Transactions</h1>
+                <p className="text-muted-foreground mt-2">Import your bank statements and transaction files</p>
+              </div>
+              <FileUpload onFileUpload={handleFileUpload} />
+            </div>
+          </div>
+        );
       case 'transactions':
         return (
-          <TransactionTable 
-            transactions={transactions} 
-            onTransactionUpdate={handleTransactionUpdate}
-          />
+          <div className="min-h-screen bg-background p-6">
+            <div className="max-w-7xl mx-auto">
+              <div className="mb-8">
+                <h1 className="text-3xl font-semibold text-foreground">Transactions</h1>
+                <p className="text-muted-foreground mt-2">View and manage all your transactions</p>
+              </div>
+              <TransactionTable 
+                transactions={transactions} 
+                onTransactionUpdate={handleTransactionUpdate}
+              />
+            </div>
+          </div>
         );
       case 'categories':
         return (
-          <CategoryManager 
-            categoryRules={categoryRules}
-            onRuleUpdate={handleCategoryRulesUpdate}
-          />
+          <div className="min-h-screen bg-background p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-8">
+                <h1 className="text-3xl font-semibold text-foreground">Categories</h1>
+                <p className="text-muted-foreground mt-2">Manage transaction categories and rules</p>
+              </div>
+              <CategoryManager 
+                categoryRules={categoryRules}
+                onRuleUpdate={handleCategoryRulesUpdate}
+              />
+            </div>
+          </div>
         );
       case 'settings':
         return (
-          <div className="max-w-4xl mx-auto p-8">
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">Settings</h1>
-                <p className="text-gray-500 text-sm mt-1">Manage your preferences and configuration</p>
+          <div className="min-h-screen bg-background p-6">
+            <div className="max-w-4xl mx-auto">
+              <div className="mb-8">
+                <h1 className="text-3xl font-semibold text-foreground">Settings</h1>
+                <p className="text-muted-foreground mt-2">Manage your preferences and configuration</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-100 p-8">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Application Settings</h3>
-                <p className="text-gray-500">Settings panel coming soon...</p>
+              <div className="bg-card border border-border rounded-2xl p-8">
+                <h3 className="text-lg font-medium text-foreground mb-4">Application Settings</h3>
+                <p className="text-muted-foreground">Settings panel coming soon...</p>
               </div>
             </div>
           </div>
         );
       default:
-        return <CashFlowDashboard transactions={transactions} />;
+        return <CashFlowDashboard transactions={transactions} onCategoryDrillDown={handleCategoryDrillDown} />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-gray-25 w-full">
+    <div className="flex h-screen bg-background w-full">
       <Sidebar activeView={activeView} onViewChange={(view) => {
         setActiveView(view);
         setDrillDownData(null);

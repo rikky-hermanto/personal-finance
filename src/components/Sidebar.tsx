@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Upload, BarChart3, List, Settings, PieChart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BarChart3, Upload, List, PieChart, Settings, Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -12,8 +12,8 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
   const menuItems = [
-    { id: 'dashboard', label: 'Overview', icon: BarChart3 },
-    { id: 'upload', label: 'Import', icon: Upload },
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+    { id: 'upload', label: 'Upload', icon: Upload },
     { id: 'transactions', label: 'Transactions', icon: List },
     { id: 'categories', label: 'Categories', icon: PieChart },
     { id: 'settings', label: 'Settings', icon: Settings },
@@ -21,26 +21,33 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
 
   return (
     <div className={cn(
-      "bg-white border-r border-gray-100 h-screen flex flex-col transition-all duration-200",
+      "bg-background border-r border-border h-screen flex flex-col transition-all duration-300 ease-in-out",
       collapsed ? "w-16" : "w-64"
     )}>
-      <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+      {/* Header */}
+      <div className="p-6 border-b border-border/60 flex items-center justify-between">
         {!collapsed && (
-          <div>
-            <h1 className="text-lg font-medium text-gray-900">Finance</h1>
-            <p className="text-xs text-gray-500 mt-0.5">Personal tracker</p>
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-4 h-4 text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold text-foreground">Finance</h1>
+              <p className="text-xs text-muted-foreground">Personal tracker</p>
+            </div>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-md hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors"
+          className="p-2 rounded-lg hover:bg-accent transition-colors duration-200"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {collapsed ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
         </button>
       </div>
       
-      <nav className="flex-1 px-3 py-6">
-        <ul className="space-y-1">
+      {/* Navigation */}
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -49,16 +56,16 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
                 <button
                   onClick={() => onViewChange(item.id)}
                   className={cn(
-                    "w-full flex items-center text-left rounded-lg transition-all duration-150 group",
-                    collapsed ? "px-3 py-3 justify-center" : "px-3 py-2.5",
+                    "w-full flex items-center text-left rounded-xl transition-all duration-200 group",
+                    collapsed ? "px-3 py-3 justify-center" : "px-4 py-3",
                     isActive
-                      ? "bg-gray-900 text-white shadow-sm"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   )}
                   title={collapsed ? item.label : undefined}
                 >
                   <Icon className={cn(
-                    "w-4 h-4 flex-shrink-0",
+                    "w-5 h-5 flex-shrink-0",
                     !collapsed && "mr-3"
                   )} />
                   {!collapsed && (
