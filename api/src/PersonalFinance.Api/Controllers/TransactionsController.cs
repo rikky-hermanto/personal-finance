@@ -9,13 +9,16 @@ public class TransactionsController : ControllerBase
 {
     private readonly IStatementImportService _statementImportService;
     private readonly IBankIdentifier _bankIdentifier;
+    private readonly ITransactionService _transactionService;
 
     public TransactionsController(
         IStatementImportService statementImportService,
-        IBankIdentifier bankIdentifier)
+        IBankIdentifier bankIdentifier,
+        ITransactionService transactionService)
     {
         _statementImportService = statementImportService;
         _bankIdentifier = bankIdentifier;
+        _transactionService = transactionService;
     }
 
     [HttpGet("health")]
@@ -57,6 +60,11 @@ public class TransactionsController : ControllerBase
         try
         {
             var transactions = await _statementImportService.ImportAsync(mainStream, bank);
+
+            // Persist transactions
+            if (transactions.Count > 0)
+                await _transactionService.AddTransactionsAsync(transactions);
+
             return Ok(transactions);
         }
         catch (NotSupportedException ex)

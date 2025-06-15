@@ -24,6 +24,7 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IBankStatementParser, BcaCsvParser>();
             builder.Services.AddScoped<IStatementImportService, StatementImportService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
+            builder.Services.AddScoped<ITransactionService, TransactionService>();
 
             var app = builder.Build();
 
