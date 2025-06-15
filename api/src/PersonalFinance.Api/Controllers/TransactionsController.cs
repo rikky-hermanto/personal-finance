@@ -20,15 +20,42 @@ public class TransactionsController : ControllerBase
         return Ok(new { status = "Healthy" });
     }
 
-    [HttpPost("upload-csv")]
-    public async Task<IActionResult> UploadCsv(IFormFile file)
+    [HttpPost("upload")]
+    public async Task<IActionResult> UploadFile(IFormFile file)
     {
         if (file == null || file.Length == 0)
             return BadRequest("File is empty");
 
-        using var stream = file.OpenReadStream();
-        var transactions = await _transactionService.ImportFromCsvAsync(stream);
+        var allowedContentTypes = new[]
+        {
+            "text/csv",
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/msword"
+        };
 
-        return Ok(transactions);
+        if (!allowedContentTypes.Contains(file.ContentType))
+            return BadRequest("Unsupported file type");
+
+        using var stream = file.OpenReadStream();
+
+        if (file.ContentType == "text/csv")
+        {
+            var transactions = await _transactionService.ImportFromCsvAsync(stream);
+            return Ok(transactions);
+        }
+        else if (file.ContentType == "application/pdf")
+        {
+            // TODO: Implement PDF processing logic
+            return Ok(new { message = "PDF file uploaded successfully." });
+        }
+        else if (file.ContentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+                 file.ContentType == "application/msword")
+        {
+            // TODO: Implement Word document processing logic
+            return Ok(new { message = "Word file uploaded successfully." });
+        }
+
+        return BadRequest("File type not supported.");
     }
 }
