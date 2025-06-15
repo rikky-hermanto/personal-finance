@@ -1,4 +1,10 @@
 
+using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Application.Services;
+using PersonalFinance.Infrastructure.Parsers;
+using PersonalFinance.Persistence;
+
+
 namespace PersonalFinance.Api
 {
     public class Program
@@ -12,6 +18,10 @@ namespace PersonalFinance.Api
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            builder.Services.AddPersistence(builder.Configuration.GetConnectionString("Default")!);
+            builder.Services.AddScoped<ITransactionService, TransactionService>();
+            builder.Services.AddScoped<CsvTransactionParser>();
 
             var app = builder.Build();
 

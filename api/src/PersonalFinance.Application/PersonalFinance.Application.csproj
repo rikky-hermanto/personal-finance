@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PersonalFinance.Domain\PersonalFinance.Domain.csproj" />
+    <ProjectReference Include="..\PersonalFinance.Infrastructure\PersonalFinance.Infrastructure.csproj" />
+    <ProjectReference Include="..\PersonalFinance.Persistence\PersonalFinance.Persistence.csproj" />
+  </ItemGroup>
+
 </Project>
