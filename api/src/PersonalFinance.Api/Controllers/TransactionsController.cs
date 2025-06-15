@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using PersonalFinance.Domain.Entities;
 using PersonalFinance.Infrastructure.Parsers;
 
 namespace PersonalFinance.Api.Controllers;
@@ -61,11 +62,12 @@ public class TransactionsController : ControllerBase
         {
             var transactions = await _statementImportService.ImportAsync(mainStream, bank);
 
-            // Persist transactions
+            // Persist and return only added transactions
+            List<Transaction> addedTransactions = new();
             if (transactions.Count > 0)
-                await _transactionService.AddTransactionsAsync(transactions);
+                addedTransactions = await _transactionService.AddTransactionsAsync(transactions);
 
-            return Ok(transactions);
+            return Ok(addedTransactions);
         }
         catch (NotSupportedException ex)
         {
