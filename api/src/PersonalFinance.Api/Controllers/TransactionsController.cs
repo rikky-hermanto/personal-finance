@@ -14,6 +14,12 @@ public class TransactionsController : ControllerBase
         _transactionService = transactionService;
     }
 
+    [HttpGet("health")]
+    public IActionResult HealthCheck()
+    {
+        return Ok(new { status = "Healthy" });
+    }
+
     [HttpPost("upload-csv")]
     public async Task<IActionResult> UploadCsv(IFormFile file)
     {

@@ -1,9 +1,10 @@
-
+using System.Net;
+using System.Text.Json;
+using PersonalFinance.Api.Models;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Services;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Persistence;
-
 
 namespace PersonalFinance.Api
 {
@@ -14,8 +15,8 @@ namespace PersonalFinance.Api
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers();
+            builder.Services.AddHealthChecks();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
@@ -33,10 +34,13 @@ namespace PersonalFinance.Api
 
             app.UseHttpsRedirection();
 
+            //Extensions Middleware
+            app.UseApiExceptionHandler();  
+
             app.UseAuthorization();
 
-
             app.MapControllers();
+            app.MapHealthChecks("/health");
 
             app.Run();
         }
