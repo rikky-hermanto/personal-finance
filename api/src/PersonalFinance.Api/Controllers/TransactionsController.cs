@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Infrastructure.Parsers;
 
 namespace PersonalFinance.Api.Controllers;
 
@@ -7,11 +7,15 @@ namespace PersonalFinance.Api.Controllers;
 [Route("api/[controller]")]
 public class TransactionsController : ControllerBase
 {
-    private readonly ITransactionService _transactionService;
+    private readonly IStatementImportService _statementImportService;
+    private readonly IBankIdentifier _bankIdentifier;
 
-    public TransactionsController(ITransactionService transactionService)
+    public TransactionsController(
+        IStatementImportService statementImportService,
+        IBankIdentifier bankIdentifier)
     {
-        _transactionService = transactionService;
+        _statementImportService = statementImportService;
+        _bankIdentifier = bankIdentifier;
     }
 
     [HttpGet("health")]
@@ -37,25 +41,31 @@ public class TransactionsController : ControllerBase
         if (!allowedContentTypes.Contains(file.ContentType))
             return BadRequest("Unsupported file type");
 
-        using var stream = file.OpenReadStream();
+        // Copy the file preStream to a mainStream to avoid issues with ReadTimeout/WriteTimeout
+        using var mainStream = new MemoryStream();
+        await file.CopyToAsync(mainStream);
+        using var preStream = file.OpenReadStream();
+        //mainStream.Position = 0;
 
-        if (file.ContentType == "text/csv")
+        var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType);
+        if (bank == null)
+            return BadRequest("Bank format not recognized or not supported.");
+
+        // Reset preStream position before passing to import service
+        mainStream.Position = 0;
+
+        try
         {
-            var transactions = await _transactionService.ImportFromCsvAsync(stream);
+            var transactions = await _statementImportService.ImportAsync(mainStream, bank);
             return Ok(transactions);
         }
-        else if (file.ContentType == "application/pdf")
+        catch (NotSupportedException ex)
         {
-            // TODO: Implement PDF processing logic
-            return Ok(new { message = "PDF file uploaded successfully." });
+            return BadRequest(ex.Message);
         }
-        else if (file.ContentType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-                 file.ContentType == "application/msword")
+        catch (Exception ex)
         {
-            // TODO: Implement Word document processing logic
-            return Ok(new { message = "Word file uploaded successfully." });
+            return StatusCode(500, $"Failed to parse file: {ex.Message}");
         }
-
-        return BadRequest("File type not supported.");
     }
 }
