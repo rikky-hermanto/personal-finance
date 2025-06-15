@@ -75,19 +75,19 @@ public class BcaCsvParser : IBankStatementParser
 
     private DateTime ParseBcaDate(string input)
     {
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var trimmed = input.Trim('\'', ' ', '"');
         DateTime date;
 
-        if (DateTime.TryParseExact(trimmed, new[] { "dd/MM/yyyy", "d/M/yyyy", "d/M/yy", "dd/MM/yy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        if (DateTime.TryParseExact(trimmed, new[] { "dd/MM/yyyy", "d/M/yyyy", "d/M/yy", "dd/MM/yy" }, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out date))
         {
             return date;
         }
-        if (DateTime.TryParseExact(trimmed, new[] { "dd/MM", "d/M" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        if (DateTime.TryParseExact(trimmed, new[] { "dd/MM", "d/M" }, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out date))
         {
-            return new DateTime(now.Year, date.Month, date.Day);
+            return new DateTime(now.Year, date.Month, date.Day, 0, 0, 0, DateTimeKind.Utc);
         }
-        if (DateTime.TryParse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.None, out date))
+        if (DateTime.TryParse(trimmed, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out date))
         {
             return date;
         }
