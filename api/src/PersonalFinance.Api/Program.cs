@@ -1,8 +1,7 @@
 using System.Net;
 using System.Text.Json;
+using PersonalFinance.Api.Extensions;
 using PersonalFinance.Api.Models;
-using PersonalFinance.Application.Interfaces;
-using PersonalFinance.Application.Services;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Persistence;
 
@@ -21,8 +20,10 @@ namespace PersonalFinance.Api
             builder.Services.AddOpenApi();
 
             builder.Services.AddPersistence(builder.Configuration.GetConnectionString("Default")!);
-            builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<CsvTransactionParser>();
+            builder.Services.AddScoped<IBankStatementParser, BcaCsvParser>();
+            builder.Services.AddScoped<IStatementImportService, StatementImportService>();
+            builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
 
             var app = builder.Build();
 

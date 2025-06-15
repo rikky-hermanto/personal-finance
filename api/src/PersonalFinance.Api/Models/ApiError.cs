@@ -2,6 +2,6 @@ namespace PersonalFinance.Api.Models;
 
 public class ApiError
 {
-    public string Message { get; set; }
+    public required string Message { get; set; }
     public string? Detail { get; set; }
 }
