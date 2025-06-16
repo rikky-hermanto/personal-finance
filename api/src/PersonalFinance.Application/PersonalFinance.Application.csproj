@@ -12,4 +12,9 @@
     <ProjectReference Include="..\PersonalFinance.Persistence\PersonalFinance.Persistence.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="12.0.0" />
+    <PackageReference Include="MediatR" Version="12.5.0" />
+  </ItemGroup>
+
 </Project>

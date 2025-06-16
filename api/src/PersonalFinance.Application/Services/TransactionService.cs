@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Persistence;
@@ -5,10 +6,12 @@ using PersonalFinance.Persistence;
 public class TransactionService : ITransactionService
 {
     private readonly AppDbContext _dbContext;
-        
-    public TransactionService(AppDbContext dbContext)
+    private readonly IMediator _mediator;
+
+    public TransactionService(AppDbContext dbContext, IMediator mediator)
     {
         _dbContext = dbContext;
+        _mediator = mediator;
     }
 
     public async Task<List<Transaction>> AddTransactionsAsync(IEnumerable<Transaction> transactions)
@@ -17,13 +20,16 @@ public class TransactionService : ITransactionService
         {
             var newTransactions = await FilterOutDuplicatesAsync(transactions);
 
-            if (newTransactions.Count > 0)
+            // Validate and publish domain events
+            List<Transaction> addedTransactions = new List<Transaction>();
+            foreach (var t in newTransactions)
             {
-                await _dbContext.Transactions.AddRangeAsync(newTransactions);
-                await _dbContext.SaveChangesAsync();
+                // Use command handler for validation, persistence, and event publishing
+                var added = await _mediator.Send(new CreateTransactionCommand(t));
+                addedTransactions.Add(added);
             }
 
-            return newTransactions;
+            return addedTransactions;
         }
         catch (DbUpdateException ex)
         {
