@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Infrastructure.Parsers;
+using PersonalFinance.Application.Dtos;
 
 namespace PersonalFinance.Api.Controllers;
 
@@ -45,17 +46,14 @@ public class TransactionsController : ControllerBase
         if (!allowedContentTypes.Contains(file.ContentType))
             return BadRequest("Unsupported file type");
 
-        // Copy the file preStream to a mainStream to avoid issues with ReadTimeout/WriteTimeout
         using var mainStream = new MemoryStream();
         await file.CopyToAsync(mainStream);
         using var preStream = file.OpenReadStream();
-        //mainStream.Position = 0;
 
         var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType);
         if (bank == null)
             return BadRequest("Bank format not recognized or not supported.");
 
-        // Reset preStream position before passing to import service
         mainStream.Position = 0;
 
         try
@@ -67,7 +65,18 @@ public class TransactionsController : ControllerBase
             if (transactions.Count > 0)
                 addedTransactions = await _transactionService.AddTransactionsAsync(transactions);
 
-            return Ok(addedTransactions);
+            // Calculate running balance for only the added transactions
+            var allWalletTransactions = await _transactionService.GetTransactionsWithBalanceAsync(
+                addedTransactions.FirstOrDefault()?.Wallet ?? string.Empty
+            );
+
+            // Map only the added transactions to their DTOs with balance
+            var addedTransactionIds = addedTransactions.Select(t => t.Id).ToHashSet();
+            var addedDtos = allWalletTransactions
+                .Where(dto => addedTransactionIds.Contains(dto.Id))
+                .ToList();
+
+            return Ok(addedDtos);
         }
         catch (NotSupportedException ex)
         {
