@@ -1,9 +1,12 @@
 using System.Net;
 using System.Text.Json;
+using MediatR;
 using PersonalFinance.Api.Extensions;
 using PersonalFinance.Api.Models;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Persistence;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 
 namespace PersonalFinance.Api
 {
@@ -25,6 +28,16 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IStatementImportService, StatementImportService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
+            builder.Services.AddMediatR(cfg =>
+            {
+                cfg.RegisterServicesFromAssemblyContaining<Program>();
+                cfg.RegisterServicesFromAssemblyContaining<CreateTransactionCommandHandler>();
+            });
+            builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionValidationBehavior<,>));
+
+            // Register FluentValidation
+            builder.Services.AddValidatorsFromAssemblyContaining<CreateTransactionCommandValidator>();
+            builder.Services.AddFluentValidationAutoValidation();
 
             var app = builder.Build();
 
