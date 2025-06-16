@@ -35,10 +35,6 @@ namespace PersonalFinance.Persistence.Migrations
                         .HasColumnType("numeric")
                         .HasColumnName("amount_idr");
 
-                    b.Property<decimal?>("Balance")
-                        .HasColumnType("numeric")
-                        .HasColumnName("balance");
-
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasMaxLength(100)

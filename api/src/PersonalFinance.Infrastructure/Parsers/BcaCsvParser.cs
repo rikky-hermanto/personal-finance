@@ -65,7 +65,6 @@ public class BcaCsvParser : IBankStatementParser
                 Wallet = "BCA",
                 AmountIdr = amount,
                 Currency = "IDR",
-                Balance = balance,
                 ExchangeRate = null
             });
         }

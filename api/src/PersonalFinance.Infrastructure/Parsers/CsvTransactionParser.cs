@@ -31,7 +31,6 @@ public class CsvTransactionParser
             t.Category = record.Category ?? "Untracked Expense";
             t.Wallet = record.Wallet ?? "";
             t.AmountIdr = ParseCurrency(record["Amount (IDR)"]);
-            t.Balance = ParseCurrencyNullable(record["Balance"]);
             t.Currency = "IDR"; // assuming fixed
             t.ExchangeRate = null; // not in your sample
 

@@ -17,8 +17,4 @@
     <ProjectReference Include="..\PersonalFinance.Domain\PersonalFinance.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Migrations\" />
-  </ItemGroup>
-
 </Project>
