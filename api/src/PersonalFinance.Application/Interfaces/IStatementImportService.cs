@@ -2,5 +2,5 @@ using PersonalFinance.Domain.Entities;
 
 public interface IStatementImportService
 {
-    Task<List<Transaction>> ImportAsync(Stream stream, string bankCode);
+    Task<List<Transaction>> ImportAsync(Stream stream, string bankCode, string? password = null);
 }

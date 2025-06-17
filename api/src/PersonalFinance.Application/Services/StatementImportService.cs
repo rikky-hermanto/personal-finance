@@ -1,5 +1,4 @@
 using PersonalFinance.Domain.Entities;
-using PersonalFinance.Infrastructure.Parsers;
 
 public class StatementImportService : IStatementImportService
 {
@@ -7,19 +6,18 @@ public class StatementImportService : IStatementImportService
 
     public StatementImportService(IEnumerable<IBankStatementParser> parsers)
     {
-        // Map bank code to parser
         _parsers = new Dictionary<string, IBankStatementParser>(StringComparer.OrdinalIgnoreCase)
         {
             { "BCA", parsers.OfType<BcaCsvParser>().First() },
-            // Add other banks here
+            { "NEOBANK", parsers.OfType<NeoBankPdfParser>().First() },
         };
     }
 
-    public async Task<List<Transaction>> ImportAsync(Stream stream, string bankCode)
+    public async Task<List<Transaction>> ImportAsync(Stream stream, string bankCode, string? password = null)
     {
         if (!_parsers.TryGetValue(bankCode, out var parser))
             throw new NotSupportedException($"Bank '{bankCode}' is not supported.");
 
-        return await parser.ParseAsync(stream);
+        return await parser.ParseAsync(stream, password);
     }
 }

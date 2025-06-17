@@ -25,6 +25,7 @@ namespace PersonalFinance.Api
             builder.Services.AddPersistence(builder.Configuration.GetConnectionString("Default")!);
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<IBankStatementParser, BcaCsvParser>();
+            builder.Services.AddScoped<IBankStatementParser, NeoBankPdfParser>();
             builder.Services.AddScoped<IStatementImportService, StatementImportService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
@@ -33,7 +34,6 @@ namespace PersonalFinance.Api
                 cfg.RegisterServicesFromAssemblyContaining<Program>();
                 cfg.RegisterServicesFromAssemblyContaining<CreateTransactionCommandHandler>();
             });
-            builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(TransactionValidationBehavior<,>));
 
             // Register FluentValidation
             builder.Services.AddValidatorsFromAssemblyContaining<CreateTransactionCommandValidator>();

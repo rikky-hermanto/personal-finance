@@ -1,8 +1,9 @@
 using System.Text;
-
+using UglyToad.PdfPig;
+ 
 public class BankIdentifier : IBankIdentifier
 {
-    public async Task<string?> IdentifyAsync(Stream stream, string contentType)
+    public async Task<string?> IdentifyAsync(Stream stream, string contentType, string? pdfPassword = null)
     {
         if (contentType == "text/csv")
         {
@@ -20,7 +21,31 @@ public class BankIdentifier : IBankIdentifier
             }
             stream.Position = 0;
         }
-        // Add more bank detection logic here as needed
+        else if (contentType == "application/pdf")
+        {
+            stream.Position = 0;
+            try
+            {
+                using var pdf = string.IsNullOrEmpty(pdfPassword)
+                    ? PdfDocument.Open(stream)
+                    : PdfDocument.Open(stream, new ParsingOptions() { Password = pdfPassword });
+
+                var firstPageText = pdf.GetPages().FirstOrDefault()?.Text ?? string.Empty;
+
+                // Look for NeoBank-specific markers: NOW Savings
+                if (firstPageText.Contains("NOW Savings", StringComparison.OrdinalIgnoreCase))
+                {
+                    stream.Position = 0;
+                    return "NEOBANK";
+                }
+            }
+            catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException)
+            {
+                // Handle encrypted PDF without password
+                return null;
+            }
+            stream.Position = 0;
+        }
         return null;
     }
-}
+}   
