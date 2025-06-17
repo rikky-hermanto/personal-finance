@@ -6,6 +6,9 @@ using System.Text.RegularExpressions;
 public class NeoBankPdfParser : IBankStatementParser
 {
     private static readonly Regex DateRegex = new(@"^\d{2} \w{3} \d{4}", RegexOptions.Compiled);
+    private static readonly Regex EntryStartRegex = new(@"(?=\d{2} \w{3} \d{4})", RegexOptions.Compiled);
+    private static readonly Regex DateTimeRegex = new(@"^(?<date>\d{2} \w{3} \d{4})(?:\s+(?<time>\d{2}:\d{2}:\d{2}))?", RegexOptions.Compiled);
+    private static readonly Regex AmountRegex = new(@"-?[\d.]+,\d{2}", RegexOptions.Compiled);
 
     public async Task<List<Transaction>> ParseAsync(Stream fileStream, string? password = null)
     {
@@ -14,58 +17,77 @@ public class NeoBankPdfParser : IBankStatementParser
             ? PdfDocument.Open(fileStream)
             : PdfDocument.Open(fileStream, new ParsingOptions { Password = password });
 
-        // Concatenate all text from all pages
-        var fullText = string.Join(" ", pdf.GetPages().Select(p => p.Text.Replace("\n", " ")));
+        // Read all text lines from all pages
+        var lines = new List<string>();
+        foreach (var page in pdf.GetPages())
+        {
+            var text = page.Text;
+            if (!string.IsNullOrWhiteSpace(text))
+            {
+                lines.AddRange(text.Split('\n').Select(l => l.Trim()));
+            }
+        }
 
-        // Split into transaction-like segments using the date pattern
-        var transactionSegments = Regex.Split(fullText, @"(?=\d{2} \w{3} \d{4})")
+        // After extracting all text from all pages:
+        var allText = string.Join(" ", lines); // Combine all lines into one string
+
+        // Split at each date (but keep the delimiter)
+        var entries = EntryStartRegex.Split(allText)
             .Select(s => s.Trim())
             .Where(s => DateRegex.IsMatch(s))
             .ToList();
 
-        // Regex to extract fields: date, optional time, description, mutation, balance
-        var txnRegex = new Regex(
-            @"^(?<date>\d{2} \w{3} \d{4})(?:\s+(?<time>\d{2}:\d{2}:\d{2}))?\s+(?<desc>.+?)\s+(?<mutation>-?[\d\.]+,\d{2})\s+(?<balance>-?[\d\.]+,\d{2})$",
-            RegexOptions.Compiled);
-
-        foreach (var segment in transactionSegments)
+        foreach (var entry in entries)
         {
-            // Skip summary and non-transaction lines
-            if (segment.Contains("Opening Balance", StringComparison.OrdinalIgnoreCase) ||
-                segment.Contains("Credit Total", StringComparison.OrdinalIgnoreCase) ||
-                segment.Contains("Debit Total", StringComparison.OrdinalIgnoreCase) ||
-                segment.Contains("Closing Balance", StringComparison.OrdinalIgnoreCase) ||
-                segment.StartsWith("Pages", StringComparison.OrdinalIgnoreCase))
-                continue;
+            // This regex matches:
+            // 1. Date: 01 Apr 2025
+            // 2. Optional time: 03:09:22
+            // 3. Description: everything up to the last two numbers
+            // 4. Mutation: the second last number
+            // 5. Balance: the last number
+            try
+            {
+                // Try a fallback: find the last two numbers in the string
+                var dateTimeMatch = DateTimeRegex.Match(entry);
+                if (!dateTimeMatch.Success) { LogSkip(entry, "Invalid date/time format."); continue; }
 
-            var match = txnRegex.Match(segment);
-            if (!match.Success)
-                continue;
+                    // Try to extract numbers from the end
+                var dateStr = dateTimeMatch.Groups["date"].Value;
+                var timeStr = dateTimeMatch.Groups["time"].Success ? dateTimeMatch.Groups["time"].Value : null;
+                var dateTimeStr = timeStr != null ? $"{dateStr} {timeStr}" : dateStr;
+                if (!DateTime.TryParseExact(dateTimeStr, new[] { "dd MMM yyyy HH:mm:ss", "dd MMM yyyy" },
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTime))
+                    {
+                    LogSkip(entry, "Unparsable DateTime.");
+                        // Description is everything between time (if present) or date and the first number
+                        continue;
+                    }
 
-            var date = match.Groups["date"].Value;
-            var time = match.Groups["time"].Success ? match.Groups["time"].Value : null;
-            var desc = match.Groups["desc"].Value;
-            var mutation = match.Groups["mutation"].Value;
-            var balance = match.Groups["balance"].Value;
+                dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
 
-            AddTransaction(transactions, date, time, desc, mutation, balance);
-        }
+                var numberMatches = AmountRegex.Matches(entry);
+                if (numberMatches.Count < 2)
+            {
+                    LogSkip(entry, "Not enough numeric values.");
 
-        return transactions;
+                    continue;
     }
 
-    private static void AddTransaction(List<Transaction> transactions, string date, string? time, string desc, string mutation, string balance)
-    {
-        var dateTimeStr = time != null ? $"{date} {time}" : date;
-        if (!DateTime.TryParseExact(dateTimeStr, new[] { "dd MMM yyyy HH:mm:ss", "dd MMM yyyy" }, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTime))
-            return;
+                var mutation = numberMatches[^2].Value;
+                var balance = numberMatches[^1].Value;
 
-        if (!TryParseEuropeanDecimal(mutation, out var amount)) return;
+                var descStart = dateTimeMatch.Length;
+                var descEnd = entry.LastIndexOf(mutation);
+                if (descEnd <= descStart) { LogSkip(entry, "Description extraction failed."); continue; }
+
+                var desc = entry.Substring(descStart, descEnd - descStart).Trim();
+
+                if (!TryParseEuropeanDecimal(mutation, out var amount)) { LogSkip(entry, "Mutation parse fail."); continue; }
 
         transactions.Add(new Transaction
         {
             Date = dateTime,
-            Description = desc.Trim(),
+                    Description = desc,
             Remarks = "",
             Flow = amount > 0 ? "CR" : "DB",
             Type = amount > 0 ? "Income" : "Expense",
@@ -76,10 +98,21 @@ public class NeoBankPdfParser : IBankStatementParser
             ExchangeRate = null
         });
     }
+            catch (Exception ex)
+            {
+                LogSkip(entry, $"Exception: {ex.Message}");
+            }
+        }
 
+        return transactions;
+    }
     private static bool TryParseEuropeanDecimal(string input, out decimal value)
     {
         var normalized = input.Replace(".", "").Replace(",", ".");
         return decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out value);
+    }
+    private static void LogSkip(string rawEntry, string reason)
+    {
+        Console.WriteLine($"[NeoBankPdfParser] Skipped Entry: {reason}\n? {rawEntry.Substring(0, Math.Min(100, rawEntry.Length))}\n");
     }
 }
