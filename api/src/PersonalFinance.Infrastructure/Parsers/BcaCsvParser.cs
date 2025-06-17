@@ -3,7 +3,7 @@ using PersonalFinance.Domain.Entities;
 
 public class BcaCsvParser : IBankStatementParser
 {
-    public async Task<List<Transaction>> ParseAsync(Stream fileStream)
+    public async Task<List<Transaction>> ParseAsync(Stream fileStream, string? password = null)
     {
         var transactions = new List<Transaction>();
         using var reader = new StreamReader(fileStream);

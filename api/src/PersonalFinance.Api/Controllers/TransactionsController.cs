@@ -30,7 +30,7 @@ public class TransactionsController : ControllerBase
     }
 
     [HttpPost("upload")]
-    public async Task<IActionResult> UploadFile(IFormFile file)
+    public async Task<IActionResult> UploadFile(IFormFile file, [FromForm]string? pdfPassword = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest("File is empty");
@@ -50,7 +50,7 @@ public class TransactionsController : ControllerBase
         await file.CopyToAsync(mainStream);
         using var preStream = file.OpenReadStream();
 
-        var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType);
+        var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
         if (bank == null)
             return BadRequest("Bank format not recognized or not supported.");
 
@@ -58,7 +58,7 @@ public class TransactionsController : ControllerBase
 
         try
         {
-            var transactions = await _statementImportService.ImportAsync(mainStream, bank);
+            var transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword);
 
             // Persist and return only added transactions
             List<Transaction> addedTransactions = new();
