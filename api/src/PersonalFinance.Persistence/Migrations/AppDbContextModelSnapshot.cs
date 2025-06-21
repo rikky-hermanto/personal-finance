@@ -22,6 +22,893 @@ namespace PersonalFinance.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("PersonalFinance.Domain.Entities.CategoryRule", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Keyword")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("keyword");
+
+                    b.Property<int>("KeywordLength")
+                        .HasColumnType("integer")
+                        .HasColumnName("keyword_length");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_category_rules");
+
+                    b.ToTable("category_rules", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "",
+                            Keyword = "BI-FAST CR TRANSFER   DR 562 RIKKI H HASIBUAN",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "",
+                            Keyword = "BI-FAST CR TRANSFER   DR 490 RIKKI H HASIBUAN",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "",
+                            Keyword = "TRANSFER OUT RIKKI H HASIBUAN 1310013349",
+                            KeywordLength = 0,
+                            Type = "Saving"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "Bill",
+                            Keyword = "TRANSFER OUT MUHAMMAD IZUDDIN HAN",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "",
+                            Keyword = "Sent money to Rikki H Hasibuan",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "",
+                            Keyword = "Transfer dari RIKKI H HASIBUAN",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "",
+                            Keyword = "TRANSFER OUT RIKKI H HASIBUAN",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "",
+                            Keyword = "Transfer ke Rikki H Hasibuan",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Category = "",
+                            Keyword = "TRANSFER IN SYAFTRACO",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "Yayasan Bali Rescue",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "BERKAT LISAN MULIA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Category = "Self-Care",
+                            Keyword = "KADEK KRISNA CHAND",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Category = "Bill",
+                            Keyword = "LIDYA EVANGELISTA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "BALI RESCUE DOG",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "NI MADE CHRISTA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "Nyoman Sunita",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Category = "Saving Interest",
+                            Keyword = "Bunga Didapat",
+                            KeywordLength = 0,
+                            Type = "Income"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Category = "Self-Care",
+                            Keyword = "Saepul Anwar",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Category = "Housekeeping",
+                            Keyword = "Housekeeping",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Category = "Bill",
+                            Keyword = "KETUT CATRA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Category = "Food",
+                            Keyword = "Olahan Laut",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Category = "Food",
+                            Keyword = "Red Dragon",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Category = "Food",
+                            Keyword = "Tomoro BNI",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Category = "Food",
+                            Keyword = "Bakso Solo",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Category = "Food",
+                            Keyword = "BALE UDANG",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Category = "Food",
+                            Keyword = "JUICE TIME",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Category = "Food",
+                            Keyword = "Rumah Maka",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Category = "Food",
+                            Keyword = "Kedai Kopi",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Category = "Food",
+                            Keyword = "Kopi Kenan",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Category = "Food",
+                            Keyword = "Gusto Gela",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Category = "Food",
+                            Keyword = "BIJI WORLD",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Category = "Groceries",
+                            Keyword = "NIRMALA BA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Category = "Food",
+                            Keyword = "Olahan Lau",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Category = "Motor/Car Service",
+                            Keyword = "Astra Moto",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Category = "Motor/Car Service",
+                            Keyword = "Planet Ban",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Category = "Workstation",
+                            Keyword = "DAPUR PRIM",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "TIMBUL JAY",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Category = "",
+                            Keyword = "transferxx",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Category = "Food",
+                            Keyword = "AYAM KREME",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Category = "Food",
+                            Keyword = "RM ASLI MI",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Category = "Groceries",
+                            Keyword = "GRANDLUCKY",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Category = "Food",
+                            Keyword = "WARKOP AGE",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            Category = "Groceries",
+                            Keyword = "Coco Super",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            Category = "Food",
+                            Keyword = "WR WAJAR H",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 45,
+                            Category = "Bill",
+                            Keyword = "TELKOMSEL",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            Category = "Food",
+                            Keyword = "Dimsum GM",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            Category = "Food",
+                            Keyword = "RM PADANG",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 48,
+                            Category = "Food",
+                            Keyword = "REDDRAGON",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 49,
+                            Category = "Groceries",
+                            Keyword = "LAKSMI UD",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 50,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "Furbabies",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 51,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "EKA PRINT",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 52,
+                            Category = "Transfer/Admin Fee",
+                            Keyword = "Biaya Adm",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 53,
+                            Category = "Food",
+                            Keyword = "UBI BAKAR",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 54,
+                            Category = "Food",
+                            Keyword = "MOTO KOPI",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 55,
+                            Category = "Food",
+                            Keyword = "MULARASA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 56,
+                            Category = "Saving Interest",
+                            Keyword = "INTEREST",
+                            KeywordLength = 0,
+                            Type = "Income"
+                        },
+                        new
+                        {
+                            Id = 57,
+                            Category = "Bill",
+                            Keyword = "BCA CARD",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 58,
+                            Category = "Food",
+                            Keyword = "Cinnamon",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 59,
+                            Category = "Food",
+                            Keyword = "WSS BATU",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 60,
+                            Category = "Food",
+                            Keyword = "Jus Masa",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 61,
+                            Category = "Food",
+                            Keyword = "MISANTO",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 62,
+                            Category = "Food",
+                            Keyword = "KYOUDAI",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 63,
+                            Category = "Stock",
+                            Keyword = "1310013",
+                            KeywordLength = 0,
+                            Type = "Saving"
+                        },
+                        new
+                        {
+                            Id = 64,
+                            Category = "Bill",
+                            Keyword = "IZUDDIN",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 65,
+                            Category = "Bill",
+                            Keyword = "Netflix",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 66,
+                            Category = "Bill",
+                            Keyword = "chatGPT",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 67,
+                            Category = "Withdrawing",
+                            Keyword = "Tarikan",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 68,
+                            Category = "Food",
+                            Keyword = "Holland",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 69,
+                            Category = "Food",
+                            Keyword = "KWETIAU",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 70,
+                            Category = "Transfer/Admin Fee",
+                            Keyword = "Charges",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 71,
+                            Category = "Food",
+                            Keyword = "LAKLAK",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 72,
+                            Category = "Bill",
+                            Keyword = "WIGUNA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 73,
+                            Category = "Food",
+                            Keyword = "Conato",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 74,
+                            Category = "Food",
+                            Keyword = "Pepito",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 75,
+                            Category = "Entertainment",
+                            Keyword = "PT MNC",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 76,
+                            Category = "Food",
+                            Keyword = "INDOMA",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 77,
+                            Category = "Food",
+                            Keyword = "Es Teh",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 78,
+                            Category = "Food",
+                            Keyword = "Sambal",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 79,
+                            Category = "Food",
+                            Keyword = "WARUNG",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 80,
+                            Category = "Medical",
+                            Keyword = "Klinik",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 81,
+                            Category = "Clothing",
+                            Keyword = "Uniqlo",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 82,
+                            Category = "Salary",
+                            Keyword = "K2FLY",
+                            KeywordLength = 0,
+                            Type = "Income"
+                        },
+                        new
+                        {
+                            Id = 83,
+                            Category = "",
+                            Keyword = "CRxxx",
+                            KeywordLength = 0,
+                            Type = "Income"
+                        },
+                        new
+                        {
+                            Id = 84,
+                            Category = "Bill",
+                            Keyword = "Bills",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 85,
+                            Category = "Housekeeping",
+                            Keyword = "londri",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 86,
+                            Category = "Food",
+                            Keyword = "Yoyok",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 87,
+                            Category = "Food",
+                            Keyword = "Bubur",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 88,
+                            Category = "Food",
+                            Keyword = "Gohan",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 89,
+                            Category = "Food",
+                            Keyword = "Esteh",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 90,
+                            Category = "Food",
+                            Keyword = "Donut",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 91,
+                            Category = "Food",
+                            Keyword = "BAKMI",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 92,
+                            Category = "Food",
+                            Keyword = "Bakso",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 93,
+                            Category = "Food",
+                            Keyword = "Pempek",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 94,
+                            Category = "Tax",
+                            Keyword = "Pajak",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 95,
+                            Category = "Food",
+                            Keyword = "Donat",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 96,
+                            Category = "",
+                            Keyword = "nelly",
+                            KeywordLength = 0,
+                            Type = "Fund Switching"
+                        },
+                        new
+                        {
+                            Id = 97,
+                            Category = "Bill",
+                            Keyword = "BPJS",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 98,
+                            Category = "Food",
+                            Keyword = "Roti",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 99,
+                            Category = "Food",
+                            Keyword = "Nasi",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 100,
+                            Category = "Food",
+                            Keyword = "Gogo",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 101,
+                            Category = "Groceries",
+                            Keyword = "Arys",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 102,
+                            Category = "Food",
+                            Keyword = "Mie",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 103,
+                            Category = "Groceries",
+                            Keyword = "ARY",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 104,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "PET",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 105,
+                            Category = "Vet and Dog Supply",
+                            Keyword = "VET",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        },
+                        new
+                        {
+                            Id = 106,
+                            Category = "Transfer/Admin Fee",
+                            Keyword = "FEE",
+                            KeywordLength = 0,
+                            Type = "Expense"
+                        });
+                });
+
             modelBuilder.Entity("PersonalFinance.Domain.Entities.Transaction", b =>
                 {
                     b.Property<int>("Id")
@@ -43,7 +930,8 @@ namespace PersonalFinance.Persistence.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("currency");
 
                     b.Property<DateTime>("Date")
@@ -52,7 +940,8 @@ namespace PersonalFinance.Persistence.Migrations
 
                     b.Property<string>("Description")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("description");
 
                     b.Property<decimal?>("ExchangeRate")
@@ -61,22 +950,26 @@ namespace PersonalFinance.Persistence.Migrations
 
                     b.Property<string>("Flow")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("flow");
 
                     b.Property<string>("Remarks")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)")
                         .HasColumnName("remarks");
 
                     b.Property<string>("Type")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("type");
 
                     b.Property<string>("Wallet")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
                         .HasColumnName("wallet");
 
                     b.HasKey("Id")
