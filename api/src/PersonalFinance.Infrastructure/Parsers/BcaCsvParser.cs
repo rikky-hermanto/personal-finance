@@ -3,6 +3,13 @@ using PersonalFinance.Domain.Entities;
 
 public class BcaCsvParser : IBankStatementParser
 {
+    private readonly ICategoryRuleService _categoryRuleService;
+
+    public BcaCsvParser(ICategoryRuleService categoryRuleService)
+    {
+        _categoryRuleService = categoryRuleService;
+    }
+
     public async Task<List<Transaction>> ParseAsync(Stream fileStream, string? password = null)
     {
         var transactions = new List<Transaction>();
@@ -43,7 +50,7 @@ public class BcaCsvParser : IBankStatementParser
                 // Optionally skip or handle empty amount fields
                 continue;
             }
-                var flow = parts[4].Trim();
+            var flow = parts[4].Trim();
 
             decimal? balance = null;
             if (!string.IsNullOrWhiteSpace(parts[5]))
@@ -54,7 +61,7 @@ public class BcaCsvParser : IBankStatementParser
                     balance = parsedBalance;
             }
 
-            transactions.Add(new Transaction
+            var transaction = new Transaction
             {
                 Date = date,
                 Description = description,
@@ -66,7 +73,10 @@ public class BcaCsvParser : IBankStatementParser
                 AmountIdr = amount,
                 Currency = "IDR",
                 ExchangeRate = null
-            });
+            };
+
+            transaction.Category = await _categoryRuleService.CategorizeAsync(transaction.Description, transaction.Type);
+            transactions.Add(transaction);
         }
 
         return transactions;
