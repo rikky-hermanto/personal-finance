@@ -8,6 +8,7 @@ namespace PersonalFinance.Persistence
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
         public DbSet<Transaction> Transactions => Set<Transaction>();
+        public DbSet<CategoryRule> CategoryRules => Set<CategoryRule>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

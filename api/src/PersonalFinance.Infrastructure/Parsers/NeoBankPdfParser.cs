@@ -10,6 +10,13 @@ public class NeoBankPdfParser : IBankStatementParser
     private static readonly Regex DateTimeRegex = new(@"^(?<date>\d{2} \w{3} \d{4})(?:\s+(?<time>\d{2}:\d{2}:\d{2}))?", RegexOptions.Compiled);
     private static readonly Regex AmountRegex = new(@"-?[\d.]+,\d{2}", RegexOptions.Compiled);
 
+    private readonly ICategoryRuleService _categoryRuleService;
+
+    public NeoBankPdfParser(ICategoryRuleService categoryRuleService)
+    {
+        _categoryRuleService = categoryRuleService;
+    }
+
     public async Task<List<Transaction>> ParseAsync(Stream fileStream, string? password = null)
     {
         var transactions = new List<Transaction>();
@@ -83,7 +90,7 @@ public class NeoBankPdfParser : IBankStatementParser
 
                 if (!TryParseEuropeanDecimal(mutation, out var amount)) { LogSkip(entry, "Mutation parse fail."); continue; }
 
-                transactions.Add(new Transaction
+                var transaction = new Transaction
                 {
                     Date = dateTime,
                     Description = desc,
@@ -95,7 +102,11 @@ public class NeoBankPdfParser : IBankStatementParser
                     AmountIdr = Math.Abs(amount),
                     Currency = "IDR",
                     ExchangeRate = null
-                });
+                };
+
+                transaction.Category = await _categoryRuleService.CategorizeAsync(transaction.Description, transaction.Type);
+
+                transactions.Add(transaction);
             }
             catch (Exception ex)
             {
