@@ -51,53 +51,52 @@ public class NeoBankPdfParser : IBankStatementParser
                 var dateTimeMatch = DateTimeRegex.Match(entry);
                 if (!dateTimeMatch.Success) { LogSkip(entry, "Invalid date/time format."); continue; }
 
-                    // Try to extract numbers from the end
+                // Try to extract numbers from the end
                 var dateStr = dateTimeMatch.Groups["date"].Value;
                 var timeStr = dateTimeMatch.Groups["time"].Success ? dateTimeMatch.Groups["time"].Value : null;
                 var dateTimeStr = timeStr != null ? $"{dateStr} {timeStr}" : dateStr;
                 if (!DateTime.TryParseExact(dateTimeStr, new[] { "dd MMM yyyy HH:mm:ss", "dd MMM yyyy" },
                     CultureInfo.InvariantCulture, DateTimeStyles.None, out var dateTime))
-                    {
+                {
                     LogSkip(entry, "Unparsable DateTime.");
-                        // Description is everything between time (if present) or date and the first number
-                        continue;
-                    }
+                    // Description is everything between time (if present) or date and the first number
+                    continue;
+                }
 
                 dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
 
                 var numberMatches = AmountRegex.Matches(entry);
                 if (numberMatches.Count < 2)
-            {
+                {
                     LogSkip(entry, "Not enough numeric values.");
-
                     continue;
-    }
+                }
 
                 var mutation = numberMatches[^2].Value;
                 var balance = numberMatches[^1].Value;
 
                 var descStart = dateTimeMatch.Length;
-                var descEnd = entry.LastIndexOf(mutation);
+                var descEnd = entry.LastIndexOf(mutation);  
                 if (descEnd <= descStart) { LogSkip(entry, "Description extraction failed."); continue; }
 
                 var desc = entry.Substring(descStart, descEnd - descStart).Trim();
 
                 if (!TryParseEuropeanDecimal(mutation, out var amount)) { LogSkip(entry, "Mutation parse fail."); continue; }
 
-        transactions.Add(new Transaction
-        {
-            Date = dateTime,
+                transactions.Add(new Transaction
+                {
+                    Date = dateTime,
                     Description = desc,
-            Remarks = "",
-            Flow = amount > 0 ? "CR" : "DB",
-            Type = amount > 0 ? "Income" : "Expense",
-            Category = "Untracked Expense",
-            Wallet = "NeoBank",
-            AmountIdr = Math.Abs(amount),
-            Currency = "IDR",
-            ExchangeRate = null
-        });
-    }
+                    Remarks = "",
+                    Flow = amount > 0 ? "CR" : "DB",
+                    Type = amount > 0 ? "Income" : "Expense",
+                    Category = "Untracked Expense",
+                    Wallet = "NeoBank",
+                    AmountIdr = Math.Abs(amount),
+                    Currency = "IDR",
+                    ExchangeRate = null
+                });
+            }
             catch (Exception ex)
             {
                 LogSkip(entry, $"Exception: {ex.Message}");
@@ -106,13 +105,16 @@ public class NeoBankPdfParser : IBankStatementParser
 
         return transactions;
     }
+
     private static bool TryParseEuropeanDecimal(string input, out decimal value)
     {
         var normalized = input.Replace(".", "").Replace(",", ".");
         return decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out value);
     }
+
     private static void LogSkip(string rawEntry, string reason)
     {
         Console.WriteLine($"[NeoBankPdfParser] Skipped Entry: {reason}\n? {rawEntry.Substring(0, Math.Min(100, rawEntry.Length))}\n");
     }
 }
+
