@@ -15,20 +15,19 @@ public class TransactionService : ITransactionService
         _mediator = mediator;
     }
 
-    public async Task<List<Transaction>> AddTransactionsAsync(IEnumerable<Transaction> transactions)
+    public async Task<List<TransactionDto>> AddTransactionsAsync(IEnumerable<TransactionDto> transactionDtos)
     {
         try
         {
-            var newTransactions = await FilterOutDuplicatesAsync(transactions);
-
-            List<Transaction> addedTransactions = new List<Transaction>();
-            foreach (var t in newTransactions)
+            List<TransactionDto> addedDtos = new List<TransactionDto>();
+            foreach (var dto in transactionDtos)
             {
-                var added = await _mediator.Send(new CreateTransactionCommand(t));
-                addedTransactions.Add(added);
+                var entity = MapToEntity(dto);
+                var added = await _mediator.Send(new CreateTransactionCommand(entity));
+                addedDtos.Add(MapToDto(added));
             }
 
-            return addedTransactions;
+            return addedDtos;
         }
         catch (DbUpdateException ex)
         {
@@ -36,22 +35,18 @@ public class TransactionService : ITransactionService
         }
     }
 
-    /// <summary>
-    /// Returns only transactions that do not already exist in the database
-    /// (by Date, Description, Flow, Type, Wallet).
-    /// </summary>
-    public async Task<List<Transaction>> FilterOutDuplicatesAsync(IEnumerable<Transaction> transactions)
+    public async Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos)
     {
-        var keys = transactions
-            .Select(t => new
-            {
-                t.Date,
-                t.Description,
-                t.Flow,
-                t.Type,
-                t.Wallet
-            })
-            .ToList();
+        var keys = transactionDtos
+             .Select(t => new
+             {
+                 t.Date,
+                 t.Description,
+                 t.Flow,
+                 t.Type,
+                 t.Wallet
+             })
+             .ToList();
 
         var dates = keys.Select(k => k.Date).Distinct().ToList();
         var descriptions = keys.Select(k => k.Description).Distinct().ToList();
@@ -80,12 +75,11 @@ public class TransactionService : ITransactionService
             possibleMatches.Select(k => $"{k.Date:u}|{k.Description}|{k.Flow}|{k.Type}|{k.Wallet}")
         );
 
-        return transactions
-            .Where(t => !existingKeySet.Contains($"{t.Date:u}|{t.Description}|{t.Flow}|{t.Type}|{t.Wallet}"))
-            .ToList();
+        return transactionDtos
+              .Where(t => !existingKeySet.Contains($"{t.Date:u}|{t.Description}|{t.Flow}|{t.Type}|{t.Wallet}"))
+              .ToList();
     }
 
-    // New: Get transactions with running balance (on the fly)
     public async Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(string wallet)
     {
         var transactions = await _dbContext.Transactions
@@ -100,23 +94,48 @@ public class TransactionService : ITransactionService
         foreach (var t in transactions)
         {
             runningBalance += t.Flow == "CR" ? t.AmountIdr : -t.AmountIdr;
-            result.Add(new TransactionDto
-            {
-                Id = t.Id,
-                Date = t.Date,
-                Description = t.Description,
-                Remarks = t.Remarks,
-                Flow = t.Flow,
-                Type = t.Type,
-                Category = t.Category,
-                Wallet = t.Wallet,
-                AmountIdr = t.AmountIdr,
-                Currency = t.Currency,
-                ExchangeRate = t.ExchangeRate,
-                Balance = runningBalance
-            });
+            var dto = MapToDto(t);
+            dto.Balance = runningBalance;
+            result.Add(dto);
         }
 
         return result;
+    }
+
+    private static Transaction MapToEntity(TransactionDto dto)
+    {
+        return new Transaction
+        {
+            Id = dto.Id,
+            Date = dto.Date,
+            Description = dto.Description,
+            Remarks = dto.Remarks,
+            Flow = dto.Flow,
+            Type = dto.Type,
+            Category = dto.Category,
+            Wallet = dto.Wallet,
+            AmountIdr = dto.AmountIdr,
+            Currency = dto.Currency,
+            ExchangeRate = dto.ExchangeRate
+        };
+    }
+
+    private static TransactionDto MapToDto(Transaction entity)
+    {
+        return new TransactionDto
+        {
+            Id = entity.Id,
+            Date = entity.Date,
+            Description = entity.Description,
+            Remarks = entity.Remarks,
+            Flow = entity.Flow,
+            Type = entity.Type,
+            Category = entity.Category,
+            Wallet = entity.Wallet,
+            AmountIdr = entity.AmountIdr,
+            Currency = entity.Currency,
+            ExchangeRate = entity.ExchangeRate,
+            // Balance is set in GetTransactionsWithBalanceAsync
+        };
     }
 }

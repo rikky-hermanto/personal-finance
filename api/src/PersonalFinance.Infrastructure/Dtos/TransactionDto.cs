@@ -14,4 +14,7 @@ public class TransactionDto
     public string Currency { get; set; } = "IDR";
     public decimal? ExchangeRate { get; set; }
     public decimal Balance { get; set; } // Calculated on the fly
+
+    // Optional: Used when user wants to create a new category rule from this transaction
+    public CategoryRuleDto? CategoryRuleDto { get; set; }
 }

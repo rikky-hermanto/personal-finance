@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PersonalFinance.Application.Dtos;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Api.Controllers;
@@ -16,21 +17,48 @@ public class CategoryRulesController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetAll()
-        => Ok(await _categoryRuleService.GetAllAsync());
+    {
+        var rules = await _categoryRuleService.GetAllAsync();
+        var dtos = rules.Select(r => new CategoryRuleDto
+        {
+            Id = r.Id,
+            Keyword = r.Keyword,
+            Type = r.Type,
+            Category = r.Category,
+            KeywordLength = r.KeywordLength
+        }).ToList();
+        return Ok(dtos);
+    }
 
     [HttpPost]
-    public async Task<IActionResult> Add(CategoryRule rule)
+    public async Task<IActionResult> Add(CategoryRuleDto ruleDto)
     {
-        var created = await _categoryRuleService.AddAsync(rule);
-        return Ok(created);
+        var created = await _categoryRuleService.AddAsync(ruleDto);
+        var createdDto = new CategoryRuleDto
+        {
+            Id = created.Id,
+            Keyword = created.Keyword,
+            Type = created.Type,
+            Category = created.Category,
+            KeywordLength = created.KeywordLength
+        };
+        return Ok(createdDto);
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> Update(int id, CategoryRule rule)
+    public async Task<IActionResult> Update(int id, CategoryRuleDto ruleDto)
     {
-        var updated = await _categoryRuleService.UpdateAsync(id, rule);
+        var updated = await _categoryRuleService.UpdateAsync(id, ruleDto);
         if (updated == null) return NotFound();
-        return Ok(updated);
+        var updatedDto = new CategoryRuleDto
+        {
+            Id = updated.Id,
+            Keyword = updated.Keyword,
+            Type = updated.Type,
+            Category = updated.Category,
+            KeywordLength = updated.KeywordLength
+        };
+        return Ok(updatedDto);
     }
 
     [HttpDelete("{id}")]
