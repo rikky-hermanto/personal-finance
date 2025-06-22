@@ -1,8 +1,4 @@
-using System.Net;
-using System.Text.Json;
-using MediatR;
 using PersonalFinance.Api.Extensions;
-using PersonalFinance.Api.Models;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Persistence;
 using FluentValidation;

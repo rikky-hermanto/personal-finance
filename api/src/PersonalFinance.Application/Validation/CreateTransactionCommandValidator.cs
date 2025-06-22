@@ -1,5 +1,4 @@
 using FluentValidation;
-using PersonalFinance.Domain.Entities;
 
 public class CreateTransactionCommandValidator : AbstractValidator<CreateTransactionCommand>
 {

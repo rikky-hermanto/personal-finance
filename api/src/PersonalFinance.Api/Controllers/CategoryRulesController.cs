@@ -1,7 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using PersonalFinance.Application.Dtos;
-using PersonalFinance.Domain.Entities;
-
 namespace PersonalFinance.Api.Controllers;
 
 [ApiController]

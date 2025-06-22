@@ -1,4 +1,3 @@
-using PersonalFinance.Domain.Entities;
 using PersonalFinance.Application.Dtos;
 
 public interface ITransactionService

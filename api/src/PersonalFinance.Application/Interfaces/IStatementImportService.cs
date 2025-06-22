@@ -1,5 +1,4 @@
 using PersonalFinance.Application.Dtos;
-using PersonalFinance.Domain.Entities;
 
 public interface IStatementImportService
 {

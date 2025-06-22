@@ -1,11 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Persistence;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using MediatR;
 using PersonalFinance.Application.Commands;
-using PersonalFinance.Application.Dtos;
 
 public class CategoryRuleService : ICategoryRuleService
 {

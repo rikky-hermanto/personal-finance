@@ -1,10 +1,7 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Application.Commands;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Persistence;
-using System.Threading;
-using System.Threading.Tasks;
 
 public class UpdateCategoryRuleCommandHandler : IRequestHandler<UpdateCategoryRuleCommand, CategoryRule?>
 {

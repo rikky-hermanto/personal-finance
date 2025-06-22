@@ -1,8 +1,6 @@
 using MediatR;
 using PersonalFinance.Application.Commands;
 using PersonalFinance.Persistence;
-using System.Threading;
-using System.Threading.Tasks;
 
 public class DeleteCategoryRuleCommandHandler : IRequestHandler<DeleteCategoryRuleCommand, bool>
 {
