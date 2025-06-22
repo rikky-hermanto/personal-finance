@@ -38,6 +38,17 @@ namespace PersonalFinance.Api
             builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
             builder.Services.AddFluentValidationAutoValidation();
 
+            // Add CORS policy for UI at http://localhost:8080/
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowLocalhost8080", policy =>
+                {
+                    policy.WithOrigins("http://localhost:8080")
+                          .AllowAnyHeader()
+                          .AllowAnyMethod();
+                });
+            });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -47,6 +58,9 @@ namespace PersonalFinance.Api
             }
 
             app.UseHttpsRedirection();
+
+            // Enable CORS for the specified UI origin
+            app.UseCors("AllowLocalhost8080");
 
             //Extensions Middleware
             app.UseApiExceptionHandler();  
