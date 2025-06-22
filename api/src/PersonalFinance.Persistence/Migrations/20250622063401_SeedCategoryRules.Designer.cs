@@ -12,7 +12,7 @@ using PersonalFinance.Persistence;
 namespace PersonalFinance.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250621155217_SeedCategoryRules")]
+    [Migration("20250622063401_SeedCategoryRules")]
     partial class SeedCategoryRules
     {
         /// <inheritdoc />
@@ -67,7 +67,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 1,
                             Category = "",
                             Keyword = "BI-FAST CR TRANSFER   DR 562 RIKKI H HASIBUAN",
-                            KeywordLength = 0,
+                            KeywordLength = 45,
                             Type = "Fund Switching"
                         },
                         new
@@ -75,7 +75,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 2,
                             Category = "",
                             Keyword = "BI-FAST CR TRANSFER   DR 490 RIKKI H HASIBUAN",
-                            KeywordLength = 0,
+                            KeywordLength = 45,
                             Type = "Fund Switching"
                         },
                         new
@@ -83,7 +83,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 3,
                             Category = "",
                             Keyword = "TRANSFER OUT RIKKI H HASIBUAN 1310013349",
-                            KeywordLength = 0,
+                            KeywordLength = 40,
                             Type = "Saving"
                         },
                         new
@@ -91,7 +91,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 4,
                             Category = "Bill",
                             Keyword = "TRANSFER OUT MUHAMMAD IZUDDIN HAN",
-                            KeywordLength = 0,
+                            KeywordLength = 33,
                             Type = "Expense"
                         },
                         new
@@ -99,7 +99,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 5,
                             Category = "",
                             Keyword = "Sent money to Rikki H Hasibuan",
-                            KeywordLength = 0,
+                            KeywordLength = 30,
                             Type = "Fund Switching"
                         },
                         new
@@ -107,7 +107,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 6,
                             Category = "",
                             Keyword = "Transfer dari RIKKI H HASIBUAN",
-                            KeywordLength = 0,
+                            KeywordLength = 30,
                             Type = "Fund Switching"
                         },
                         new
@@ -115,7 +115,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 7,
                             Category = "",
                             Keyword = "TRANSFER OUT RIKKI H HASIBUAN",
-                            KeywordLength = 0,
+                            KeywordLength = 29,
                             Type = "Fund Switching"
                         },
                         new
@@ -123,7 +123,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 8,
                             Category = "",
                             Keyword = "Transfer ke Rikki H Hasibuan",
-                            KeywordLength = 0,
+                            KeywordLength = 28,
                             Type = "Fund Switching"
                         },
                         new
@@ -131,7 +131,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 9,
                             Category = "",
                             Keyword = "TRANSFER IN SYAFTRACO",
-                            KeywordLength = 0,
+                            KeywordLength = 21,
                             Type = "Fund Switching"
                         },
                         new
@@ -139,7 +139,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 10,
                             Category = "Vet and Dog Supply",
                             Keyword = "Yayasan Bali Rescue",
-                            KeywordLength = 0,
+                            KeywordLength = 19,
                             Type = "Expense"
                         },
                         new
@@ -147,7 +147,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 11,
                             Category = "Vet and Dog Supply",
                             Keyword = "BERKAT LISAN MULIA",
-                            KeywordLength = 0,
+                            KeywordLength = 18,
                             Type = "Expense"
                         },
                         new
@@ -155,7 +155,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 12,
                             Category = "Self-Care",
                             Keyword = "KADEK KRISNA CHAND",
-                            KeywordLength = 0,
+                            KeywordLength = 18,
                             Type = "Expense"
                         },
                         new
@@ -163,7 +163,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 13,
                             Category = "Bill",
                             Keyword = "LIDYA EVANGELISTA",
-                            KeywordLength = 0,
+                            KeywordLength = 17,
                             Type = "Expense"
                         },
                         new
@@ -171,7 +171,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 14,
                             Category = "Vet and Dog Supply",
                             Keyword = "BALI RESCUE DOG",
-                            KeywordLength = 0,
+                            KeywordLength = 15,
                             Type = "Expense"
                         },
                         new
@@ -179,7 +179,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 15,
                             Category = "Vet and Dog Supply",
                             Keyword = "NI MADE CHRISTA",
-                            KeywordLength = 0,
+                            KeywordLength = 15,
                             Type = "Expense"
                         },
                         new
@@ -187,7 +187,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 16,
                             Category = "Vet and Dog Supply",
                             Keyword = "Nyoman Sunita",
-                            KeywordLength = 0,
+                            KeywordLength = 13,
                             Type = "Expense"
                         },
                         new
@@ -195,7 +195,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 17,
                             Category = "Saving Interest",
                             Keyword = "Bunga Didapat",
-                            KeywordLength = 0,
+                            KeywordLength = 13,
                             Type = "Income"
                         },
                         new
@@ -203,7 +203,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 18,
                             Category = "Self-Care",
                             Keyword = "Saepul Anwar",
-                            KeywordLength = 0,
+                            KeywordLength = 12,
                             Type = "Expense"
                         },
                         new
@@ -211,7 +211,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 19,
                             Category = "Housekeeping",
                             Keyword = "Housekeeping",
-                            KeywordLength = 0,
+                            KeywordLength = 12,
                             Type = "Expense"
                         },
                         new
@@ -219,7 +219,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 20,
                             Category = "Bill",
                             Keyword = "KETUT CATRA",
-                            KeywordLength = 0,
+                            KeywordLength = 11,
                             Type = "Expense"
                         },
                         new
@@ -227,7 +227,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 21,
                             Category = "Food",
                             Keyword = "Olahan Laut",
-                            KeywordLength = 0,
+                            KeywordLength = 11,
                             Type = "Expense"
                         },
                         new
@@ -235,7 +235,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 22,
                             Category = "Food",
                             Keyword = "Red Dragon",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -243,7 +243,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 23,
                             Category = "Food",
                             Keyword = "Tomoro BNI",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -251,7 +251,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 24,
                             Category = "Food",
                             Keyword = "Bakso Solo",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -259,7 +259,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 25,
                             Category = "Food",
                             Keyword = "BALE UDANG",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -267,7 +267,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 26,
                             Category = "Food",
                             Keyword = "JUICE TIME",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -275,7 +275,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 27,
                             Category = "Food",
                             Keyword = "Rumah Maka",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -283,7 +283,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 28,
                             Category = "Food",
                             Keyword = "Kedai Kopi",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -291,7 +291,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 29,
                             Category = "Food",
                             Keyword = "Kopi Kenan",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -299,7 +299,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 30,
                             Category = "Food",
                             Keyword = "Gusto Gela",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -307,7 +307,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 31,
                             Category = "Food",
                             Keyword = "BIJI WORLD",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -315,7 +315,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 32,
                             Category = "Groceries",
                             Keyword = "NIRMALA BA",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -323,7 +323,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 33,
                             Category = "Food",
                             Keyword = "Olahan Lau",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -331,7 +331,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 34,
                             Category = "Motor/Car Service",
                             Keyword = "Astra Moto",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -339,7 +339,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 35,
                             Category = "Motor/Car Service",
                             Keyword = "Planet Ban",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -347,7 +347,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 36,
                             Category = "Workstation",
                             Keyword = "DAPUR PRIM",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -355,7 +355,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 37,
                             Category = "Vet and Dog Supply",
                             Keyword = "TIMBUL JAY",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -363,7 +363,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 38,
                             Category = "",
                             Keyword = "transferxx",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Fund Switching"
                         },
                         new
@@ -371,7 +371,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 39,
                             Category = "Food",
                             Keyword = "AYAM KREME",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -379,7 +379,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 40,
                             Category = "Food",
                             Keyword = "RM ASLI MI",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -387,7 +387,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 41,
                             Category = "Groceries",
                             Keyword = "GRANDLUCKY",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -395,7 +395,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 42,
                             Category = "Food",
                             Keyword = "WARKOP AGE",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -403,7 +403,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 43,
                             Category = "Groceries",
                             Keyword = "Coco Super",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -411,7 +411,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 44,
                             Category = "Food",
                             Keyword = "WR WAJAR H",
-                            KeywordLength = 0,
+                            KeywordLength = 10,
                             Type = "Expense"
                         },
                         new
@@ -419,7 +419,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 45,
                             Category = "Bill",
                             Keyword = "TELKOMSEL",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -427,7 +427,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 46,
                             Category = "Food",
                             Keyword = "Dimsum GM",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -435,7 +435,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 47,
                             Category = "Food",
                             Keyword = "RM PADANG",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -443,7 +443,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 48,
                             Category = "Food",
                             Keyword = "REDDRAGON",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -451,7 +451,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 49,
                             Category = "Groceries",
                             Keyword = "LAKSMI UD",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -459,7 +459,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 50,
                             Category = "Vet and Dog Supply",
                             Keyword = "Furbabies",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -467,7 +467,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 51,
                             Category = "Vet and Dog Supply",
                             Keyword = "EKA PRINT",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -475,7 +475,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 52,
                             Category = "Transfer/Admin Fee",
                             Keyword = "Biaya Adm",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -483,7 +483,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 53,
                             Category = "Food",
                             Keyword = "UBI BAKAR",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -491,7 +491,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 54,
                             Category = "Food",
                             Keyword = "MOTO KOPI",
-                            KeywordLength = 0,
+                            KeywordLength = 9,
                             Type = "Expense"
                         },
                         new
@@ -499,7 +499,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 55,
                             Category = "Food",
                             Keyword = "MULARASA",
-                            KeywordLength = 0,
+                            KeywordLength = 8,
                             Type = "Expense"
                         },
                         new
@@ -507,7 +507,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 56,
                             Category = "Saving Interest",
                             Keyword = "INTEREST",
-                            KeywordLength = 0,
+                            KeywordLength = 8,
                             Type = "Income"
                         },
                         new
@@ -515,7 +515,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 57,
                             Category = "Bill",
                             Keyword = "BCA CARD",
-                            KeywordLength = 0,
+                            KeywordLength = 8,
                             Type = "Expense"
                         },
                         new
@@ -523,7 +523,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 58,
                             Category = "Food",
                             Keyword = "Cinnamon",
-                            KeywordLength = 0,
+                            KeywordLength = 8,
                             Type = "Expense"
                         },
                         new
@@ -531,7 +531,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 59,
                             Category = "Food",
                             Keyword = "WSS BATU",
-                            KeywordLength = 0,
+                            KeywordLength = 8,
                             Type = "Expense"
                         },
                         new
@@ -539,7 +539,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 60,
                             Category = "Food",
                             Keyword = "Jus Masa",
-                            KeywordLength = 0,
+                            KeywordLength = 8,
                             Type = "Expense"
                         },
                         new
@@ -547,7 +547,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 61,
                             Category = "Food",
                             Keyword = "MISANTO",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -555,7 +555,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 62,
                             Category = "Food",
                             Keyword = "KYOUDAI",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -563,7 +563,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 63,
                             Category = "Stock",
                             Keyword = "1310013",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Saving"
                         },
                         new
@@ -571,7 +571,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 64,
                             Category = "Bill",
                             Keyword = "IZUDDIN",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -579,7 +579,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 65,
                             Category = "Bill",
                             Keyword = "Netflix",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -587,7 +587,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 66,
                             Category = "Bill",
                             Keyword = "chatGPT",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -595,7 +595,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 67,
                             Category = "Withdrawing",
                             Keyword = "Tarikan",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -603,7 +603,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 68,
                             Category = "Food",
                             Keyword = "Holland",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -611,7 +611,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 69,
                             Category = "Food",
                             Keyword = "KWETIAU",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -619,7 +619,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 70,
                             Category = "Transfer/Admin Fee",
                             Keyword = "Charges",
-                            KeywordLength = 0,
+                            KeywordLength = 7,
                             Type = "Expense"
                         },
                         new
@@ -627,7 +627,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 71,
                             Category = "Food",
                             Keyword = "LAKLAK",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -635,7 +635,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 72,
                             Category = "Bill",
                             Keyword = "WIGUNA",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -643,7 +643,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 73,
                             Category = "Food",
                             Keyword = "Conato",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -651,7 +651,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 74,
                             Category = "Food",
                             Keyword = "Pepito",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -659,7 +659,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 75,
                             Category = "Entertainment",
                             Keyword = "PT MNC",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -667,7 +667,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 76,
                             Category = "Food",
                             Keyword = "INDOMA",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -675,7 +675,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 77,
                             Category = "Food",
                             Keyword = "Es Teh",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -683,7 +683,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 78,
                             Category = "Food",
                             Keyword = "Sambal",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -691,7 +691,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 79,
                             Category = "Food",
                             Keyword = "WARUNG",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -699,7 +699,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 80,
                             Category = "Medical",
                             Keyword = "Klinik",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -707,7 +707,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 81,
                             Category = "Clothing",
                             Keyword = "Uniqlo",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -715,7 +715,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 82,
                             Category = "Salary",
                             Keyword = "K2FLY",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Income"
                         },
                         new
@@ -723,7 +723,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 83,
                             Category = "",
                             Keyword = "CRxxx",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Income"
                         },
                         new
@@ -731,7 +731,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 84,
                             Category = "Bill",
                             Keyword = "Bills",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -739,7 +739,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 85,
                             Category = "Housekeeping",
                             Keyword = "londri",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -747,7 +747,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 86,
                             Category = "Food",
                             Keyword = "Yoyok",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -755,7 +755,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 87,
                             Category = "Food",
                             Keyword = "Bubur",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -763,7 +763,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 88,
                             Category = "Food",
                             Keyword = "Gohan",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -771,7 +771,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 89,
                             Category = "Food",
                             Keyword = "Esteh",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -779,7 +779,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 90,
                             Category = "Food",
                             Keyword = "Donut",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -787,7 +787,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 91,
                             Category = "Food",
                             Keyword = "BAKMI",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -795,7 +795,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 92,
                             Category = "Food",
                             Keyword = "Bakso",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -803,7 +803,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 93,
                             Category = "Food",
                             Keyword = "Pempek",
-                            KeywordLength = 0,
+                            KeywordLength = 6,
                             Type = "Expense"
                         },
                         new
@@ -811,7 +811,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 94,
                             Category = "Tax",
                             Keyword = "Pajak",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -819,7 +819,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 95,
                             Category = "Food",
                             Keyword = "Donat",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Expense"
                         },
                         new
@@ -827,7 +827,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 96,
                             Category = "",
                             Keyword = "nelly",
-                            KeywordLength = 0,
+                            KeywordLength = 5,
                             Type = "Fund Switching"
                         },
                         new
@@ -835,7 +835,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 97,
                             Category = "Bill",
                             Keyword = "BPJS",
-                            KeywordLength = 0,
+                            KeywordLength = 4,
                             Type = "Expense"
                         },
                         new
@@ -843,7 +843,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 98,
                             Category = "Food",
                             Keyword = "Roti",
-                            KeywordLength = 0,
+                            KeywordLength = 4,
                             Type = "Expense"
                         },
                         new
@@ -851,7 +851,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 99,
                             Category = "Food",
                             Keyword = "Nasi",
-                            KeywordLength = 0,
+                            KeywordLength = 4,
                             Type = "Expense"
                         },
                         new
@@ -859,7 +859,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 100,
                             Category = "Food",
                             Keyword = "Gogo",
-                            KeywordLength = 0,
+                            KeywordLength = 4,
                             Type = "Expense"
                         },
                         new
@@ -867,7 +867,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 101,
                             Category = "Groceries",
                             Keyword = "Arys",
-                            KeywordLength = 0,
+                            KeywordLength = 4,
                             Type = "Expense"
                         },
                         new
@@ -875,7 +875,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 102,
                             Category = "Food",
                             Keyword = "Mie",
-                            KeywordLength = 0,
+                            KeywordLength = 3,
                             Type = "Expense"
                         },
                         new
@@ -883,7 +883,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 103,
                             Category = "Groceries",
                             Keyword = "ARY",
-                            KeywordLength = 0,
+                            KeywordLength = 3,
                             Type = "Expense"
                         },
                         new
@@ -891,7 +891,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 104,
                             Category = "Vet and Dog Supply",
                             Keyword = "PET",
-                            KeywordLength = 0,
+                            KeywordLength = 3,
                             Type = "Expense"
                         },
                         new
@@ -899,7 +899,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 105,
                             Category = "Vet and Dog Supply",
                             Keyword = "VET",
-                            KeywordLength = 0,
+                            KeywordLength = 3,
                             Type = "Expense"
                         },
                         new
@@ -907,7 +907,7 @@ namespace PersonalFinance.Persistence.Migrations
                             Id = 106,
                             Category = "Transfer/Admin Fee",
                             Keyword = "FEE",
-                            KeywordLength = 0,
+                            KeywordLength = 3,
                             Type = "Expense"
                         });
                 });
