@@ -16,7 +16,7 @@ public class CategoryRuleService : ICategoryRuleService
     public async Task<string> CategorizeAsync(string description, string type)
     {
         var rules = await _dbContext.CategoryRules
-            .Where(r => r.Type.Equals(type, StringComparison.OrdinalIgnoreCase))
+            .Where(r => r.Type.ToLower() == type.ToLower())
             .OrderByDescending(r => r.KeywordLength)
             .ToListAsync();
 
@@ -56,6 +56,7 @@ public class CategoryRuleService : ICategoryRuleService
         existing.Type = rule.Type;
         existing.Category = rule.Category;
         existing.KeywordLength = rule.Keyword.Length;
+        rule.KeywordLength = rule.Keyword.Length;
         await _dbContext.SaveChangesAsync();
         return existing;
     }
