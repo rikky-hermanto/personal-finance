@@ -40,7 +40,7 @@ public class TransactionService : ITransactionService
     /// Returns only transactions that do not already exist in the database
     /// (by Date, Description, Flow, Type, Wallet).
     /// </summary>
-    private async Task<List<Transaction>> FilterOutDuplicatesAsync(IEnumerable<Transaction> transactions)
+    public async Task<List<Transaction>> FilterOutDuplicatesAsync(IEnumerable<Transaction> transactions)
     {
         var keys = transactions
             .Select(t => new
