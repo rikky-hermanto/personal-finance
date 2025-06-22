@@ -1,24 +1,35 @@
-using System.Threading;
-using System.Threading.Tasks;
+using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Application.Commands;
 using PersonalFinance.Domain.Entities;
-using PersonalFinance.Infrastructure.Parsers;
+using PersonalFinance.Persistence;
 
 public class CreateCategoryRuleCommandHandler : IRequestHandler<CreateCategoryRuleCommand, CategoryRule>
 {
-    private readonly ICategoryRuleService _categoryRuleService;
+    private readonly AppDbContext _dbContext;
+    private readonly IValidator<CreateCategoryRuleCommand> _validator;
+    private readonly IMediator _mediator;
 
-    public CreateCategoryRuleCommandHandler(ICategoryRuleService categoryRuleService)
+    public CreateCategoryRuleCommandHandler(AppDbContext dbContext, IMediator mediator, IValidator<CreateCategoryRuleCommand> validator)
     {
-        _categoryRuleService = categoryRuleService;
+        _dbContext = dbContext;
+        _validator = validator;
+        _mediator = mediator;
     }
 
     public async Task<CategoryRule> Handle(CreateCategoryRuleCommand request, CancellationToken cancellationToken)
     {
-        // Optionally, you could check for duplicates here if needed.
-        // The service will set KeywordLength automatically.
-        var createdRule = await _categoryRuleService.AddAsync(request.Rule);
-        return createdRule;
+        // FluentValidation
+        await _validator.ValidateAndThrowAsync(request, cancellationToken);
+
+        var t = request.CategoryRule;
+
+        await _dbContext.CategoryRules.AddAsync(t, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _mediator.Publish(new CategoryRuleCreatedEvent(t), cancellationToken);
+        return t;
     }
 }
+ 
