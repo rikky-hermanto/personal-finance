@@ -1,14 +1,13 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
-using PersonalFinance.Domain.Entities;
-using System.Formats.Asn1;
+using PersonalFinance.Application.Dtos;
 using System.Globalization;
 
 namespace PersonalFinance.Infrastructure.Parsers;
 
-public class CsvTransactionParser
+public class CsvTransactionParser : IBankStatementParser
 {
-    public async Task<List<Transaction>> ParseAsync(Stream fileStream)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
     {
         using var reader = new StreamReader(fileStream);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -17,22 +16,24 @@ public class CsvTransactionParser
             MissingFieldFound = null
         });
 
-        var transactions = new List<Transaction>();
+        var transactions = new List<TransactionDto>();
 
         await foreach (var record in csv.GetRecordsAsync<dynamic>())
         {
-            var t = new Transaction();
-
-            t.Date = DateTime.Parse(record.Date ?? record["Date"]);
-            t.Remarks = record.Remarks ?? "";
-            t.Description = record.Description ?? "";
-            t.Flow = record.Flow ?? "DB";
-            t.Type = record.Type ?? (t.Flow == "CR" ? "Income" : "Expense");
-            t.Category = record.Category ?? "Untracked Expense";
-            t.Wallet = record.Wallet ?? "";
-            t.AmountIdr = ParseCurrency(record["Amount (IDR)"]);
-            t.Currency = "IDR"; // assuming fixed
-            t.ExchangeRate = null; // not in your sample
+            var t = new TransactionDto
+            {
+                Date = DateTime.Parse(record.Date ?? record["Date"]),
+                Remarks = record.Remarks ?? "",
+                Description = record.Description ?? "",
+                Flow = record.Flow ?? "DB",
+                Type = record.Type ?? (record.Flow == "CR" ? "Income" : "Expense"),
+                Category = record.Category ?? "Untracked Expense",
+                Wallet = record.Wallet ?? "",
+                AmountIdr = ParseCurrency(record["Amount (IDR)"]),
+                Currency = "IDR", // assuming fixed
+                ExchangeRate = null, // not in your sample
+                Balance = 0
+            };
 
             transactions.Add(t);
         }

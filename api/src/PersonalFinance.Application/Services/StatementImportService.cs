@@ -1,4 +1,5 @@
 using PersonalFinance.Domain.Entities;
+using PersonalFinance.Application.Dtos;
 
 public class StatementImportService : IStatementImportService
 {
@@ -13,7 +14,7 @@ public class StatementImportService : IStatementImportService
         };
     }
 
-    public async Task<List<Transaction>> ImportAsync(Stream stream, string bankCode, string? password = null)
+    public async Task<List<TransactionDto>> ImportAsync(Stream stream, string bankCode, string? password = null)
     {
         if (!_parsers.TryGetValue(bankCode, out var parser))
             throw new NotSupportedException($"Bank '{bankCode}' is not supported.");

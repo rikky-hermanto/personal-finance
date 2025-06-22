@@ -4,9 +4,9 @@ using PersonalFinance.Application.Dtos;
 public interface ITransactionService
 {
     /// <summary>
-    /// Adds only new (non-duplicate) transactions and returns the added transactions.
+    /// Adds only new (non-duplicate) transactions and returns the added transactions as DTOs.
     /// </summary>
-    Task<List<Transaction>> AddTransactionsAsync(IEnumerable<Transaction> transactions);
+    Task<List<TransactionDto>> AddTransactionsAsync(IEnumerable<TransactionDto> transactionDtos);
 
     /// <summary>
     /// Returns transactions with running balance for a wallet.
@@ -15,7 +15,7 @@ public interface ITransactionService
 
     /// <summary>
     /// Returns only transactions that do not already exist in the database
-    /// (by Date, Description, Flow, Type, Wallet).
+    /// (by Date, Description, Flow, Type, Wallet) as DTOs.
     /// </summary>
-    Task<List<Transaction>> FilterOutDuplicatesAsync(IEnumerable<Transaction> transactions);
+    Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos);
 }

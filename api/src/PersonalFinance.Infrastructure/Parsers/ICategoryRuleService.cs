@@ -1,12 +1,11 @@
-﻿using PersonalFinance.Domain.Entities;
-
+﻿
 public interface ICategoryRuleService
 {
     Task<string> CategorizeAsync(string description, string type);
 
-    Task<List<CategoryRule>> GetAllAsync();
-    Task<CategoryRule?> GetByIdAsync(int id);
-    Task<CategoryRule> AddAsync(CategoryRule rule);
-    Task<CategoryRule?> UpdateAsync(int id, CategoryRule rule);
+    Task<List<CategoryRuleDto>> GetAllAsync();
+    Task<CategoryRuleDto?> GetByIdAsync(int id);
+    Task<CategoryRuleDto> AddAsync(CategoryRuleDto rule);
+    Task<CategoryRuleDto?> UpdateAsync(int id, CategoryRuleDto rule);
     Task<bool> DeleteAsync(int id);
 }

@@ -1,5 +1,5 @@
 using System.Globalization;
-using PersonalFinance.Domain.Entities;
+using PersonalFinance.Application.Dtos;
 
 public class BcaCsvParser : IBankStatementParser
 {
@@ -10,9 +10,9 @@ public class BcaCsvParser : IBankStatementParser
         _categoryRuleService = categoryRuleService;
     }
 
-    public async Task<List<Transaction>> ParseAsync(Stream fileStream, string? password = null)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
     {
-        var transactions = new List<Transaction>();
+        var transactions = new List<TransactionDto>();
         using var reader = new StreamReader(fileStream);
 
         // Dynamically skip lines until the header is found
@@ -61,7 +61,7 @@ public class BcaCsvParser : IBankStatementParser
                     balance = parsedBalance;
             }
 
-            var transaction = new Transaction
+            var transaction = new TransactionDto
             {
                 Date = date,
                 Description = description,

@@ -3,14 +3,19 @@ using PersonalFinance.Domain.Entities;
 using PersonalFinance.Persistence;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using MediatR;
+using PersonalFinance.Application.Commands;
+using PersonalFinance.Application.Dtos;
 
 public class CategoryRuleService : ICategoryRuleService
 {
     private readonly AppDbContext _dbContext;
+    private readonly IMediator _mediator;
 
-    public CategoryRuleService(AppDbContext dbContext)
+    public CategoryRuleService(AppDbContext dbContext, IMediator mediator)
     {
         _dbContext = dbContext;
+        _mediator = mediator;
     }
 
     public async Task<string> CategorizeAsync(string description, string type)
@@ -28,45 +33,60 @@ public class CategoryRuleService : ICategoryRuleService
         return "Untracked Category";
     }
 
-    public async Task<List<CategoryRule>> GetAllAsync()
+    public async Task<List<CategoryRuleDto>> GetAllAsync()
     {
-        return await _dbContext.CategoryRules
+        var rules = await _dbContext.CategoryRules
             .OrderByDescending(r => r.KeywordLength)
             .ToListAsync();
+        return rules.Select(MapToDto).ToList();
     }
 
-    public async Task<CategoryRule?> GetByIdAsync(int id)
+    public async Task<CategoryRuleDto?> GetByIdAsync(int id)
     {
-        return await _dbContext.CategoryRules.FindAsync(id);
+        var rule = await _dbContext.CategoryRules.FindAsync(id);
+        return rule == null ? null : MapToDto(rule);
     }
 
-    public async Task<CategoryRule> AddAsync(CategoryRule rule)
+    public async Task<CategoryRuleDto> AddAsync(CategoryRuleDto ruleDto)
     {
-        rule.KeywordLength = rule.Keyword.Length;
-        _dbContext.CategoryRules.Add(rule);
-        await _dbContext.SaveChangesAsync();
-        return rule;
+        var rule = MapToEntity(ruleDto);
+        var created = await _mediator.Send(new CreateCategoryRuleCommand(rule));
+        return MapToDto(created);
     }
 
-    public async Task<CategoryRule?> UpdateAsync(int id, CategoryRule rule)
+    public async Task<CategoryRuleDto?> UpdateAsync(int id, CategoryRuleDto ruleDto)
     {
-        var existing = await _dbContext.CategoryRules.FindAsync(id);
-        if (existing == null) return null;
-        existing.Keyword = rule.Keyword;
-        existing.Type = rule.Type;
-        existing.Category = rule.Category;
-        existing.KeywordLength = rule.Keyword.Length;
-        rule.KeywordLength = rule.Keyword.Length;
-        await _dbContext.SaveChangesAsync();
-        return existing;
+        var rule = MapToEntity(ruleDto);
+        var updated = await _mediator.Send(new UpdateCategoryRuleCommand(id, rule));
+        return updated == null ? null : MapToDto(updated);
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var rule = await _dbContext.CategoryRules.FindAsync(id);
-        if (rule == null) return false;
-        _dbContext.CategoryRules.Remove(rule);
-        await _dbContext.SaveChangesAsync();
-        return true;
+        return await _mediator.Send(new DeleteCategoryRuleCommand(id));
+    }
+
+    private static CategoryRuleDto MapToDto(CategoryRule entity)
+    {
+        return new CategoryRuleDto
+        {
+            Id = entity.Id,
+            Keyword = entity.Keyword,
+            Type = entity.Type,
+            Category = entity.Category,
+            KeywordLength = entity.KeywordLength
+        };
+    }
+
+    private static CategoryRule MapToEntity(CategoryRuleDto dto)
+    {
+        return new CategoryRule
+        {
+            Id = dto.Id,
+            Keyword = dto.Keyword,
+            Type = dto.Type,
+            Category = dto.Category,
+            KeywordLength = dto.KeywordLength
+        };
     }
 }

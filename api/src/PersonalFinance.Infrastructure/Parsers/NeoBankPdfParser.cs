@@ -1,5 +1,5 @@
 using UglyToad.PdfPig;
-using PersonalFinance.Domain.Entities;
+using PersonalFinance.Application.Dtos;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -17,9 +17,9 @@ public class NeoBankPdfParser : IBankStatementParser
         _categoryRuleService = categoryRuleService;
     }
 
-    public async Task<List<Transaction>> ParseAsync(Stream fileStream, string? password = null)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
     {
-        var transactions = new List<Transaction>();
+        var transactions = new List<TransactionDto>();
         using var pdf = password == null
             ? PdfDocument.Open(fileStream)
             : PdfDocument.Open(fileStream, new ParsingOptions { Password = password });
@@ -90,7 +90,7 @@ public class NeoBankPdfParser : IBankStatementParser
 
                 if (!TryParseEuropeanDecimal(mutation, out var amount)) { LogSkip(entry, "Mutation parse fail."); continue; }
 
-                var transaction = new Transaction
+                var transaction = new TransactionDto
                 {
                     Date = dateTime,
                     Description = desc,
@@ -128,4 +128,3 @@ public class NeoBankPdfParser : IBankStatementParser
         Console.WriteLine($"[NeoBankPdfParser] Skipped Entry: {reason}\n? {rawEntry.Substring(0, Math.Min(100, rawEntry.Length))}\n");
     }
 }
-

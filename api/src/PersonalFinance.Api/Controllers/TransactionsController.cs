@@ -46,65 +46,6 @@ public class TransactionsController : ControllerBase
         return Ok(supported);
     }
 
-    [HttpPost("upload")]
-    public async Task<IActionResult> UploadFile(IFormFile file, [FromForm]string? pdfPassword = null)
-    {
-        if (file == null || file.Length == 0)
-            return BadRequest("File is empty");
-
-        var allowedContentTypes = new[]
-        {
-            "text/csv",
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/msword"
-        };
-
-        if (!allowedContentTypes.Contains(file.ContentType))
-            return BadRequest("Unsupported file type");
-
-        using var mainStream = new MemoryStream();
-        await file.CopyToAsync(mainStream);
-        using var preStream = file.OpenReadStream();
-
-        var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
-        if (bank == null)
-            return BadRequest("Bank format not recognized or not supported.");
-
-        mainStream.Position = 0;
-
-        try
-        {
-            var transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword);
-
-            // Persist and return only added transactions
-            List<Transaction> addedTransactions = new();
-            if (transactions.Count > 0)
-                addedTransactions = await _transactionService.AddTransactionsAsync(transactions);
-
-            // Calculate running balance for only the added transactions
-            var allWalletTransactions = await _transactionService.GetTransactionsWithBalanceAsync(
-                addedTransactions.FirstOrDefault()?.Wallet ?? string.Empty
-            );
-
-            // Map only the added transactions to their DTOs with balance
-            var addedTransactionIds = addedTransactions.Select(t => t.Id).ToHashSet();
-            var addedDtos = allWalletTransactions
-                .Where(dto => addedTransactionIds.Contains(dto.Id))
-                .ToList();
-
-            return Ok(addedDtos);
-        }
-        catch (NotSupportedException ex)
-        {
-            return BadRequest(ex.Message);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, $"Failed to parse file: {ex.Message}");
-        }
-    }
-
     [HttpPost("upload-preview")]
     public async Task<IActionResult> UploadPreview(IFormFile file, [FromForm] string? pdfPassword = null)
     {
@@ -135,7 +76,6 @@ public class TransactionsController : ControllerBase
             // Map to DTOs for preview (no persistence)
             var previewDtos = nonDuplicateTransactions.Select(t => new TransactionDto
             {
-                Id = 0,
                 Date = t.Date,
                 Description = t.Description,
                 Remarks = t.Remarks,
@@ -172,37 +112,30 @@ public class TransactionsController : ControllerBase
         {
             if (!string.IsNullOrWhiteSpace(dto.Category))
             {
-                // Check if category rule exists for this description/type/category
                 var existing = (await _categoryRuleService.GetAllAsync())
                     .Any(r => r.Category == dto.Category && r.Type == dto.Type);
 
-                if (!existing)
+                if (!existing && dto.CategoryRuleDto is not null)
                 {
-                    // Add new rule with keyword = description for best match
-                    await _categoryRuleService.AddAsync(new CategoryRule
-                    {
-                        Keyword = dto.Description,
-                        Type = dto.Type,
-                        Category = dto.Category,
-                        KeywordLength = dto.Description.Length
-                    });
+                    // Use the provided CategoryRuleDto for new rule creation
+                    await _categoryRuleService.AddAsync(dto.CategoryRuleDto);
                 }
             }
         }
 
-        // Map DTOs to domain entities
-        var domainTransactions = transactions.Select(dto => new Transaction
+        // Map domain transactions to DTOs before calling AddTransactionsAsync
+        var domainTransactions = transactions.Select(t => new TransactionDto
         {
-            Date = dto.Date,
-            Description = dto.Description,
-            Remarks = dto.Remarks,
-            Flow = dto.Flow,
-            Type = dto.Type,
-            Category = dto.Category,
-            Wallet = dto.Wallet,
-            AmountIdr = dto.AmountIdr,
-            Currency = dto.Currency,
-            ExchangeRate = dto.ExchangeRate
+            Date = t.Date,
+            Description = t.Description,
+            Remarks = t.Remarks,
+            Flow = t.Flow,
+            Type = t.Type,
+            Category = t.Category,
+            Wallet = t.Wallet,
+            AmountIdr = t.AmountIdr,
+            Currency = t.Currency,
+            ExchangeRate = t.ExchangeRate
         }).ToList();
 
         var addedTransactions = await _transactionService.AddTransactionsAsync(domainTransactions);
