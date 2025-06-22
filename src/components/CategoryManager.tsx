@@ -1,14 +1,20 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CategoryRule } from '@/types/Transaction';
 import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import {
+  getCategoryRules,
+  addCategoryRule,
+  updateCategoryRule,
+  deleteCategoryRule,
+} from '@/api/categoryRulesApi';
 
 interface CategoryManagerProps {
-  categoryRules: CategoryRule[];
-  onRuleUpdate: (rules: CategoryRule[]) => void;
+   categoryRules: CategoryRule[];
+   onRuleUpdate: (rules: CategoryRule[]) => void;
 }
 
-const CategoryManager = ({ categoryRules, onRuleUpdate }: CategoryManagerProps) => {
+const CategoryManager = () => {
+  const [categoryRules, setCategoryRules] = useState<CategoryRule[]>([]);
   const [editingRule, setEditingRule] = useState<CategoryRule | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newRule, setNewRule] = useState<Omit<CategoryRule, 'id'>>({
@@ -16,25 +22,67 @@ const CategoryManager = ({ categoryRules, onRuleUpdate }: CategoryManagerProps) 
     category: '',
     type: 'expense'
   });
+  const [loading, setLoading] = useState(true);
 
-  const handleSaveRule = (rule: CategoryRule) => {
-    const updatedRules = categoryRules.map(r => r.id === rule.id ? rule : r);
-    onRuleUpdate(updatedRules);
+  useEffect(() => {
+    setLoading(true);
+    getCategoryRules()
+      .then((dtos) => {
+        console.log("Fetched category rules:", dtos);
+        setCategoryRules(
+          dtos.map((dto) => ({
+            ...dto,
+            keyword: dto.keyword ?? '',
+            category: dto.category ?? '',
+            type: (dto.type ?? 'expense').toLowerCase() as 'income' | 'expense',
+          }))
+        );
+      })
+      .catch((err) => {
+        console.error("Failed to fetch category rules", err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSaveRule = async (rule: CategoryRule) => {
+    // Ensure 'pattern' is included; fallback to empty string if not present
+    const ruleDto = {
+      type: rule.type,
+      keyword: rule.keyword,
+      id: rule.id,
+      pattern: rule.keyword,
+      category: rule.category,
+    };
+    const updated = await updateCategoryRule(rule.id, ruleDto);
+    // Ensure the updated object matches CategoryRule type
+    const normalized: CategoryRule = {
+      ...updated,
+      keyword: updated.keyword ?? '',
+      category: updated.category ?? '',
+      type: (updated.type ?? 'expense') as 'income' | 'expense',
+    };
+    setCategoryRules(rules => rules.map(r => r.id === rule.id ? normalized : r));
     setEditingRule(null);
   };
 
-  const handleDeleteRule = (id: string) => {
-    const updatedRules = categoryRules.filter(r => r.id !== id);
-    onRuleUpdate(updatedRules);
+  const handleDeleteRule = async (id: string) => {
+    await deleteCategoryRule(id);
+    setCategoryRules(rules => rules.filter(r => r.id !== id));
   };
 
-  const handleAddRule = () => {
+  const handleAddRule = async () => {
     if (newRule.keyword && newRule.category) {
-      const rule: CategoryRule = {
+      const created = await addCategoryRule({
         ...newRule,
-        id: Date.now().toString()
+        pattern: newRule.keyword, // or set as needed
+      });
+      const normalized: CategoryRule = {
+        ...created,
+        keyword: created.keyword ?? '',
+        category: created.category ?? '',
+        type: (created.type ?? 'expense') as 'income' | 'expense',
       };
-      onRuleUpdate([...categoryRules, rule]);
+      setCategoryRules(rules => [...rules, normalized]);
       setNewRule({ keyword: '', category: '', type: 'expense' });
       setIsAddingNew(false);
     }
@@ -57,6 +105,10 @@ const CategoryManager = ({ categoryRules, onRuleUpdate }: CategoryManagerProps) 
     'Charity',
     'Other'
   ];
+
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-6">
