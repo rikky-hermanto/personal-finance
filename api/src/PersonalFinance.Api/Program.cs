@@ -34,6 +34,8 @@ namespace PersonalFinance.Api
 
             // Register FluentValidation
             builder.Services.AddValidatorsFromAssemblyContaining<CreateTransactionCommandValidator>();
+            builder.Services.AddValidatorsFromAssemblyContaining<CreateCategoryRuleCommandValidator>();
+            builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
             builder.Services.AddFluentValidationAutoValidation();
 
             var app = builder.Build();
