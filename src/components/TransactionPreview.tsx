@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Transaction, CategoryRule } from '@/types/Transaction';
 import { Button } from '@/components/ui/button';
@@ -18,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import * as transactionsApi from '@/api/transactionsApi';
 
 interface TransactionPreviewProps {
   transactions: Transaction[];
@@ -46,6 +46,7 @@ const CORE_CATEGORIES = [
 const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPreviewProps) => {
   const [editedTransactions, setEditedTransactions] = useState<Transaction[]>(transactions);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -90,6 +91,35 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
       totalTransactions: editedTransactions.length
     };
   }, [editedTransactions]);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      // Map editedTransactions to TransactionDto shape for API
+      const payload = editedTransactions.map(t => ({
+        id: 0, // always 0 for new import
+        date: t.date,
+        description: t.description,
+        remarks: "",
+        flow: t.amount >= 0 ? "CR" : "DB",
+        type: t.type.charAt(0).toUpperCase() + t.type.slice(1), // "Income" or "Expense"
+        category: t.category,
+        wallet: t.bank,
+        amountIdr: Math.abs(t.amount),
+        currency: "IDR",
+        exchangeRate: null,
+        balance: 0,
+        categoryRuleDto: null
+      }));
+      await transactionsApi.submitTransactions(payload);
+      onConfirm(editedTransactions); // or trigger next step
+    } catch (error) {
+      alert("Failed to submit transactions.");
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -214,10 +244,13 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
         <Button onClick={onBack} variant="outline">
           Back to Files
         </Button>
-        
-        <Button onClick={() => onConfirm(editedTransactions)} className="bg-green-600 hover:bg-green-700">
+        <Button
+          onClick={handleSubmit}
+          className="bg-green-600 hover:bg-green-700"
+          disabled={isSubmitting}
+        >
           <Send className="w-4 h-4 mr-2" />
-          Submit Data ({editedTransactions.length} transactions)
+          {isSubmitting ? "Submitting..." : `Submit Data (${editedTransactions.length} transactions)`}
         </Button>
       </div>
     </div>

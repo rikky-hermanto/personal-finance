@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Transaction } from '@/types/Transaction';
 import { parseTransactionFiles } from '@/utils/transactionParser';
 import TransactionPreview from './TransactionPreview';
+import * as transactionsApi from '@/api/transactionsApi';
 
 interface FileUploadProps {
   onFileUpload: (files: File[]) => void;
@@ -18,6 +19,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
   const [parsedTransactions, setParsedTransactions] = useState<Transaction[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pdfPassword, setPdfPassword] = useState<string>('');
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -69,7 +71,23 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const handleProcessFiles = useCallback(async () => {
     setIsProcessing(true);
     try {
-      const transactions = await parseTransactionFiles(uploadedFiles);
+      // Only process the first file for now (API expects one file per request)
+      const file = uploadedFiles[0];
+      if (!file) return;
+
+      // Call the actual API for upload-preview
+      const apiTransactions = await transactionsApi.uploadPreview(file, pdfPassword);
+      // Map API response to your Transaction type if needed
+      const transactions = apiTransactions.map((t: transactionsApi.TransactionDto) => ({
+        id: t.id.toString(),
+        date: t.date,
+        description: t.description,
+        amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
+        type: t.type.toLowerCase(),
+        category: t.category,
+        bank: t.wallet,
+        balance: t.balance,
+      }));
       setParsedTransactions(transactions);
       setCurrentStep('preview');
     } catch (error) {
@@ -77,7 +95,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [uploadedFiles]);
+  }, [uploadedFiles, pdfPassword]);
 
   const handleConfirmData = useCallback((transactions: Transaction[]) => {
     onFileUpload(uploadedFiles);
@@ -204,14 +222,12 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     return (
       <div className="max-w-2xl mx-auto p-6">
         {renderStepIndicator()}
-        
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Review Your Files</h2>
           <p className="text-gray-600">
             Please review the files below before processing them for data extraction.
           </p>
         </div>
-
         <div className="space-y-3 mb-6">
           {uploadedFiles.map((file, index) => (
             <div key={index} className="flex items-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
@@ -231,17 +247,27 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             </div>
           ))}
         </div>
-
+        {/* PDF password input if any PDF file is present */}
+        {uploadedFiles.some(f => f.name.toLowerCase().endsWith('.pdf')) && (
+          <div className="mb-6">
+            <input
+              type="password"
+              placeholder="PDF Password (if needed)"
+              value={pdfPassword}
+              onChange={e => setPdfPassword(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+        )}
         <div className="flex gap-4 justify-center">
           <Button onClick={() => setCurrentStep('upload')} variant="outline" className="border-gray-200 text-gray-700 hover:bg-gray-50">
             <Upload className="w-4 h-4 mr-2" />
             Add More Files
           </Button>
-          
-          <Button 
-            onClick={handleProcessFiles} 
+          <Button
+            onClick={handleProcessFiles}
             className="bg-gray-900 hover:bg-gray-800 text-white"
-            disabled={isProcessing}
+            disabled={isProcessing || uploadedFiles.length === 0}
           >
             <Eye className="w-4 h-4 mr-2" />
             {isProcessing ? 'Processing...' : `Process Files (${uploadedFiles.length})`}
