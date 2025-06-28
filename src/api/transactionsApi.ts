@@ -52,3 +52,37 @@ export async function deleteTransaction(id: number): Promise<void> {
   const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete transaction");
 }
+
+/**
+ * Uploads a bank statement file for preview (parsing, not saving to DB yet).
+ * @param file The CSV or PDF file to upload.
+ * @param pdfPassword Optional PDF password if needed.
+ * @returns Promise<TransactionDto[]> - parsed transactions for preview.
+ */
+export async function uploadPreview(
+  file: File,
+  pdfPassword?: string
+): Promise<TransactionDto[]> {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (pdfPassword) {
+    formData.append("pdfPassword", pdfPassword);
+  }
+
+  const res = await fetch(`${BASE_URL}/upload-preview`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) throw new Error("Failed to upload and preview file");
+  return res.json();
+}
+
+export async function submitTransactions(transactions: TransactionDto[]): Promise<void> {
+  const res = await fetch(`${BASE_URL}/submit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(transactions),
+  });
+  if (!res.ok) throw new Error("Failed to submit transactions");
+}
