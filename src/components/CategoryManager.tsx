@@ -139,10 +139,10 @@ const CategoryManager = () => {
                   Keyword
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Type
+                </th>
+                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Category
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -164,23 +164,7 @@ const CategoryManager = () => {
                       <span className="text-sm font-medium text-gray-900">{rule.keyword}</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {editingRule?.id === rule.id ? (
-                      <select
-                        value={editingRule.category}
-                        onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
-                        className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
-                      >
-                        {predefinedCategories.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {rule.category}
-                      </span>
-                    )}
-                  </td>
+              
                   <td className="px-6 py-4 whitespace-nowrap">
                     {editingRule?.id === rule.id ? (
                       <select
@@ -196,6 +180,23 @@ const CategoryManager = () => {
                         rule.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
                         {rule.type}
+                      </span>
+                    )}
+                  </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                    {editingRule?.id === rule.id ? (
+                      <select
+                        value={editingRule.category}
+                        onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
+                        className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                      >
+                        {predefinedCategories.map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {rule.category}
                       </span>
                     )}
                   </td>

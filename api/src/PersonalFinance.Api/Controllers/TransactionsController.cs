@@ -143,4 +143,32 @@ public class TransactionsController : ControllerBase
             Transactions = addedTransactions
         });
     }
+
+    // List all transactions, with optional filtering by wallet, category, or type
+    [HttpGet]
+    public async Task<IActionResult> GetTransactions([FromQuery] string? wallet = null, [FromQuery] string? category = null, [FromQuery] string? type = null)
+    {
+        // You may want to add a new service method for more advanced filtering/paging.
+        // For now, use GetTransactionsWithBalanceAsync if wallet is specified, otherwise return all.
+        
+        var transactions = await _transactionService.GetTransactionsWithBalanceAsync(wallet);
+        // Optionally filter by category/type
+        if (!string.IsNullOrEmpty(category))
+            transactions = transactions.Where(t => t.Category == category).ToList();
+        if (!string.IsNullOrEmpty(type))
+            transactions = transactions.Where(t => t.Type == type).ToList();
+        return Ok(transactions);
+       
+    }
+
+    // Get details for a specific transaction by ID
+    [HttpGet("{id:int}")]
+    public async Task<IActionResult> GetTransactionById(int id)
+    {
+        // You need to add this method to your ITransactionService and implementation.
+        var transaction = await _transactionService.GetTransactionByIdAsync(id);
+        if (transaction == null)
+            return NotFound();
+        return Ok(transaction);
+    }
 }
