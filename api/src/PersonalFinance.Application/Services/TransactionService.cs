@@ -80,10 +80,16 @@ public class TransactionService : ITransactionService
               .ToList();
     }
 
-    public async Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(string wallet)
+    public async Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(string? wallet)
     {
-        var transactions = await _dbContext.Transactions
-            .Where(t => t.Wallet == wallet)
+        var transactionsQuery = _dbContext.Transactions.AsQueryable();
+
+        if (!string.IsNullOrEmpty(wallet))
+        {
+            transactionsQuery = transactionsQuery.Where(t => t.Wallet == wallet);
+        }
+
+        var transactions = await transactionsQuery
             .OrderBy(t => t.Date)
             .ThenBy(t => t.Id)
             .ToListAsync();
@@ -100,6 +106,12 @@ public class TransactionService : ITransactionService
         }
 
         return result;
+    }
+
+    public async Task<TransactionDto?> GetTransactionByIdAsync(int id)
+    {
+        var entity = await _dbContext.Transactions.FindAsync(id);
+        return entity == null ? null : MapToDto(entity);
     }
 
     private static Transaction MapToEntity(TransactionDto dto)

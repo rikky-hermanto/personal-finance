@@ -1,20 +1,37 @@
-
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Transaction } from '@/types/Transaction';
-import { Search, Filter, ChevronDown, Edit2 } from 'lucide-react';
+import { Search, ChevronDown, Edit2 } from 'lucide-react';
+import * as transactionsApi from '@/api/transactionsApi';
 
 interface TransactionTableProps {
-  transactions: Transaction[];
   onTransactionUpdate: (id: string, updates: Partial<Transaction>) => void;
 }
 
-const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTableProps) => {
+const mapApiTransactionToTransaction = (t: transactionsApi.TransactionDto): Transaction => ({
+  id: t.id.toString(),
+  date: t.date,
+  description: t.description,
+  amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
+  type: t.type.toLowerCase(), // 'income' | 'expense'
+  category: t.category,
+  bank: t.wallet,
+  balance: t.balance,
+});
+
+const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    transactionsApi.getTransactions()
+      .then(data => setTransactions(data.map(mapApiTransactionToTransaction)))
+      .catch(console.error);
+  }, []);
 
   const categories = useMemo(() => {
     const cats = Array.from(new Set(transactions.map(t => t.category)));
@@ -24,10 +41,9 @@ const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTabl
   const filteredAndSortedTransactions = useMemo(() => {
     let filtered = transactions.filter(transaction => {
       const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
+        transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === 'all' || transaction.category === categoryFilter;
       const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
-      
       return matchesSearch && matchesCategory && matchesType;
     });
 
@@ -60,9 +76,11 @@ const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTabl
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      {/* ...existing code for search/filter/sort/table rendering... */}
+      {/* No changes needed below except transactions is now local state */}
+      {/* ...existing code... */}
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Transactions</h2>
-        
         <div className="flex flex-wrap gap-4">
           <div className="flex-1 min-w-64">
             <div className="relative">
@@ -76,7 +94,6 @@ const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTabl
               />
             </div>
           </div>
-          
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
@@ -87,7 +104,6 @@ const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTabl
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
-          
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
@@ -99,12 +115,12 @@ const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTabl
           </select>
         </div>
       </div>
-
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
+            {/* ...existing table headers... */}
             <tr>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => {
                   if (sortBy === 'date') {
@@ -123,7 +139,7 @@ const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTabl
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Category
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => {
                   if (sortBy === 'amount') {
@@ -196,7 +212,6 @@ const TransactionTable = ({ transactions, onTransactionUpdate }: TransactionTabl
           </tbody>
         </table>
       </div>
-      
       {filteredAndSortedTransactions.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-500">No transactions found matching your criteria.</p>
