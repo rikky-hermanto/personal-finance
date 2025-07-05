@@ -18,6 +18,16 @@ public class BankIdentifier : IBankIdentifier
                     stream.Position = 0;
                     return "BCA";
                 }
+                
+                // Check for standard CSV headers
+                if (line.Contains("Date", StringComparison.OrdinalIgnoreCase) && 
+                    (line.Contains("Item", StringComparison.OrdinalIgnoreCase) || 
+                     line.Contains("Description", StringComparison.OrdinalIgnoreCase)) &&
+                    line.Contains("Amount", StringComparison.OrdinalIgnoreCase))
+                {
+                    stream.Position = 0;
+                    return "STANDARD";
+                }
             }
             stream.Position = 0;
         }
