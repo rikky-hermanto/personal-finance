@@ -22,6 +22,12 @@ namespace PersonalFinance.Persistence
                 entity.Property(t => t.Type).HasMaxLength(10);
                 entity.Property(t => t.Wallet).HasMaxLength(50);
                 entity.Property(t => t.Currency).HasMaxLength(10);
+                
+                // Configure DateTime to be stored and retrieved as UTC
+                entity.Property(t => t.Date)
+                    .HasConversion(
+                        v => v.ToUniversalTime(),
+                        v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
             });
 
             modelBuilder.Entity<CategoryRule>(entity =>

@@ -58,11 +58,8 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+    // Only take the date part, ignore time and timezone
+    return new Date(dateString).toISOString().slice(0, 10).split('-').reverse().join(' ');
   };
 
   const handleCategoryChange = (transactionId: string, newCategory: string) => {
