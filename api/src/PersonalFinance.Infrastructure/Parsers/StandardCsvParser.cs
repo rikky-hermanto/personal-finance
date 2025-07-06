@@ -3,8 +3,7 @@ using PersonalFinance.Application.Dtos;
 using CsvHelper;
 using CsvHelper.Configuration;
 
-namespace PersonalFinance.Infrastructure.Parsers
-{
+
     public class StandardCsvParser : IBankStatementParser
     {
         private readonly ICategoryRuleService _categoryRuleService;
@@ -17,7 +16,7 @@ namespace PersonalFinance.Infrastructure.Parsers
         public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
         {
             var transactions = new List<TransactionDto>();
-            
+
             using var reader = new StreamReader(fileStream);
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
             {
@@ -27,40 +26,95 @@ namespace PersonalFinance.Infrastructure.Parsers
             });
 
             var records = csv.GetRecords<dynamic>().ToList();
-            
+
             foreach (var record in records)
             {
                 var recordDict = (IDictionary<string, object>)record;
-                
+
+                // Create a normalized header dictionary for easier lookup
+                var normalizedDict = CreateNormalizedHeaderDict(recordDict);
+
+                // Get the main description - prefer Item (merchant name) over Remarks (transaction details)
+                var itemValue = GetFieldValue(normalizedDict, "Item");
+                var remarksValue = GetFieldValue(normalizedDict, "Remarks");
+
+                string description;
+                string remarks;
+
+                if (!string.IsNullOrWhiteSpace(itemValue))
+                {
+                    description = itemValue;
+                    remarks = remarksValue ?? string.Empty;
+                }
+                else
+                {
+                    description = remarksValue ?? string.Empty;
+                    remarks = string.Empty;
+                }
+
                 var transaction = new TransactionDto
                 {
-                    Date = ParseDate(GetFieldValue(recordDict, "Date")),
-                    Description = GetFieldValue(recordDict, "Item", "Description", "Transaction") ?? string.Empty,
-                    Remarks = GetFieldValue(recordDict, "Remarks", "Notes", "Memo") ?? string.Empty,
-                    Flow = DetermineFlow(recordDict),
-                    Type = DetermineType(recordDict),
-                    Category = GetFieldValue(recordDict, "Category") ?? "Untracked Expense",
-                    Wallet = GetFieldValue(recordDict, "Wallet", "Bank", "Account") ?? "Standard",
-                    AmountIdr = ParseAmount(GetFieldValue(recordDict, "Amount", "Amount (IDR)", "Amount IDR")),
-                    Currency = GetFieldValue(recordDict, "Currency") ?? "IDR",
-                    ExchangeRate = ParseNullableDecimal(GetFieldValue(recordDict, "Exc. Rate", "Exchange Rate", "ExchangeRate")),
-                    Balance = ParseDecimal(GetFieldValue(recordDict, "Balance"))
+                    Date = ParseDate(GetFieldValue(normalizedDict, "Date")),
+                    Description = description,
+                    Remarks = remarks,
+                    Flow = GetFieldValue(normalizedDict, "Flow") ?? "DB",
+                    Type = GetFieldValue(normalizedDict, "Type") ?? "Expense",
+                    Category = GetFieldValue(normalizedDict, "Category") ?? "Untracked Expense",
+                    Wallet = GetFieldValue(normalizedDict, "Wallet", "Bank", "Account") ?? "Standard",
+                    AmountIdr = ParseAmount(GetFieldValue(normalizedDict, "Amount(IDR)", "AmountIDR", "Amount")),
+                    Currency = GetFieldValue(normalizedDict, "Currency") ?? "IDR",
+                    ExchangeRate = ParseNullableDecimal(GetFieldValue(normalizedDict, "Exc.Rate", "ExchangeRate", "ExcRate")),
+                    Balance = ParseDecimal(GetFieldValue(normalizedDict, "Balance"))
                 };
 
-                // Apply category rules
-                transaction.Category = await _categoryRuleService.CategorizeAsync(transaction.Description, transaction.Type);
-                
+                // Apply category rules if category is still default
+                if (transaction.Category == "Untracked Expense")
+                {
+                    transaction.Category = await _categoryRuleService.CategorizeAsync(transaction.Description, transaction.Type);
+                }
+
                 transactions.Add(transaction);
             }
 
             return transactions;
         }
 
+        private static Dictionary<string, object> CreateNormalizedHeaderDict(IDictionary<string, object> originalDict)
+        {
+            var normalizedDict = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var kvp in originalDict)
+            {
+                var normalizedKey = NormalizeHeader(kvp.Key);
+                normalizedDict[normalizedKey] = kvp.Value;
+            }
+
+            return normalizedDict;
+        }
+
+        private static string NormalizeHeader(string header)
+        {
+            if (string.IsNullOrEmpty(header))
+                return string.Empty;
+
+            // Remove all whitespace characters, parentheses, and dots for better matching
+            return header
+                .Replace("\n", "")
+                .Replace("\r", "")
+                .Replace("\t", "")
+                .Replace(" ", "")
+                .Replace("(", "")
+                .Replace(")", "")
+                .Replace(".", "")
+                .Trim();
+        }
+
         private static string? GetFieldValue(IDictionary<string, object> record, params string[] possibleHeaders)
         {
             foreach (var header in possibleHeaders)
             {
-                if (record.TryGetValue(header, out var value))
+                var normalizedHeader = NormalizeHeader(header);
+                if (record.TryGetValue(normalizedHeader, out var value))
                 {
                     return value?.ToString()?.Trim();
                 }
@@ -75,6 +129,7 @@ namespace PersonalFinance.Infrastructure.Parsers
 
             var formats = new[]
             {
+                "M/d/yy H:mm", "M/d/yyyy H:mm", "M/d/yy", "M/d/yyyy",
                 "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy",
                 "dd/MM/yy", "MM/dd/yy", "yy-MM-dd", "dd-MM-yy",
                 "dd MMM yyyy", "MMM dd yyyy", "yyyy MMM dd"
@@ -122,7 +177,7 @@ namespace PersonalFinance.Infrastructure.Parsers
                 // European format: 1.234,56
                 var lastCommaIndex = cleaned.LastIndexOf(',');
                 var lastDotIndex = cleaned.LastIndexOf('.');
-                
+
                 if (lastCommaIndex > lastDotIndex)
                 {
                     cleaned = cleaned.Replace(".", "").Replace(",", ".");
@@ -183,50 +238,4 @@ namespace PersonalFinance.Infrastructure.Parsers
                 return null;
             }
         }
-
-        private static string DetermineFlow(IDictionary<string, object> record)
-        {
-            // Check for explicit Flow column
-            var flowValue = GetFieldValue(record, "Flow", "Type", "Dr/Cr", "Debit/Credit");
-            if (!string.IsNullOrEmpty(flowValue))
-            {
-                var flow = flowValue.ToUpperInvariant();
-                if (flow.Contains("CR") || flow.Contains("CREDIT") || flow.Contains("IN"))
-                    return "CR";
-                if (flow.Contains("DB") || flow.Contains("DEBIT") || flow.Contains("OUT"))
-                    return "DB";
-            }
-
-            // Check amount for negative values
-            var amountValue = GetFieldValue(record, "Amount", "Amount (IDR)", "Amount IDR");
-            if (!string.IsNullOrEmpty(amountValue))
-            {
-                var cleaned = amountValue.Replace("Rp", "").Replace(",", "").Replace(" ", "").Trim();
-                if (cleaned.StartsWith("-") || (cleaned.StartsWith("(") && cleaned.EndsWith(")")))
-                {
-                    return "DB";
-                }
-            }
-
-            // Default to debit
-            return "DB";
-        }
-
-        private static string DetermineType(IDictionary<string, object> record)
-        {
-            var typeValue = GetFieldValue(record, "Type", "Category", "Transaction Type");
-            if (!string.IsNullOrEmpty(typeValue))
-            {
-                var type = typeValue.ToLowerInvariant();
-                if (type.Contains("income") || type.Contains("credit") || type.Contains("deposit"))
-                    return "Income";
-                if (type.Contains("expense") || type.Contains("debit") || type.Contains("withdrawal"))
-                    return "Expense";
-            }
-
-            // Determine from flow
-            var flow = DetermineFlow(record);
-            return flow == "CR" ? "Income" : "Expense";
-        }
     }
-}

@@ -155,7 +155,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
