@@ -38,7 +38,8 @@ public class TransactionsController : ControllerBase
             new { Bank = "BCA", Types = new[] { "text/csv", "application/pdf" } },
             new { Bank = "NeoBank", Types = new[] { "text/csv", "application/pdf" } },
             new { Bank = "Superbank", Types = new[] { "text/csv", "application/pdf" } },
-            new { Bank = "Wise", Types = new[] { "text/csv", "application/pdf" } }
+            new { Bank = "Wise", Types = new[] { "text/csv", "application/pdf" } },
+            new { Bank = "Standard", Types = new[] { "text/csv" } }
         };
         return Ok(supported);
     }

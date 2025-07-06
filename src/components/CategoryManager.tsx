@@ -237,7 +237,7 @@ const CategoryManager = () => {
               ))}
               
               {isAddingNew && (
-                <tr className="bg-yellow-50">
+                <tr className="bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <input
                       type="text"

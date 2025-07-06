@@ -22,6 +22,7 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<IBankStatementParser, BcaCsvParser>();
             builder.Services.AddScoped<IBankStatementParser, NeoBankPdfParser>();
+            builder.Services.AddScoped<IBankStatementParser, StandardCsvParser>();
             builder.Services.AddScoped<IStatementImportService, StatementImportService>();
             builder.Services.AddScoped<ICategoryRuleService, CategoryRuleService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();

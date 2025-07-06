@@ -10,6 +10,7 @@ public class StatementImportService : IStatementImportService
         {
             { "BCA", parsers.OfType<BcaCsvParser>().First() },
             { "NEOBANK", parsers.OfType<NeoBankPdfParser>().First() },
+            { "STANDARD", parsers.OfType<StandardCsvParser>().First() }
         };
     }
 
