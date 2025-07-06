@@ -77,13 +77,13 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
 
       // Call the actual API for upload-preview
       const apiTransactions = await transactionsApi.uploadPreview(file, pdfPassword);
-      // Map API response to your Transaction type if needed
-      const transactions = apiTransactions.map((t: transactionsApi.TransactionDto) => ({
+      // Map API response to your Transaction type with proper type casting
+      const transactions: Transaction[] = apiTransactions.map((t: transactionsApi.TransactionDto) => ({
         id: t.id.toString(),
         date: t.date,
         description: t.description,
         amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-        type: t.type.toLowerCase(),
+        type: (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
         category: t.category,
         bank: t.wallet,
         balance: t.balance,
@@ -210,7 +210,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             Your {parsedTransactions.length} transaction{parsedTransactions.length > 1 ? 's have' : ' has'} been imported and categorized.
           </p>
           
-          <Button onClick={handleStartOver} variant="outline" className="border-gray-200 text-gray-700 hover:bg-gray-50">
+          <Button onClick={handleStartOver} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
             Import More Files
           </Button>
         </div>
@@ -247,7 +247,6 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             </div>
           ))}
         </div>
-        {/* PDF password input if any PDF file is present */}
         {uploadedFiles.some(f => f.name.toLowerCase().endsWith('.pdf')) && (
           <div className="mb-6">
             <input
@@ -260,7 +259,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           </div>
         )}
         <div className="flex gap-4 justify-center">
-          <Button onClick={() => setCurrentStep('upload')} variant="outline" className="border-gray-200 text-gray-700 hover:bg-gray-50">
+          <Button onClick={() => setCurrentStep('upload')} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
             <Upload className="w-4 h-4 mr-2" />
             Add More Files
           </Button>

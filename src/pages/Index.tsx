@@ -80,7 +80,6 @@ const Index = () => {
                 <p className="text-gray-600 mt-2">View and manage all your transactions</p>
               </div>
               <TransactionTable 
-                transactions={transactions} 
                 onTransactionUpdate={handleTransactionUpdate}
               />
             </div>
@@ -94,10 +93,7 @@ const Index = () => {
                 <h1 className="text-2xl font-semibold text-gray-900">Categories</h1>
                 <p className="text-gray-600 mt-2">Manage transaction categories and rules</p>
               </div>
-              <CategoryManager 
-                categoryRules={categoryRules}
-                onRuleUpdate={handleCategoryRulesUpdate}
-              />
+              <CategoryManager />
             </div>
           </div>
         );

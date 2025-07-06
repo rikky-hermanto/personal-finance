@@ -12,7 +12,7 @@ const mapApiTransactionToTransaction = (t: transactionsApi.TransactionDto): Tran
   date: t.date,
   description: t.description,
   amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-  type: t.type.toLowerCase(), // 'income' | 'expense'
+  type: (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
   category: t.category,
   bank: t.wallet,
   balance: t.balance,
@@ -76,9 +76,6 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      {/* ...existing code for search/filter/sort/table rendering... */}
-      {/* No changes needed below except transactions is now local state */}
-      {/* ...existing code... */}
       <div className="p-6 border-b border-gray-200">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Transactions</h2>
         <div className="flex flex-wrap gap-4">
@@ -118,7 +115,6 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
-            {/* ...existing table headers... */}
             <tr>
               <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
