@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from 'react';
 import { Transaction, CategoryRule } from '@/types/Transaction';
 import { Button } from '@/components/ui/button';
@@ -48,6 +47,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
   const [editedTransactions, setEditedTransactions] = useState<Transaction[]>(transactions);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
@@ -95,15 +95,16 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
+    setApiError(null);
     try {
       // Map editedTransactions to TransactionDto shape for API with proper type casting
       const payload: transactionsApi.TransactionDto[] = editedTransactions.map(t => ({
-        id: 0, // always 0 for new import
+        id: 0,
         date: t.date,
         description: t.description,
         remarks: "",
-        flow: (t.amount >= 0 ? "CR" : "DB") as "CR" | "DB",
-        type: t.type.charAt(0).toUpperCase() + t.type.slice(1), // "Income" or "Expense"
+        flow: t.flow,
+        type: t.type.charAt(0).toUpperCase() + t.type.slice(1),
         category: t.category,
         wallet: t.bank,
         amountIdr: Math.abs(t.amount),
@@ -113,9 +114,31 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
         categoryRuleDto: null
       }));
       await transactionsApi.submitTransactions(payload);
-      onConfirm(editedTransactions); // or trigger next step
-    } catch (error) {
-      alert("Failed to submit transactions.");
+      onConfirm(editedTransactions);
+    } catch (error: any) {
+      let message = "Failed to submit transactions";
+      try {
+         // Try to parse the error response if available
+        if (error?.response && typeof error.response.json === 'function') {
+          const data = await error.response.json();
+          if (data?.Message) {
+            message = message + (data.Detail ? `: ${data.Detail}` : "");
+          }
+        } else if (error instanceof Error && error.message) {
+          // Try to parse error.message as JSON if possible
+          try {
+            const data = JSON.parse(error.message);
+            if (data?.Message) {
+              message = message + (data.Detail ? `: ${data.Detail}` : "");
+            }
+          } catch {
+            message = error.message;
+          }
+        }
+      } catch {
+        // fallback to default message
+      }
+      setApiError(message);
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -200,10 +223,13 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
                       </span>
                     )}
                   </TableCell>
-                  <TableCell className={`font-medium ${
-                    transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                  <TableCell
+                    className={`font-medium ${
+                      transaction.flow === 'CR' ? 'text-green-600' : 'text-red-600'
+                    }`}
+                  >
+                    {transaction.flow === 'CR' ? '+' : '-'}
+                    {formatCurrency(Math.abs(transaction.amount))}
                   </TableCell>
                   <TableCell className="text-gray-500">
                     {transaction.bank}
@@ -239,6 +265,13 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
           </Table>
         </div>
       </div>
+
+      {/* Error Message */}
+      {apiError && (
+        <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
+          {apiError}
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex gap-4 justify-center">

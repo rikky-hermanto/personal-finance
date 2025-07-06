@@ -4,6 +4,7 @@ export interface Transaction {
   date: string;
   description: string;
   amount: number;
+  flow: string;
   type: 'income' | 'expense';
   category: string;
   bank: string;

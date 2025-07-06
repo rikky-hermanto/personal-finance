@@ -21,9 +21,9 @@ namespace PersonalFinance.Api.Extensions
                     var error = new ApiError
                     {
                         Message = "An unexpected error occurred.",
-#if DEBUG
+//#if DEBUG
                         Detail = ex.Message
-#endif
+//#endif
                     };
                     var json = JsonSerializer.Serialize(error);
                     await context.Response.WriteAsync(json);
