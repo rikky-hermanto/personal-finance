@@ -1,3 +1,4 @@
+
 import { useState, useMemo } from 'react';
 import { Transaction, CategoryRule } from '@/types/Transaction';
 import { Button } from '@/components/ui/button';
@@ -132,9 +133,9 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
         
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-medium text-blue-600 mb-1">Total Transactions</h3>
-            <p className="text-2xl font-bold text-blue-900">{summary.totalTransactions}</p>
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-600 mb-1">Total Transactions</h3>
+            <p className="text-2xl font-bold text-gray-900">{summary.totalTransactions}</p>
           </div>
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <h3 className="text-sm font-medium text-green-600 mb-1">Income</h3>
@@ -194,7 +195,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                         {transaction.category}
                       </span>
                     )}
@@ -226,7 +227,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
                     ) : (
                       <button
                         onClick={() => setEditingId(transaction.id)}
-                        className="text-blue-600 hover:text-blue-800"
+                        className="text-gray-600 hover:text-gray-800"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -241,12 +242,12 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
 
       {/* Action Buttons */}
       <div className="flex gap-4 justify-center">
-        <Button onClick={onBack} variant="outline">
+        <Button onClick={onBack} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
           Back to Files
         </Button>
         <Button
           onClick={handleSubmit}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-gray-900 hover:bg-gray-800 text-white"
           disabled={isSubmitting}
         >
           <Send className="w-4 h-4 mr-2" />
