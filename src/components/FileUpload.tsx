@@ -20,6 +20,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [parsedTransactions, setParsedTransactions] = useState<Transaction[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [pdfPassword, setPdfPassword] = useState<string>('');
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -70,6 +71,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
 
   const handleProcessFiles = useCallback(async () => {
     setIsProcessing(true);
+    setApiError(null);
     try {
       // Only process the first file for now (API expects one file per request)
       const file = uploadedFiles[0];
@@ -82,6 +84,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         id: t.id.toString(),
         date: t.date,
         description: t.description,
+        flow: t.flow,
         amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
         type: (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
         category: t.category,
@@ -90,7 +93,18 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       }));
       setParsedTransactions(transactions);
       setCurrentStep('preview');
-    } catch (error) {
+    } catch (error: any) {
+      let message = 'Error processing files.';
+      try {
+        const data = await error.response?.json?.();
+        if (data?.Message) {
+          message = data.Message + (data.Detail ? `: ${data.Detail}` : '');
+        }
+      } catch {
+        // fallback to error.message
+        if (error instanceof Error && error.message) message = error.message;
+      }
+      setApiError(message);
       console.error('Error processing files:', error);
     } finally {
       setIsProcessing(false);
@@ -228,6 +242,11 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             Please review the files below before processing them for data extraction.
           </p>
         </div>
+        {apiError && (
+          <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
+            {apiError}
+          </div>
+        )}
         <div className="space-y-3 mb-6">
           {uploadedFiles.map((file, index) => (
             <div key={index} className="flex items-center p-4 bg-gray-50 border border-gray-200 rounded-lg">

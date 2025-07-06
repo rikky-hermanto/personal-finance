@@ -5,7 +5,7 @@ export interface TransactionDto {
   date: string;
   description: string;
   remarks: string;
-  flow: "CR" | "DB";
+  flow: string;
   type: string;
   category: string;
   wallet: string;
@@ -84,5 +84,9 @@ export async function submitTransactions(transactions: TransactionDto[]): Promis
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(transactions),
   });
-  if (!res.ok) throw new Error("Failed to submit transactions");
+  if (!res.ok) {
+    const error: any = new Error("API Error");
+    error.response = res;
+    throw error;
+  }
 }

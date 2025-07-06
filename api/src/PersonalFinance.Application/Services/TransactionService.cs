@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Persistence;
 using PersonalFinance.Application.Dtos;
+using FluentValidation;
 
 public class TransactionService : ITransactionService
 {
@@ -31,7 +32,19 @@ public class TransactionService : ITransactionService
         }
         catch (DbUpdateException ex)
         {
-            throw new InvalidOperationException("An error occurred while saving the entity changes. See the inner exception for details.", ex);
+            // Preserve the original exception details
+            throw new InvalidOperationException($"Database update failed: {ex.Message}", ex);
+        }
+        catch (ValidationException ex)
+        {
+            // Handle validation errors specifically
+            var validationErrors = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage));
+            throw new InvalidOperationException($"Validation failed: {validationErrors}", ex);
+        }
+        catch (Exception ex)
+        {
+            // Handle any other exceptions
+            throw new InvalidOperationException($"An error occurred while adding transactions: {ex.Message}", ex);
         }
     }
 
