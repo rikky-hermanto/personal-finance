@@ -95,13 +95,13 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Map editedTransactions to TransactionDto shape for API
-      const payload = editedTransactions.map(t => ({
+      // Map editedTransactions to TransactionDto shape for API with proper type casting
+      const payload: transactionsApi.TransactionDto[] = editedTransactions.map(t => ({
         id: 0, // always 0 for new import
         date: t.date,
         description: t.description,
         remarks: "",
-        flow: t.amount >= 0 ? "CR" : "DB",
+        flow: (t.amount >= 0 ? "CR" : "DB") as "CR" | "DB",
         type: t.type.charAt(0).toUpperCase() + t.type.slice(1), // "Income" or "Expense"
         category: t.category,
         wallet: t.bank,
