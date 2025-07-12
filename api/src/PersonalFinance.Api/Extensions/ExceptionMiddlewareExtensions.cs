@@ -18,17 +18,31 @@ namespace PersonalFinance.Api.Extensions
                 {
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     context.Response.ContentType = "application/json";
+                    
+                    // Get the innermost exception
+                    var innermostException = GetInnermostException(ex);
+                    
                     var error = new ApiError
                     {
                         Message = "An unexpected error occurred.",
 //#if DEBUG
-                        Detail = ex.Message
+                        Detail = innermostException.Message
 //#endif
                     };
                     var json = JsonSerializer.Serialize(error);
                     await context.Response.WriteAsync(json);
                 }
             });
+        }
+
+        private static Exception GetInnermostException(Exception exception)
+        {
+            var current = exception;
+            while (current.InnerException != null)
+            {
+                current = current.InnerException;
+            }
+            return current;
         }
     }
 }

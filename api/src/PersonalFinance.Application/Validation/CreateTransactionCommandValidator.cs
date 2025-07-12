@@ -18,9 +18,9 @@ public class CreateTransactionCommandValidator : AbstractValidator<CreateTransac
                 .NotEmpty().WithMessage("Transaction flow is required.")
                 .Must(f => f == "DB" || f == "CR").WithMessage("Transaction flow must be 'DB' or 'CR'.");
 
-            RuleFor(x => x.Transaction.Type)
-                .NotEmpty().WithMessage("Transaction type is required.")
-                .Must(t => t == "Expense" || t == "Income").WithMessage("Transaction type must be 'Expense' or 'Income'.");
+            //RuleFor(x => x.Transaction.Type)
+            //    .NotEmpty().WithMessage("Transaction type is required.")
+            //    .Must(t => t == "Expense" || t == "Income").WithMessage("Transaction type must be 'Expense' or 'Income'.");
 
             RuleFor(x => x.Transaction.Wallet)
                 .NotEmpty().WithMessage("Transaction wallet is required.");
