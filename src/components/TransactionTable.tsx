@@ -11,8 +11,10 @@ const mapApiTransactionToTransaction = (t: transactionsApi.TransactionDto): Tran
   id: t.id.toString(),
   date: t.date,
   description: t.description,
+  flow: t.flow,
   amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-  type: (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
+  //type: (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
+  type: t.type.toLowerCase(),
   category: t.category,
   bank: t.wallet,
   balance: t.balance,
@@ -135,6 +137,9 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Category
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Wallet
+              </th>
               <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => {
@@ -149,7 +154,7 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
                 Amount {sortBy === 'amount' && <ChevronDown className={`w-4 h-4 inline ml-1 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Bank
+                Balance
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -187,13 +192,16 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
                     </span>
                   )}
                 </td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                  transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
-                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {transaction.bank}
+                </td>
+                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                  transaction.flow === 'CR' ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {transaction.flow === 'CR' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {formatCurrency(transaction.balance)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <button
