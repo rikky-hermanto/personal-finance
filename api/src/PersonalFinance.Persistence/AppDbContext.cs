@@ -16,10 +16,10 @@ namespace PersonalFinance.Persistence
             {
                 entity.ToTable("transactions");
                 entity.Property(t => t.Category).HasMaxLength(100);
-                entity.Property(t => t.Description).HasMaxLength(255);
-                entity.Property(t => t.Remarks).HasMaxLength(255);
-                entity.Property(t => t.Flow).HasMaxLength(10);
-                entity.Property(t => t.Type).HasMaxLength(10);
+                entity.Property(t => t.Description).HasMaxLength(500);
+                entity.Property(t => t.Remarks).HasMaxLength(500);
+                entity.Property(t => t.Flow).HasMaxLength(5);
+                entity.Property(t => t.Type).HasMaxLength(15);
                 entity.Property(t => t.Wallet).HasMaxLength(50);
                 entity.Property(t => t.Currency).HasMaxLength(10);
                 
