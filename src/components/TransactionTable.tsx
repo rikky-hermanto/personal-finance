@@ -125,7 +125,7 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
                     setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
                   } else {
                     setSortBy('date');
-                    setSortOrder('desc');
+                    setSortOrder('asc');
                   }
                 }}
               >
