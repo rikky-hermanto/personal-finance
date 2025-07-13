@@ -172,4 +172,109 @@ public class TransactionsController : ControllerBase
             return NotFound();
         return Ok(transaction);
     }
+
+    // Dashboard endpoint - get aggregated data for dashboard
+    [HttpGet("aggregated")]
+    public async Task<IActionResult> GetDashboardData([FromQuery] string? wallet = null, [FromQuery] int? year = null, [FromQuery] int? month = null)
+    {
+        try
+        {
+            var currentYear = year ?? DateTime.Now.Year;
+            var currentMonth = month ?? DateTime.Now.Month;
+            
+            // Get all transactions with optional wallet filter
+            var allTransactions = await _transactionService.GetTransactionsWithBalanceAsync(wallet);
+            
+            // Filter by current year for main stats
+            var yearTransactions = allTransactions.Where(t => t.Date.Year == currentYear).ToList();
+            var monthTransactions = yearTransactions.Where(t => t.Date.Month == currentMonth).ToList();
+            
+            // Calculate main stats
+            var totalIncome = yearTransactions.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
+            var totalExpenses = yearTransactions.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+            var netWorth = totalIncome - totalExpenses;
+            var transactionCount = yearTransactions.Count;
+            
+            // Current month stats
+            var monthIncome = monthTransactions.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
+            var monthExpenses = monthTransactions.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+            var monthNet = monthIncome - monthExpenses;
+            
+            // Previous month for comparison
+            var prevMonth = currentMonth == 1 ? 12 : currentMonth - 1;
+            var prevYear = currentMonth == 1 ? currentYear - 1 : currentYear;
+            var prevMonthTransactions = allTransactions.Where(t => t.Date.Year == prevYear && t.Date.Month == prevMonth).ToList();
+            var prevMonthIncome = prevMonthTransactions.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
+            var prevMonthExpenses = prevMonthTransactions.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+            var prevMonthNet = prevMonthIncome - prevMonthExpenses;
+            
+            // Calculate percentage changes
+            var incomeChange = prevMonthIncome != 0 ? ((monthIncome - prevMonthIncome) / prevMonthIncome) * 100 : 0;
+            var expenseChange = prevMonthExpenses != 0 ? ((monthExpenses - prevMonthExpenses) / prevMonthExpenses) * 100 : 0;
+            var netChange = prevMonthNet != 0 ? ((monthNet - prevMonthNet) / Math.Abs(prevMonthNet)) * 100 : 0;
+            
+            // Top categories for current month expenses
+            var topCategories = monthTransactions
+                .Where(t => t.Type == "Expense" && !string.IsNullOrEmpty(t.Category))
+                .GroupBy(t => t.Category)
+                .Select(g => new
+                {
+                    Category = g.Key,
+                    Amount = g.Sum(t => t.AmountIdr),
+                    Percentage = totalExpenses != 0 ? Math.Round((g.Sum(t => t.AmountIdr) / totalExpenses) * 100, 1) : 0
+                })
+                .OrderByDescending(x => x.Amount)
+                .Take(5)
+                .ToList();
+            
+            // Cash flow data for last 6 months
+            var cashFlowData = new List<object>();
+            for (int i = 5; i >= 0; i--)
+            {
+                var targetDate = DateTime.Now.AddMonths(-i);
+                var monthlyTransactions = allTransactions.Where(t => t.Date.Year == targetDate.Year && t.Date.Month == targetDate.Month).ToList();
+                var monthlyIncome = monthlyTransactions.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
+                var monthlyExpenses = monthlyTransactions.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+                var monthlyNet = monthlyIncome - monthlyExpenses;
+                
+                cashFlowData.Add(new
+                {
+                    Month = targetDate.ToString("MMM yy"),
+                    Income = monthlyIncome,
+                    Expenses = monthlyExpenses,
+                    Net = monthlyNet
+                });
+            }
+            
+            var dashboardData = new
+            {
+                Summary = new
+                {
+                    TotalIncome = totalIncome,
+                    TotalExpenses = totalExpenses,
+                    NetWorth = netWorth,
+                    TransactionCount = transactionCount
+                },
+                CurrentMonth = new
+                {
+                    Month = DateTime.Now.ToString("MMMM yyyy"),
+                    Income = monthIncome,
+                    Expenses = monthExpenses,
+                    Net = monthNet,
+                    IncomeChangePercent = Math.Round(incomeChange, 1),
+                    ExpenseChangePercent = Math.Round(expenseChange, 1),
+                    NetChangePercent = Math.Round(netChange, 1)
+                },
+                TopCategories = topCategories,
+                CashFlow = cashFlowData,
+                LastUpdated = DateTime.Now
+            };
+            
+            return Ok(dashboardData);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Failed to retrieve dashboard data: {ex.Message}");
+        }
+    }
 }
