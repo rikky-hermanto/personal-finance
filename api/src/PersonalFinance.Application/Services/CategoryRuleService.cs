@@ -27,6 +27,7 @@ public class CategoryRuleService : ICategoryRuleService
             if (description.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
                 return rule.Category;
         }
+
         return "Untracked Category";
     }
 
