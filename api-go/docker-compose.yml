@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: personal-finance-db-go
+    environment:
+      POSTGRES_DB: personal_finance
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_go:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    container_name: personal-finance-api-go
+    ports:
+      - "7208:7208"
+    environment:
+      PF_DATABASE_HOST: postgres
+      PF_DATABASE_PORT: 5432
+      PF_DATABASE_USER: postgres
+      PF_DATABASE_PASSWORD: postgres123
+      PF_DATABASE_NAME: personal_finance
+      PF_DATABASE_SSL_MODE: disable
+      PF_SERVER_PORT: 7208
+      PF_SERVER_CORS_ALLOWED_ORIGINS: http://localhost:8080
+      LOG_LEVEL: info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7208/api/transactions/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_data_go:
+    driver: local
+
+networks:
+  default:
+    name: personal-finance-network

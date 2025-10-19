@@ -3,11 +3,11 @@
 ## Project Setup & Structure
 
 ### Initial Setup
-- [ ] Create `api-go/` directory structure
-- [ ] Initialize Go module (`go mod init personal-finance-api`)
-- [ ] Set up `.gitignore` for Go project
-- [ ] Create basic `README.md` for Go API
-- [ ] Set up development environment configuration
+- [x] Create `api-go/` directory structure
+- [x] Initialize Go module (`go mod init personal-finance-api`)
+- [x] Set up `.gitignore` for Go project
+- [x] Create basic `README.md` for Go API
+- [x] Set up development environment configuration
 
 ### Dependencies
 - [ ] Add Gin framework (`github.com/gin-gonic/gin`)

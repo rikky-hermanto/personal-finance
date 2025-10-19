@@ -1,0 +1,35 @@
+server:
+  port: "7208"
+  cors_allowed_origins: "http://localhost:8080"
+  max_file_size: "32MB"
+  upload_path: "./uploads"
+
+database:
+  host: "localhost"
+  port: "5432"
+  user: "postgres"
+  password: "postgres123"
+  name: "personal_finance"
+  ssl_mode: "disable"
+  max_open_connections: 25
+  max_idle_connections: 5
+  connection_max_lifetime: "5m"
+
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+# Optional Redis configuration for caching
+redis:
+  enabled: false
+  host: "localhost"
+  port: "6379"
+  password: ""
+  db: 0
+
+# Optional monitoring configuration
+monitoring:
+  enabled: false
+  metrics_path: "/metrics"
+  health_check_path: "/health"
