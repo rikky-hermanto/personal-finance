@@ -215,8 +215,17 @@ go build -o personal-finance-api cmd/server/main.go
 
 # Repo Signals Scanned
 
+## Frontend
 - `package.json`
 - `vite.config.ts`
+- `eslint.config.js`
+- `tailwind.config.ts`
+- `postcss.config.js`
+- `README.md`
+- `src/api/transactionsApi.ts`
+- `src/api/categoryRulesApi.ts`
+
+## .NET API
 - `api/src/PersonalFinance.Api/Program.cs`
 - `api/src/PersonalFinance.Api/Controllers/TransactionsController.cs`
 - `api/src/PersonalFinance.Api/Controllers/CategoryRulesController.cs`
@@ -224,13 +233,19 @@ go build -o personal-finance-api cmd/server/main.go
 - `api/src/PersonalFinance.Persistence/Migrations/20250615130438_InitPersonalFinance.cs`
 - `api/src/PersonalFinance.Api/appsettings.json`
 - `api/src/PersonalFinance.Api/appsettings.Development.json`
-- `eslint.config.js`
-- `tailwind.config.ts`
-- `postcss.config.js`
-- `README.md`
-- `src/api/transactionsApi.ts`
-- `src/api/categoryRulesApi.ts`
 - `api/tests/PersonalFinance.Tests/CategoryRuleServiceTests.cs`
+
+## Go API
+- `api-go/go.mod`
+- `api-go/cmd/server/main.go`
+- `api-go/README.md`
+- `api-go/QUICKSTART.md`
+- `api-go/INSTALL-GO.md`
+- `api-go/stub-server.cjs`
+- `api-go/.env.example`
+- `api-go/configs/config.example.yaml`
+- `api-go/docker-compose.yml`
+- `api-go/Dockerfile`
 
 # Troubleshooting
 
@@ -258,4 +273,4 @@ go build -o personal-finance-api cmd/server/main.go
 
 ---
 
-See also: [Front-End Architecture](./Front-End.md) | [API/Backend Architecture](./API-backend.md)
+See also: [Front-End Architecture](../docs/Front-End.md) | [API/Backend Architecture](../docs/API-backend.md)
