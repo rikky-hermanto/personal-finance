@@ -6,13 +6,13 @@ toc: true
 
 # Overview
 
-Personal Finance is a full-stack, monorepo solution for managing and analyzing personal financial transactions. It features a modern React + Vite front-end and a .NET 8 Web API backend with PostgreSQL, supporting extensible rules for transaction categorization. The repo is organized by solution layers for clear separation of concerns and developer productivity.
+Personal Finance is a full-stack, monorepo solution for managing and analyzing personal financial transactions. It features a modern React + Vite front-end with **two backend options**: a production-ready .NET 8 Web API and an alternative Go implementation. Both APIs share the same PostgreSQL database and support extensible rules for transaction categorization. The repo is organized by solution layers for clear separation of concerns and developer productivity.
 
 **Monorepo layout:**
 
 ```
 ├── src/                # Front-end (React, Vite, TypeScript)
-├── api/                # Backend (.NET, Entity Framework, API)
+├── api/                # Backend Option 1: .NET API (Production)
 │   └── src/
 │       ├── PersonalFinance.Api/           # API project
 │       ├── PersonalFinance.Application/   # Application logic
@@ -20,8 +20,15 @@ Personal Finance is a full-stack, monorepo solution for managing and analyzing p
 │       ├── PersonalFinance.Infrastructure/# Infra/services
 │       └── PersonalFinance.Persistence/   # DB context/migrations
 │   └── tests/             # Backend unit tests
+├── api-go/             # Backend Option 2: Go API (Alternative)
+│   ├── cmd/server/        # Application entry point
+│   ├── internal/          # Domain, application, infrastructure layers
+│   ├── pkg/               # Shared utilities
+│   ├── configs/           # Configuration management
+│   ├── migrations/        # Database migrations
+│   └── tests/             # Test suites
 ├── public/              # Static assets
-├── docs/                # Documentation (this folder)
+├── docs/                # Documentation
 ├── package.json         # Front-end config/scripts
 ├── vite.config.ts       # Vite config
 ├── tailwind.config.ts   # Tailwind CSS config
@@ -33,52 +40,119 @@ Personal Finance is a full-stack, monorepo solution for managing and analyzing p
 
 ```mermaid
 flowchart LR
-    A[Client (React/Vite)] -->|REST| B[API (.NET WebAPI)]
-    B -->|EF Core| C[(PostgreSQL)]
-    B --> D[Background Services]
-    B --> E[Category Rules Engine]
-    B --> F[Health/Observability]
+    A[Client (React/Vite)] -->|REST| B{API Gateway}
+    B -->|Option 1| C[.NET WebAPI]
+    B -->|Option 2| D[Go API]
+    C -->|EF Core| E[(PostgreSQL)]
+    D -->|GORM| E
+    C --> F[Background Services]
+    D --> F
+    C --> G[Category Rules Engine]
+    D --> G
+    C --> H[Health/Observability]
+    D --> H
 ```
 
-# What’s in Each Layer
+# What's in Each Layer
 
-- **Client:** React 18, Vite, TypeScript, shadcn/ui, Tailwind CSS (`src/`, `vite.config.ts`)
-- **API:** ASP.NET Core WebAPI, MediatR, FluentValidation, OpenAPI (`api/src/PersonalFinance.Api/`)
+## Client Layer
+- **Framework:** React 18, Vite, TypeScript
+- **UI:** shadcn/ui, Tailwind CSS, Radix UI
+- **Location:** `src/`, `vite.config.ts`
+
+## API Layer - Option 1: .NET (Production)
+- **Framework:** ASP.NET Core WebAPI (.NET 8)
+- **Patterns:** MediatR, CQRS, FluentValidation
+- **Location:** `api/src/PersonalFinance.Api/`
 - **Application:** CQRS, business logic, MediatR handlers (`api/src/PersonalFinance.Application/`)
 - **Domain:** Entities, value objects, rules (`api/src/PersonalFinance.Domain/`)
 - **Persistence:** Entity Framework Core, migrations, PostgreSQL (`api/src/PersonalFinance.Persistence/`)
 - **Infrastructure:** Parsers, external integrations (`api/src/PersonalFinance.Infrastructure/`)
 - **Tests:** xUnit, Moq, in-memory DB (`api/tests/PersonalFinance.Tests/`)
 
+## API Layer - Option 2: Go (Alternative)
+- **Framework:** Gin, GORM
+- **Patterns:** Clean Architecture, Repository pattern
+- **Location:** `api-go/`
+- **Entry Point:** `cmd/server/main.go`
+- **Domain:** Entities, interfaces (`internal/domain/`)
+- **Application:** Services, DTOs (`internal/application/`)
+- **Infrastructure:** Database, repositories, parsers (`internal/infrastructure/`)
+- **API Handlers:** HTTP handlers, middleware (`internal/interfaces/`)
+- **Utilities:** Date/amount parsers, file utils (`pkg/utils/`)
+- **Tests:** Unit and integration tests (`tests/`)
+
 # Developer Quickstart
 
 ## Prerequisites
 - Node.js >= 18.x
 - npm >= 9.x
-- .NET 8 SDK
 - PostgreSQL (local or Docker)
+- **Choose one backend:**
+  - .NET 8 SDK (for production .NET API)
+  - Go 1.21+ (for alternative Go API)
 
 ## Install & Bootstrap
 ```sh
+# Frontend dependencies
 npm install
+
+# Backend Option 1: .NET API
 cd api/src/PersonalFinance.Api
-# (optional) dotnet restore
+dotnet restore
+cd ../../..
+
+# Backend Option 2: Go API
+cd api-go
+go mod download
+cd ..
 ```
 
 ## Run (Dev)
+
+### Option 1: Using .NET API (Recommended)
 ```sh
-# Front-end
+# Terminal 1: Frontend
 npm run dev
-# API (from api/src/PersonalFinance.Api)
+
+# Terminal 2: .NET API
+cd api/src/PersonalFinance.Api
 dotnet run
+```
+
+### Option 2: Using Go API
+```sh
+# Terminal 1: Frontend
+npm run dev
+
+# Terminal 2: Go API
+cd api-go
+go run cmd/server/main.go
+# Or use: .\run.ps1 (Windows) or ./scripts/run-dev.sh (Linux/Mac)
+```
+
+### Option 3: Using Node.js Stub (No Backend Install)
+```sh
+# Terminal 1: Frontend
+npm run dev
+
+# Terminal 2: Node.js Stub (health check only)
+cd api-go
+node stub-server.cjs
 ```
 
 ## Run (Production)
 ```sh
+# Frontend
 npm run build
-# API
+
+# Backend Option 1: .NET API
 cd api/src/PersonalFinance.Api
 dotnet publish -c Release
+
+# Backend Option 2: Go API
+cd api-go
+go build -o personal-finance-api cmd/server/main.go
 ```
 
 # Environments & Configuration
@@ -90,11 +164,27 @@ dotnet publish -c Release
 | `.env` / `.env.local` (front-end)    | Front-end env vars             |
 
 ## Key Environment Variables
-| NAME                | Scope      | Required | Example                                 | Notes                |
-|---------------------|------------|----------|-----------------------------------------|----------------------|
-| CONNECTIONSTRINGS__DEFAULT | API        | Yes      | Host=localhost;Port=5432;...            | PostgreSQL conn str  |
-| VITE_API_URL        | Front-end  | Yes      | http://localhost:7208                   | API base URL         |
-<!-- TODO: add more as needed -->
+
+### Frontend
+| NAME                | Required | Example                                 | Notes                |
+|---------------------|----------|-----------------------------------------|----------------------|
+| VITE_API_URL        | Yes      | http://localhost:7208                   | API base URL         |
+
+### .NET API
+| NAME                        | Required | Example                                 | Notes                |
+|-----------------------------|----------|-----------------------------------------|----------------------|
+| ConnectionStrings__Default  | Yes      | Host=localhost;Port=5432;Database=...   | PostgreSQL conn str  |
+
+### Go API
+| NAME                        | Required | Example                                 | Notes                |
+|-----------------------------|----------|-----------------------------------------|----------------------|
+| PF_DATABASE_HOST            | Yes      | localhost                               | PostgreSQL host      |
+| PF_DATABASE_PORT            | Yes      | 5432                                    | PostgreSQL port      |
+| PF_DATABASE_USER            | Yes      | postgres                                | Database user        |
+| PF_DATABASE_PASSWORD        | Yes      | postgres123                             | Database password    |
+| PF_DATABASE_NAME            | Yes      | personal_finance                        | Database name        |
+| PF_SERVER_PORT              | No       | 7208                                    | API server port      |
+| PF_SERVER_CORS_ALLOWED_ORIGINS | No    | http://localhost:8080                   | CORS origins         |
 
 # Quality Gates
 
