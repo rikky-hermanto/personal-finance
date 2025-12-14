@@ -3,15 +3,15 @@
 Write-Host "🚀 Starting Personal Finance App (Full Stack)..." -ForegroundColor Green
 
 # 1. Setup Backend Environment
-$backendPath = Join-Path $PSScriptRoot "api-go"
-if (-not (Test-Path "$backendPath\.env")) {
-    Write-Host "📝 Creating backend .env from example..." -ForegroundColor Yellow
-    Copy-Item "$backendPath\.env.example" "$backendPath\.env"
+$backendPath = Join-Path $PSScriptRoot "api\src\PersonalFinance.Api"
+if (-not (Test-Path "$backendPath\bin")) {
+    Write-Host "� Restoring .NET dependencies..." -ForegroundColor Yellow
+    dotnet restore "$PSScriptRoot\api\personal-finance.sln"
 }
 
 # 2. Start Backend (New Window)
-Write-Host "🔙 Starting Go Backend..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; .\run.ps1"
+Write-Host "🔙 Starting .NET Backend..." -ForegroundColor Cyan
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; dotnet run"
 
 # 3. Setup Frontend Dependencies
 if (-not (Test-Path "$PSScriptRoot\node_modules")) {

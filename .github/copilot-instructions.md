@@ -6,13 +6,13 @@ toc: true
 
 # Overview
 
-Personal Finance is a full-stack, monorepo solution for managing and analyzing personal financial transactions. It features a modern React + Vite front-end with **two backend options**: a production-ready .NET 8 Web API and an alternative Go implementation. Both APIs share the same PostgreSQL database and support extensible rules for transaction categorization. The repo is organized by solution layers for clear separation of concerns and developer productivity.
+Personal Finance is a full-stack, monorepo solution for managing and analyzing personal financial transactions. It features a modern React + Vite front-end with a production-ready .NET 8 Web API. The API uses PostgreSQL database and supports extensible rules for transaction categorization. The repo is organized by solution layers for clear separation of concerns and developer productivity.
 
 **Monorepo layout:**
 
 ```
 ├── src/                # Front-end (React, Vite, TypeScript)
-├── api/                # Backend Option 1: .NET API (Production)
+├── api/                # Backend: .NET API (Production)
 │   └── src/
 │       ├── PersonalFinance.Api/           # API project
 │       ├── PersonalFinance.Application/   # Application logic
@@ -20,13 +20,6 @@ Personal Finance is a full-stack, monorepo solution for managing and analyzing p
 │       ├── PersonalFinance.Infrastructure/# Infra/services
 │       └── PersonalFinance.Persistence/   # DB context/migrations
 │   └── tests/             # Backend unit tests
-├── api-go/             # Backend Option 2: Go API (Alternative)
-│   ├── cmd/server/        # Application entry point
-│   ├── internal/          # Domain, application, infrastructure layers
-│   ├── pkg/               # Shared utilities
-│   ├── configs/           # Configuration management
-│   ├── migrations/        # Database migrations
-│   └── tests/             # Test suites
 ├── public/              # Static assets
 ├── docs/                # Documentation
 ├── package.json         # Front-end config/scripts
@@ -40,14 +33,12 @@ Personal Finance is a full-stack, monorepo solution for managing and analyzing p
 
 ```mermaid
 flowchart LR
-    A[Client (React/Vite)] -->|REST| B{API Gateway}
-    B -->|Option 1| C[.NET WebAPI]
-    B -->|Option 2| D[Go API]
-    C -->|EF Core| E[(PostgreSQL)]
-    D -->|GORM| E
-    C --> F[Background Services]
-    D --> F
-    C --> G[Category Rules Engine]
+    A[Client (React/Vite)] -->|REST| B[.NET WebAPI]
+    B -->|EF Core| C[(PostgreSQL)]
+    B --> D[Background Services]
+    B --> E[Category Rules Engine]
+    B --> F[Health/Observability]
+```
     D --> G
     C --> H[Health/Observability]
     D --> H
@@ -60,7 +51,7 @@ flowchart LR
 - **UI:** shadcn/ui, Tailwind CSS, Radix UI
 - **Location:** `src/`, `vite.config.ts`
 
-## API Layer - Option 1: .NET (Production)
+## API Layer - .NET (Production)
 - **Framework:** ASP.NET Core WebAPI (.NET 8)
 - **Patterns:** MediatR, CQRS, FluentValidation
 - **Location:** `api/src/PersonalFinance.Api/`
@@ -70,47 +61,28 @@ flowchart LR
 - **Infrastructure:** Parsers, external integrations (`api/src/PersonalFinance.Infrastructure/`)
 - **Tests:** xUnit, Moq, in-memory DB (`api/tests/PersonalFinance.Tests/`)
 
-## API Layer - Option 2: Go (Alternative)
-- **Framework:** Gin, GORM
-- **Patterns:** Clean Architecture, Repository pattern
-- **Location:** `api-go/`
-- **Entry Point:** `cmd/server/main.go`
-- **Domain:** Entities, interfaces (`internal/domain/`)
-- **Application:** Services, DTOs (`internal/application/`)
-- **Infrastructure:** Database, repositories, parsers (`internal/infrastructure/`)
-- **API Handlers:** HTTP handlers, middleware (`internal/interfaces/`)
-- **Utilities:** Date/amount parsers, file utils (`pkg/utils/`)
-- **Tests:** Unit and integration tests (`tests/`)
-
 # Developer Quickstart
 
 ## Prerequisites
 - Node.js >= 18.x
 - npm >= 9.x
 - PostgreSQL (local or Docker)
-- **Choose one backend:**
-  - .NET 8 SDK (for production .NET API)
-  - Go 1.21+ (for alternative Go API)
+- .NET 8 SDK (for .NET API)
 
 ## Install & Bootstrap
 ```sh
 # Frontend dependencies
 npm install
 
-# Backend Option 1: .NET API
+# Backend: .NET API
 cd api/src/PersonalFinance.Api
 dotnet restore
 cd ../../..
-
-# Backend Option 2: Go API
-cd api-go
-go mod download
-cd ..
 ```
 
 ## Run (Dev)
 
-### Option 1: Using .NET API (Recommended)
+### Using .NET API
 ```sh
 # Terminal 1: Frontend
 npm run dev
@@ -120,39 +92,14 @@ cd api/src/PersonalFinance.Api
 dotnet run
 ```
 
-### Option 2: Using Go API
-```sh
-# Terminal 1: Frontend
-npm run dev
-
-# Terminal 2: Go API
-cd api-go
-go run cmd/server/main.go
-# Or use: .\run.ps1 (Windows) or ./scripts/run-dev.sh (Linux/Mac)
-```
-
-### Option 3: Using Node.js Stub (No Backend Install)
-```sh
-# Terminal 1: Frontend
-npm run dev
-
-# Terminal 2: Node.js Stub (health check only)
-cd api-go
-node stub-server.cjs
-```
-
 ## Run (Production)
 ```sh
 # Frontend
 npm run build
 
-# Backend Option 1: .NET API
+# Backend: .NET API
 cd api/src/PersonalFinance.Api
 dotnet publish -c Release
-
-# Backend Option 2: Go API
-cd api-go
-go build -o personal-finance-api cmd/server/main.go
 ```
 
 # Environments & Configuration
@@ -174,17 +121,6 @@ go build -o personal-finance-api cmd/server/main.go
 | NAME                        | Required | Example                                 | Notes                |
 |-----------------------------|----------|-----------------------------------------|----------------------|
 | ConnectionStrings__Default  | Yes      | Host=localhost;Port=5432;Database=...   | PostgreSQL conn str  |
-
-### Go API
-| NAME                        | Required | Example                                 | Notes                |
-|-----------------------------|----------|-----------------------------------------|----------------------|
-| PF_DATABASE_HOST            | Yes      | localhost                               | PostgreSQL host      |
-| PF_DATABASE_PORT            | Yes      | 5432                                    | PostgreSQL port      |
-| PF_DATABASE_USER            | Yes      | postgres                                | Database user        |
-| PF_DATABASE_PASSWORD        | Yes      | postgres123                             | Database password    |
-| PF_DATABASE_NAME            | Yes      | personal_finance                        | Database name        |
-| PF_SERVER_PORT              | No       | 7208                                    | API server port      |
-| PF_SERVER_CORS_ALLOWED_ORIGINS | No    | http://localhost:8080                   | CORS origins         |
 
 # Quality Gates
 
@@ -234,18 +170,6 @@ go build -o personal-finance-api cmd/server/main.go
 - `api/src/PersonalFinance.Api/appsettings.json`
 - `api/src/PersonalFinance.Api/appsettings.Development.json`
 - `api/tests/PersonalFinance.Tests/CategoryRuleServiceTests.cs`
-
-## Go API
-- `api-go/go.mod`
-- `api-go/cmd/server/main.go`
-- `api-go/README.md`
-- `api-go/QUICKSTART.md`
-- `api-go/INSTALL-GO.md`
-- `api-go/stub-server.cjs`
-- `api-go/.env.example`
-- `api-go/configs/config.example.yaml`
-- `api-go/docker-compose.yml`
-- `api-go/Dockerfile`
 
 # Troubleshooting
 
