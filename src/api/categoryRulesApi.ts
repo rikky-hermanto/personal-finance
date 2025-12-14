@@ -1,11 +1,12 @@
-const BASE_URL = "https://localhost:7208/api/CategoryRules";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7208";
+const BASE_URL = `${API_BASE_URL}/api/categoryrules`;
 
 export interface CategoryRuleDto {
-  type: string;
+  id: number;
   keyword: string;
-  id: string;
-  pattern: string;
+  type: string;
   category: string;
+  keywordLength: number;
 }
 
 export async function getCategoryRules(): Promise<CategoryRuleDto[]> {
@@ -14,7 +15,7 @@ export async function getCategoryRules(): Promise<CategoryRuleDto[]> {
   return res.json();
 }
 
-export async function addCategoryRule(rule: Omit<CategoryRuleDto, "id">): Promise<CategoryRuleDto> {
+export async function addCategoryRule(rule: Omit<CategoryRuleDto, "id" | "keywordLength">): Promise<CategoryRuleDto> {
   const res = await fetch(BASE_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -24,7 +25,7 @@ export async function addCategoryRule(rule: Omit<CategoryRuleDto, "id">): Promis
   return res.json();
 }
 
-export async function updateCategoryRule(id: string, rule: CategoryRuleDto): Promise<CategoryRuleDto> {
+export async function updateCategoryRule(id: number, rule: Omit<CategoryRuleDto, "id" | "keywordLength">): Promise<CategoryRuleDto> {
   const res = await fetch(`${BASE_URL}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -34,7 +35,7 @@ export async function updateCategoryRule(id: string, rule: CategoryRuleDto): Pro
   return res.json();
 }
 
-export async function deleteCategoryRule(id: string): Promise<void> {
+export async function deleteCategoryRule(id: number): Promise<void> {
   const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete category rule");
 }

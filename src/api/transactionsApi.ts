@@ -1,4 +1,5 @@
-const BASE_URL = "https://localhost:7208/api/transactions";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7208";
+const BASE_URL = `${API_BASE_URL}/api/transactions`;
 
 export interface TransactionDto {
   id: number;
@@ -89,4 +90,15 @@ export async function submitTransactions(transactions: TransactionDto[]): Promis
     error.response = res;
     throw error;
   }
+}
+
+export async function getDashboardData(wallet?: string, year?: number, month?: number): Promise<any> {
+  const params = new URLSearchParams();
+  if (wallet) params.append("wallet", wallet);
+  if (year) params.append("year", year.toString());
+  if (month) params.append("month", month.toString());
+
+  const res = await fetch(`${BASE_URL}/aggregated?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch dashboard data");
+  return res.json();
 }

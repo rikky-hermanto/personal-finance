@@ -31,10 +31,11 @@ const CategoryManager = () => {
         console.log("Fetched category rules:", dtos);
         setCategoryRules(
           dtos.map((dto) => ({
-            ...dto,
+            id: dto.id,
             keyword: dto.keyword ?? '',
             category: dto.category ?? '',
-            type: (dto.type ?? 'expense').toLowerCase() as 'income' | 'expense',
+            type: (dto.type?.toLowerCase() ?? 'expense') as 'income' | 'expense',
+            keywordLength: dto.keywordLength,
           }))
         );
       })
@@ -45,27 +46,24 @@ const CategoryManager = () => {
   }, []);
 
   const handleSaveRule = async (rule: CategoryRule) => {
-    // Ensure 'pattern' is included; fallback to empty string if not present
     const ruleDto = {
-      type: rule.type,
       keyword: rule.keyword,
-      id: rule.id,
-      pattern: rule.keyword,
       category: rule.category,
+      type: rule.type,
     };
     const updated = await updateCategoryRule(rule.id, ruleDto);
-    // Ensure the updated object matches CategoryRule type
     const normalized: CategoryRule = {
-      ...updated,
+      id: updated.id,
       keyword: updated.keyword ?? '',
       category: updated.category ?? '',
-      type: (updated.type ?? 'expense') as 'income' | 'expense',
+      type: (updated.type?.toLowerCase() ?? 'expense') as 'income' | 'expense',
+      keywordLength: updated.keywordLength,
     };
     setCategoryRules(rules => rules.map(r => r.id === rule.id ? normalized : r));
     setEditingRule(null);
   };
 
-  const handleDeleteRule = async (id: string) => {
+  const handleDeleteRule = async (id: number) => {
     await deleteCategoryRule(id);
     setCategoryRules(rules => rules.filter(r => r.id !== id));
   };
@@ -73,14 +71,16 @@ const CategoryManager = () => {
   const handleAddRule = async () => {
     if (newRule.keyword && newRule.category) {
       const created = await addCategoryRule({
-        ...newRule,
-        pattern: newRule.keyword, // or set as needed
+        keyword: newRule.keyword,
+        category: newRule.category,
+        type: newRule.type,
       });
       const normalized: CategoryRule = {
-        ...created,
+        id: created.id,
         keyword: created.keyword ?? '',
         category: created.category ?? '',
-        type: (created.type ?? 'expense') as 'income' | 'expense',
+        type: (created.type?.toLowerCase() ?? 'expense') as 'income' | 'expense',
+        keywordLength: created.keywordLength,
       };
       setCategoryRules(rules => [...rules, normalized]);
       setNewRule({ keyword: '', category: '', type: 'expense' });

@@ -13,10 +13,11 @@ export interface Transaction {
 }
 
 export interface CategoryRule {
-  id: string;
+  id: number;
   keyword: string;
   category: string;
   type: 'income' | 'expense';
+  keywordLength?: number;
 }
 
 export interface MonthlySum {
