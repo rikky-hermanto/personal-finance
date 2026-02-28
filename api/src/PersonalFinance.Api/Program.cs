@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Api.Extensions;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Persistence;
@@ -51,6 +52,13 @@ namespace PersonalFinance.Api
             });
 
             var app = builder.Build();
+
+            // Apply pending EF Core migrations on startup
+            using (var scope = app.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                dbContext.Database.Migrate();
+            }
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
