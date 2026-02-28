@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 8080
+    },
+    {
+      "name": "api-dotnet",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "--build", "db", "api"],
+      "port": 7208
+    },
+    {
+      "name": "api-go",
+      "runtimeExecutable": "go",
+      "runtimeArgs": ["run", "main.go"],
+      "port": 7209
+    },
+    {
+      "name": "full-stack",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "--build"],
+      "port": 8080
+    }
+  ]
+}
