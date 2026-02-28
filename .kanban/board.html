@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Personal Finance — Kanban Board</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface-hover: #1c2129;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --accent: #58a6ff;
+      --green: #3fb950;
+      --orange: #d29922;
+      --purple: #bc8cff;
+      --blue: #58a6ff;
+      --gray: #8b949e;
+      --yellow: #e3b341;
+      --red: #f85149;
+      --col-backlog: #30363d;
+      --col-ready: #1f6feb33;
+      --col-progress: #d2992233;
+      --col-review: #bc8cff33;
+      --col-done: #3fb95033;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 20px 32px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    header h1 span {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    .meta {
+      display: flex;
+      gap: 24px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .meta strong { color: var(--text); }
+
+    .progress-bar-container {
+      padding: 12px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .progress-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 6px;
+      font-size: 12px;
+    }
+
+    .progress-row:last-child { margin-bottom: 0; }
+
+    .progress-label {
+      width: 80px;
+      text-align: right;
+      color: var(--text-muted);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .progress-track {
+      flex: 1;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.4s ease;
+    }
+
+    .progress-pct {
+      width: 48px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      color: var(--text-muted);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 20px 16px;
+      min-height: calc(100vh - 160px);
+      overflow-x: auto;
+    }
+
+    @media (max-width: 1200px) {
+      .board {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 768px) {
+      .board {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .column {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      min-width: 260px;
+    }
+
+    .column-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .column-header .count {
+      background: var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .column-body {
+      padding: 8px;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: default;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      background: var(--surface-hover);
+    }
+
+    .card:last-child { margin-bottom: 0; }
+
+    .card-id {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .card-meta {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .label {
+      font-size: 11px;
+      padding: 1px 8px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    .label-feature { background: #1f6feb33; color: var(--blue); }
+    .label-learning { background: #3fb95033; color: var(--green); }
+    .label-infra { background: #d2992233; color: var(--orange); }
+    .label-ai { background: #bc8cff33; color: var(--purple); }
+    .label-docs { background: #8b949e33; color: var(--gray); }
+    .label-test { background: #e3b34133; color: var(--yellow); }
+
+    .sprint-tag {
+      font-size: 11px;
+      padding: 1px 8px;
+      border-radius: 10px;
+      background: var(--border);
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 24px 16px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-style: italic;
+    }
+
+    /* Column top-border accents */
+    .col-backlog { border-top: 3px solid var(--gray); }
+    .col-ready { border-top: 3px solid var(--blue); }
+    .col-progress { border-top: 3px solid var(--orange); }
+    .col-review { border-top: 3px solid var(--purple); }
+    .col-done { border-top: 3px solid var(--green); }
+
+    .card-completed {
+      opacity: 0.6;
+    }
+
+    .card-completed .card-title {
+      text-decoration: line-through;
+      text-decoration-color: var(--text-muted);
+    }
+
+    footer {
+      padding: 16px 32px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .filter-bar {
+      padding: 12px 32px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover, .filter-btn.active {
+      border-color: var(--accent);
+      color: var(--text);
+      background: #1f6feb22;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Personal Finance <span>— Kanban Board</span></h1>
+  <div class="meta">
+    <div>Sprint: <strong>Pre-Sprint (Ramp-Up)</strong></div>
+    <div>Updated: <strong>2026-03-01</strong></div>
+    <div>WIP Limit: <strong>2</strong></div>
+  </div>
+</header>
+
+<div class="progress-bar-container" id="progress-section"></div>
+
+<div class="filter-bar">
+  <button class="filter-btn active" onclick="filterSprint('all')">All</button>
+  <button class="filter-btn" onclick="filterSprint('setup')">Setup</button>
+  <button class="filter-btn" onclick="filterSprint('ramp-up')">Ramp-Up</button>
+  <button class="filter-btn" onclick="filterSprint('S1')">Sprint 1</button>
+  <button class="filter-btn" onclick="filterSprint('S2')">Sprint 2</button>
+  <button class="filter-btn" onclick="filterSprint('S3')">Sprint 3</button>
+  <button class="filter-btn" onclick="filterSprint('S4')">Sprint 4</button>
+</div>
+
+<div class="board" id="board"></div>
+
+<footer>
+  Generated from <code>.kanban/BOARD.md</code> &mdash; Personal Finance AI Platform
+</footer>
+
+<script>
+// ── BOARD DATA ──────────────────────────────────────────────────────────────────
+// This data mirrors BOARD.md. Regenerate this file when the board changes.
+
+const tasks = [
+  // ── DONE ──
+  { id: "PF-001", title: ".NET Web API with Clean Architecture", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
+  { id: "PF-002", title: "React + Vite frontend scaffold", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
+  { id: "PF-003", title: "Docker Compose orchestration", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
+  { id: "PF-004", title: "EF Core + PostgreSQL schema & migrations", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
+  { id: "PF-005", title: "Bank statement CSV/PDF parsers", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
+  { id: "PF-006", title: "CQRS + MediatR pipeline", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
+  { id: "PF-007", title: "Category rules feature (CRUD)", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
+  { id: "PF-008", title: "Cash flow dashboard with charts", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
+
+  // ── READY ──
+  { id: "PF-009", title: "Hello LLM \u2014 first Anthropic API call", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"] },
+  { id: "PF-010", title: "Structured output \u2014 text \u2192 JSON via LLM", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"] },
+  { id: "PF-011", title: "FastAPI AI microservice scaffold", status: "ready", sprint: "ramp-up", labels: ["learning", "ai", "infra"] },
+
+  // ── BACKLOG ──
+  { id: "PF-012", title: "PDF text extraction with PyMuPDF", status: "backlog", sprint: "ramp-up", labels: ["learning", "ai"] },
+  { id: "PF-013", title: "End-to-end: .NET \u2192 Python \u2192 LLM pipeline", status: "backlog", sprint: "ramp-up", labels: ["feature", "ai"] },
+  { id: "PF-014", title: "Persist AI-parsed transactions to DB", status: "backlog", sprint: "ramp-up", labels: ["feature"] },
+  { id: "PF-015", title: "LLM provider abstraction layer", status: "backlog", sprint: "S1", labels: ["feature", "ai"] },
+  { id: "PF-016", title: "AI-powered auto-categorization", status: "backlog", sprint: "S1", labels: ["feature", "ai"] },
+  { id: "PF-017", title: "Natural language transaction query", status: "backlog", sprint: "S1", labels: ["feature", "ai"] },
+  { id: "PF-018", title: "pgvector setup + embedding generation", status: "backlog", sprint: "S2", labels: ["infra", "ai"] },
+  { id: "PF-019", title: "RAG pipeline for transaction queries", status: "backlog", sprint: "S2", labels: ["feature", "ai"] },
+  { id: "PF-020", title: "Semantic search API endpoint", status: "backlog", sprint: "S2", labels: ["feature", "ai"] },
+  { id: "PF-021", title: "Function calling \u2014 API endpoints as LLM tools", status: "backlog", sprint: "S3", labels: ["feature", "ai"] },
+  { id: "PF-022", title: "Agent loop with Semantic Kernel", status: "backlog", sprint: "S3", labels: ["feature", "ai"] },
+  { id: "PF-023", title: "Multi-turn agent conversation", status: "backlog", sprint: "S3", labels: ["feature", "ai"] },
+  { id: "PF-024", title: "AI observability + cost tracking", status: "backlog", sprint: "S4", labels: ["infra", "ai"] },
+  { id: "PF-025", title: "Semantic caching layer", status: "backlog", sprint: "S4", labels: ["feature", "ai"] },
+  { id: "PF-026", title: "Auth0 integration + security hardening", status: "backlog", sprint: "S4", labels: ["infra"] },
+];
+
+// ── RENDER ENGINE ───────────────────────────────────────────────────────────────
+
+const columns = [
+  { key: "backlog",  name: "Backlog",     cssClass: "col-backlog" },
+  { key: "ready",    name: "Ready",       cssClass: "col-ready" },
+  { key: "progress", name: "In Progress", cssClass: "col-progress" },
+  { key: "review",   name: "Review",      cssClass: "col-review" },
+  { key: "done",     name: "Done",        cssClass: "col-done" },
+];
+
+let currentFilter = "all";
+
+function filterSprint(sprint) {
+  currentFilter = sprint;
+  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  renderBoard();
+}
+
+function getFilteredTasks() {
+  if (currentFilter === "all") return tasks;
+  return tasks.filter(t => t.sprint === currentFilter);
+}
+
+function renderCard(task) {
+  const isDone = task.status === "done";
+  const labels = task.labels.map(l =>
+    `<span class="label label-${l}">${l}</span>`
+  ).join("");
+
+  return `
+    <div class="card ${isDone ? 'card-completed' : ''}" data-sprint="${task.sprint}">
+      <div class="card-id">${task.id}</div>
+      <div class="card-title">${task.title}</div>
+      <div class="card-meta">
+        <span class="sprint-tag">${task.sprint}</span>
+        ${labels}
+        ${task.completed ? `<span class="sprint-tag">${task.completed}</span>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderBoard() {
+  const filtered = getFilteredTasks();
+  const board = document.getElementById("board");
+
+  board.innerHTML = columns.map(col => {
+    const colTasks = filtered.filter(t => t.status === col.key);
+    const cardsHtml = colTasks.length > 0
+      ? colTasks.map(renderCard).join("")
+      : `<div class="empty-state">No tasks</div>`;
+
+    return `
+      <div class="column ${col.cssClass}">
+        <div class="column-header">
+          ${col.name}
+          <span class="count">${colTasks.length}</span>
+        </div>
+        <div class="column-body">${cardsHtml}</div>
+      </div>
+    `;
+  }).join("");
+
+  renderProgress();
+}
+
+function renderProgress() {
+  const sprintConfigs = [
+    { key: "setup", name: "Setup", color: "#8b949e" },
+    { key: "ramp-up", name: "Ramp-Up", color: "#3fb950" },
+    { key: "S1", name: "Sprint 1", color: "#58a6ff" },
+    { key: "S2", name: "Sprint 2", color: "#bc8cff" },
+    { key: "S3", name: "Sprint 3", color: "#d29922" },
+    { key: "S4", name: "Sprint 4", color: "#f85149" },
+  ];
+
+  const totalDone = tasks.filter(t => t.status === "done").length;
+  const totalAll = tasks.length;
+  const overallPct = Math.round((totalDone / totalAll) * 100);
+
+  let html = sprintConfigs.map(s => {
+    const total = tasks.filter(t => t.sprint === s.key).length;
+    const done = tasks.filter(t => t.sprint === s.key && t.status === "done").length;
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    return `
+      <div class="progress-row">
+        <span class="progress-label">${s.name}</span>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%;background:${s.color}"></div>
+        </div>
+        <span class="progress-pct">${done}/${total}</span>
+      </div>
+    `;
+  }).join("");
+
+  html += `
+    <div class="progress-row" style="margin-top:4px;border-top:1px solid var(--border);padding-top:8px">
+      <span class="progress-label" style="font-weight:600;color:var(--text)">Overall</span>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${overallPct}%;background:var(--accent)"></div>
+      </div>
+      <span class="progress-pct" style="color:var(--text);font-weight:600">${overallPct}%</span>
+    </div>
+  `;
+
+  document.getElementById("progress-section").innerHTML = html;
+}
+
+// ── INIT ────────────────────────────────────────────────────────────────────────
+renderBoard();
+</script>
+</body>
+</html>
