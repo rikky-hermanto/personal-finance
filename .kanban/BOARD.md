@@ -1,0 +1,83 @@
+# Personal Finance — Kanban Board
+
+> **Current Sprint:** Pre-Sprint (Ramp-Up Week 0)
+> **Last Updated:** 2026-03-01
+> **WIP Limit:** 2 tasks in progress
+
+---
+
+## Backlog
+
+| ID | Task | Sprint | Labels |
+|----|------|--------|--------|
+| [PF-012](tasks/PF-012.md) | PDF text extraction with PyMuPDF | ramp-up | `learning` `ai` |
+| [PF-013](tasks/PF-013.md) | End-to-end: .NET → Python → LLM pipeline | ramp-up | `feature` `ai` |
+| [PF-014](tasks/PF-014.md) | Persist AI-parsed transactions to DB | ramp-up | `feature` |
+| [PF-015](tasks/PF-015.md) | LLM provider abstraction layer | S1 | `feature` `ai` |
+| [PF-016](tasks/PF-016.md) | AI-powered auto-categorization | S1 | `feature` `ai` |
+| [PF-017](tasks/PF-017.md) | Natural language transaction query | S1 | `feature` `ai` |
+| [PF-018](tasks/PF-018.md) | pgvector setup + embedding generation | S2 | `infra` `ai` |
+| [PF-019](tasks/PF-019.md) | RAG pipeline for transaction queries | S2 | `feature` `ai` |
+| [PF-020](tasks/PF-020.md) | Semantic search API endpoint | S2 | `feature` `ai` |
+| [PF-021](tasks/PF-021.md) | Function calling — API endpoints as LLM tools | S3 | `feature` `ai` |
+| [PF-022](tasks/PF-022.md) | Agent loop with Semantic Kernel | S3 | `feature` `ai` |
+| [PF-023](tasks/PF-023.md) | Multi-turn agent conversation | S3 | `feature` `ai` |
+| [PF-024](tasks/PF-024.md) | AI observability + cost tracking | S4 | `infra` `ai` |
+| [PF-025](tasks/PF-025.md) | Semantic caching layer | S4 | `feature` `ai` |
+| [PF-026](tasks/PF-026.md) | Auth0 integration + security hardening | S4 | `infra` |
+
+---
+
+## Ready
+
+| ID | Task | Sprint | Labels |
+|----|------|--------|--------|
+| [PF-009](tasks/PF-009.md) | Hello LLM — first Anthropic API call | ramp-up | `learning` `ai` |
+| [PF-010](tasks/PF-010.md) | Structured output — text → JSON via LLM | ramp-up | `learning` `ai` |
+| [PF-011](tasks/PF-011.md) | FastAPI AI microservice scaffold | ramp-up | `learning` `ai` `infra` |
+
+---
+
+## In Progress
+
+| ID | Task | Sprint | Labels | Started |
+|----|------|--------|--------|---------|
+| — | — | — | — | — |
+
+---
+
+## Review
+
+| ID | Task | Sprint | Labels |
+|----|------|--------|--------|
+| — | — | — | — |
+
+---
+
+## Done
+
+| ID | Task | Sprint | Labels | Completed |
+|----|------|--------|--------|-----------|
+| [PF-001](tasks/PF-001.md) | .NET Web API with Clean Architecture | setup | `infra` | 2026-02 |
+| [PF-002](tasks/PF-002.md) | React + Vite frontend scaffold | setup | `infra` | 2026-02 |
+| [PF-003](tasks/PF-003.md) | Docker Compose orchestration | setup | `infra` | 2026-02 |
+| [PF-004](tasks/PF-004.md) | EF Core + PostgreSQL schema & migrations | setup | `infra` | 2026-02 |
+| [PF-005](tasks/PF-005.md) | Bank statement CSV/PDF parsers | setup | `feature` | 2026-02 |
+| [PF-006](tasks/PF-006.md) | CQRS + MediatR pipeline | setup | `infra` | 2026-02 |
+| [PF-007](tasks/PF-007.md) | Category rules feature (CRUD) | setup | `feature` | 2026-02 |
+| [PF-008](tasks/PF-008.md) | Cash flow dashboard with charts | setup | `feature` | 2026-02 |
+
+---
+
+## Progress
+
+```
+Setup:    ████████████████████ 100% (8/8)
+Ramp-Up:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
+Sprint 1: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
+Sprint 2: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
+Sprint 3: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
+Sprint 4: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
+──────────────────────────────────
+Overall:  ████░░░░░░░░░░░░░░░░  31% (8/26)
+```
