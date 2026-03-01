@@ -285,7 +285,7 @@
 <header>
   <h1>Personal Finance <span>— Kanban Board</span></h1>
   <div class="meta">
-    <div>Sprint: <strong>Pre-Sprint (Ramp-Up)</strong></div>
+    <div>Sprint: <strong>Cleanup → Ramp-Up</strong></div>
     <div>Updated: <strong>2026-03-01</strong></div>
     <div>WIP Limit: <strong>2</strong></div>
   </div>
@@ -296,6 +296,7 @@
 <div class="filter-bar">
   <button class="filter-btn active" onclick="filterSprint('all')">All</button>
   <button class="filter-btn" onclick="filterSprint('setup')">Setup</button>
+  <button class="filter-btn" onclick="filterSprint('cleanup')">Cleanup</button>
   <button class="filter-btn" onclick="filterSprint('ramp-up')">Ramp-Up</button>
   <button class="filter-btn" onclick="filterSprint('S1')">Sprint 1</button>
   <button class="filter-btn" onclick="filterSprint('S2')">Sprint 2</button>
@@ -324,7 +325,16 @@ const tasks = [
   { id: "PF-007", title: "Category rules feature (CRUD)", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
   { id: "PF-008", title: "Cash flow dashboard with charts", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
 
-  // ── READY ──
+  // ── READY (Cleanup) ──
+  { id: "PF-027", title: "Delete scaffold leftovers and dead code", status: "ready", sprint: "cleanup", labels: ["infra"] },
+  { id: "PF-028", title: "Fix exception detail leaking to API clients", status: "ready", sprint: "cleanup", labels: ["infra"] },
+  { id: "PF-029", title: "Fix N+1 query in CategorizeAsync", status: "ready", sprint: "cleanup", labels: ["infra"] },
+  { id: "PF-030", title: "Move DTOs to correct project", status: "ready", sprint: "cleanup", labels: ["infra"] },
+  { id: "PF-031", title: "Extract dashboard aggregation from controller", status: "ready", sprint: "cleanup", labels: ["infra"] },
+  { id: "PF-032", title: "Update PROJECT_CONTEXT.md to match codebase", status: "ready", sprint: "cleanup", labels: ["docs"] },
+  { id: "PF-033", title: "Add Current Phase section to CLAUDE.md", status: "ready", sprint: "cleanup", labels: ["docs"] },
+
+  // ── READY (Ramp-Up) ──
   { id: "PF-009", title: "Hello LLM \u2014 first Anthropic API call", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"] },
   { id: "PF-010", title: "Structured output \u2014 text \u2192 JSON via LLM", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"] },
   { id: "PF-011", title: "FastAPI AI microservice scaffold", status: "ready", sprint: "ramp-up", labels: ["learning", "ai", "infra"] },
@@ -417,6 +427,7 @@ function renderBoard() {
 function renderProgress() {
   const sprintConfigs = [
     { key: "setup", name: "Setup", color: "#8b949e" },
+    { key: "cleanup", name: "Cleanup", color: "#f0883e" },
     { key: "ramp-up", name: "Ramp-Up", color: "#3fb950" },
     { key: "S1", name: "Sprint 1", color: "#58a6ff" },
     { key: "S2", name: "Sprint 2", color: "#bc8cff" },
