@@ -169,7 +169,7 @@
       border-radius: 6px;
       padding: 12px;
       margin-bottom: 8px;
-      cursor: default;
+      cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
     }
 
@@ -278,6 +278,250 @@
       color: var(--text);
       background: #1f6feb22;
     }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 48px 16px;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 100%;
+      max-width: 680px;
+      max-height: calc(100vh - 96px);
+      overflow-y: auto;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+      animation: modalIn 0.15s ease-out;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .modal-header-left {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .modal-id {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .modal-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .modal-close {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .modal-close:hover {
+      border-color: var(--accent);
+      color: var(--text);
+      background: var(--surface-hover);
+    }
+
+    .modal-body {
+      padding: 20px 24px 24px;
+    }
+
+    .modal-section {
+      margin-bottom: 20px;
+    }
+
+    .modal-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .modal-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .modal-section p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .modal-status-bar {
+      display: flex;
+      gap: 16px;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    .modal-status-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .modal-status-label {
+      color: var(--text-muted);
+    }
+
+    .modal-status-value {
+      font-weight: 500;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .status-done { background: #3fb95033; color: var(--green); }
+    .status-ready { background: #1f6feb33; color: var(--blue); }
+    .status-backlog { background: var(--border); color: var(--text-muted); }
+    .status-progress { background: #d2992233; color: var(--orange); }
+    .status-review { background: #bc8cff33; color: var(--purple); }
+
+    /* Checklist */
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 5px 0;
+      font-size: 13px;
+      line-height: 1.5;
+      border-bottom: 1px solid #30363d44;
+    }
+
+    .checklist li:last-child {
+      border-bottom: none;
+    }
+
+    .check-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+
+    .check-done {
+      background: #3fb95033;
+      color: var(--green);
+      border: 1px solid #3fb95055;
+    }
+
+    .check-pending {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: transparent;
+    }
+
+    .checklist li.done {
+      color: var(--text-muted);
+      text-decoration: line-through;
+      text-decoration-color: #8b949e66;
+    }
+
+    /* Code block in modal */
+    .modal-code {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+    }
+
+    .modal-deps {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .dep-tag {
+      font-size: 12px;
+      padding: 2px 10px;
+      border-radius: 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .dep-tag:hover {
+      border-color: var(--accent);
+      background: #1f6feb22;
+    }
   </style>
 </head>
 <body>
@@ -285,7 +529,7 @@
 <header>
   <h1>Personal Finance <span>— Kanban Board</span></h1>
   <div class="meta">
-    <div>Sprint: <strong>Cleanup → Ramp-Up</strong></div>
+    <div>Sprint: <strong>Cleanup &rarr; Ramp-Up</strong></div>
     <div>Updated: <strong>2026-03-01</strong></div>
     <div>WIP Limit: <strong>2</strong></div>
   </div>
@@ -306,6 +550,11 @@
 
 <div class="board" id="board"></div>
 
+<!-- Task Detail Modal -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modal"></div>
+</div>
+
 <footer>
   Generated from <code>.kanban/BOARD.md</code> &mdash; Personal Finance AI Platform
 </footer>
@@ -316,45 +565,408 @@
 
 const tasks = [
   // ── DONE ──
-  { id: "PF-001", title: ".NET Web API with Clean Architecture", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
-  { id: "PF-002", title: "React + Vite frontend scaffold", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
-  { id: "PF-003", title: "Docker Compose orchestration", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
-  { id: "PF-004", title: "EF Core + PostgreSQL schema & migrations", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
-  { id: "PF-005", title: "Bank statement CSV/PDF parsers", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
-  { id: "PF-006", title: "CQRS + MediatR pipeline", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02" },
-  { id: "PF-007", title: "Category rules feature (CRUD)", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
-  { id: "PF-008", title: "Cash flow dashboard with charts", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02" },
+  { id: "PF-001", title: ".NET Web API with Clean Architecture", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
+    objective: "Scaffold a .NET 9 Web API following Clean Architecture with layered project structure.",
+    criteria: [
+      { text: "Solution with 5 projects: Api, Application, Domain, Infrastructure, Persistence", done: true },
+      { text: "ASP.NET Core Web API with controllers", done: true },
+      { text: "Dependency injection wired across layers", done: true },
+      { text: "Health check endpoint operational", done: true },
+      { text: "Swagger/OpenAPI documentation generated", done: true },
+      { text: "CORS configured for frontend", done: true },
+    ],
+    notes: "Implemented as PersonalFinance.slnx with full layer separation. API runs on port 7208.",
+    deps: []
+  },
+  { id: "PF-002", title: "React + Vite frontend scaffold", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
+    objective: "Set up React 18 + TypeScript frontend with Tailwind CSS and shadcn/ui component library.",
+    criteria: [
+      { text: "Vite dev server running on port 8080", done: true },
+      { text: "React Router with page routing", done: true },
+      { text: "Tailwind CSS + shadcn/ui components installed", done: true },
+      { text: "React Query for server state management", done: true },
+      { text: "API client layer connecting to .NET backend", done: true },
+      { text: "Docker multi-stage build (Node \u2192 Nginx)", done: true },
+    ],
+    notes: "",
+    deps: []
+  },
+  { id: "PF-003", title: "Docker Compose orchestration", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
+    objective: "Containerize all services with Docker Compose for one-command local development.",
+    criteria: [
+      { text: "docker compose up starts all services", done: true },
+      { text: "PostgreSQL 16 container with persistent volume", done: true },
+      { text: ".NET API container with multi-stage Dockerfile", done: true },
+      { text: "Frontend container (Nginx serving built React app)", done: true },
+      { text: "Services communicate via Docker network", done: true },
+      { text: "Health checks configured", done: true },
+    ],
+    notes: "",
+    deps: []
+  },
+  { id: "PF-004", title: "EF Core + PostgreSQL schema & migrations", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
+    objective: "Design and implement the database schema with EF Core migrations for transactions and category rules.",
+    criteria: [
+      { text: "Transaction entity with full field set", done: true },
+      { text: "CategoryRule entity with keyword matching", done: true },
+      { text: "5 migrations applied successfully", done: true },
+      { text: "Seed data for 106 default category rules", done: true },
+      { text: "Snake_case naming convention via EF Core", done: true },
+    ],
+    notes: "",
+    deps: []
+  },
+  { id: "PF-005", title: "Bank statement CSV/PDF parsers", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02",
+    objective: "Parse bank statement files (CSV and PDF) into structured transaction data.",
+    criteria: [
+      { text: "IBankStatementParser interface with strategy pattern", done: true },
+      { text: "BCA CSV parser for Indonesian BCA bank statements", done: true },
+      { text: "Default CSV parser as fallback", done: true },
+      { text: "NeoBank PDF parser for PDF statements", done: true },
+      { text: "Bank auto-detection via IBankIdentifier", done: true },
+      { text: "Upload preview endpoint returns parsed data", done: true },
+    ],
+    notes: "",
+    deps: []
+  },
+  { id: "PF-006", title: "CQRS + MediatR pipeline", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
+    objective: "Implement CQRS pattern using MediatR with FluentValidation for all command/query inputs.",
+    criteria: [
+      { text: "MediatR wired in DI pipeline", done: true },
+      { text: "Commands: CreateTransaction, CreateCategoryRule, UpdateCategoryRule, DeleteCategoryRule", done: true },
+      { text: "Handlers for each command", done: true },
+      { text: "FluentValidation validators for create commands", done: true },
+      { text: "Service layer wrapping business logic", done: true },
+    ],
+    notes: "",
+    deps: []
+  },
+  { id: "PF-007", title: "Category rules feature (CRUD)", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02",
+    objective: "Full CRUD for transaction categorization rules \u2014 keyword-based matching for automatic category assignment.",
+    criteria: [
+      { text: "GET /api/categoryrules \u2014 list all rules", done: true },
+      { text: "POST /api/categoryrules \u2014 create new rule", done: true },
+      { text: "PUT /api/categoryrules/{id} \u2014 update existing rule", done: true },
+      { text: "DELETE /api/categoryrules/{id} \u2014 delete rule", done: true },
+      { text: "CategoryManager UI component in frontend", done: true },
+      { text: "Unit tests for CategoryRuleService", done: true },
+    ],
+    notes: "",
+    deps: []
+  },
+  { id: "PF-008", title: "Cash flow dashboard with charts", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02",
+    objective: "Interactive dashboard showing cash flow trends, expense breakdowns, and category analysis.",
+    criteria: [
+      { text: "CashFlowDashboard component with summary cards", done: true },
+      { text: "FinancialChart component using Recharts", done: true },
+      { text: "Transaction table with search and filtering", done: true },
+      { text: "Drill-down view by category and month", done: true },
+      { text: "Aggregated data endpoint (GET /api/transactions/aggregated)", done: true },
+      { text: "Responsive layout with Tailwind CSS", done: true },
+    ],
+    notes: "",
+    deps: []
+  },
 
   // ── READY (Cleanup) ──
-  { id: "PF-027", title: "Delete scaffold leftovers and dead code", status: "ready", sprint: "cleanup", labels: ["infra"] },
-  { id: "PF-028", title: "Fix exception detail leaking to API clients", status: "ready", sprint: "cleanup", labels: ["infra"] },
-  { id: "PF-029", title: "Fix N+1 query in CategorizeAsync", status: "ready", sprint: "cleanup", labels: ["infra"] },
-  { id: "PF-030", title: "Move DTOs to correct project", status: "ready", sprint: "cleanup", labels: ["infra"] },
-  { id: "PF-031", title: "Extract dashboard aggregation from controller", status: "ready", sprint: "cleanup", labels: ["infra"] },
-  { id: "PF-032", title: "Update PROJECT_CONTEXT.md to match codebase", status: "ready", sprint: "cleanup", labels: ["docs"] },
-  { id: "PF-033", title: "Add Current Phase section to CLAUDE.md", status: "ready", sprint: "cleanup", labels: ["docs"] },
+  { id: "PF-027", title: "Delete scaffold leftovers and dead code", status: "ready", sprint: "cleanup", labels: ["infra"],
+    objective: "Remove template scaffold files and a third-party CDN script that add confusion and pose a security risk.",
+    criteria: [
+      { text: "WeatherForecast.cs deleted", done: false },
+      { text: "WeatherForecastController.cs deleted", done: false },
+      { text: "UnitTest1.cs deleted", done: false },
+      { text: "CDN script removed from index.html", done: false },
+      { text: "dotnet build succeeds", done: false },
+      { text: "dotnet test passes", done: false },
+      { text: "npm run build succeeds", done: false },
+    ],
+    notes: "WeatherForecast files: .NET template leftovers. UnitTest1.cs: empty test. CDN script: unpinned cdn.gpteng.co \u2014 security risk (SEC-03).",
+    deps: []
+  },
+  { id: "PF-028", title: "Fix exception detail leaking to API clients", status: "ready", sprint: "cleanup", labels: ["infra"],
+    objective: "Stop returning internal exception messages (ex.Message) in HTTP 500 responses. Replace with generic error messages.",
+    criteria: [
+      { text: "UploadPreview catch block returns generic message", done: false },
+      { text: "GetDashboardData catch block returns generic message", done: false },
+      { text: "No ex.Message in any HTTP response body", done: false },
+      { text: "dotnet build succeeds", done: false },
+    ],
+    notes: "TransactionsController.cs line 98 and 277 leak ex.Message. Replace with generic: \"File processing failed.\" Addresses ERR-01.",
+    deps: []
+  },
+  { id: "PF-029", title: "Fix N+1 query in CategorizeAsync", status: "ready", sprint: "cleanup", labels: ["infra"],
+    objective: "Fix N+1 query pattern: CategorizeAsync queries DB per transaction row. 500-row file = 500 DB queries.",
+    criteria: [
+      { text: "New CategorizeBatchAsync method added", done: false },
+      { text: "Batch method loads rules once, categorizes in-memory", done: false },
+      { text: "Callers in parsers updated to use batch method", done: false },
+      { text: "Existing CategorizeAsync still works for single-item", done: false },
+      { text: "Existing tests pass", done: false },
+      { text: "New test for batch categorization", done: false },
+    ],
+    notes: "CategoryRuleService.CategorizeAsync() calls _dbContext.CategoryRules per invocation. Fix: load all rules once, iterate in-memory. Addresses PERF-01.",
+    deps: []
+  },
+  { id: "PF-030", title: "Move DTOs to correct project", status: "ready", sprint: "cleanup", labels: ["infra"],
+    objective: "Fix namespace/location mismatch: DTOs live in Infrastructure/Dtos/ but declare namespace Application.Dtos.",
+    criteria: [
+      { text: "TransactionDto.cs moved to Application/Dtos/", done: false },
+      { text: "CategoryRuleDto.cs moved to Application/Dtos/", done: false },
+      { text: "Empty Folder include removed from Application.csproj", done: false },
+      { text: "dotnet build succeeds", done: false },
+      { text: "dotnet test passes", done: false },
+    ],
+    notes: "Physical location must match namespace. Namespace stays PersonalFinance.Application.Dtos (unchanged). Low risk. Addresses ARCH-03.",
+    deps: []
+  },
+  { id: "PF-031", title: "Extract dashboard aggregation from controller", status: "ready", sprint: "cleanup", labels: ["infra"],
+    objective: "Move ~100 lines of inline aggregation logic from TransactionsController into a dedicated DashboardService.",
+    criteria: [
+      { text: "IDashboardService interface created", done: false },
+      { text: "DashboardService implementation created", done: false },
+      { text: "GetDashboardDataAsync method contains all aggregation logic", done: false },
+      { text: "Category rule creation extracted from SubmitTransactions", done: false },
+      { text: "Controller actions < 15 lines each", done: false },
+      { text: "DI registration in Program.cs", done: false },
+      { text: "API responses unchanged (no breaking changes)", done: false },
+    ],
+    notes: "GetDashboardData: year/month filtering, income/expense aggregation, percentage changes, top categories, 6-month cash flow. Addresses ARCH-04.",
+    deps: []
+  },
+  { id: "PF-032", title: "Update PROJECT_CONTEXT.md to match codebase", status: "ready", sprint: "cleanup", labels: ["docs"],
+    objective: "Fix documented values that drift from actual codebase: .NET version, testing framework, ID types.",
+    criteria: [
+      { text: "Section 11: .NET 8 \u2192 .NET 9", done: false },
+      { text: "Section 11: NSubstitute \u2192 Moq", done: false },
+      { text: "Section 8: Id: Guid \u2192 Id: int", done: false },
+      { text: "Section 6: .NET 8 Web API \u2192 .NET 9 Web API", done: false },
+      { text: "Note added: schema evolves incrementally", done: false },
+    ],
+    notes: "Straightforward text replacements. int PKs are already built and migrated \u2014 changing to Guid would require migration rewrite.",
+    deps: []
+  },
+  { id: "PF-033", title: "Add Current Phase section to CLAUDE.md", status: "ready", sprint: "cleanup", labels: ["docs"],
+    objective: "Add a Current Phase section so future Claude Code sessions can pick up context without re-auditing the repo.",
+    criteria: [
+      { text: "CLAUDE.md has Current Phase section", done: false },
+      { text: "Section includes: status, working features, tech debt, blockers", done: false },
+      { text: "Section has Last updated timestamp", done: false },
+      { text: "Habit documented: update at end of each session", done: false },
+    ],
+    notes: "Context preservation for multi-session development. Prevents losing state between Claude Code conversations.",
+    deps: []
+  },
 
   // ── READY (Ramp-Up) ──
-  { id: "PF-009", title: "Hello LLM \u2014 first Anthropic API call", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"] },
-  { id: "PF-010", title: "Structured output \u2014 text \u2192 JSON via LLM", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"] },
-  { id: "PF-011", title: "FastAPI AI microservice scaffold", status: "ready", sprint: "ramp-up", labels: ["learning", "ai", "infra"] },
+  { id: "PF-009", title: "Hello LLM \u2014 first Anthropic API call", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"],
+    objective: "Write a Python script that calls the Anthropic API and gets a response. First contact with LLM programming.",
+    criteria: [
+      { text: "Python 3.12+ virtual environment set up", done: false },
+      { text: "Anthropic SDK installed", done: false },
+      { text: "Script calls Claude API with system + user prompt", done: false },
+      { text: "Successfully receives and prints a response", done: false },
+      { text: "Understands: tokens, temperature, max_tokens", done: false },
+      { text: "API key via environment variable (never hardcoded)", done: false },
+    ],
+    notes: "Day 1 of AI learning journey. Start with claude-sonnet-4-20250514. Experiment with temperature. Log token usage.",
+    deps: []
+  },
+  { id: "PF-010", title: "Structured output \u2014 text \u2192 JSON via LLM", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"],
+    objective: "Send messy bank transaction text to an LLM and get back structured JSON. Learn prompt engineering for reliable output.",
+    criteria: [
+      { text: "Script sends raw transaction text to LLM", done: false },
+      { text: "LLM returns structured JSON with date, description, amount, currency, type", done: false },
+      { text: "JSON output is consistent across runs (low temperature)", done: false },
+      { text: "System prompt enforces output schema", done: false },
+      { text: "Handles edge cases: missing fields, ambiguous amounts", done: false },
+      { text: "Pydantic model validates LLM output", done: false },
+    ],
+    notes: "Use temperature=0 for deterministic output. Test with real BCA statement lines. Compare Anthropic vs OpenAI.",
+    deps: ["PF-009"]
+  },
+  { id: "PF-011", title: "FastAPI AI microservice scaffold", status: "ready", sprint: "ramp-up", labels: ["learning", "ai", "infra"],
+    objective: "Wrap the LLM parsing logic into a FastAPI service with proper request/response models.",
+    criteria: [
+      { text: "FastAPI app with /health and POST /parse endpoints", done: false },
+      { text: "Pydantic request/response models", done: false },
+      { text: "LLM call integrated into endpoint", done: false },
+      { text: "Proper error handling", done: false },
+      { text: "Structured JSON logging", done: false },
+      { text: "Runs via uvicorn on port 8000", done: false },
+      { text: "Dockerfile for the service", done: false },
+    ],
+    notes: "ai-service/ directory with app/, Dockerfile, pyproject.toml. Use Poetry. Async endpoints. CORS for .NET API calls.",
+    deps: ["PF-010"]
+  },
 
   // ── BACKLOG ──
-  { id: "PF-012", title: "PDF text extraction with PyMuPDF", status: "backlog", sprint: "ramp-up", labels: ["learning", "ai"] },
-  { id: "PF-013", title: "End-to-end: .NET \u2192 Python \u2192 LLM pipeline", status: "backlog", sprint: "ramp-up", labels: ["feature", "ai"] },
-  { id: "PF-014", title: "Persist AI-parsed transactions to DB", status: "backlog", sprint: "ramp-up", labels: ["feature"] },
-  { id: "PF-015", title: "LLM provider abstraction layer", status: "backlog", sprint: "S1", labels: ["feature", "ai"] },
-  { id: "PF-016", title: "AI-powered auto-categorization", status: "backlog", sprint: "S1", labels: ["feature", "ai"] },
-  { id: "PF-017", title: "Natural language transaction query", status: "backlog", sprint: "S1", labels: ["feature", "ai"] },
-  { id: "PF-018", title: "pgvector setup + embedding generation", status: "backlog", sprint: "S2", labels: ["infra", "ai"] },
-  { id: "PF-019", title: "RAG pipeline for transaction queries", status: "backlog", sprint: "S2", labels: ["feature", "ai"] },
-  { id: "PF-020", title: "Semantic search API endpoint", status: "backlog", sprint: "S2", labels: ["feature", "ai"] },
-  { id: "PF-021", title: "Function calling \u2014 API endpoints as LLM tools", status: "backlog", sprint: "S3", labels: ["feature", "ai"] },
-  { id: "PF-022", title: "Agent loop with Semantic Kernel", status: "backlog", sprint: "S3", labels: ["feature", "ai"] },
-  { id: "PF-023", title: "Multi-turn agent conversation", status: "backlog", sprint: "S3", labels: ["feature", "ai"] },
-  { id: "PF-024", title: "AI observability + cost tracking", status: "backlog", sprint: "S4", labels: ["infra", "ai"] },
-  { id: "PF-025", title: "Semantic caching layer", status: "backlog", sprint: "S4", labels: ["feature", "ai"] },
-  { id: "PF-026", title: "Auth0 integration + security hardening", status: "backlog", sprint: "S4", labels: ["infra"] },
+  { id: "PF-012", title: "PDF text extraction with PyMuPDF", status: "backlog", sprint: "ramp-up", labels: ["learning", "ai"],
+    objective: "Add PDF upload to FastAPI service. Extract text with PyMuPDF, chain with LLM for structured parsing.",
+    criteria: [
+      { text: "POST /parse-pdf endpoint accepts PDF upload", done: false },
+      { text: "PyMuPDF extracts text from all pages", done: false },
+      { text: "Extracted text sent to LLM for parsing", done: false },
+      { text: "End-to-end: PDF \u2192 text \u2192 LLM \u2192 JSON", done: false },
+      { text: "Handles multi-page PDFs", done: false },
+      { text: "Graceful error for corrupted/encrypted PDFs", done: false },
+    ],
+    notes: "Day 4 of learning schedule. Test with real Indonesian bank statement PDFs.",
+    deps: ["PF-011"]
+  },
+  { id: "PF-013", title: "End-to-end: .NET \u2192 Python \u2192 LLM pipeline", status: "backlog", sprint: "ramp-up", labels: ["feature", "ai"],
+    objective: "Connect .NET API to Python AI service. Upload PDF via .NET, forward to Python for AI parsing, return structured JSON.",
+    criteria: [
+      { text: ".NET endpoint accepts PDF and forwards to Python", done: false },
+      { text: "Python processes and returns structured JSON", done: false },
+      { text: "Docker Compose updated with Python service", done: false },
+      { text: "Service discovery via Docker networking", done: false },
+    ],
+    notes: "Flow: Browser \u2192 .NET API (7208) \u2192 Python AI (8000) \u2192 Anthropic API \u2192 back. Use IHttpClientFactory.",
+    deps: ["PF-012"]
+  },
+  { id: "PF-014", title: "Persist AI-parsed transactions to DB", status: "backlog", sprint: "ramp-up", labels: ["feature"],
+    objective: "Save AI-parsed transactions to PostgreSQL. Close the full loop: upload \u2192 AI parse \u2192 save \u2192 query.",
+    criteria: [
+      { text: "AI-parsed transactions saved via EF Core", done: false },
+      { text: "Duplicate detection", done: false },
+      { text: "Source tracking (which upload generated which transactions)", done: false },
+      { text: "Dashboard reflects AI-imported transactions", done: false },
+    ],
+    notes: "Day 6 of learning schedule. Closes the ramp-up phase.",
+    deps: ["PF-013"]
+  },
+  { id: "PF-015", title: "LLM provider abstraction layer", status: "backlog", sprint: "S1", labels: ["feature", "ai"],
+    objective: "Create provider abstraction to switch between Anthropic, OpenAI, and Ollama without code changes.",
+    criteria: [
+      { text: "ILLMProvider interface with parse/complete methods", done: false },
+      { text: "AnthropicProvider, OpenAIProvider, OllamaProvider", done: false },
+      { text: "Provider selected via environment variable", done: false },
+      { text: "Fallback chain on failure", done: false },
+    ],
+    notes: "Configuration-driven LLM selection. Token usage logged per request.",
+    deps: ["PF-011"]
+  },
+  { id: "PF-016", title: "AI-powered auto-categorization", status: "backlog", sprint: "S1", labels: ["feature", "ai"],
+    objective: "Use LLM to categorize transactions that don't match existing keyword rules. AI fallback for rule-based system.",
+    criteria: [
+      { text: "Uncategorized transactions sent to LLM", done: false },
+      { text: "Confidence score returned with each suggestion", done: false },
+      { text: "User can accept/reject AI suggestions", done: false },
+      { text: "Accepted suggestions create new category rules", done: false },
+    ],
+    notes: "",
+    deps: ["PF-015", "PF-007"]
+  },
+  { id: "PF-017", title: "Natural language transaction query", status: "backlog", sprint: "S1", labels: ["feature", "ai"],
+    objective: "Query transactions using natural language. LLM translates to DB query, executes, returns human-readable answer.",
+    criteria: [
+      { text: "POST /api/query accepts natural language", done: false },
+      { text: "LLM translates to query parameters", done: false },
+      { text: "Query executed against transaction DB", done: false },
+      { text: "Returns both answer and underlying data", done: false },
+    ],
+    notes: "Example: \"How much did I spend on food in January?\"",
+    deps: ["PF-015", "PF-014"]
+  },
+  { id: "PF-018", title: "pgvector setup + embedding generation", status: "backlog", sprint: "S2", labels: ["infra", "ai"],
+    objective: "Enable pgvector on PostgreSQL and build embedding pipeline for semantic search and RAG.",
+    criteria: [
+      { text: "pgvector extension enabled", done: false },
+      { text: "EF Core migration adds vector column", done: false },
+      { text: "Embedding generation service", done: false },
+      { text: "Transactions embedded on import", done: false },
+    ],
+    notes: "Foundation for Sprint 3 RAG pipeline. Vector dimension configurable (1536 OpenAI, 768 local).",
+    deps: ["PF-014"]
+  },
+  { id: "PF-019", title: "RAG pipeline for transaction queries", status: "backlog", sprint: "S2", labels: ["feature", "ai"],
+    objective: "Retrieval-Augmented Generation: embed question, vector search, inject context, LLM generates answer.",
+    criteria: [
+      { text: "Query embedding: question \u2192 vector", done: false },
+      { text: "Vector similarity search (top-k)", done: false },
+      { text: "Context injection into LLM prompt", done: false },
+      { text: "Citations referencing specific transactions", done: false },
+    ],
+    notes: "",
+    deps: ["PF-018"]
+  },
+  { id: "PF-020", title: "Semantic search API endpoint", status: "backlog", sprint: "S2", labels: ["feature", "ai"],
+    objective: "Expose RAG pipeline as user-facing API. Frontend query bar uses this for natural language queries.",
+    criteria: [
+      { text: "POST /api/search with natural language query", done: false },
+      { text: "Returns: answer, source transactions, confidence", done: false },
+      { text: "Frontend query component integrated", done: false },
+      { text: "Rate limiting on AI endpoints", done: false },
+    ],
+    notes: "",
+    deps: ["PF-019"]
+  },
+  { id: "PF-021", title: "Function calling \u2014 API endpoints as LLM tools", status: "backlog", sprint: "S3", labels: ["feature", "ai"],
+    objective: "Define .NET API endpoints as tools the LLM can call based on user intent.",
+    criteria: [
+      { text: "Tool definitions for list, filter, aggregate endpoints", done: false },
+      { text: "LLM selects appropriate tools", done: false },
+      { text: "Tool execution: LLM output \u2192 API call \u2192 result", done: false },
+      { text: "Multi-tool chaining scenarios", done: false },
+    ],
+    notes: "",
+    deps: ["PF-017"]
+  },
+  { id: "PF-022", title: "Agent loop with Semantic Kernel", status: "backlog", sprint: "S3", labels: ["feature", "ai"],
+    objective: "Autonomous agent loop: receive goal, plan steps, execute tools, synthesize response.",
+    criteria: [
+      { text: "Semantic Kernel integrated into .NET API", done: false },
+      { text: "Agent plugins registered per API capability", done: false },
+      { text: "Agent loop: goal \u2192 plan \u2192 execute \u2192 observe \u2192 answer", done: false },
+      { text: "Safety: max iterations, cost budget per request", done: false },
+    ],
+    notes: "Example: \"Categorize all uncategorized transactions from December\"",
+    deps: ["PF-021"]
+  },
+  { id: "PF-023", title: "Multi-turn agent conversation", status: "backlog", sprint: "S3", labels: ["feature", "ai"],
+    objective: "Multi-turn conversations with context across messages. Agent maintains conversation state.",
+    criteria: [
+      { text: "Conversation session management", done: false },
+      { text: "Agent maintains context across turns", done: false },
+      { text: "Frontend chat UI component", done: false },
+      { text: "Session cleanup / expiration policy", done: false },
+    ],
+    notes: "Example flow: \"Show December expenses\" \u2192 \"Break down by category\" \u2192 \"Which increased vs November?\"",
+    deps: ["PF-022"]
+  },
+  { id: "PF-024", title: "AI observability + cost tracking", status: "backlog", sprint: "S4", labels: ["infra", "ai"],
+    objective: "Instrument all AI calls: token usage, latency, cost per query, error rates. Monitoring dashboard.",
+    criteria: [
+      { text: "Every LLM call logs: model, tokens, latency, cost", done: false },
+      { text: "Cost dashboard: daily/weekly/monthly AI spend", done: false },
+      { text: "Latency percentiles (p50, p95, p99)", done: false },
+      { text: "Alerting threshold for cost anomalies", done: false },
+    ],
+    notes: "",
+    deps: []
+  },
+  { id: "PF-025", title: "Semantic caching layer", status: "backlog", sprint: "S4", labels: ["feature", "ai"],
+    objective: "Cache LLM responses for semantically similar queries using embedding similarity.",
+    criteria: [
+      { text: "Query embedding + similarity check before LLM call", done: false },
+      { text: "Configurable cache hit threshold (cosine > 0.95)", done: false },
+      { text: "Cache invalidation when data changes", done: false },
+      { text: "Cache hit rate metrics", done: false },
+    ],
+    notes: "\"How much on food in Jan?\" and \"January food spending?\" should hit same cache.",
+    deps: ["PF-018", "PF-019"]
+  },
+  { id: "PF-026", title: "Auth0 integration + security hardening", status: "backlog", sprint: "S4", labels: ["infra"],
+    objective: "Add authentication via Auth0. Secure all endpoints. Rate limit AI endpoints.",
+    criteria: [
+      { text: "Auth0 tenant configured (OAuth 2.0 / OIDC)", done: false },
+      { text: "JWT validation middleware in .NET API", done: false },
+      { text: "Rate limiting on AI endpoints", done: false },
+      { text: "Frontend login/logout flow", done: false },
+    ],
+    notes: "",
+    deps: []
+  },
 ];
 
 // ── RENDER ENGINE ───────────────────────────────────────────────────────────────
@@ -366,6 +978,8 @@ const columns = [
   { key: "review",   name: "Review",      cssClass: "col-review" },
   { key: "done",     name: "Done",        cssClass: "col-done" },
 ];
+
+const statusNames = { backlog: "Backlog", ready: "Ready", progress: "In Progress", review: "Review", done: "Done" };
 
 let currentFilter = "all";
 
@@ -388,7 +1002,7 @@ function renderCard(task) {
   ).join("");
 
   return `
-    <div class="card ${isDone ? 'card-completed' : ''}" data-sprint="${task.sprint}">
+    <div class="card ${isDone ? 'card-completed' : ''}" data-sprint="${task.sprint}" onclick="openModal('${task.id}')">
       <div class="card-id">${task.id}</div>
       <div class="card-title">${task.title}</div>
       <div class="card-meta">
@@ -466,6 +1080,102 @@ function renderProgress() {
 
   document.getElementById("progress-section").innerHTML = html;
 }
+
+// ── MODAL ────────────────────────────────────────────────────────────────────────
+
+function openModal(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+
+  const overlay = document.getElementById("modal-overlay");
+  const modal = document.getElementById("modal");
+
+  const labels = task.labels.map(l => `<span class="label label-${l}">${l}</span>`).join("");
+  const statusClass = "status-" + task.status;
+  const statusText = statusNames[task.status] || task.status;
+
+  const doneCount = (task.criteria || []).filter(c => c.done).length;
+  const totalCount = (task.criteria || []).length;
+  const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
+
+  const criteriaHtml = (task.criteria || []).map(c => `
+    <li class="${c.done ? 'done' : ''}">
+      <span class="check-icon ${c.done ? 'check-done' : 'check-pending'}">${c.done ? '\u2713' : ''}</span>
+      <span>${c.text}</span>
+    </li>
+  `).join("");
+
+  const depsHtml = (task.deps || []).length > 0
+    ? task.deps.map(d => `<span class="dep-tag" onclick="event.stopPropagation();openModal('${d}')">${d}</span>`).join("")
+    : '<span style="color:var(--text-muted);font-size:13px">None</span>';
+
+  const notesHtml = task.notes
+    ? `<div class="modal-code">${task.notes}</div>`
+    : '<p style="color:var(--text-muted);font-style:italic">No technical notes.</p>';
+
+  modal.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-id">${task.id}</div>
+        <div class="modal-title">${task.title}</div>
+        <div class="modal-tags">
+          <span class="sprint-tag">${task.sprint}</span>
+          ${labels}
+          ${task.completed ? `<span class="sprint-tag">\u2713 ${task.completed}</span>` : ''}
+        </div>
+      </div>
+      <button class="modal-close" onclick="closeModal()" title="Close (Esc)">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-status-bar">
+        <div class="modal-status-item">
+          <span class="modal-status-label">Status</span>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>
+        <div class="modal-status-item">
+          <span class="modal-status-label">Progress</span>
+          <span class="modal-status-value">${doneCount}/${totalCount} (${progressPct}%)</span>
+        </div>
+        <div class="modal-status-item">
+          <span class="modal-status-label">Sprint</span>
+          <span class="modal-status-value">${task.sprint}</span>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Objective</div>
+        <p>${task.objective || '<em style="color:var(--text-muted)">No objective defined.</em>'}</p>
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Acceptance Criteria</div>
+        ${totalCount > 0 ? `<ul class="checklist">${criteriaHtml}</ul>` : '<p style="color:var(--text-muted);font-style:italic">No criteria defined.</p>'}
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Technical Notes</div>
+        ${notesHtml}
+      </div>
+
+      <div class="modal-section">
+        <div class="modal-section-title">Dependencies</div>
+        <div class="modal-deps">${depsHtml}</div>
+      </div>
+    </div>
+  `;
+
+  overlay.classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") closeModal();
+});
 
 // ── INIT ────────────────────────────────────────────────────────────────────────
 renderBoard();
