@@ -16,7 +16,7 @@
     {
       "name": "api-go",
       "runtimeExecutable": "go",
-      "runtimeArgs": ["run", "main.go"],
+      "runtimeArgs": ["run", "./api-go/main.go"],
       "port": 7209
     },
     {
@@ -24,6 +24,12 @@
       "runtimeExecutable": "docker",
       "runtimeArgs": ["compose", "up", "--build"],
       "port": 8080
+    },
+    {
+      "name": "db-only",
+      "runtimeExecutable": "docker",
+      "runtimeArgs": ["compose", "up", "db"],
+      "port": 5432
     }
   ]
 }
