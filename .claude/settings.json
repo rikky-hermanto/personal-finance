@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install*)",
+      "Bash(npm run *)",
+      "Bash(npm ci*)",
+      "Bash(npx shadcn@latest add *)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet run *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet ef *)",
+      "Bash(docker compose up *)",
+      "Bash(docker compose down*)",
+      "Bash(docker compose build *)",
+      "Bash(docker compose logs *)",
+      "Bash(docker compose ps*)",
+      "Bash(docker compose exec *)",
+      "Bash(git status*)",
+      "Bash(git log *)",
+      "Bash(git diff*)",
+      "Bash(git branch*)",
+      "Bash(git stash*)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git fetch*)",
+      "Bash(git pull*)",
+      "Bash(go run *)",
+      "Bash(go build *)",
+      "Bash(go test *)",
+      "Bash(curl *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -f*)",
+      "Bash(docker system prune*)",
+      "Bash(docker volume rm *)",
+      "Bash(dotnet ef database drop*)"
+    ]
+  }
+}
