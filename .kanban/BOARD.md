@@ -1,7 +1,7 @@
 # Personal Finance — Kanban Board
 
 > **Current Sprint:** Cleanup → then Ramp-Up (Week 0)
-> **Last Updated:** 2026-03-01
+> **Last Updated:** 2026-03-02
 > **WIP Limit:** 2 tasks in progress
 
 ---
@@ -32,13 +32,9 @@
 
 | ID | Task | Sprint | Labels |
 |----|------|--------|--------|
-| [PF-027](tasks/PF-027.md) | Delete scaffold leftovers and dead code | cleanup | `infra` |
 | [PF-028](tasks/PF-028.md) | Fix exception detail leaking to API clients | cleanup | `infra` |
 | [PF-029](tasks/PF-029.md) | Fix N+1 query in CategorizeAsync | cleanup | `infra` |
-| [PF-030](tasks/PF-030.md) | Move DTOs to correct project | cleanup | `infra` |
 | [PF-031](tasks/PF-031.md) | Extract dashboard aggregation from controller | cleanup | `infra` |
-| [PF-032](tasks/PF-032.md) | Update PROJECT_CONTEXT.md to match codebase | cleanup | `docs` |
-| [PF-033](tasks/PF-033.md) | Add Current Phase section to CLAUDE.md | cleanup | `docs` |
 | [PF-009](tasks/PF-009.md) | Hello LLM — first Anthropic API call | ramp-up | `learning` `ai` |
 | [PF-010](tasks/PF-010.md) | Structured output — text → JSON via LLM | ramp-up | `learning` `ai` |
 | [PF-011](tasks/PF-011.md) | FastAPI AI microservice scaffold | ramp-up | `learning` `ai` `infra` |
@@ -73,6 +69,10 @@
 | [PF-006](tasks/PF-006.md) | CQRS + MediatR pipeline | setup | `infra` | 2026-02 |
 | [PF-007](tasks/PF-007.md) | Category rules feature (CRUD) | setup | `feature` | 2026-02 |
 | [PF-008](tasks/PF-008.md) | Cash flow dashboard with charts | setup | `feature` | 2026-02 |
+| [PF-027](tasks/PF-027.md) | Delete scaffold leftovers and dead code | cleanup | `infra` | 2026-03 |
+| [PF-030](tasks/PF-030.md) | Move DTOs to correct project | cleanup | `infra` | 2026-03 |
+| [PF-032](tasks/PF-032.md) | Update PROJECT_CONTEXT.md to match codebase | cleanup | `docs` | 2026-03 |
+| [PF-033](tasks/PF-033.md) | Add Current Phase section to CLAUDE.md | cleanup | `docs` | 2026-03 |
 
 ---
 
@@ -80,12 +80,12 @@
 
 ```
 Setup:    ████████████████████ 100% (8/8)
-Cleanup:  ░░░░░░░░░░░░░░░░░░░░   0% (0/7)
+Cleanup:  ███████████░░░░░░░░░  57% (4/7)
 Ramp-Up:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 Sprint 1: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 2: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 3: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 4: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 ──────────────────────────────────
-Overall:  ██░░░░░░░░░░░░░░░░░░  24% (8/33)
+Overall:  ███████░░░░░░░░░░░░░  36% (12/33)
 ```
