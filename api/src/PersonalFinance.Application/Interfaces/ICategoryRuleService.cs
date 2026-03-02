@@ -1,4 +1,7 @@
-﻿
+using PersonalFinance.Application.Dtos;
+
+namespace PersonalFinance.Application.Interfaces;
+
 public interface ICategoryRuleService
 {
     Task<string> CategorizeAsync(string description, string type);
