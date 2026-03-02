@@ -95,8 +95,6 @@ api-go/                       # Experimental Go API (Gin) — not production
 
 - `.github/copilot-instructions.md` says ".NET 8" but project targets `net9.0` — always use .NET 9
 - `src/types/Transaction.ts` uses `id: string` but API returns `id: number` — type mismatch
-- `WeatherForecastController.cs` and `WeatherForecast.cs` are scaffold leftovers — can be deleted
-- `api/tests/PersonalFinance.Tests/UnitTest1.cs` is a template leftover — can be deleted
 - No frontend tests exist yet
 - No authentication — API is wide open
 - CORS is hardcoded to `http://localhost:8080` only (in `Program.cs`)
@@ -109,3 +107,34 @@ api-go/                       # Experimental Go API (Gin) — not production
 - NEVER manually edit migration `Designer.cs` or `Snapshot.cs` files
 - ALWAYS use `dotnet ef migrations add` for schema changes
 - Use `docker compose` (V2 syntax), never `docker-compose` (V1)
+
+## Current Phase
+
+> **Last updated:** 2026-03-02
+
+### Status: Cleanup Sprint (4/7 done) → then Ramp-Up (Week 0)
+- **Setup phase (PF-001–PF-008):** COMPLETE
+- **Cleanup sprint (PF-027–PF-033):** IN PROGRESS — PF-027, PF-030, PF-032, PF-033 done
+- **Next:** Remaining cleanup (PF-028, PF-029, PF-031), then PF-009 (Hello LLM)
+
+### What's Working
+- Full upload-preview-submit pipeline (BCA CSV, NeoBank PDF, Default CSV)
+- 106 seeded category rules with longest-keyword-match
+- Dashboard with aggregated stats, top categories, 6-month cash flow
+- Docker Compose full-stack orchestration
+- Kanban board UI with task detail modals
+
+### What's Not Built Yet
+- Python FastAPI AI service
+- LLM integration (zero Anthropic/OpenAI usage)
+- Wise/Superbank/Bank Jago parsers
+- BankProfile entity, FX rate conversion
+- Authentication
+
+### Known Tech Debt (remaining)
+- Application.csproj still references Persistence (Clean Arch violation — ARCH-01)
+- N+1 queries in CategorizeAsync (PF-029)
+- ~100 lines business logic in controller (PF-031)
+- Exception details leaked in HTTP 500 responses (PF-028)
+- TypeScript strict mode disabled
+- Zero ILogger usage
