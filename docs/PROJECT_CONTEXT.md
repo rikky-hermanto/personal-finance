@@ -198,7 +198,7 @@ This project is a hands-on learning vehicle for transitioning from backend engin
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│              .NET 8 Web API (C#)                     │
+│              .NET 9 Web API (C#)                     │
 │                                                      │
 │  Responsibilities:                                   │
 │  ─ REST API endpoints (upload, query, manage)        │
@@ -279,8 +279,8 @@ The unified transaction format that all bank-specific data normalizes into:
 
 ```
 Transaction {
-    Id: Guid
-    BankProfileId: Guid        // FK to BankProfile
+    Id: int
+    BankProfileId: int         // FK to BankProfile
     AccountName: string        // e.g., "BCA Main", "Wise USD"
     TransactionDate: DateTime
     Description: string        // Original description from bank
@@ -301,6 +301,8 @@ Transaction {
     UpdatedAt: DateTime
 }
 ```
+
+> **Note:** This schema is the aspirational target. The current `Transaction` entity in the codebase has a subset of these fields (Id, Date, Description, Remarks, Flow, Type, Category, Wallet, AmountIdr, Currency, ExchangeRate). Additional fields will be added incrementally as features are built.
 
 ---
 
@@ -427,13 +429,13 @@ JSON mode         extraction                           Chunking strategy   AI ob
 ## 11. Tech Stack Reference
 
 ### Backend — Primary (.NET)
-- .NET 8 (LTS), C# 12
+- .NET 9, C# 13
 - ASP.NET Core Web API (REST)
 - MediatR (CQRS), FluentValidation, Clean Architecture
-- Entity Framework Core 8
+- Entity Framework Core 9
 - PostgreSQL 16 + pgvector
 - Auth0 (deferred until core features stable)
-- xUnit, NSubstitute, Alba (testing)
+- xUnit, Moq (testing)
 
 ### Backend — AI Services (Python)
 - Python 3.12+, FastAPI

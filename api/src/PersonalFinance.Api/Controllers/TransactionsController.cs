@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 
 namespace PersonalFinance.Api.Controllers;
 

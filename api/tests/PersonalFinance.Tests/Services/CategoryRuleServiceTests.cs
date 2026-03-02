@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
 using PersonalFinance.Application;
+using PersonalFinance.Application.Dtos;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Persistence;
 using MediatR;

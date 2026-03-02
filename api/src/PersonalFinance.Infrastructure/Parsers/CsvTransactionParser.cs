@@ -1,6 +1,7 @@
 ﻿using CsvHelper;
 using CsvHelper.Configuration;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 using System.Globalization;
 
 namespace PersonalFinance.Infrastructure.Parsers;
