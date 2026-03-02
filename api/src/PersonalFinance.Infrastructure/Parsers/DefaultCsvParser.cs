@@ -1,5 +1,6 @@
 using System.Globalization;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 using CsvHelper;
 using CsvHelper.Configuration;
 
@@ -160,8 +161,8 @@ public class DefaultCsvParser : IBankStatementParser
         var cleaned = amountString
             .Replace("Rp", "")
             .Replace("$", "")
-            .Replace("€", "")
-            .Replace("£", "")
+            .Replace("ï¿½", "")
+            .Replace("ï¿½", "")
             .Replace(" ", "")
             .Trim();
 
