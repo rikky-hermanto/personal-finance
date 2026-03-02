@@ -1,5 +1,6 @@
 using UglyToad.PdfPig;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 using System.Globalization;
 using System.Text.RegularExpressions;
 

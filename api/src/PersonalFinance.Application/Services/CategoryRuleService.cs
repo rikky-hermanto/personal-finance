@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Persistence;
 using MediatR;

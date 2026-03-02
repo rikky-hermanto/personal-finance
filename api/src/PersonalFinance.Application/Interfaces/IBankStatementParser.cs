@@ -1,5 +1,7 @@
 using PersonalFinance.Application.Dtos;
 
+namespace PersonalFinance.Application.Interfaces;
+
 public interface IBankStatementParser
 {
     /// <summary>

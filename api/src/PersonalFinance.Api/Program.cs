@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Api.Extensions;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Persistence;
 using FluentValidation;
@@ -21,10 +22,19 @@ namespace PersonalFinance.Api
 
             builder.Services.AddPersistence(builder.Configuration.GetConnectionString("Default")!);
             builder.Services.AddScoped<CsvTransactionParser>();
-            builder.Services.AddScoped<IBankStatementParser, BcaCsvParser>();
-            builder.Services.AddScoped<IBankStatementParser, NeoBankPdfParser>();
-            builder.Services.AddScoped<IBankStatementParser, DefaultCsvParser>();
-            builder.Services.AddScoped<IStatementImportService, StatementImportService>();
+            builder.Services.AddScoped<BcaCsvParser>();
+            builder.Services.AddScoped<NeoBankPdfParser>();
+            builder.Services.AddScoped<DefaultCsvParser>();
+            builder.Services.AddScoped<IStatementImportService>(sp =>
+            {
+                var parsers = new Dictionary<string, IBankStatementParser>
+                {
+                    { "BCA", sp.GetRequiredService<BcaCsvParser>() },
+                    { "NEOBANK", sp.GetRequiredService<NeoBankPdfParser>() },
+                    { "STANDARD", sp.GetRequiredService<DefaultCsvParser>() }
+                };
+                return new StatementImportService(parsers);
+            });
             builder.Services.AddScoped<ICategoryRuleService, CategoryRuleService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
