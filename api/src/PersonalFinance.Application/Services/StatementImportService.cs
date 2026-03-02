@@ -1,17 +1,13 @@
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 
 public class StatementImportService : IStatementImportService
 {
-    private readonly Dictionary<string, IBankStatementParser> _parsers;
+    private readonly IDictionary<string, IBankStatementParser> _parsers;
 
-    public StatementImportService(IEnumerable<IBankStatementParser> parsers)
+    public StatementImportService(IDictionary<string, IBankStatementParser> parsers)
     {
-        _parsers = new Dictionary<string, IBankStatementParser>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "BCA", parsers.OfType<BcaCsvParser>().First() },
-            { "NEOBANK", parsers.OfType<NeoBankPdfParser>().First() },
-            { "STANDARD", parsers.OfType<DefaultCsvParser>().First() }
-        };
+        _parsers = new Dictionary<string, IBankStatementParser>(parsers, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<List<TransactionDto>> ImportAsync(Stream stream, string bankCode, string? password = null)
