@@ -1,4 +1,6 @@
-﻿public class CategoryRuleDto
+namespace PersonalFinance.Application.Dtos;
+
+public class CategoryRuleDto
 {
     public int Id { get; set; }
     public string Keyword { get; set; } = string.Empty;

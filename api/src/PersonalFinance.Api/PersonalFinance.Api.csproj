@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PersonalFinance.Application\PersonalFinance.Application.csproj" />
+    <ProjectReference Include="..\PersonalFinance.Infrastructure\PersonalFinance.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

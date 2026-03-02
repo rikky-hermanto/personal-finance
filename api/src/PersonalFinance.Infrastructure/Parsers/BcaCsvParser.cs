@@ -1,5 +1,6 @@
 using System.Globalization;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 
 public class BcaCsvParser : IBankStatementParser
 {
