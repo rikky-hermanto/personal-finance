@@ -68,6 +68,18 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // GET /api/tasks/:id/markdown — serve raw .md file
+  if (req.method === 'GET' && url.pathname.match(/^\/api\/tasks\/[^/]+\/markdown$/)) {
+    const id = decodeURIComponent(url.pathname.slice('/api/tasks/'.length, -'/markdown'.length));
+    const mdFile = path.join(__dirname, 'tasks', `${id}.md`);
+    try {
+      send(res, 200, fs.readFileSync(mdFile, 'utf-8'), 'text/plain; charset=utf-8');
+    } catch {
+      send(res, 404, `Markdown file not found for ${id}`, 'text/plain');
+    }
+    return;
+  }
+
   // GET / or /board.html — serve the board
   if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/board.html')) {
     try {
