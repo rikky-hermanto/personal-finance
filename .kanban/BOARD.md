@@ -1,7 +1,7 @@
 # Personal Finance — Kanban Board
 
 > **Current Sprint:** Cleanup → then Ramp-Up (Week 0)
-> **Last Updated:** 2026-03-07
+> **Last Updated:** 2026-03-08
 > **WIP Limit:** 2 tasks in progress
 
 ---
@@ -17,7 +17,6 @@
 | [PF-038](tasks/PF-038.md) | Frontend test setup — Vitest + React Testing Library | cleanup | `testing` `infra` |
 | [PF-039](tasks/PF-039.md) | Bug — N+1 in SubmitTransactions (GetAllAsync per loop) | cleanup | `bug` `infra` |
 | [PF-040](tasks/PF-040.md) | Bug — Dashboard cash flow ignores year/month params | cleanup | `bug` `feature` |
-| [PF-041](tasks/PF-041.md) | E2E functional test infrastructure — Playwright | cleanup | `testing` `infra` |
 | [PF-012](tasks/PF-012.md) | PDF text extraction with PyMuPDF | ramp-up | `learning` `ai` |
 | [PF-013](tasks/PF-013.md) | End-to-end: .NET → Python → LLM pipeline | ramp-up | `feature` `ai` |
 | [PF-014](tasks/PF-014.md) | Persist AI-parsed transactions to DB | ramp-up | `feature` |
@@ -53,7 +52,7 @@
 
 | ID | Task | Sprint | Labels | Started |
 |----|------|--------|--------|---------|
-| — | — | — | — | — |
+| [PF-041](tasks/PF-041.md) | E2E functional test infrastructure — Playwright | cleanup | `testing` `infra` | 2026-03-08 |
 
 ---
 
@@ -81,6 +80,17 @@
 | [PF-030](tasks/PF-030.md) | Move DTOs to correct project | cleanup | `infra` | 2026-03 |
 | [PF-032](tasks/PF-032.md) | Update PROJECT_CONTEXT.md to match codebase | cleanup | `docs` | 2026-03 |
 | [PF-033](tasks/PF-033.md) | Add Current Phase section to CLAUDE.md | cleanup | `docs` | 2026-03 |
+
+---
+
+## CI / E2E Gate
+
+`npx playwright test` — runs all E2E specs in `e2e/`. Requires full stack running (`docker compose up -d` or local dev servers).
+
+```
+npm run e2e       # headless Chromium
+npm run e2e:ui    # Playwright UI mode
+```
 
 ---
 
