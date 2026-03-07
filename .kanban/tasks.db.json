@@ -1465,7 +1465,7 @@
   {
     "id": "PF-041",
     "title": "E2E functional test infrastructure — Playwright",
-    "status": "ready",
+    "status": "in-progress",
     "sprint": "cleanup",
     "labels": [
       "testing",
@@ -1475,43 +1475,43 @@
     "criteria": [
       {
         "text": "@playwright/test installed as dev dependency",
-        "done": false
+        "done": true
       },
       {
         "text": "playwright.config.ts with baseURL, webServer, Chromium project",
-        "done": false
+        "done": true
       },
       {
         "text": "npm run e2e and npm run e2e:ui scripts added",
-        "done": false
+        "done": true
       },
       {
         "text": "e2e/ directory created",
-        "done": false
+        "done": true
       },
       {
         "text": "Test: health check endpoint returns Healthy (API fixture)",
-        "done": false
+        "done": true
       },
       {
         "text": "Test: dashboard loads with no console errors",
-        "done": false
+        "done": true
       },
       {
         "text": "Test: upload BCA CSV fixture → preview rows appear",
-        "done": false
+        "done": true
       },
       {
         "text": "Test: submit flow → transactions appear on dashboard",
-        "done": false
+        "done": true
       },
       {
         "text": "Test: category rules CRUD via UI",
-        "done": false
+        "done": true
       },
       {
         "text": "fixtures/ directory with sample BCA CSV",
-        "done": false
+        "done": true
       }
     ],
     "notes": "Playwright chosen over Cypress: better TypeScript support, auto-wait, multi-browser, can test API layer via request fixture. Complements unit tests (PF-034–PF-038) — covers the full stack integration path.",

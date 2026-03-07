@@ -11,7 +11,13 @@
       "Bash(ls -la /c/workspaces/personal-finance/.kanban/tasks/PF-*.md)",
       "Read(//c/Users/rikky/.claude/**)",
       "Bash(wc -l /c/workspaces/personal-finance/.claude/rules/*.md /c/workspaces/personal-finance/.github/copilot-instructions.md /c/workspaces/personal-finance/docs/*.md /c/workspaces/personal-finance/SETUP.md)",
-      "Bash(du -sh /c/workspaces/personal-finance/.claude/worktrees/*/)"
+      "Bash(du -sh /c/workspaces/personal-finance/.claude/worktrees/*/)",
+      "Bash(npx playwright install chromium)",
+      "Bash(npx playwright test e2e/health.spec.ts --reporter=list)",
+      "Bash(npx playwright test e2e/dashboard.spec.ts --reporter=list)",
+      "Bash(npx playwright test e2e/category-rules.spec.ts --reporter=list)",
+      "Bash(npx playwright test e2e/upload.spec.ts --reporter=list)",
+      "Bash(npx playwright test e2e/health.spec.ts e2e/dashboard.spec.ts e2e/category-rules.spec.ts --reporter=list)"
     ]
   }
 }
