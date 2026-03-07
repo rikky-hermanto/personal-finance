@@ -1182,5 +1182,375 @@
     ],
     "notes": "",
     "deps": []
+  },
+  {
+    "id": "PF-034",
+    "title": "Backend test suite — Command handlers & validators",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": [
+      "testing",
+      "infra"
+    ],
+    "objective": "Write unit tests for all MediatR command handlers and FluentValidation validators. Currently only CategoryRuleService has tests.",
+    "criteria": [
+      {
+        "text": "CreateCategoryRuleCommandHandlerTests — happy path, validation failure, DB persist",
+        "done": false
+      },
+      {
+        "text": "UpdateCategoryRuleCommandHandlerTests — existing updated, non-existent returns null",
+        "done": false
+      },
+      {
+        "text": "DeleteCategoryRuleCommandHandlerTests — deleted, non-existent returns false",
+        "done": false
+      },
+      {
+        "text": "CreateTransactionCommandHandlerTests — happy path, validation failure, event published",
+        "done": false
+      },
+      {
+        "text": "CreateCategoryRuleCommandValidatorTests — missing fields produce correct errors",
+        "done": false
+      },
+      {
+        "text": "CreateTransactionCommandValidatorTests — missing fields produce correct errors",
+        "done": false
+      },
+      {
+        "text": "All tests use InMemoryDatabase + IDisposable pattern",
+        "done": false
+      },
+      {
+        "text": "dotnet test passes",
+        "done": false
+      }
+    ],
+    "notes": "Addresses TEST-01 from governance rules. Handlers currently have 0% coverage.",
+    "deps": []
+  },
+  {
+    "id": "PF-035",
+    "title": "Backend test suite — Bank statement parsers",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": [
+      "testing",
+      "infra"
+    ],
+    "objective": "Write unit tests for BcaCsvParser, DefaultCsvParser, NeoBankPdfParser, and BankIdentifier. Parsers currently have zero test coverage.",
+    "criteria": [
+      {
+        "text": "BcaCsvParserTests — happy path, CR→Income/DB→Expense, stops at Saldo Awal",
+        "done": false
+      },
+      {
+        "text": "BcaCsvParserTests — missing header throws InvalidDataException",
+        "done": false
+      },
+      {
+        "text": "BcaCsvParserTests — invalid amount throws FormatException",
+        "done": false
+      },
+      {
+        "text": "DefaultCsvParserTests — happy path, malformed rows skipped",
+        "done": false
+      },
+      {
+        "text": "BankIdentifierTests — BCA/NeoBank identified, unknown returns null",
+        "done": false
+      },
+      {
+        "text": "NeoBankPdfParserTests — corrupt/empty stream handled gracefully",
+        "done": false
+      },
+      {
+        "text": "ICategoryRuleService mocked in all parser tests",
+        "done": false
+      },
+      {
+        "text": "dotnet test passes",
+        "done": false
+      }
+    ],
+    "notes": "Parsers are critical path — a silent parse bug causes incorrect financial data.",
+    "deps": []
+  },
+  {
+    "id": "PF-036",
+    "title": "Backend test suite — TransactionService",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": [
+      "testing",
+      "infra"
+    ],
+    "objective": "Write unit tests for TransactionService covering persistence, duplicate detection, balance calculation, and lookup.",
+    "criteria": [
+      {
+        "text": "AddTransactionsAsync — valid DTOs persisted and returned",
+        "done": false
+      },
+      {
+        "text": "AddTransactionsAsync — validation failure throws InvalidOperationException",
+        "done": false
+      },
+      {
+        "text": "FilterOutDuplicatesAsync — no duplicates returns all",
+        "done": false
+      },
+      {
+        "text": "FilterOutDuplicatesAsync — existing duplicate filtered out",
+        "done": false
+      },
+      {
+        "text": "FilterOutDuplicatesAsync — composite key tested (Date|Description|Flow|Type|Wallet)",
+        "done": false
+      },
+      {
+        "text": "GetTransactionsWithBalanceAsync — CR adds, DB subtracts from running balance",
+        "done": false
+      },
+      {
+        "text": "GetTransactionsWithBalanceAsync — wallet filter returns only matching",
+        "done": false
+      },
+      {
+        "text": "GetTransactionByIdAsync — existing returns DTO, non-existing returns null",
+        "done": false
+      },
+      {
+        "text": "dotnet test passes",
+        "done": false
+      }
+    ],
+    "notes": "FilterOutDuplicatesAsync composite key hash must be tested to prevent regression.",
+    "deps": []
+  },
+  {
+    "id": "PF-037",
+    "title": "Backend integration tests — Controllers (WebApplicationFactory)",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": [
+      "testing",
+      "infra"
+    ],
+    "objective": "Write integration tests for TransactionsController and CategoryRulesController using WebApplicationFactory with in-memory DB.",
+    "criteria": [
+      {
+        "text": "WebApplicationFactory configured with in-memory DB",
+        "done": false
+      },
+      {
+        "text": "GET /api/transactions/health returns 200",
+        "done": false
+      },
+      {
+        "text": "GET /api/transactions returns 200 array",
+        "done": false
+      },
+      {
+        "text": "GET /api/transactions/{id} returns 404 for unknown id",
+        "done": false
+      },
+      {
+        "text": "POST /api/transactions/submit valid body returns 200",
+        "done": false
+      },
+      {
+        "text": "POST /api/transactions/upload-preview empty file returns 400",
+        "done": false
+      },
+      {
+        "text": "GET /api/transactions/aggregated returns correct shape",
+        "done": false
+      },
+      {
+        "text": "CategoryRules CRUD endpoints return correct status codes",
+        "done": false
+      },
+      {
+        "text": "dotnet test passes",
+        "done": false
+      }
+    ],
+    "notes": "Requires Microsoft.AspNetCore.Mvc.Testing NuGet. Program.cs needs public partial class Program {}.",
+    "deps": []
+  },
+  {
+    "id": "PF-038",
+    "title": "Frontend test setup — Vitest + React Testing Library",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": [
+      "testing",
+      "infra"
+    ],
+    "objective": "Set up Vitest + React Testing Library and write initial tests for API clients and key components. Zero frontend tests currently exist.",
+    "criteria": [
+      {
+        "text": "vitest, @testing-library/react, jest-dom, user-event installed",
+        "done": false
+      },
+      {
+        "text": "vitest.config with jsdom environment configured",
+        "done": false
+      },
+      {
+        "text": "npm test script runs Vitest",
+        "done": false
+      },
+      {
+        "text": "transactionsApi.test.ts — fetch called with correct URL",
+        "done": false
+      },
+      {
+        "text": "categoryRulesApi.test.ts — fetch called with correct URL",
+        "done": false
+      },
+      {
+        "text": "CashFlowDashboard.test.tsx — renders without crashing",
+        "done": false
+      },
+      {
+        "text": "Upload component test — empty submit shows error",
+        "done": false
+      },
+      {
+        "text": "npm run build still passes",
+        "done": false
+      }
+    ],
+    "notes": "Frontend has had zero tests since project start. Start minimal — get infrastructure working first.",
+    "deps": []
+  },
+  {
+    "id": "PF-039",
+    "title": "Bug — N+1 in SubmitTransactions: GetAllAsync() called per transaction",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": [
+      "bug",
+      "infra"
+    ],
+    "priority": "high",
+    "objective": "Fix GetAllAsync() called inside foreach in TransactionsController.SubmitTransactions — one DB query per submitted transaction.",
+    "criteria": [
+      {
+        "text": "GetAllAsync() called once before the loop",
+        "done": false
+      },
+      {
+        "text": "In-loop check uses pre-fetched in-memory list",
+        "done": false
+      },
+      {
+        "text": "Behavior unchanged: new categories still create rules",
+        "done": false
+      },
+      {
+        "text": "dotnet build succeeds",
+        "done": false
+      },
+      {
+        "text": "dotnet test passes",
+        "done": false
+      }
+    ],
+    "notes": "TransactionsController.cs line 114. Submitting 100 transactions = 100 SELECT * FROM category_rules. Distinct from PF-029.",
+    "deps": []
+  },
+  {
+    "id": "PF-041",
+    "title": "E2E functional test infrastructure — Playwright",
+    "status": "ready",
+    "sprint": "cleanup",
+    "labels": [
+      "testing",
+      "infra"
+    ],
+    "objective": "Set up Playwright as the E2E testing framework covering the core upload → preview → submit → dashboard user journey.",
+    "criteria": [
+      {
+        "text": "@playwright/test installed as dev dependency",
+        "done": false
+      },
+      {
+        "text": "playwright.config.ts with baseURL, webServer, Chromium project",
+        "done": false
+      },
+      {
+        "text": "npm run e2e and npm run e2e:ui scripts added",
+        "done": false
+      },
+      {
+        "text": "e2e/ directory created",
+        "done": false
+      },
+      {
+        "text": "Test: health check endpoint returns Healthy (API fixture)",
+        "done": false
+      },
+      {
+        "text": "Test: dashboard loads with no console errors",
+        "done": false
+      },
+      {
+        "text": "Test: upload BCA CSV fixture → preview rows appear",
+        "done": false
+      },
+      {
+        "text": "Test: submit flow → transactions appear on dashboard",
+        "done": false
+      },
+      {
+        "text": "Test: category rules CRUD via UI",
+        "done": false
+      },
+      {
+        "text": "fixtures/ directory with sample BCA CSV",
+        "done": false
+      }
+    ],
+    "notes": "Playwright chosen over Cypress: better TypeScript support, auto-wait, multi-browser, can test API layer via request fixture. Complements unit tests (PF-034–PF-038) — covers the full stack integration path.",
+    "deps": []
+  },
+  {
+    "id": "PF-040",
+    "title": "Bug — Dashboard cash flow ignores year/month query params",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": [
+      "bug",
+      "feature"
+    ],
+    "priority": "medium",
+    "objective": "Fix GET /api/transactions/aggregated: CashFlow section always uses DateTime.Now as anchor, ignoring the year/month query params.",
+    "criteria": [
+      {
+        "text": "Cash flow window anchored to requested year/month",
+        "done": false
+      },
+      {
+        "text": "?year=2024&month=6 returns CashFlow for Jan–Jun 2024",
+        "done": false
+      },
+      {
+        "text": "No params still returns last 6 months from today",
+        "done": false
+      },
+      {
+        "text": "CurrentMonth.Month field uses requested year/month not DateTime.Now",
+        "done": false
+      },
+      {
+        "text": "dotnet build succeeds",
+        "done": false
+      }
+    ],
+    "notes": "TransactionsController.cs line 235. DateTime.Now.AddMonths(-i) should be anchored to new DateTime(currentYear, currentMonth, 1).AddMonths(-i).",
+    "deps": []
   }
 ]
