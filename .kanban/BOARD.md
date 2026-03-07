@@ -1,7 +1,7 @@
 # Personal Finance — Kanban Board
 
 > **Current Sprint:** Cleanup → then Ramp-Up (Week 0)
-> **Last Updated:** 2026-03-02
+> **Last Updated:** 2026-03-07
 > **WIP Limit:** 2 tasks in progress
 
 ---
@@ -10,6 +10,14 @@
 
 | ID | Task | Sprint | Labels |
 |----|------|--------|--------|
+| [PF-034](tasks/PF-034.md) | Backend test suite — Command handlers & validators | cleanup | `testing` `infra` |
+| [PF-035](tasks/PF-035.md) | Backend test suite — Bank statement parsers | cleanup | `testing` `infra` |
+| [PF-036](tasks/PF-036.md) | Backend test suite — TransactionService | cleanup | `testing` `infra` |
+| [PF-037](tasks/PF-037.md) | Backend integration tests — Controllers | cleanup | `testing` `infra` |
+| [PF-038](tasks/PF-038.md) | Frontend test setup — Vitest + React Testing Library | cleanup | `testing` `infra` |
+| [PF-039](tasks/PF-039.md) | Bug — N+1 in SubmitTransactions (GetAllAsync per loop) | cleanup | `bug` `infra` |
+| [PF-040](tasks/PF-040.md) | Bug — Dashboard cash flow ignores year/month params | cleanup | `bug` `feature` |
+| [PF-041](tasks/PF-041.md) | E2E functional test infrastructure — Playwright | cleanup | `testing` `infra` |
 | [PF-012](tasks/PF-012.md) | PDF text extraction with PyMuPDF | ramp-up | `learning` `ai` |
 | [PF-013](tasks/PF-013.md) | End-to-end: .NET → Python → LLM pipeline | ramp-up | `feature` `ai` |
 | [PF-014](tasks/PF-014.md) | Persist AI-parsed transactions to DB | ramp-up | `feature` |
@@ -80,12 +88,12 @@
 
 ```
 Setup:    ████████████████████ 100% (8/8)
-Cleanup:  ███████████░░░░░░░░░  57% (4/7)
+Cleanup:  ███████████░░░░░░░░░  31% (4/13)
 Ramp-Up:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 Sprint 1: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 2: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 3: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 4: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 ──────────────────────────────────
-Overall:  ███████░░░░░░░░░░░░░  36% (12/33)
+Overall:  ████░░░░░░░░░░░░░░░░  29% (12/41)
 ```
