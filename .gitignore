@@ -26,3 +26,6 @@ api/.vs/personal-finance/CopilotIndices/
 api/.vs/
 **/bin/
 **/obj/
+
+# Claude Code worktrees (stale branches from past sessions)
+.claude/worktrees/

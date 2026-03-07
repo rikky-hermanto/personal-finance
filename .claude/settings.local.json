@@ -8,7 +8,10 @@
       "Bash(cmd:*)",
       "Bash(wmic process:*)",
       "Bash(kill:*)",
-      "Bash(ls -la /c/workspaces/personal-finance/.kanban/tasks/PF-*.md)"
+      "Bash(ls -la /c/workspaces/personal-finance/.kanban/tasks/PF-*.md)",
+      "Read(//c/Users/rikky/.claude/**)",
+      "Bash(wc -l /c/workspaces/personal-finance/.claude/rules/*.md /c/workspaces/personal-finance/.github/copilot-instructions.md /c/workspaces/personal-finance/docs/*.md /c/workspaces/personal-finance/SETUP.md)",
+      "Bash(du -sh /c/workspaces/personal-finance/.claude/worktrees/*/)"
     ]
   }
 }
