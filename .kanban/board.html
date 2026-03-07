@@ -247,6 +247,24 @@
       text-decoration-color: var(--text-muted);
     }
 
+    /* ── Drag and drop ── */
+    .card {
+      cursor: grab;
+    }
+
+    .card.dragging {
+      opacity: 0.35;
+      transform: rotate(1.5deg) scale(0.97);
+      cursor: grabbing;
+    }
+
+    .column-body.drag-over {
+      background: rgba(88, 166, 255, 0.07);
+      outline: 2px dashed var(--accent);
+      outline-offset: -3px;
+      border-radius: 6px;
+    }
+
     footer {
       padding: 16px 32px;
       border-top: 1px solid var(--border);
@@ -560,416 +578,8 @@
 </footer>
 
 <script>
-// ── BOARD DATA ──────────────────────────────────────────────────────────────────
-// This data mirrors BOARD.md. Regenerate this file when the board changes.
-
-const tasks = [
-  // ── DONE ──
-  { id: "PF-001", title: ".NET Web API with Clean Architecture", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
-    objective: "Scaffold a .NET 9 Web API following Clean Architecture with layered project structure.",
-    criteria: [
-      { text: "Solution with 5 projects: Api, Application, Domain, Infrastructure, Persistence", done: true },
-      { text: "ASP.NET Core Web API with controllers", done: true },
-      { text: "Dependency injection wired across layers", done: true },
-      { text: "Health check endpoint operational", done: true },
-      { text: "Swagger/OpenAPI documentation generated", done: true },
-      { text: "CORS configured for frontend", done: true },
-    ],
-    notes: "Implemented as PersonalFinance.slnx with full layer separation. API runs on port 7208.",
-    deps: []
-  },
-  { id: "PF-002", title: "React + Vite frontend scaffold", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
-    objective: "Set up React 18 + TypeScript frontend with Tailwind CSS and shadcn/ui component library.",
-    criteria: [
-      { text: "Vite dev server running on port 8080", done: true },
-      { text: "React Router with page routing", done: true },
-      { text: "Tailwind CSS + shadcn/ui components installed", done: true },
-      { text: "React Query for server state management", done: true },
-      { text: "API client layer connecting to .NET backend", done: true },
-      { text: "Docker multi-stage build (Node \u2192 Nginx)", done: true },
-    ],
-    notes: "",
-    deps: []
-  },
-  { id: "PF-003", title: "Docker Compose orchestration", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
-    objective: "Containerize all services with Docker Compose for one-command local development.",
-    criteria: [
-      { text: "docker compose up starts all services", done: true },
-      { text: "PostgreSQL 16 container with persistent volume", done: true },
-      { text: ".NET API container with multi-stage Dockerfile", done: true },
-      { text: "Frontend container (Nginx serving built React app)", done: true },
-      { text: "Services communicate via Docker network", done: true },
-      { text: "Health checks configured", done: true },
-    ],
-    notes: "",
-    deps: []
-  },
-  { id: "PF-004", title: "EF Core + PostgreSQL schema & migrations", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
-    objective: "Design and implement the database schema with EF Core migrations for transactions and category rules.",
-    criteria: [
-      { text: "Transaction entity with full field set", done: true },
-      { text: "CategoryRule entity with keyword matching", done: true },
-      { text: "5 migrations applied successfully", done: true },
-      { text: "Seed data for 106 default category rules", done: true },
-      { text: "Snake_case naming convention via EF Core", done: true },
-    ],
-    notes: "",
-    deps: []
-  },
-  { id: "PF-005", title: "Bank statement CSV/PDF parsers", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02",
-    objective: "Parse bank statement files (CSV and PDF) into structured transaction data.",
-    criteria: [
-      { text: "IBankStatementParser interface with strategy pattern", done: true },
-      { text: "BCA CSV parser for Indonesian BCA bank statements", done: true },
-      { text: "Default CSV parser as fallback", done: true },
-      { text: "NeoBank PDF parser for PDF statements", done: true },
-      { text: "Bank auto-detection via IBankIdentifier", done: true },
-      { text: "Upload preview endpoint returns parsed data", done: true },
-    ],
-    notes: "",
-    deps: []
-  },
-  { id: "PF-006", title: "CQRS + MediatR pipeline", status: "done", sprint: "setup", labels: ["infra"], completed: "2026-02",
-    objective: "Implement CQRS pattern using MediatR with FluentValidation for all command/query inputs.",
-    criteria: [
-      { text: "MediatR wired in DI pipeline", done: true },
-      { text: "Commands: CreateTransaction, CreateCategoryRule, UpdateCategoryRule, DeleteCategoryRule", done: true },
-      { text: "Handlers for each command", done: true },
-      { text: "FluentValidation validators for create commands", done: true },
-      { text: "Service layer wrapping business logic", done: true },
-    ],
-    notes: "",
-    deps: []
-  },
-  { id: "PF-007", title: "Category rules feature (CRUD)", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02",
-    objective: "Full CRUD for transaction categorization rules \u2014 keyword-based matching for automatic category assignment.",
-    criteria: [
-      { text: "GET /api/categoryrules \u2014 list all rules", done: true },
-      { text: "POST /api/categoryrules \u2014 create new rule", done: true },
-      { text: "PUT /api/categoryrules/{id} \u2014 update existing rule", done: true },
-      { text: "DELETE /api/categoryrules/{id} \u2014 delete rule", done: true },
-      { text: "CategoryManager UI component in frontend", done: true },
-      { text: "Unit tests for CategoryRuleService", done: true },
-    ],
-    notes: "",
-    deps: []
-  },
-  { id: "PF-008", title: "Cash flow dashboard with charts", status: "done", sprint: "setup", labels: ["feature"], completed: "2026-02",
-    objective: "Interactive dashboard showing cash flow trends, expense breakdowns, and category analysis.",
-    criteria: [
-      { text: "CashFlowDashboard component with summary cards", done: true },
-      { text: "FinancialChart component using Recharts", done: true },
-      { text: "Transaction table with search and filtering", done: true },
-      { text: "Drill-down view by category and month", done: true },
-      { text: "Aggregated data endpoint (GET /api/transactions/aggregated)", done: true },
-      { text: "Responsive layout with Tailwind CSS", done: true },
-    ],
-    notes: "",
-    deps: []
-  },
-
-  // ── READY (Cleanup) ──
-  { id: "PF-027", title: "Delete scaffold leftovers and dead code", status: "done", sprint: "cleanup", labels: ["infra"], completed: "2026-03",
-    objective: "Remove template scaffold files and a third-party CDN script that add confusion and pose a security risk.",
-    criteria: [
-      { text: "WeatherForecast.cs deleted", done: true },
-      { text: "WeatherForecastController.cs deleted", done: true },
-      { text: "UnitTest1.cs deleted", done: true },
-      { text: "CDN script removed from index.html", done: true },
-      { text: "dotnet build succeeds", done: true },
-      { text: "dotnet test passes", done: true },
-      { text: "npm run build succeeds", done: true },
-    ],
-    notes: "WeatherForecast files: .NET template leftovers. UnitTest1.cs: empty test. CDN script: unpinned cdn.gpteng.co \u2014 security risk (SEC-03).",
-    deps: []
-  },
-  { id: "PF-028", title: "Fix exception detail leaking to API clients", status: "ready", sprint: "cleanup", labels: ["infra"],
-    objective: "Stop returning internal exception messages (ex.Message) in HTTP 500 responses. Replace with generic error messages.",
-    criteria: [
-      { text: "UploadPreview catch block returns generic message", done: false },
-      { text: "GetDashboardData catch block returns generic message", done: false },
-      { text: "No ex.Message in any HTTP response body", done: false },
-      { text: "dotnet build succeeds", done: false },
-    ],
-    notes: "TransactionsController.cs line 98 and 277 leak ex.Message. Replace with generic: \"File processing failed.\" Addresses ERR-01.",
-    deps: []
-  },
-  { id: "PF-029", title: "Fix N+1 query in CategorizeAsync", status: "ready", sprint: "cleanup", labels: ["infra"],
-    objective: "Fix N+1 query pattern: CategorizeAsync queries DB per transaction row. 500-row file = 500 DB queries.",
-    criteria: [
-      { text: "New CategorizeBatchAsync method added", done: false },
-      { text: "Batch method loads rules once, categorizes in-memory", done: false },
-      { text: "Callers in parsers updated to use batch method", done: false },
-      { text: "Existing CategorizeAsync still works for single-item", done: false },
-      { text: "Existing tests pass", done: false },
-      { text: "New test for batch categorization", done: false },
-    ],
-    notes: "CategoryRuleService.CategorizeAsync() calls _dbContext.CategoryRules per invocation. Fix: load all rules once, iterate in-memory. Addresses PERF-01.",
-    deps: []
-  },
-  { id: "PF-030", title: "Move DTOs to correct project", status: "done", sprint: "cleanup", labels: ["infra"], completed: "2026-03",
-    objective: "Fix namespace/location mismatch: DTOs live in Infrastructure/Dtos/ but declare namespace Application.Dtos.",
-    criteria: [
-      { text: "TransactionDto.cs moved to Application/Dtos/", done: true },
-      { text: "CategoryRuleDto.cs moved to Application/Dtos/", done: true },
-      { text: "Empty Folder include removed from Application.csproj", done: true },
-      { text: "dotnet build succeeds", done: true },
-      { text: "dotnet test passes", done: true },
-    ],
-    notes: "Also moved IBankStatementParser and ICategoryRuleService interfaces to Application/Interfaces/ (ARCH-02 fix). Reversed Application\u2192Infrastructure dependency to Infrastructure\u2192Application (partial ARCH-01 fix).",
-    deps: []
-  },
-  { id: "PF-031", title: "Extract dashboard aggregation from controller", status: "ready", sprint: "cleanup", labels: ["infra"],
-    objective: "Move ~100 lines of inline aggregation logic from TransactionsController into a dedicated DashboardService.",
-    criteria: [
-      { text: "IDashboardService interface created", done: false },
-      { text: "DashboardService implementation created", done: false },
-      { text: "GetDashboardDataAsync method contains all aggregation logic", done: false },
-      { text: "Category rule creation extracted from SubmitTransactions", done: false },
-      { text: "Controller actions < 15 lines each", done: false },
-      { text: "DI registration in Program.cs", done: false },
-      { text: "API responses unchanged (no breaking changes)", done: false },
-    ],
-    notes: "GetDashboardData: year/month filtering, income/expense aggregation, percentage changes, top categories, 6-month cash flow. Addresses ARCH-04.",
-    deps: []
-  },
-  { id: "PF-032", title: "Update PROJECT_CONTEXT.md to match codebase", status: "done", sprint: "cleanup", labels: ["docs"], completed: "2026-03",
-    objective: "Fix documented values that drift from actual codebase: .NET version, testing framework, ID types.",
-    criteria: [
-      { text: "Section 11: .NET 8 \u2192 .NET 9", done: true },
-      { text: "Section 11: NSubstitute \u2192 Moq", done: true },
-      { text: "Section 8: Id: Guid \u2192 Id: int", done: true },
-      { text: "Section 6: .NET 8 Web API \u2192 .NET 9 Web API", done: true },
-      { text: "Note added: schema evolves incrementally", done: true },
-    ],
-    notes: "Straightforward text replacements. int PKs are already built and migrated \u2014 changing to Guid would require migration rewrite.",
-    deps: []
-  },
-  { id: "PF-033", title: "Add Current Phase section to CLAUDE.md", status: "done", sprint: "cleanup", labels: ["docs"], completed: "2026-03",
-    objective: "Add a Current Phase section so future Claude Code sessions can pick up context without re-auditing the repo.",
-    criteria: [
-      { text: "CLAUDE.md has Current Phase section", done: true },
-      { text: "Section includes: status, working features, tech debt, blockers", done: true },
-      { text: "Section has Last updated timestamp", done: true },
-      { text: "Habit documented: update at end of each session", done: true },
-    ],
-    notes: "Context preservation for multi-session development. Prevents losing state between Claude Code conversations.",
-    deps: []
-  },
-
-  // ── READY (Ramp-Up) ──
-  { id: "PF-009", title: "Hello LLM \u2014 first Anthropic API call", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"],
-    objective: "Write a Python script that calls the Anthropic API and gets a response. First contact with LLM programming.",
-    criteria: [
-      { text: "Python 3.12+ virtual environment set up", done: false },
-      { text: "Anthropic SDK installed", done: false },
-      { text: "Script calls Claude API with system + user prompt", done: false },
-      { text: "Successfully receives and prints a response", done: false },
-      { text: "Understands: tokens, temperature, max_tokens", done: false },
-      { text: "API key via environment variable (never hardcoded)", done: false },
-    ],
-    notes: "Day 1 of AI learning journey. Start with claude-sonnet-4-20250514. Experiment with temperature. Log token usage.",
-    deps: []
-  },
-  { id: "PF-010", title: "Structured output \u2014 text \u2192 JSON via LLM", status: "ready", sprint: "ramp-up", labels: ["learning", "ai"],
-    objective: "Send messy bank transaction text to an LLM and get back structured JSON. Learn prompt engineering for reliable output.",
-    criteria: [
-      { text: "Script sends raw transaction text to LLM", done: false },
-      { text: "LLM returns structured JSON with date, description, amount, currency, type", done: false },
-      { text: "JSON output is consistent across runs (low temperature)", done: false },
-      { text: "System prompt enforces output schema", done: false },
-      { text: "Handles edge cases: missing fields, ambiguous amounts", done: false },
-      { text: "Pydantic model validates LLM output", done: false },
-    ],
-    notes: "Use temperature=0 for deterministic output. Test with real BCA statement lines. Compare Anthropic vs OpenAI.",
-    deps: ["PF-009"]
-  },
-  { id: "PF-011", title: "FastAPI AI microservice scaffold", status: "ready", sprint: "ramp-up", labels: ["learning", "ai", "infra"],
-    objective: "Wrap the LLM parsing logic into a FastAPI service with proper request/response models.",
-    criteria: [
-      { text: "FastAPI app with /health and POST /parse endpoints", done: false },
-      { text: "Pydantic request/response models", done: false },
-      { text: "LLM call integrated into endpoint", done: false },
-      { text: "Proper error handling", done: false },
-      { text: "Structured JSON logging", done: false },
-      { text: "Runs via uvicorn on port 8000", done: false },
-      { text: "Dockerfile for the service", done: false },
-    ],
-    notes: "ai-service/ directory with app/, Dockerfile, pyproject.toml. Use Poetry. Async endpoints. CORS for .NET API calls.",
-    deps: ["PF-010"]
-  },
-
-  // ── BACKLOG ──
-  { id: "PF-012", title: "PDF text extraction with PyMuPDF", status: "backlog", sprint: "ramp-up", labels: ["learning", "ai"],
-    objective: "Add PDF upload to FastAPI service. Extract text with PyMuPDF, chain with LLM for structured parsing.",
-    criteria: [
-      { text: "POST /parse-pdf endpoint accepts PDF upload", done: false },
-      { text: "PyMuPDF extracts text from all pages", done: false },
-      { text: "Extracted text sent to LLM for parsing", done: false },
-      { text: "End-to-end: PDF \u2192 text \u2192 LLM \u2192 JSON", done: false },
-      { text: "Handles multi-page PDFs", done: false },
-      { text: "Graceful error for corrupted/encrypted PDFs", done: false },
-    ],
-    notes: "Day 4 of learning schedule. Test with real Indonesian bank statement PDFs.",
-    deps: ["PF-011"]
-  },
-  { id: "PF-013", title: "End-to-end: .NET \u2192 Python \u2192 LLM pipeline", status: "backlog", sprint: "ramp-up", labels: ["feature", "ai"],
-    objective: "Connect .NET API to Python AI service. Upload PDF via .NET, forward to Python for AI parsing, return structured JSON.",
-    criteria: [
-      { text: ".NET endpoint accepts PDF and forwards to Python", done: false },
-      { text: "Python processes and returns structured JSON", done: false },
-      { text: "Docker Compose updated with Python service", done: false },
-      { text: "Service discovery via Docker networking", done: false },
-    ],
-    notes: "Flow: Browser \u2192 .NET API (7208) \u2192 Python AI (8000) \u2192 Anthropic API \u2192 back. Use IHttpClientFactory.",
-    deps: ["PF-012"]
-  },
-  { id: "PF-014", title: "Persist AI-parsed transactions to DB", status: "backlog", sprint: "ramp-up", labels: ["feature"],
-    objective: "Save AI-parsed transactions to PostgreSQL. Close the full loop: upload \u2192 AI parse \u2192 save \u2192 query.",
-    criteria: [
-      { text: "AI-parsed transactions saved via EF Core", done: false },
-      { text: "Duplicate detection", done: false },
-      { text: "Source tracking (which upload generated which transactions)", done: false },
-      { text: "Dashboard reflects AI-imported transactions", done: false },
-    ],
-    notes: "Day 6 of learning schedule. Closes the ramp-up phase.",
-    deps: ["PF-013"]
-  },
-  { id: "PF-015", title: "LLM provider abstraction layer", status: "backlog", sprint: "S1", labels: ["feature", "ai"],
-    objective: "Create provider abstraction to switch between Anthropic, OpenAI, and Ollama without code changes.",
-    criteria: [
-      { text: "ILLMProvider interface with parse/complete methods", done: false },
-      { text: "AnthropicProvider, OpenAIProvider, OllamaProvider", done: false },
-      { text: "Provider selected via environment variable", done: false },
-      { text: "Fallback chain on failure", done: false },
-    ],
-    notes: "Configuration-driven LLM selection. Token usage logged per request.",
-    deps: ["PF-011"]
-  },
-  { id: "PF-016", title: "AI-powered auto-categorization", status: "backlog", sprint: "S1", labels: ["feature", "ai"],
-    objective: "Use LLM to categorize transactions that don't match existing keyword rules. AI fallback for rule-based system.",
-    criteria: [
-      { text: "Uncategorized transactions sent to LLM", done: false },
-      { text: "Confidence score returned with each suggestion", done: false },
-      { text: "User can accept/reject AI suggestions", done: false },
-      { text: "Accepted suggestions create new category rules", done: false },
-    ],
-    notes: "",
-    deps: ["PF-015", "PF-007"]
-  },
-  { id: "PF-017", title: "Natural language transaction query", status: "backlog", sprint: "S1", labels: ["feature", "ai"],
-    objective: "Query transactions using natural language. LLM translates to DB query, executes, returns human-readable answer.",
-    criteria: [
-      { text: "POST /api/query accepts natural language", done: false },
-      { text: "LLM translates to query parameters", done: false },
-      { text: "Query executed against transaction DB", done: false },
-      { text: "Returns both answer and underlying data", done: false },
-    ],
-    notes: "Example: \"How much did I spend on food in January?\"",
-    deps: ["PF-015", "PF-014"]
-  },
-  { id: "PF-018", title: "pgvector setup + embedding generation", status: "backlog", sprint: "S2", labels: ["infra", "ai"],
-    objective: "Enable pgvector on PostgreSQL and build embedding pipeline for semantic search and RAG.",
-    criteria: [
-      { text: "pgvector extension enabled", done: false },
-      { text: "EF Core migration adds vector column", done: false },
-      { text: "Embedding generation service", done: false },
-      { text: "Transactions embedded on import", done: false },
-    ],
-    notes: "Foundation for Sprint 3 RAG pipeline. Vector dimension configurable (1536 OpenAI, 768 local).",
-    deps: ["PF-014"]
-  },
-  { id: "PF-019", title: "RAG pipeline for transaction queries", status: "backlog", sprint: "S2", labels: ["feature", "ai"],
-    objective: "Retrieval-Augmented Generation: embed question, vector search, inject context, LLM generates answer.",
-    criteria: [
-      { text: "Query embedding: question \u2192 vector", done: false },
-      { text: "Vector similarity search (top-k)", done: false },
-      { text: "Context injection into LLM prompt", done: false },
-      { text: "Citations referencing specific transactions", done: false },
-    ],
-    notes: "",
-    deps: ["PF-018"]
-  },
-  { id: "PF-020", title: "Semantic search API endpoint", status: "backlog", sprint: "S2", labels: ["feature", "ai"],
-    objective: "Expose RAG pipeline as user-facing API. Frontend query bar uses this for natural language queries.",
-    criteria: [
-      { text: "POST /api/search with natural language query", done: false },
-      { text: "Returns: answer, source transactions, confidence", done: false },
-      { text: "Frontend query component integrated", done: false },
-      { text: "Rate limiting on AI endpoints", done: false },
-    ],
-    notes: "",
-    deps: ["PF-019"]
-  },
-  { id: "PF-021", title: "Function calling \u2014 API endpoints as LLM tools", status: "backlog", sprint: "S3", labels: ["feature", "ai"],
-    objective: "Define .NET API endpoints as tools the LLM can call based on user intent.",
-    criteria: [
-      { text: "Tool definitions for list, filter, aggregate endpoints", done: false },
-      { text: "LLM selects appropriate tools", done: false },
-      { text: "Tool execution: LLM output \u2192 API call \u2192 result", done: false },
-      { text: "Multi-tool chaining scenarios", done: false },
-    ],
-    notes: "",
-    deps: ["PF-017"]
-  },
-  { id: "PF-022", title: "Agent loop with Semantic Kernel", status: "backlog", sprint: "S3", labels: ["feature", "ai"],
-    objective: "Autonomous agent loop: receive goal, plan steps, execute tools, synthesize response.",
-    criteria: [
-      { text: "Semantic Kernel integrated into .NET API", done: false },
-      { text: "Agent plugins registered per API capability", done: false },
-      { text: "Agent loop: goal \u2192 plan \u2192 execute \u2192 observe \u2192 answer", done: false },
-      { text: "Safety: max iterations, cost budget per request", done: false },
-    ],
-    notes: "Example: \"Categorize all uncategorized transactions from December\"",
-    deps: ["PF-021"]
-  },
-  { id: "PF-023", title: "Multi-turn agent conversation", status: "backlog", sprint: "S3", labels: ["feature", "ai"],
-    objective: "Multi-turn conversations with context across messages. Agent maintains conversation state.",
-    criteria: [
-      { text: "Conversation session management", done: false },
-      { text: "Agent maintains context across turns", done: false },
-      { text: "Frontend chat UI component", done: false },
-      { text: "Session cleanup / expiration policy", done: false },
-    ],
-    notes: "Example flow: \"Show December expenses\" \u2192 \"Break down by category\" \u2192 \"Which increased vs November?\"",
-    deps: ["PF-022"]
-  },
-  { id: "PF-024", title: "AI observability + cost tracking", status: "backlog", sprint: "S4", labels: ["infra", "ai"],
-    objective: "Instrument all AI calls: token usage, latency, cost per query, error rates. Monitoring dashboard.",
-    criteria: [
-      { text: "Every LLM call logs: model, tokens, latency, cost", done: false },
-      { text: "Cost dashboard: daily/weekly/monthly AI spend", done: false },
-      { text: "Latency percentiles (p50, p95, p99)", done: false },
-      { text: "Alerting threshold for cost anomalies", done: false },
-    ],
-    notes: "",
-    deps: []
-  },
-  { id: "PF-025", title: "Semantic caching layer", status: "backlog", sprint: "S4", labels: ["feature", "ai"],
-    objective: "Cache LLM responses for semantically similar queries using embedding similarity.",
-    criteria: [
-      { text: "Query embedding + similarity check before LLM call", done: false },
-      { text: "Configurable cache hit threshold (cosine > 0.95)", done: false },
-      { text: "Cache invalidation when data changes", done: false },
-      { text: "Cache hit rate metrics", done: false },
-    ],
-    notes: "\"How much on food in Jan?\" and \"January food spending?\" should hit same cache.",
-    deps: ["PF-018", "PF-019"]
-  },
-  { id: "PF-026", title: "Auth0 integration + security hardening", status: "backlog", sprint: "S4", labels: ["infra"],
-    objective: "Add authentication via Auth0. Secure all endpoints. Rate limit AI endpoints.",
-    criteria: [
-      { text: "Auth0 tenant configured (OAuth 2.0 / OIDC)", done: false },
-      { text: "JWT validation middleware in .NET API", done: false },
-      { text: "Rate limiting on AI endpoints", done: false },
-      { text: "Frontend login/logout flow", done: false },
-    ],
-    notes: "",
-    deps: []
-  },
-];
-
-// ── RENDER ENGINE ───────────────────────────────────────────────────────────────
+// ── STATE ────────────────────────────────────────────────────────────────────────
+let tasks = [];
 
 const columns = [
   { key: "backlog",  name: "Backlog",     cssClass: "col-backlog" },
@@ -995,6 +605,69 @@ function getFilteredTasks() {
   return tasks.filter(t => t.sprint === currentFilter);
 }
 
+// ── DRAG AND DROP ────────────────────────────────────────────────────────────────
+
+function onDragStart(e, taskId) {
+  e.dataTransfer.setData("text/plain", taskId);
+  e.dataTransfer.effectAllowed = "move";
+  setTimeout(() => e.target.classList.add("dragging"), 0);
+}
+
+function onDragEnd(e) {
+  e.target.classList.remove("dragging");
+  document.querySelectorAll(".drag-over").forEach(el => el.classList.remove("drag-over"));
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  e.currentTarget.classList.add("drag-over");
+}
+
+function onDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove("drag-over");
+  }
+}
+
+async function onDrop(e, newStatus) {
+  e.preventDefault();
+  e.currentTarget.classList.remove("drag-over");
+  const taskId = e.dataTransfer.getData("text/plain");
+  const task = tasks.find(t => t.id === taskId);
+  if (!task || task.status === newStatus) return;
+
+  const prevStatus = task.status;
+  const prevCompleted = task.completed;
+  task.status = newStatus;
+
+  if (newStatus === "done" && !task.completed) {
+    const now = new Date();
+    task.completed = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  } else if (newStatus !== "done") {
+    delete task.completed;
+  }
+
+  renderBoard();
+
+  try {
+    const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus, completed: task.completed ?? null }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  } catch (err) {
+    console.error("Failed to save status change:", err);
+    task.status = prevStatus;
+    task.completed = prevCompleted;
+    if (prevCompleted === undefined) delete task.completed;
+    renderBoard();
+  }
+}
+
+// ── RENDER ENGINE ────────────────────────────────────────────────────────────────
+
 function renderCard(task) {
   const isDone = task.status === "done";
   const labels = task.labels.map(l =>
@@ -1002,7 +675,13 @@ function renderCard(task) {
   ).join("");
 
   return `
-    <div class="card ${isDone ? 'card-completed' : ''}" data-sprint="${task.sprint}" onclick="openModal('${task.id}')">
+    <div class="card ${isDone ? 'card-completed' : ''}"
+         data-sprint="${task.sprint}"
+         data-id="${task.id}"
+         draggable="true"
+         ondragstart="onDragStart(event, '${task.id}')"
+         ondragend="onDragEnd(event)"
+         onclick="openModal('${task.id}')">
       <div class="card-id">${task.id}</div>
       <div class="card-title">${task.title}</div>
       <div class="card-meta">
@@ -1030,7 +709,12 @@ function renderBoard() {
           ${col.name}
           <span class="count">${colTasks.length}</span>
         </div>
-        <div class="column-body">${cardsHtml}</div>
+        <div class="column-body"
+             ondragover="onDragOver(event)"
+             ondragleave="onDragLeave(event)"
+             ondrop="onDrop(event, '${col.key}')">
+          ${cardsHtml}
+        </div>
       </div>
     `;
   }).join("");
@@ -1178,7 +862,25 @@ document.addEventListener("keydown", function(e) {
 });
 
 // ── INIT ────────────────────────────────────────────────────────────────────────
-renderBoard();
+
+async function init() {
+  try {
+    const res = await fetch("/api/tasks");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    tasks = await res.json();
+  } catch {
+    document.getElementById("board").innerHTML = `
+      <div style="padding:48px;text-align:center;color:var(--text-muted);grid-column:1/-1">
+        <p style="font-size:15px;margin-bottom:8px">Could not load tasks \u2014 is the server running?</p>
+        <p style="font-family:monospace;font-size:13px;color:var(--accent)">npm run kanban</p>
+        <p style="font-size:12px;margin-top:4px">then open <a href="http://localhost:3001" style="color:var(--accent)">localhost:3001</a></p>
+      </div>`;
+    return;
+  }
+  renderBoard();
+}
+
+init();
 </script>
 </body>
 </html>
