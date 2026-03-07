@@ -4,12 +4,12 @@
 
 Full-stack monorepo: React 18 + Vite frontend (`src/`) with .NET 9 Clean Architecture API (`api/`) and PostgreSQL 16, orchestrated via Docker Compose.
 
-For detailed docs see:
-- @.github/copilot-instructions.md (architecture overview — NOTE: references ".NET 8" but project uses .NET 9)
-- @docs/API-endpoints.md (all REST endpoints with curl examples)
-- @docs/API-backend.md (backend architecture details)
-- @docs/Front-End.md (frontend architecture details)
-- @SETUP.md (Docker and local setup)
+For detailed docs (read on demand — not auto-imported):
+- [.github/copilot-instructions.md](.github/copilot-instructions.md) — NOTE: says ".NET 8" but project uses .NET 9
+- [docs/API-endpoints.md](docs/API-endpoints.md) — all REST endpoints with curl examples
+- [docs/API-backend.md](docs/API-backend.md) — backend architecture details
+- [docs/Front-End.md](docs/Front-End.md) — frontend architecture details
+- [SETUP.md](SETUP.md) — Docker and local setup
 
 ## Project Layout
 
