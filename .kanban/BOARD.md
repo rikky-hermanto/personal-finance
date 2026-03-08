@@ -1,97 +1,73 @@
 # Personal Finance — Kanban Board
 
-> **Current Sprint:** Cleanup → then Ramp-Up (Week 0)
-> **Last Updated:** 2026-03-08
-> **WIP Limit:** 2 tasks in progress
+> **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
+> **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
+> **Last synced:** 2026-03-09
+
+This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
 ---
 
-## Backlog
+## Done (closed)
 
-| ID | Task | Sprint | Labels |
-|----|------|--------|--------|
-| [PF-034](tasks/PF-034.md) | Backend test suite — Command handlers & validators | cleanup | `testing` `infra` |
-| [PF-035](tasks/PF-035.md) | Backend test suite — Bank statement parsers | cleanup | `testing` `infra` |
-| [PF-036](tasks/PF-036.md) | Backend test suite — TransactionService | cleanup | `testing` `infra` |
-| [PF-037](tasks/PF-037.md) | Backend integration tests — Controllers | cleanup | `testing` `infra` |
-| [PF-038](tasks/PF-038.md) | Frontend test setup — Vitest + React Testing Library | cleanup | `testing` `infra` |
-| [PF-039](tasks/PF-039.md) | Bug — N+1 in SubmitTransactions (GetAllAsync per loop) | cleanup | `bug` `infra` |
-| [PF-040](tasks/PF-040.md) | Bug — Dashboard cash flow ignores year/month params | cleanup | `bug` `feature` |
-| [PF-042](tasks/PF-042.md) | Explore MCP servers for developer workflow leverage | cleanup | `learning` `infra` `ai` |
-| [PF-012](tasks/PF-012.md) | PDF text extraction with PyMuPDF | ramp-up | `learning` `ai` |
-| [PF-013](tasks/PF-013.md) | End-to-end: .NET → Python → LLM pipeline | ramp-up | `feature` `ai` |
-| [PF-014](tasks/PF-014.md) | Persist AI-parsed transactions to DB | ramp-up | `feature` |
-| [PF-015](tasks/PF-015.md) | LLM provider abstraction layer | S1 | `feature` `ai` |
-| [PF-016](tasks/PF-016.md) | AI-powered auto-categorization | S1 | `feature` `ai` |
-| [PF-017](tasks/PF-017.md) | Natural language transaction query | S1 | `feature` `ai` |
-| [PF-018](tasks/PF-018.md) | pgvector setup + embedding generation | S2 | `infra` `ai` |
-| [PF-019](tasks/PF-019.md) | RAG pipeline for transaction queries | S2 | `feature` `ai` |
-| [PF-020](tasks/PF-020.md) | Semantic search API endpoint | S2 | `feature` `ai` |
-| [PF-021](tasks/PF-021.md) | Function calling — API endpoints as LLM tools | S3 | `feature` `ai` |
-| [PF-022](tasks/PF-022.md) | Agent loop with Semantic Kernel | S3 | `feature` `ai` |
-| [PF-023](tasks/PF-023.md) | Multi-turn agent conversation | S3 | `feature` `ai` |
-| [PF-024](tasks/PF-024.md) | AI observability + cost tracking | S4 | `infra` `ai` |
-| [PF-025](tasks/PF-025.md) | Semantic caching layer | S4 | `feature` `ai` |
-| [PF-026](tasks/PF-026.md) | Auth0 integration + security hardening | S4 | `infra` |
+| ID | Issue | Title |
+|----|-------|-------|
+| PF-001 | [#9](https://github.com/rikky-hermanto/personal-finance/issues/9) | .NET Web API with Clean Architecture |
+| PF-002 | [#10](https://github.com/rikky-hermanto/personal-finance/issues/10) | React + Vite Frontend Scaffold |
+| PF-003 | [#11](https://github.com/rikky-hermanto/personal-finance/issues/11) | Docker Compose Orchestration |
+| PF-004 | [#12](https://github.com/rikky-hermanto/personal-finance/issues/12) | EF Core + PostgreSQL Schema & Migrations |
+| PF-005 | [#13](https://github.com/rikky-hermanto/personal-finance/issues/13) | Bank Statement CSV/PDF Parsers |
+| PF-006 | [#14](https://github.com/rikky-hermanto/personal-finance/issues/14) | CQRS + MediatR Pipeline |
+| PF-007 | [#15](https://github.com/rikky-hermanto/personal-finance/issues/15) | Category Rules Feature (CRUD) |
+| PF-008 | [#16](https://github.com/rikky-hermanto/personal-finance/issues/16) | Cash Flow Dashboard with Charts |
+| PF-027 | [#35](https://github.com/rikky-hermanto/personal-finance/issues/35) | Delete scaffold leftovers and dead code |
+| PF-030 | [#38](https://github.com/rikky-hermanto/personal-finance/issues/38) | Move DTOs to correct project |
+| PF-032 | [#40](https://github.com/rikky-hermanto/personal-finance/issues/40) | Update PROJECT_CONTEXT.md to match codebase |
+| PF-033 | [#41](https://github.com/rikky-hermanto/personal-finance/issues/41) | Add Current Phase section to CLAUDE.md |
+| PF-041 | [#49](https://github.com/rikky-hermanto/personal-finance/issues/49) | E2E functional test infrastructure — Playwright |
 
 ---
 
 ## Ready
 
-| ID | Task | Sprint | Labels |
-|----|------|--------|--------|
-| [PF-028](tasks/PF-028.md) | Fix exception detail leaking to API clients | cleanup | `infra` |
-| [PF-029](tasks/PF-029.md) | Fix N+1 query in CategorizeAsync | cleanup | `infra` |
-| [PF-031](tasks/PF-031.md) | Extract dashboard aggregation from controller | cleanup | `infra` |
-| [PF-009](tasks/PF-009.md) | Hello LLM — first Anthropic API call | ramp-up | `learning` `ai` |
-| [PF-010](tasks/PF-010.md) | Structured output — text → JSON via LLM | ramp-up | `learning` `ai` |
-| [PF-011](tasks/PF-011.md) | FastAPI AI microservice scaffold | ramp-up | `learning` `ai` `infra` |
+| ID | Issue | Title |
+|----|-------|-------|
+| PF-009 | [#17](https://github.com/rikky-hermanto/personal-finance/issues/17) | Hello LLM — First Anthropic API Call |
+| PF-010 | [#18](https://github.com/rikky-hermanto/personal-finance/issues/18) | Structured Output — Text → JSON via LLM |
+| PF-011 | [#19](https://github.com/rikky-hermanto/personal-finance/issues/19) | FastAPI AI Microservice Scaffold |
+| PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
+| PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
+| PF-031 | [#39](https://github.com/rikky-hermanto/personal-finance/issues/39) | Extract dashboard aggregation from controller |
 
 ---
 
-## In Progress
+## Backlog
 
-| ID | Task | Sprint | Labels | Started |
-|----|------|--------|--------|---------|
-| [PF-041](tasks/PF-041.md) | E2E functional test infrastructure — Playwright | cleanup | `testing` `infra` | 2026-03-08 |
-
----
-
-## Review
-
-| ID | Task | Sprint | Labels |
-|----|------|--------|--------|
-| — | — | — | — |
-
----
-
-## Done
-
-| ID | Task | Sprint | Labels | Completed |
-|----|------|--------|--------|-----------|
-| [PF-001](tasks/PF-001.md) | .NET Web API with Clean Architecture | setup | `infra` | 2026-02 |
-| [PF-002](tasks/PF-002.md) | React + Vite frontend scaffold | setup | `infra` | 2026-02 |
-| [PF-003](tasks/PF-003.md) | Docker Compose orchestration | setup | `infra` | 2026-02 |
-| [PF-004](tasks/PF-004.md) | EF Core + PostgreSQL schema & migrations | setup | `infra` | 2026-02 |
-| [PF-005](tasks/PF-005.md) | Bank statement CSV/PDF parsers | setup | `feature` | 2026-02 |
-| [PF-006](tasks/PF-006.md) | CQRS + MediatR pipeline | setup | `infra` | 2026-02 |
-| [PF-007](tasks/PF-007.md) | Category rules feature (CRUD) | setup | `feature` | 2026-02 |
-| [PF-008](tasks/PF-008.md) | Cash flow dashboard with charts | setup | `feature` | 2026-02 |
-| [PF-027](tasks/PF-027.md) | Delete scaffold leftovers and dead code | cleanup | `infra` | 2026-03 |
-| [PF-030](tasks/PF-030.md) | Move DTOs to correct project | cleanup | `infra` | 2026-03 |
-| [PF-032](tasks/PF-032.md) | Update PROJECT_CONTEXT.md to match codebase | cleanup | `docs` | 2026-03 |
-| [PF-033](tasks/PF-033.md) | Add Current Phase section to CLAUDE.md | cleanup | `docs` | 2026-03 |
-
----
-
-## CI / E2E Gate
-
-`npx playwright test` — runs all E2E specs in `e2e/`. Requires full stack running (`docker compose up -d` or local dev servers).
-
-```
-npm run e2e       # headless Chromium
-npm run e2e:ui    # Playwright UI mode
-```
+| ID | Issue | Title | Sprint |
+|----|-------|-------|--------|
+| PF-012 | [#20](https://github.com/rikky-hermanto/personal-finance/issues/20) | PDF Text Extraction with PyMuPDF | ramp-up |
+| PF-013 | [#21](https://github.com/rikky-hermanto/personal-finance/issues/21) | End-to-End: .NET → Python → LLM Pipeline | ramp-up |
+| PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Persist AI-Parsed Transactions to DB | ramp-up |
+| PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | LLM Provider Abstraction Layer | S1 |
+| PF-016 | [#24](https://github.com/rikky-hermanto/personal-finance/issues/24) | AI-Powered Auto-Categorization | S1 |
+| PF-017 | [#25](https://github.com/rikky-hermanto/personal-finance/issues/25) | Natural Language Transaction Query | S1 |
+| PF-018 | [#26](https://github.com/rikky-hermanto/personal-finance/issues/26) | pgvector Setup + Embedding Generation | S2 |
+| PF-019 | [#27](https://github.com/rikky-hermanto/personal-finance/issues/27) | RAG Pipeline for Transaction Queries | S2 |
+| PF-020 | [#28](https://github.com/rikky-hermanto/personal-finance/issues/28) | Semantic Search API Endpoint | S2 |
+| PF-021 | [#29](https://github.com/rikky-hermanto/personal-finance/issues/29) | Function Calling — API Endpoints as LLM Tools | S3 |
+| PF-022 | [#30](https://github.com/rikky-hermanto/personal-finance/issues/30) | Agent Loop with Semantic Kernel | S3 |
+| PF-023 | [#31](https://github.com/rikky-hermanto/personal-finance/issues/31) | Multi-Turn Agent Conversation | S3 |
+| PF-024 | [#32](https://github.com/rikky-hermanto/personal-finance/issues/32) | AI Observability + Cost Tracking | S4 |
+| PF-025 | [#33](https://github.com/rikky-hermanto/personal-finance/issues/33) | Semantic Caching Layer | S4 |
+| PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Auth0 Integration + Security Hardening | S4 |
+| PF-034 | [#42](https://github.com/rikky-hermanto/personal-finance/issues/42) | Backend test suite — Command handlers & validators | cleanup |
+| PF-035 | [#43](https://github.com/rikky-hermanto/personal-finance/issues/43) | Backend test suite — Bank statement parsers | cleanup |
+| PF-036 | [#44](https://github.com/rikky-hermanto/personal-finance/issues/44) | Backend test suite — TransactionService | cleanup |
+| PF-037 | [#45](https://github.com/rikky-hermanto/personal-finance/issues/45) | Backend integration tests — Controllers | cleanup |
+| PF-038 | [#46](https://github.com/rikky-hermanto/personal-finance/issues/46) | Frontend test setup — Vitest + RTL | cleanup |
+| PF-039 | [#47](https://github.com/rikky-hermanto/personal-finance/issues/47) | Bug — N+1 in SubmitTransactions | cleanup |
+| PF-040 | [#48](https://github.com/rikky-hermanto/personal-finance/issues/48) | Bug — Dashboard cash flow ignores year/month params | cleanup |
+| PF-042 | [#50](https://github.com/rikky-hermanto/personal-finance/issues/50) | Explore MCP servers for developer workflow leverage | cleanup |
 
 ---
 
@@ -99,12 +75,12 @@ npm run e2e:ui    # Playwright UI mode
 
 ```
 Setup:    ████████████████████ 100% (8/8)
-Cleanup:  ██████████░░░░░░░░░░  29% (4/14)
+Cleanup:  ██████████░░░░░░░░░░  36% (5/14)
 Ramp-Up:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 Sprint 1: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 2: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 3: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 4: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 ──────────────────────────────────
-Overall:  ████░░░░░░░░░░░░░░░░  29% (12/42)
+Overall:  ████░░░░░░░░░░░░░░░░  31% (13/42)
 ```
