@@ -1,74 +1,82 @@
-# Kanban Task System
+# Project Task Management
 
-> GitHub-native project management for Personal Finance AI platform.
-> Designed for Claude Code orchestration + human review.
+> Hybrid approach: GitHub Projects v2 is the source of truth. `BOARD.md` is a Claude-readable snapshot.
 
 ---
+
+## Where Tasks Live
+
+| What | Where |
+|------|-------|
+| Task board (UI) | [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4) |
+| Task details | [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) |
+| Claude snapshot | [BOARD.md](./BOARD.md) — updated after each task operation |
 
 ## Structure
 
 ```
 .kanban/
-├── BOARD.md              # Source of truth — Kanban columns + task index
-├── board.html            # Interactive HTML visualization (open in browser)
-├── README.md             # This file
-├── templates/
-│   └── task-template.md  # Template for new task files
-└── tasks/
-    ├── PF-001.md         # One file per task — planning, notes, acceptance criteria
-    ├── PF-002.md
-    └── ...
+├── BOARD.md     # Claude-readable snapshot (NOT source of truth)
+└── README.md    # This file
 ```
 
-## Conventions
+## Task IDs
 
-### Task IDs
 - Format: `PF-XXX` (zero-padded, sequential)
-- IDs are permanent — never reused, even if a task is deleted
+- IDs are permanent — never reused
+- GitHub issue titles are prefixed: `[PF-XXX] Task title`
+- Next ID: check the highest existing issue title and increment
 
-### Kanban Columns
-| Column         | Meaning |
-|----------------|---------|
-| **Backlog**    | Identified but not refined. Needs breakdown or dependencies resolved. |
-| **Ready**      | Refined, acceptance criteria written, no blockers. Can be picked up. |
-| **In Progress**| Actively being worked on. Limit: 2 tasks max. |
-| **Review**     | Code complete. Needs verification, learning review, or PR merge. |
-| **Done**       | Merged, verified, learning objective met. |
+## Kanban Columns
 
-### Labels
-| Label       | Color   | Meaning |
-|-------------|---------|---------|
-| `feature`   | blue    | Product feature implementation |
-| `learning`  | green   | AI/ML learning objective |
-| `infra`     | orange  | Infrastructure, DevOps, tooling |
-| `ai`        | purple  | AI integration (LLM, RAG, agents) |
-| `docs`      | gray    | Documentation |
-| `test`      | yellow  | Testing |
+| Column | GitHub Status | Meaning |
+|--------|---------------|---------|
+| **Backlog** | Backlog | Identified, not yet refined |
+| **Ready** | Ready | Acceptance criteria written, no blockers |
+| **In Progress** | In Progress | Actively being worked on (WIP limit: 2) |
+| **Done** | Done + issue closed | Merged, verified, complete |
 
-### Sprint Tags
-- `setup` — Initial project scaffolding (pre-sprint)
-- `ramp-up` — Week 0: AI learning ramp-up
-- `S1` — Sprint 1: PDF → LLM → Structured JSON
-- `S2` — Sprint 2: RAG Pipeline
-- `S3` — Sprint 3: AI Agents
-- `S4` — Sprint 4: Production Hardening
+## Labels
 
-### Workflow Rules
-1. Move tasks left-to-right only (no skipping columns)
-2. Max 2 tasks **In Progress** at any time
-3. Every task file must have acceptance criteria before moving to **Ready**
-4. **Review** requires: code works, tests pass (if applicable), learning notes written
-5. Update `BOARD.md` when any task changes status
-6. Regenerate `board.html` after significant board changes
+| Label | Meaning |
+|-------|---------|
+| `feature` | Product feature |
+| `learning` | Learning / exploration objective |
+| `infra` | Infrastructure, tooling, DevOps |
+| `ai` | LLM, RAG, agents |
+| `docs` | Documentation |
+| `testing` | Tests and test infrastructure |
+| `bug` | Bug fix |
+| `sprint:setup` / `sprint:cleanup` / `sprint:ramp-up` / `sprint:S1–S4` | Sprint tags |
 
-## Creating a New Task
+## Workflow
 
-1. Copy `templates/task-template.md` to `tasks/PF-XXX.md`
-2. Fill in all required fields
-3. Add entry to the appropriate column in `BOARD.md`
+### Create a new task
+```bash
+gh issue create \
+  --repo rikky-hermanto/personal-finance \
+  --title "[PF-XXX] Task title" \
+  --body "## Objective\n...\n\n## Acceptance Criteria\n- [ ] ..." \
+  --label "feature,sprint:cleanup"
 
-## Viewing the Board
+# Add to project and set status
+gh project item-add 4 --owner rikky-hermanto --url <issue-url>
+# Then set status via GitHub UI or GraphQL
+```
 
-- **Terminal:** Read `BOARD.md` directly
-- **Browser:** Open `board.html` (self-contained, no server needed)
-- **GitHub:** Both render natively in the GitHub web UI
+### Move a task
+Update the Status field in [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4), then update `BOARD.md`.
+
+### Close a task
+```bash
+gh issue close <number> --repo rikky-hermanto/personal-finance
+```
+Then move to Done in the project and update `BOARD.md`.
+
+## Keeping BOARD.md in Sync
+
+After any task operation (create, move, close), update `BOARD.md`:
+- Add new issues to the correct column table
+- Move rows between columns when status changes
+- Close done issues and move to the Done table
+- Update the progress bars at the bottom
