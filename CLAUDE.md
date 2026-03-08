@@ -91,6 +91,34 @@ api-go/                       # Experimental Go API (Gin) — not production
 - **Charts**: Recharts for data visualization
 - **Routing**: react-router-dom v6, routes in `App.tsx`
 
+## Testing
+
+### E2E — Playwright (primary functional coverage)
+- **Config:** `playwright.config.ts` — `baseURL: http://localhost:8080`, Chromium, auto-starts `npm run dev`
+- **Tests:** `e2e/` — `health.spec.ts`, `dashboard.spec.ts`, `upload.spec.ts`, `category-rules.spec.ts`
+- **Fixtures:** `e2e/fixtures/bca-sample.csv` — sample BCA CSV for upload tests
+
+| Command | What |
+|---------|------|
+| `npm run e2e` | Run all E2E tests (headless) |
+| `npm run e2e:ui` | Open Playwright UI mode (interactive) |
+| `npx playwright test e2e/health.spec.ts` | Run a single spec |
+| `npx playwright codegen http://localhost:8080` | Record new tests interactively |
+| `npx playwright show-report` | Open last HTML report |
+
+**Requires full stack running.** Either `docker compose up -d` (DB + API) or local `dotnet run` + `npm run dev`.
+The `webServer` block auto-starts the Vite dev server if not already running.
+
+### Backend — xUnit + Moq
+- **Tests:** `api/tests/PersonalFinance.Tests/` — `UseInMemoryDatabase` per test class, `IDisposable` pattern
+- **Run all:** `cd api && dotnet test`
+- **Single test:** `cd api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
+- **Reference:** `Services/CategoryRuleServiceTests.cs` — canonical example
+- Naming: `MethodName_Condition_ExpectedResult`
+
+### Frontend unit tests — Vitest (not yet configured, PF-038)
+- Will use Vitest + React Testing Library; tests alongside components as `*.test.tsx`
+
 ## Known Gotchas
 
 - `.github/copilot-instructions.md` says ".NET 8" but project targets `net9.0` — always use .NET 9
@@ -110,23 +138,27 @@ api-go/                       # Experimental Go API (Gin) — not production
 
 ## Current Phase
 
-> **Last updated:** 2026-03-02
+> **Last updated:** 2026-03-08
 
-### Status: Cleanup Sprint (4/7 done) → then Ramp-Up (Week 0)
+### Status: Cleanup Sprint (4/7 core done) → Ramp-Up started
 - **Setup phase (PF-001–PF-008):** COMPLETE
-- **Cleanup sprint (PF-027–PF-033):** IN PROGRESS — PF-027, PF-030, PF-032, PF-033 done
-- **Next:** Remaining cleanup (PF-028, PF-029, PF-031), then PF-009 (Hello LLM)
+- **Cleanup sprint (PF-027–PF-033 + extras):** IN PROGRESS
+  - Done: PF-027, PF-030, PF-032, PF-033, PF-041 (Playwright E2E)
+  - Ready: PF-028 (exception leaks), PF-029 (N+1), PF-031 (controller logic)
+  - Backlog: PF-034–PF-040, PF-042 (test suites, bugs, MCP exploration)
+- **Ramp-Up:** PF-009 (Hello LLM) — IN PROGRESS
 
 ### What's Working
 - Full upload-preview-submit pipeline (BCA CSV, NeoBank PDF, Default CSV)
 - 106 seeded category rules with longest-keyword-match
 - Dashboard with aggregated stats, top categories, 6-month cash flow
 - Docker Compose full-stack orchestration
-- Kanban board UI with task detail modals
+- Kanban board UI with task detail modals (draggable, internal DB)
+- Playwright E2E test infrastructure (PF-041 — `e2e/` with 4 spec files + BCA CSV fixture)
 
 ### What's Not Built Yet
 - Python FastAPI AI service
-- LLM integration (zero Anthropic/OpenAI usage)
+- LLM integration (PF-009 in progress — first Anthropic API call)
 - Wise/Superbank/Bank Jago parsers
 - BankProfile entity, FX rate conversion
 - Authentication
@@ -134,7 +166,11 @@ api-go/                       # Experimental Go API (Gin) — not production
 ### Known Tech Debt (remaining)
 - Application.csproj still references Persistence (Clean Arch violation — ARCH-01)
 - N+1 queries in CategorizeAsync (PF-029)
+- N+1 in SubmitTransactions: GetAllAsync() called per transaction (PF-039)
 - ~100 lines business logic in controller (PF-031)
 - Exception details leaked in HTTP 500 responses (PF-028)
+- Dashboard cash flow ignores year/month query params (PF-040)
 - TypeScript strict mode disabled
 - Zero ILogger usage
+- No backend handler/validator/parser/controller tests (PF-034–PF-037)
+- No frontend tests (PF-038)
