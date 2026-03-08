@@ -82,6 +82,7 @@ api-go/                       # Experimental Go API (Gin) — not production
 - **DI Registration**: Persistence uses `AddPersistence()` extension. Other services registered directly in `Program.cs`
 
 ### Frontend (React/TypeScript)
+- **UI Theme**: Always apply `.claude/skills/data-oriented-theme/SKILL.md` when building any UI component, page, dashboard, or artifact — read it before starting any frontend work. Skip only if the user explicitly requests a different style (e.g., landing page, marketing, creative design).
 - **Path alias**: `@/` maps to `./src` — always use it for imports
 - **UI library**: shadcn/ui components in `src/components/ui/` — NEVER manually edit these files
 - **API clients**: Plain `fetch` functions in `src/api/` — no axios
