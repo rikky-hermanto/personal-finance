@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "(docker start personalfinance-db || docker compose up -d db) && concurrently --kill-others-on-fail --names \"api,ui,kanban\" --prefix-colors \"yellow,cyan,magenta\" \"cd api && dotnet run --project src/PersonalFinance.Api\" \"vite\" \"node .kanban/server.js\"",
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",
@@ -73,6 +74,7 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.2.1",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",

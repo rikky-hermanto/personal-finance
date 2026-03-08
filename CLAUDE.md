@@ -47,23 +47,50 @@ api-go/                       # Experimental Go API (Gin) — not production
 - Add migration: `cd api && dotnet ef migrations add <Name> --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
 - Apply migration: `cd api && dotnet ef database update --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
 
+### Start everything (recommended)
+```
+npm start
+```
+Starts DB (Docker, detached), .NET API, frontend, and Kanban board in one terminal with labeled output. DB container is reused if already running — no rebuild.
+
+### Kanban board
+- Start: `npm run kanban` (port 3001) — separate terminal
+- URL: http://localhost:3001
+
 ### Docker (full stack)
-- Start all: `docker compose up --build`
-- DB + API only: `docker compose up --build db api`
+- **Fresh start (recommended):** `docker compose down && docker compose up --build`
+  - Always run `down` first to remove stale containers (avoids container name conflicts)
+- DB + API only: `docker compose down && docker compose up --build db api`
 - DB only: `docker compose up db`
 - Stop: `docker compose down`
 - Reset DB: `docker compose down -v`
 - View logs: `docker compose logs -f api`
 
+### Run everything locally (no Docker)
+```
+# Terminal 1 — DB only via Docker
+docker compose up db
+
+# Terminal 2 — .NET API
+cd api && dotnet run --project src/PersonalFinance.Api
+
+# Terminal 3 — Frontend
+npm run dev
+
+# Terminal 4 — Kanban board
+npm run kanban
+```
+
 ## Ports & URLs
 
-| Service    | Port | URL                        |
-|------------|------|----------------------------|
-| Frontend   | 8080 | http://localhost:8080       |
-| .NET API   | 7208 | http://localhost:7208       |
-| Go API     | 7209 | http://localhost:7209       |
-| PostgreSQL | 5432 | personal_finance database  |
-| Health     |      | http://localhost:7208/health|
+| Service      | Port | URL                         | Start command        |
+|--------------|------|-----------------------------|----------------------|
+| Frontend     | 8080 | http://localhost:8080        | `npm run dev`        |
+| .NET API     | 7208 | http://localhost:7208        | `dotnet run` / Docker|
+| Go API       | 7209 | http://localhost:7209        | experimental         |
+| PostgreSQL   | 5432 | personal_finance database   | Docker               |
+| Health check |      | http://localhost:7208/health |                      |
+| Kanban board | 3001 | http://localhost:3001        | `npm run kanban`     |
 
 ## Environment Variables
 
