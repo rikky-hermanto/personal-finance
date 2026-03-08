@@ -51,11 +51,7 @@ api-go/                       # Experimental Go API (Gin) — not production
 ```
 npm start
 ```
-Starts DB (Docker, detached), .NET API, frontend, and Kanban board in one terminal with labeled output. DB container is reused if already running — no rebuild.
-
-### Kanban board
-- Start: `npm run kanban` (port 3001) — separate terminal
-- URL: http://localhost:3001
+Starts DB (Docker, detached), .NET API, and frontend in one terminal with labeled output. DB container is reused if already running — no rebuild.
 
 ### Docker (full stack)
 - **Fresh start (recommended):** `docker compose down && docker compose up --build`
@@ -77,8 +73,6 @@ cd api && dotnet run --project src/PersonalFinance.Api
 # Terminal 3 — Frontend
 npm run dev
 
-# Terminal 4 — Kanban board
-npm run kanban
 ```
 
 ## Ports & URLs
@@ -90,7 +84,6 @@ npm run kanban
 | Go API       | 7209 | http://localhost:7209        | experimental         |
 | PostgreSQL   | 5432 | personal_finance database   | Docker               |
 | Health check |      | http://localhost:7208/health |                      |
-| Kanban board | 3001 | http://localhost:3001        | `npm run kanban`     |
 
 ## Environment Variables
 
@@ -164,9 +157,36 @@ The `webServer` block auto-starts the Vite dev server if not already running.
 - ALWAYS use `dotnet ef migrations add` for schema changes
 - Use `docker compose` (V2 syntax), never `docker-compose` (V1)
 
+## Task Management
+
+Tasks are managed in **GitHub Projects v2** (hybrid approach):
+
+- **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4) + [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues)
+- **Claude snapshot:** `.kanban/BOARD.md` — updated after every task operation so Claude can understand project state without hitting the GitHub API
+
+### Creating a new task
+```bash
+gh issue create \
+  --repo rikky-hermanto/personal-finance \
+  --title "[PF-XXX] Task title" \
+  --body "## Objective\n...\n\n## Acceptance Criteria\n- [ ] ..." \
+  --label "feature,sprint:cleanup"
+# Then add to project and set Status in GitHub UI or via GraphQL
+```
+
+### Moving / closing a task
+- Update Status field in [Project #4](https://github.com/users/rikky-hermanto/projects/4)
+- Close issue when Done: `gh issue close <number> --repo rikky-hermanto/personal-finance`
+- **Always update `.kanban/BOARD.md`** to reflect the new state
+
+### Next task ID
+Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-042** → next is **PF-043**.
+
+---
+
 ## Current Phase
 
-> **Last updated:** 2026-03-08
+> **Last updated:** 2026-03-09
 
 ### Status: Cleanup Sprint (4/7 core done) → Ramp-Up started
 - **Setup phase (PF-001–PF-008):** COMPLETE
@@ -181,7 +201,7 @@ The `webServer` block auto-starts the Vite dev server if not already running.
 - 106 seeded category rules with longest-keyword-match
 - Dashboard with aggregated stats, top categories, 6-month cash flow
 - Docker Compose full-stack orchestration
-- Kanban board UI with task detail modals (draggable, internal DB)
+- GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4)) with all 42 tasks migrated
 - Playwright E2E test infrastructure (PF-041 — `e2e/` with 4 spec files + BCA CSV fixture)
 
 ### What's Not Built Yet
