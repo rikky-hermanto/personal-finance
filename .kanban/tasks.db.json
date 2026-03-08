@@ -1552,5 +1552,23 @@
     ],
     "notes": "TransactionsController.cs line 235. DateTime.Now.AddMonths(-i) should be anchored to new DateTime(currentYear, currentMonth, 1).AddMonths(-i).",
     "deps": []
+  },
+  {
+    "id": "PF-042",
+    "title": "Explore MCP servers for developer workflow leverage",
+    "status": "backlog",
+    "sprint": "cleanup",
+    "labels": ["learning", "infra", "ai"],
+    "objective": "Survey the MCP server ecosystem, document already-connected servers (Gmail, Google Calendar), research high-value candidates (GitHub, PostgreSQL, Brave Search), and produce a prioritized shortlist with integration rationale.",
+    "criteria": [
+      { "text": "Inventory of MCP servers currently connected to this Claude Code instance", "done": false },
+      { "text": "For each connected server: document tools exposed and a concrete use case for this project", "done": false },
+      { "text": "Research notable community/official MCP servers not yet connected (GitHub, PostgreSQL, Slack, Linear, Brave Search)", "done": false },
+      { "text": "Prioritized shortlist (top 3–5) of servers worth adding, with rationale", "done": false },
+      { "text": "Document findings in docs/mcp-servers.md", "done": false },
+      { "text": "Update CLAUDE.md or memory files if any server changes day-to-day workflow", "done": false }
+    ],
+    "notes": "Gmail and Google Calendar MCP already connected. Run `claude mcp list` to confirm full server list.",
+    "deps": []
   }
 ]
