@@ -17,6 +17,7 @@
 | [PF-038](tasks/PF-038.md) | Frontend test setup — Vitest + React Testing Library | cleanup | `testing` `infra` |
 | [PF-039](tasks/PF-039.md) | Bug — N+1 in SubmitTransactions (GetAllAsync per loop) | cleanup | `bug` `infra` |
 | [PF-040](tasks/PF-040.md) | Bug — Dashboard cash flow ignores year/month params | cleanup | `bug` `feature` |
+| [PF-042](tasks/PF-042.md) | Explore MCP servers for developer workflow leverage | cleanup | `learning` `infra` `ai` |
 | [PF-012](tasks/PF-012.md) | PDF text extraction with PyMuPDF | ramp-up | `learning` `ai` |
 | [PF-013](tasks/PF-013.md) | End-to-end: .NET → Python → LLM pipeline | ramp-up | `feature` `ai` |
 | [PF-014](tasks/PF-014.md) | Persist AI-parsed transactions to DB | ramp-up | `feature` |
@@ -98,12 +99,12 @@ npm run e2e:ui    # Playwright UI mode
 
 ```
 Setup:    ████████████████████ 100% (8/8)
-Cleanup:  ███████████░░░░░░░░░  31% (4/13)
+Cleanup:  ██████████░░░░░░░░░░  29% (4/14)
 Ramp-Up:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 Sprint 1: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 2: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 3: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 4: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 ──────────────────────────────────
-Overall:  ████░░░░░░░░░░░░░░░░  29% (12/41)
+Overall:  ████░░░░░░░░░░░░░░░░  29% (12/42)
 ```
