@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zen Finance - Dashboard</title>
+  <style>
+    /* Full CSS Variables */
+    :root {
+      /* ═══ Canvas ═══ */
+      --zen-bg:          #F5F3EE;
+      --zen-surface:     #FFFFFF;
+      --zen-elevated:    #FAF9F7;
+
+      /* ═══ Borders — warm, soft ═══ */
+      --zen-border:      #E8E5DF;
+      --zen-border-hi:   #D4D0C8;
+      --zen-border-faint: rgba(0, 0, 0, 0.04);
+
+      /* ═══ Text — warm-black hierarchy ═══ */
+      --zen-tx-1:        #37352F;
+      --zen-tx-2:        #6B6B6B;
+      --zen-tx-3:        #9B9B9B;
+      --zen-tx-ghost:    #BFBFBF;
+
+      /* ═══ Accents ═══ */
+      --zen-accent:      #37352F;        /* primary actions: dark, confident */
+      --zen-accent-h:    #2A2825;        /* hover */
+      --zen-accent-s:    #F0EEEA;        /* subtle surface highlight */
+      --zen-cta:         #E8C5A8;        /* warm CTA (one per page) */
+      --zen-cta-h:       #DEBB9A;        /* warm CTA hover */
+      --zen-cta-tx:      #5C3D1E;        /* warm CTA text */
+
+      /* ═══ Functional */
+      --green:           #16A34A;
+      --amber:           #D97706;
+      --red:             #DC2626;
+
+      /* ═══ Typography ═══ */
+      --font-sans:       'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono:       'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+
+      --s-1: 4px; --s-2: 8px; --s-3: 12px;
+      --s-4: 16px; --s-5: 20px; --s-6: 24px;
+      --zen-ease-reveal:  300ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--zen-tx-1);
+      line-height: 1.5;
+      min-height: 100vh;
+
+      background-color: var(--zen-bg);
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.018) 1px, transparent 1px);
+      background-size: 80px 80px;
+    }
+
+    .zen-stage {
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: max(8vh, 48px) 24px 48px;
+    }
+    
+    .zen-stage--wide {
+      max-width: 960px;
+    }
+
+    .zen-center {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .zen-h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--zen-tx-1);
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+    }
+
+    .zen-subtitle {
+      font-size: 0.875rem;
+      color: var(--zen-tx-2);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    .zen-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--zen-tx-3);
+      margin-bottom: 12px;
+    }
+    
+    .zen-body {
+      font-size: 0.875rem;
+      color: var(--zen-tx-1);
+      line-height: 1.6;
+    }
+    
+    .zen-meta {
+      font-size: 0.75rem;
+      color: var(--zen-tx-3);
+    }
+
+    @keyframes zen-fade-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .zen-animate {
+      animation: zen-fade-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .zen-animate-d1 { animation-delay: 0ms; }
+    .zen-animate-d2 { animation-delay: 60ms; }
+    .zen-animate-d3 { animation-delay: 120ms; }
+    .zen-animate-d4 { animation-delay: 180ms; }
+
+    .zen-ghost-topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 52px;
+      display: flex; align-items: center;
+      padding: 0 20px;
+      opacity: 0;
+      transition: opacity var(--zen-ease-reveal);
+      pointer-events: none;
+      z-index: 100;
+      background: linear-gradient(to bottom, var(--zen-bg), transparent);
+    }
+    .zen-ghost-topbar:hover, .zen-ghost-topbar.visible {
+      opacity: 1; pointer-events: auto;
+    }
+    .zen-ghost-topbar::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 12px; pointer-events: auto;
+    }
+
+    .zen-back-arrow {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--zen-tx-2); font-size: 0.875rem;
+      text-decoration: none; opacity: 0.5;
+      transition: opacity 160ms ease; cursor: pointer;
+      background: none; border: none;
+    }
+    .zen-back-arrow:hover { opacity: 1; }
+
+    /* CTA */
+    .zen-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--zen-cta); color: var(--zen-cta-tx);
+      border: none; border-radius: 16px; padding: 8px 18px;
+      font-size: 0.8125rem; font-weight: 550; font-family: var(--font-sans);
+      cursor: pointer; transition: background 160ms ease; white-space: nowrap;
+    }
+    .zen-cta:hover { background: var(--zen-cta-h); }
+    .zen-cta svg { width: 14px; height: 14px; }
+    
+    .zen-btn-ghost {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: transparent; color: var(--zen-tx-2);
+      border: none; padding: 8px 12px;
+      font-size: 0.8125rem; font-weight: 500; font-family: var(--font-sans);
+      cursor: pointer; transition: color 160ms ease;
+    }
+    .zen-btn-ghost:hover { color: var(--zen-tx-1); }
+
+    /* Cards */
+    .zen-card {
+      background: var(--zen-surface);
+      border: 1px solid var(--zen-border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      transition: border-color 160ms ease;
+    }
+    
+    .zen-card:hover {
+      border-color: var(--zen-border-hi);
+    }
+    
+    .zen-card + .zen-card {
+      margin-top: 8px;
+    }
+    
+    .zen-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      background: color-mix(in srgb, var(--c) 10%, transparent);
+      color: var(--c);
+      border: 1px solid color-mix(in srgb, var(--c) 18%, transparent);
+    }
+
+    /* Table */
+    .zen-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .zen-table thead th {
+      text-align: left; font-size: 0.75rem; font-weight: 600;
+      color: var(--zen-tx-3); padding: 8px 12px 12px; border-bottom: 1px solid var(--zen-border);
+    }
+    .zen-table thead th[data-align="right"] { text-align: right; }
+    .zen-table tbody td {
+      padding: 12px; border-bottom: 1px solid var(--zen-border-faint); color: var(--zen-tx-1);
+    }
+    .zen-table tbody tr:last-child td { border-bottom: none; }
+    .zen-table tbody tr:hover td { background: var(--zen-elevated); }
+    .zen-table .mono { font-family: var(--font-mono); font-size: 0.8125rem; text-align: right; }
+
+    /* Command Palette */
+    .zen-command-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.08);
+      display: flex; align-items: flex-start; justify-content: center;
+      padding-top: 20vh; z-index: 1000; animation: zen-fade-in 150ms ease both;
+    }
+    @keyframes zen-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .zen-command-palette {
+      width: min(90vw, 520px); background: var(--zen-surface);
+      border: 1px solid var(--zen-border); border-radius: 14px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1); overflow: hidden;
+      animation: zen-scale-up 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes zen-scale-up {
+      from { opacity: 0; transform: scale(0.98) translateY(-4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .zen-command-palette input {
+      width: 100%; padding: 16px 20px; font-size: 1rem; border: none;
+      border-bottom: 1px solid var(--zen-border-faint); background: transparent;
+      color: var(--zen-tx-1); outline: none;
+    }
+    .zen-command-palette .results { max-height: 320px; overflow-y: auto; }
+    .zen-command-palette .result-item {
+      padding: 10px 20px; font-size: 0.875rem; color: var(--zen-tx-2);
+      cursor: pointer; transition: background 100ms ease;
+      display: block; text-decoration: none;
+    }
+    .zen-command-palette .result-item:hover { background: var(--zen-accent-s); color: var(--zen-tx-1); }
+    .zen-command-palette .result-item kbd {
+      float: right; font-size: 0.6875rem; color: var(--zen-tx-3); font-family: var(--font-mono);
+    }
+    
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 32px;
+      margin-top: 24px;
+    }
+    
+    @media (max-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ghost Topbar -->
+  <nav class="zen-ghost-topbar" id="ghostTopbar">
+    <button class="zen-back-arrow" onclick="document.dispatchEvent(new KeyboardEvent('keydown', {'key': 'k', 'metaKey': true}))">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M4 6h8M4 10h8"/>
+      </svg>
+      Menu
+    </button>
+    <div style="flex: 1;"></div>
+    <span class="zen-meta">Dashboard</span>
+  </nav>
+
+  <div class="zen-stage zen-stage--wide">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px;" class="zen-animate zen-animate-d1">
+      <div>
+        <h1 class="zen-h1">Financial Overview</h1>
+        <p class="zen-subtitle" style="margin-bottom: 0;">Your month at a glance.</p>
+      </div>
+      <div>
+        <button class="zen-btn-ghost">Export</button>
+        <button class="zen-cta">New Transaction</button>
+      </div>
+    </div>
+
+    <div class="dashboard-grid">
+      <!-- Left Column: Tables / Bigger Data -->
+      <div class="zen-animate zen-animate-d2">
+        <p class="zen-label">Asset Allocation</p>
+        
+        <table class="zen-table" style="margin-bottom: 40px;">
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th data-align="right" style="text-align: right;">Value</th>
+              <th data-align="right" style="text-align: right;">Change (30d)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Cash & Equivalents</td>
+              <td class="mono">$12,450.00</td>
+              <td class="mono" style="color: var(--green);">+2.4%</td>
+            </tr>
+            <tr>
+              <td>Brokerage Account</td>
+              <td class="mono">$45,230.15</td>
+              <td class="mono" style="color: var(--green);">+8.1%</td>
+            </tr>
+            <tr>
+              <td>Retirement (401k)</td>
+              <td class="mono">$112,050.80</td>
+              <td class="mono" style="color: var(--green);">+5.3%</td>
+            </tr>
+            <tr>
+              <td>Crypto Wallet</td>
+              <td class="mono">$3,150.00</td>
+              <td class="mono" style="color: var(--red);">-12.5%</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p class="zen-label">Recent Subscriptions</p>
+        <table class="zen-table">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Billing Cycle</th>
+              <th data-align="right" style="text-align: right;">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Netflix</td>
+              <td class="mono" style="color: var(--zen-tx-3);">Monthly (15th)</td>
+              <td class="mono">-$15.49</td>
+            </tr>
+            <tr>
+              <td>Spotify</td>
+              <td class="mono" style="color: var(--zen-tx-3);">Monthly (2nd)</td>
+              <td class="mono">-$10.99</td>
+            </tr>
+            <tr>
+              <td>AWS Cloud</td>
+              <td class="mono" style="color: var(--zen-tx-3);">Monthly (1st)</td>
+              <td class="mono">-$32.14</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Right Column: Cards / Status -->
+      <div class="zen-animate zen-animate-d3">
+        <p class="zen-label">Active Budgets</p>
+        
+        <div class="zen-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="zen-body" style="font-weight: 500;">Dining Out</div>
+            <span class="zen-tag" style="--c: var(--amber);">78% Used</span>
+          </div>
+          <div style="background: var(--zen-border); height: 4px; border-radius: 2px; width: 100%; margin-bottom: 8px;">
+            <div style="background: var(--amber); height: 100%; width: 78%; border-radius: 2px;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="zen-meta">$110 remaining</span>
+            <span class="zen-meta mono">$390 / $500</span>
+          </div>
+        </div>
+
+        <div class="zen-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="zen-body" style="font-weight: 500;">Groceries</div>
+            <span class="zen-tag" style="--c: var(--green);">Good</span>
+          </div>
+          <div style="background: var(--zen-border); height: 4px; border-radius: 2px; width: 100%; margin-bottom: 8px;">
+            <div style="background: var(--green); height: 100%; width: 45%; border-radius: 2px;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="zen-meta">$330 remaining</span>
+            <span class="zen-meta mono">$270 / $600</span>
+          </div>
+        </div>
+        
+        <div class="zen-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div class="zen-body" style="font-weight: 500;">Entertainment</div>
+            <span class="zen-tag" style="--c: var(--red);">Over</span>
+          </div>
+          <div style="background: var(--zen-border); height: 4px; border-radius: 2px; width: 100%; margin-bottom: 8px;">
+            <div style="background: var(--red); height: 100%; width: 100%; border-radius: 2px;"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="zen-meta" style="color: var(--red);">-$45 remaining</span>
+            <span class="zen-meta mono" style="color: var(--red);">$245 / $200</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Command Palette -->
+  <div class="zen-command-backdrop" id="commandPalette" style="display: none;">
+    <div class="zen-command-palette">
+      <input type="text" placeholder="Type a command or search..." id="commandInput" autocomplete="off" />
+      <div class="results">
+        <a href="mockup-zen.html" class="result-item">Home / Recorder <kbd>⌘1</kbd></a>
+        <a href="mockup-zen-dashboard.html" class="result-item" style="background: var(--zen-accent-s); color: var(--zen-tx-1);">Dashboard <kbd>⌘2</kbd></a>
+        <a href="#" class="result-item">Budgets <kbd>⌘3</kbd></a>
+        <a href="mockup-zen-settings.html" class="result-item">Settings <kbd>⌘,</kbd></a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Reveal ghost topbar
+    document.addEventListener('mousemove', (e) => {
+      const bar = document.getElementById('ghostTopbar');
+      if (e.clientY < 12) bar.classList.add('visible');
+    });
+    document.getElementById('ghostTopbar').addEventListener('mouseleave', function() {
+      this.classList.remove('visible');
+    });
+
+    // Command Palette
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        const palette = document.getElementById('commandPalette');
+        const isOpen = palette.style.display !== 'none';
+        palette.style.display = isOpen ? 'none' : 'flex';
+        if (!isOpen) document.getElementById('commandInput').focus();
+      }
+      if (e.key === 'Escape') {
+        document.getElementById('commandPalette').style.display = 'none';
+      }
+    });
+
+    document.getElementById('commandPalette').addEventListener('click', function(e) {
+      if (e.target === this) this.style.display = 'none';
+    });
+  </script>
+
+</body>
+</html>
