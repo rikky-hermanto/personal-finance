@@ -30,6 +30,10 @@ api/                          # .NET 9 backend (Clean Architecture)
 api-go/                       # Experimental Go API (Gin) — not production
 ```
 
+<!-- ## Development Workflow
+
+When I report a bug, don't start by trying to fix it. Instead, start by writing a test that reproduces the bug. Then, have subagents try to fix the bug and prove it with a passing test -->
+
 ## Quick Commands
 
 ### Frontend
