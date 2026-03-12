@@ -37,6 +37,7 @@
       --red:             #DC2626;
 
       /* ═══ Typography ═══ */
+      --font-title:      ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
       --font-sans:       'Inter', system-ui, -apple-system, sans-serif;
       --font-mono:       'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
 
@@ -71,14 +72,9 @@
       height: 52px;
       display: flex; align-items: center;
       padding: 0 20px;
-      opacity: 0;
-      transition: opacity var(--zen-ease-reveal);
-      pointer-events: none;
+      opacity: 1;
       z-index: 100;
       background: linear-gradient(to bottom, var(--zen-bg), transparent);
-    }
-    .zen-ghost-topbar:hover, .zen-ghost-topbar.visible {
-      opacity: 1; pointer-events: auto;
     }
     .zen-ghost-topbar::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 12px; pointer-events: auto;
@@ -138,7 +134,7 @@
     /* Template B: Focused Workspace */
     .zen-stage {
       width: 100%;
-      max-width: 960px; /* Data density layout */
+      max-width: 1280px; /* Data density layout */
       margin: 0 auto;
       padding: max(6vh, 40px) 24px 80px;
     }
@@ -161,9 +157,11 @@
     }
 
     .workspace-title {
-      font-size: 1rem;
+      font-family: var(--font-title);
+      font-size: 1.25rem;
       font-weight: 600;
       color: var(--zen-tx-1);
+      letter-spacing: -0.02em;
     }
 
     .workspace-filters {
@@ -477,15 +475,6 @@
   </div>
 
   <script>
-    // Reveal ghost topbar on hover near edge
-    document.addEventListener('mousemove', (e) => {
-      const bar = document.getElementById('ghostTopbar');
-      if (e.clientY < 20) bar.classList.add('visible');
-    });
-    document.getElementById('ghostTopbar').addEventListener('mouseleave', function() {
-      this.classList.remove('visible');
-    });
-
     // Command Palette interaction
     document.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
