@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Edition | News Portal Zen</title>
+  <style>
+    /* Full CSS Variables based on data-oriented-zenmode */
+    :root {
+      /* ═══ Canvas ═══ */
+      --zen-bg:          #F5F3EE;
+      --zen-surface:     #FFFFFF;
+      --zen-elevated:    #FAF9F7;
+
+      /* ═══ Borders — warm, soft ═══ */
+      --zen-border:      #E8E5DF;
+      --zen-border-hi:   #D4D0C8;
+      --zen-border-faint: rgba(0, 0, 0, 0.04);
+
+      /* ═══ Text — warm-black hierarchy ═══ */
+      --zen-tx-1:        #37352F;
+      --zen-tx-2:        #6B6B6B;
+      --zen-tx-3:        #9B9B9B;
+
+      /* ═══ Typography ═══ */
+      --font-title:      ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+      --font-sans:       'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono:       'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+
+      --zen-ease-reveal:  300ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    *, *::before, *::after {
+      margin: 0; padding: 0; box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--zen-tx-1);
+      line-height: 1.5;
+      min-height: 100vh;
+      background-color: var(--zen-bg);
+      background-image:
+        linear-gradient(rgba(0, 0, 0, 0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.018) 1px, transparent 1px);
+      background-size: 80px 80px;
+    }
+
+    /* Template A: Centered Stage */
+    .zen-stage {
+      width: 100%;
+      max-width: 1024px;
+      margin: 0 auto;
+      padding: max(8vh, 48px) 24px 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Top Masthead */
+    .masthead {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    /* The news brand title */
+    .brand-title {
+      font-family: var(--font-title);
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: var(--zen-tx-3);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .date-meta {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--zen-tx-3);
+    }
+
+    /* Main Hero Story */
+    .hero-story {
+      text-align: center;
+      margin-bottom: 56px;
+      width: 100%;
+    }
+
+    .hero-headline {
+      font-family: var(--font-title);
+      font-size: 2.75rem;
+      font-weight: 600;
+      color: var(--zen-tx-1);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .hero-abstract {
+      font-family: var(--font-sans);
+      font-size: 1.125rem;
+      color: var(--zen-tx-2);
+      line-height: 1.6;
+      max-width: 640px;
+      margin: 0 auto 24px;
+    }
+    
+    .hero-meta {
+      font-size: 0.8125rem;
+      color: var(--zen-tx-3);
+    }
+
+    .author-name {
+      color: var(--zen-tx-2);
+      font-weight: 500;
+    }
+
+    /* Secondary News Items List */
+    .secondary-list {
+      width: 100%;
+      max-width: 640px;
+    }
+    
+    .section-label {
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--zen-tx-3);
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--zen-border);
+      padding-bottom: 8px;
+    }
+
+    .news-item {
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--zen-border-faint);
+    }
+    .news-item:last-child {
+      border-bottom: none;
+    }
+
+    .item-headline {
+      font-family: var(--font-title);
+      font-size: 1.375rem;
+      font-weight: 500;
+      color: var(--zen-tx-1);
+      margin-bottom: 8px;
+      line-height: 1.25;
+      cursor: pointer;
+      transition: color 140ms ease;
+    }
+
+    .item-headline:hover {
+      color: var(--zen-tx-2);
+    }
+
+    .item-abstract {
+      font-size: 0.9375rem;
+      color: var(--zen-tx-2);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .item-meta {
+      font-family: var(--font-mono);
+      font-size: 0.6875rem;
+      color: var(--zen-tx-3);
+    }
+
+    /* Animations */
+    @keyframes zen-fade-up {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .zen-animate {
+      animation: zen-fade-up 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .zen-animate-d1 { animation-delay: 60ms; }
+    .zen-animate-d2 { animation-delay: 120ms; }
+    .zen-animate-d3 { animation-delay: 180ms; }
+
+    /* Ghost Topbar / Navigation */
+    .zen-ghost-topbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      opacity: 1;
+      z-index: 100;
+      background: linear-gradient(to bottom, var(--zen-bg), transparent);
+    }
+
+    .zen-ghost-topbar::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 16px; pointer-events: auto;
+    }
+
+    .nav-links {
+      display: flex; gap: 24px;
+    }
+
+    .nav-btn {
+      color: var(--zen-tx-2);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      background: none; border: none; cursor: pointer;
+      transition: color 160ms ease;
+    }
+    
+    .nav-btn:hover {
+      color: var(--zen-tx-1);
+    }
+    
+    .cmd-hint {
+      color: var(--zen-tx-3);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      background: none; border: none; cursor: pointer;
+    }
+    .cmd-hint:hover { color: var(--zen-tx-2); }
+
+    /* Command Palette Overlay */
+    .zen-command-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.08);
+      display: flex; align-items: flex-start; justify-content: center;
+      padding-top: 20vh; z-index: 1000; animation: zen-fade-in 150ms ease both;
+    }
+    @keyframes zen-fade-in { from { opacity: 0; } to { opacity: 1; } }
+    .zen-command-palette {
+      width: min(90vw, 520px); background: var(--zen-surface);
+      border: 1px solid var(--zen-border); border-radius: 14px;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1); overflow: hidden;
+      animation: zen-scale-up 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    @keyframes zen-scale-up {
+      from { opacity: 0; transform: scale(0.98) translateY(-4px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .zen-command-palette input {
+      width: 100%; padding: 16px 20px; font-size: 1rem; border: none;
+      border-bottom: 1px solid var(--zen-border-faint); background: transparent;
+      color: var(--zen-tx-1); outline: none;
+    }
+    .zen-command-palette .results { max-height: 320px; overflow-y: auto; }
+    .zen-command-palette .result-item {
+      padding: 10px 20px; font-size: 0.875rem; color: var(--zen-tx-2);
+      cursor: pointer; transition: background 100ms ease; display: flex;
+      align-items: center; justify-content: space-between; text-decoration: none;
+    }
+    .zen-command-palette .result-item:hover { background: var(--zen-accent-s); color: var(--zen-tx-1); }
+    .zen-command-palette .result-item kbd {
+      font-size: 0.6875rem; color: var(--zen-tx-3); font-family: var(--font-mono);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hidden Chrome: Ghost Topbar -->
+  <nav class="zen-ghost-topbar" id="ghostTopbar">
+    <div class="nav-links">
+      <button class="nav-btn">World</button>
+      <button class="nav-btn">Markets</button>
+      <button class="nav-btn">Politics</button>
+      <button class="nav-btn">Tech</button>
+    </div>
+    <button class="cmd-hint" onclick="toggleCommandPalette()">
+      Cmd+K to Browse
+    </button>
+  </nav>
+
+  <!-- Centered Stage Content -->
+  <main class="zen-stage">
+    
+    <!-- Masthead -->
+    <header class="masthead zen-animate">
+      <div class="brand-title">The Daily Chronicle</div>
+      <div class="date-meta">Thursday, March 12, 2026</div>
+    </header>
+
+    <!-- Main Feature Story -->
+    <article class="hero-story zen-animate zen-animate-d1">
+      <h1 class="hero-headline">Global Markets Rally as Central Banks Signal Unified Rate Strategy</h1>
+      <p class="hero-abstract">In a rare coordinated statement, policymakers outline a path for simultaneous monetary easing to stave off signs of slowing global growth, sparking a broad equity rebound.</p>
+      <div class="hero-meta">By <span class="author-name">Elena Rostova</span> · 2 hours ago</div>
+    </article>
+
+    <!-- Receding Secondary Content -->
+    <div class="secondary-list zen-animate zen-animate-d2">
+      <div class="section-label">LATEST DEVELOPMENTS</div>
+      
+      <article class="news-item">
+        <h3 class="item-headline">AI Regulation Talks Stall in Geneva Amid Core Definition Dispute</h3>
+        <p class="item-abstract">Tech delegates and sovereign representatives failed to reach a consensus on foundational classifications for autonomous reasoning models.</p>
+        <div class="item-meta">TECHNOLOGY · 3 hours ago</div>
+      </article>
+
+      <article class="news-item">
+        <h3 class="item-headline">Urban Migration Shifts As Remote Output Outpaces Dense City Centers</h3>
+        <p class="item-abstract">A new economic study suggests peripheral "zen hubs" are contributing disproportionately to national GDP gains.</p>
+        <div class="item-meta">ECONOMY · 5 hours ago</div>
+      </article>
+
+      <article class="news-item">
+        <h3 class="item-headline">Breakthrough in Solid-State Battery Yields Promises Commercial Viability</h3>
+        <p class="item-abstract">The latest manufacturing technique overcomes scaling hurdles, potentially reducing electric vehicle costs by a third.</p>
+        <div class="item-meta">SCIENCE · 7 hours ago</div>
+      </article>
+
+    </div>
+  </main>
+
+  <!-- Command Palette -->
+  <div class="zen-command-backdrop" id="commandPalette" style="display: none;">
+    <div class="zen-command-palette">
+      <input type="text" placeholder="Search articles, sections, or type a command..." id="commandInput" autocomplete="off" />
+      <div class="results">
+        <a href="#" class="result-item">Front Page <kbd>⌘1</kbd></a>
+        <a href="#" class="result-item">Markets & Finance <kbd>⌘2</kbd></a>
+        <a href="#" class="result-item">Technology <kbd>⌘3</kbd></a>
+        <a href="#" class="result-item">Saved Articles <kbd>⇧⌘S</kbd></a>
+        <a href="#" class="result-item">Switch to Dark Mode <kbd>⌘D</kbd></a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Command Palette interaction
+    function toggleCommandPalette() {
+      const palette = document.getElementById('commandPalette');
+      const isOpen = palette.style.display !== 'none';
+      palette.style.display = isOpen ? 'none' : 'flex';
+      if (!isOpen) document.getElementById('commandInput').focus();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        toggleCommandPalette();
+      }
+      if (e.key === 'Escape') {
+        document.getElementById('commandPalette').style.display = 'none';
+      }
+    });
+
+    document.getElementById('commandPalette').addEventListener('click', function(e) {
+      if (e.target === this) this.style.display = 'none';
+    });
+  </script>
+
+</body>
+</html>
