@@ -56,28 +56,28 @@ No sidebars. No persistent navigation. No topbar (or a ghost topbar that appears
 | 60–100vh | Top-aligned, centered horizontally | `max(8vh, 48px)` |
 | > 100vh (scrollable) | Top-aligned, centered horizontally | `max(6vh, 40px)` |
 
-**Max content width:** `640px` for text/form-heavy features, `960px` for tables/data, `1200px` for dashboards. Never full-width — the canvas breathing room is structural.
+**Max content width:** `800px` to `1024px` for text/form-heavy features, `1280px` to `1440px` for tables/data, and **fluid responsive width** (e.g., `80-95%` of viewport up to `1728px`) for dashboards. The UI must be responsive, adapting smoothly to different screen sizes while maintaining the desktop standard UX width.
 
-### 2. Hidden Chrome — Summon, Don't Display
+### 2. Subtle Chrome — Present but Recessed
 
-All navigation, settings, secondary actions, and metadata live **off-screen** until explicitly summoned.
+Navigation, settings, secondary actions, and metadata are visible by default but must be **subtle**. They should not steal focus from the primary content.
 
-**Reveal patterns (pick the right one per context):**
+**Reveal and Visibility patterns:**
 
 | Trigger | What Appears | Use When |
 |---|---|---|
-| `Cmd/Ctrl + K` | Command palette (search + navigate) | App has 5+ pages/features |
-| Hover top edge (within 8px) | Ghost topbar fades in (200ms) | App needs breadcrumb or back nav |
+| `Cmd/Ctrl + K` | Command palette (search + navigate) | Power-user navigation |
+| Default State | Muted Topbar / Sidebar | App needs persistent navigation |
 | `Esc` or top-left back arrow | Return to parent / home | Drill-down feature views |
 | Bottom-anchored pill | Contextual actions for current feature | Active editing / data entry |
 | Floating action button (FAB) | Primary creation action | Single-purpose creation tools |
 
 **Rules:**
-- **Never** show a sidebar by default. If navigation is needed, use command palette.
-- **Never** show a topbar by default. Ghost topbar on hover only, and only if essential.
-- Breadcrumbs: icon-only back arrow (`←`) in top-left, `opacity: 0` → `opacity: 0.5` on hover within 60px of top-left corner. Full opacity on click/focus.
-- All menus/dropdowns: **appear on demand, dismiss on outside click or Esc**.
-- Tab bars / segmented controls: only if the feature has 2–4 sub-views. Place **above** content, centered, muted styling. Never more than 4 segments.
+- **Navigation Menus:** Show the menu (sidebar or topbar) by default, but make it very subtle (e.g., low contrast, muted colors, or slight opacity) so it doesn't compete with the centered content.
+- **Do not hide on hover:** The menu should be consistently visible, just recessed in visual weight.
+- Breadcrumbs: icon-only back arrow (`←`) in top-left, consistently visible with muted styling.
+- All dropdown menus: **dismiss on outside click or Esc**.
+- Tab bars / segmented controls: Place **above** content, centered, muted styling.
 
 ### 3. The Warm Canvas
 
@@ -118,7 +118,7 @@ visually prominent, generously sized, and centered.
 **Primary input (the main action of the page):**
 ```css
 .zen-input-primary {
-  width: min(100%, 580px);
+  width: min(100%, 800px);
   margin: 0 auto;
   padding: 16px 20px;
   font-size: 1rem;
@@ -137,7 +137,7 @@ visually prominent, generously sized, and centered.
 }
 ```
 
-Note: this is the **one exception** to the "no shadows" rule from `data-oriented-theme`. In zen mode, a whisper shadow on the primary input creates necessary figure/ground when there are no borders, sidebars, or structural chrome to anchor the eye.
+Note: this is the **one exception** to the "no shadows" rule from `data-oriented-theme`. In zen mode, a whisper shadow on the primary input creates necessary figure/ground when there are no structural chrome borders to anchor the eye.
 
 ### 5. Receding Secondary Content
 
@@ -158,7 +158,7 @@ Visual Weight Scale (zen mode):
 ```css
 .zen-secondary-list {
   margin-top: 32px;
-  max-width: 580px;  /* match primary input width */
+  max-width: 800px;  /* match primary input width */
   margin-inline: auto;
 }
 
@@ -273,6 +273,9 @@ These override the base `data-oriented-theme` palette for zen contexts:
   --border:       #E8E5DF;
   --border-hi:    #D4D0C8;
 
+  /* Typography — editorial serif for titles */
+  --font-title:   ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
   /* Text — warmer blacks */
   --tx-1:         #37352F;
   --tx-2:         #6B6B6B;
@@ -340,7 +343,7 @@ For single-action pages: search, prompt input, single form, creation entry point
 └─────────────────────────────────────────────────────┘
 
 Background: warm canvas with 80px grid texture
-Content: max-width 640px, centered, vertically centered if short
+Content: max-width 800px to 1024px, centered, vertically centered if short
 ```
 
 ### Template B: Focused Workspace
@@ -368,7 +371,7 @@ For active-work pages: editor, data table, form builder, analysis view.
 
 Background: warm canvas with grid
 Workspace: white surface, 1px warm border, 12px radius
-Content: max-width 960px or 1200px based on data density
+Content: max-width 1280px to 1440px or responsive 80-95% of viewport based on data density
 ```
 
 ### Template C: Drill-Down Detail
@@ -398,7 +401,7 @@ For detail views: record detail, profile, single-item view.
 │              └─────────────────┘                    │
 └─────────────────────────────────────────────────────┘
 
-Content: max-width 640px, left-aligned within centered container
+Content: max-width 800px to 1024px, left-aligned within centered container
 ```
 
 ---
@@ -429,6 +432,16 @@ Tables shed their chrome:
 - Row hover: `background: #FAF9F7`
 - Border between rows: `1px solid rgba(0, 0, 0, 0.04)` — barely there
 - Numbers: still mono, still right-aligned
+
+### Typography in Zen Mode
+Titles (H1) should use the editorial serif font stack to provide a classic, high-craft feel.
+```css
+.zen-title {
+  font-family: var(--font-title);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+```
 
 ### Inputs in Zen Mode
 All inputs follow the primary input styling — warm border, subtle shadow on focus, 12px radius. No sharp rectangles.
@@ -462,8 +475,8 @@ Grid texture is `display: none` below 480px — on small screens it reads as noi
 
 | ❌ Never | ✓ Instead |
 |---|---|
-| Visible sidebar | Command palette (`Cmd+K`) or ghost back arrow |
-| Persistent topbar | Ghost topbar on hover (top 8px) |
+| Visually heavy navigation | Subtle, recessed persistent menus or command palette |
+| Aggressively contrasting topbar | Soft, muted topbar that doesn't steal focus |
 | Multiple visible CTAs | One warm CTA, rest are ghost/text |
 | Colored card borders | White cards, warm border only |
 | Bright accent colors | Near-black or warm muted accents |
@@ -480,9 +493,8 @@ Grid texture is `display: none` below 480px — on small screens it reads as noi
 
 **Zen Focus**
 - [ ] Page has ONE primary feature that is immediately visible and dominant
-- [ ] No sidebar visible by default
-- [ ] No topbar visible by default (ghost on hover is OK)
-- [ ] Navigation via command palette, ghost back arrow, or tab bar (≤4 items)
+- [ ] Persistent navigation is visible but extremely subtle (muted colors, low opacity)
+- [ ] Navigation doesn't compete with the centered content
 - [ ] Max 1 warm CTA visible at any time
 
 **Canvas**
@@ -492,9 +504,9 @@ Grid texture is `display: none` below 480px — on small screens it reads as noi
 - [ ] Breathing room: top padding ≥ `6vh`, side gutters visible
 
 **Chrome Behavior**
-- [ ] All controls hidden by default, appear contextually
+- [ ] Secondary controls hidden by default, appear contextually
+- [ ] Main menus (sidebar/topbar) always visible but visually recessed
 - [ ] Bottom action bar for in-context actions (if needed)
-- [ ] Ghost topbar reveals on hover near top edge (if needed)
 - [ ] Escape key or back arrow returns to parent
 
 **Visual Quality**
