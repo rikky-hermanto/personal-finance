@@ -6,7 +6,7 @@ toc: true
 
 # Overview
 
-Personal Finance is a full-stack, monorepo solution for managing and analyzing personal financial transactions. It features a modern React + Vite front-end with a production-ready .NET 8 Web API. The API uses PostgreSQL database and supports extensible rules for transaction categorization. The repo is organized by solution layers for clear separation of concerns and developer productivity.
+Personal Finance is a full-stack, monorepo solution for managing and analyzing personal financial transactions. It features a modern React + Vite front-end with a production-ready .NET 9 Web API. The API uses PostgreSQL database and supports extensible rules for transaction categorization. The repo is organized by solution layers for clear separation of concerns and developer productivity.
 
 **Monorepo layout:**
 
@@ -52,7 +52,7 @@ flowchart LR
 - **Location:** `src/`, `vite.config.ts`
 
 ## API Layer - .NET (Production)
-- **Framework:** ASP.NET Core WebAPI (.NET 8)
+- **Framework:** ASP.NET Core WebAPI (.NET 9)
 - **Patterns:** MediatR, CQRS, FluentValidation
 - **Location:** `api/src/PersonalFinance.Api/`
 - **Application:** CQRS, business logic, MediatR handlers (`api/src/PersonalFinance.Application/`)
@@ -67,7 +67,7 @@ flowchart LR
 - Node.js >= 18.x
 - npm >= 9.x
 - PostgreSQL (local or Docker)
-- .NET 8 SDK (for .NET API)
+- .NET 9 SDK (for .NET API)
 
 ## Install & Bootstrap
 ```sh
@@ -140,8 +140,8 @@ dotnet publish -c Release
 # Security Posture (high-level)
 
 - **Auth:** No user auth implemented (API is open by default)
-- **Secrets:** Use env vars for DB credentials
-- **Dependency scanning:** <!-- TODO: add info if present -->
+- **CORS:** Hardcoded to `http://localhost:8080` only (in `Program.cs`)
+- **Secrets:** Use env vars for DB credentials (or in `appsettings.Development.json`)
 
 # Observability (high-level)
 
