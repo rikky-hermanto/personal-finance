@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-03-09
+> **Last synced:** 2026-03-14
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -68,6 +68,18 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-039 | [#47](https://github.com/rikky-hermanto/personal-finance/issues/47) | Bug — N+1 in SubmitTransactions | cleanup |
 | PF-040 | [#48](https://github.com/rikky-hermanto/personal-finance/issues/48) | Bug — Dashboard cash flow ignores year/month params | cleanup |
 | PF-042 | [#50](https://github.com/rikky-hermanto/personal-finance/issues/50) | Explore MCP servers for developer workflow leverage | cleanup |
+| PF-043 | [#52](https://github.com/rikky-hermanto/personal-finance/issues/52) | Wise CSV Parser + FX Rate Conversion | S1 |
+| PF-044 | [#53](https://github.com/rikky-hermanto/personal-finance/issues/53) | Validation Pipeline (.NET) — 5-stage validators | S1 |
+| PF-045 | [#54](https://github.com/rikky-hermanto/personal-finance/issues/54) | Bank Profile Config System — YAML Loader | S1 |
+| PF-046 | [#55](https://github.com/rikky-hermanto/personal-finance/issues/55) | LLM Extraction Client — .NET → Python HTTP Bridge | S1 |
+| PF-047 | [#56](https://github.com/rikky-hermanto/personal-finance/issues/56) | Superbank PDF Parser — LLM extraction via Python | S1 |
+| PF-048 | [#57](https://github.com/rikky-hermanto/personal-finance/issues/57) | NeoBank PDF Parser — Complete LLM extraction (stub exists) | S1 |
+| PF-049 | [#58](https://github.com/rikky-hermanto/personal-finance/issues/58) | Bank Jago Screenshot Parser — Claude Vision API | S1 |
+| PF-050 | [#59](https://github.com/rikky-hermanto/personal-finance/issues/59) | Docker Compose — Add ai-service container | S1 |
+| PF-051 | [#60](https://github.com/rikky-hermanto/personal-finance/issues/60) | Add ILogger to all services, handlers, and parsers | cleanup |
+| PF-052 | [#61](https://github.com/rikky-hermanto/personal-finance/issues/61) | TypeScript strict mode + id type fix | cleanup |
+| PF-053 | [#62](https://github.com/rikky-hermanto/personal-finance/issues/62) | Fix CORS hardcoding in Program.cs | cleanup |
+| PF-054 | [#63](https://github.com/rikky-hermanto/personal-finance/issues/63) | Fix ARCH-01 — Application.csproj dependency violation | cleanup |
 
 ---
 
@@ -75,12 +87,14 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 ```
 Setup:    ████████████████████ 100% (8/8)
-Cleanup:  ██████████░░░░░░░░░░  36% (5/14)
+Cleanup:  ██████████░░░░░░░░░░  28% (5/18)
 Ramp-Up:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
-Sprint 1: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
+Sprint 1: ░░░░░░░░░░░░░░░░░░░░   0% (0/11)
 Sprint 2: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 3: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 Sprint 4: ░░░░░░░░░░░░░░░░░░░░   0% (0/3)
 ──────────────────────────────────
-Overall:  ████░░░░░░░░░░░░░░░░  31% (13/42)
+Overall:  ██░░░░░░░░░░░░░░░░░░  24% (13/54)
 ```
+
+> Next task ID: **PF-055**
