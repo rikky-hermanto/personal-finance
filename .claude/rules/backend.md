@@ -1,6 +1,6 @@
 ---
 description: Rules for .NET backend development
-globs: api/**
+globs: apps/api/**
 ---
 
 # Backend Development Rules (.NET 9)
@@ -11,11 +11,11 @@ globs: api/**
 
 | Layer | Location | Dependencies | Contains |
 |-------|----------|-------------|----------|
-| Domain | `api/src/PersonalFinance.Domain/` | None | Entities, domain events |
-| Application | `api/src/PersonalFinance.Application/` | Domain | Commands, handlers, validators, services, interfaces, DTOs |
-| Infrastructure | `api/src/PersonalFinance.Infrastructure/` | Application | Bank parsers, file I/O, external integrations |
-| Persistence | `api/src/PersonalFinance.Persistence/` | Domain | DbContext, migrations, DI extension |
-| Api | `api/src/PersonalFinance.Api/` | All layers | Controllers, middleware, Program.cs (composition root) |
+| Domain | `apps/api/src/PersonalFinance.Domain/` | None | Entities, domain events |
+| Application | `apps/api/src/PersonalFinance.Application/` | Domain | Commands, handlers, validators, services, interfaces, DTOs |
+| Infrastructure | `apps/api/src/PersonalFinance.Infrastructure/` | Application | Bank parsers, file I/O, external integrations |
+| Persistence | `apps/api/src/PersonalFinance.Persistence/` | Domain | DbContext, migrations, DI extension |
+| Api | `apps/api/src/PersonalFinance.Api/` | All layers | Controllers, middleware, Program.cs (composition root) |
 
 **Rules:**
 - Domain MUST have zero dependencies on other projects
@@ -73,7 +73,7 @@ All validators go in `Application/Validation/`.
 - **Pattern:** Test class implements `IDisposable`, disposes DbContext
 - **Naming:** `MethodName_Condition_ExpectedResult`
 - **Structure:** Arrange / Act / Assert with `// Arrange`, `// Act`, `// Assert` comments
-- **Reference:** See `tests/PersonalFinance.Tests/Services/CategoryRuleServiceTests.cs` for canonical example
+- **Reference:** See `apps/api/tests/PersonalFinance.Tests/Services/CategoryRuleServiceTests.cs` for canonical example
 
 ## Bank Parser Pattern
 

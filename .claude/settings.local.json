@@ -17,7 +17,13 @@
       "Bash(npx playwright test e2e/dashboard.spec.ts --reporter=list)",
       "Bash(npx playwright test e2e/category-rules.spec.ts --reporter=list)",
       "Bash(npx playwright test e2e/upload.spec.ts --reporter=list)",
-      "Bash(npx playwright test e2e/health.spec.ts e2e/dashboard.spec.ts e2e/category-rules.spec.ts --reporter=list)"
+      "Bash(npx playwright test e2e/health.spec.ts e2e/dashboard.spec.ts e2e/category-rules.spec.ts --reporter=list)",
+      "Bash(gh issue list --repo rikky-hermanto/personal-finance --state open --limit 50)",
+      "Bash(ls -d */)",
+      "Bash(grep -A 20 '\"\"scripts\"\"' package.json)",
+      "Bash(wc -l .claude/rules/*.md)",
+      "Bash(grep -E \"^-.*\\\\.\\(json|yml|yaml|toml|txt|ts|js|md|xml\\)$\")",
+      "Bash(npm start)"
     ]
   }
 }

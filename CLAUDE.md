@@ -236,73 +236,82 @@ For detailed docs (read on demand — not auto-imported):
 - [docs/API-backend.md](docs/API-backend.md) — backend architecture details
 - [docs/Backend-AI.md](docs/Backend-AI.md) — AI services architecture details [TO BE UPDATED]
 - [docs/Front-End.md](docs/Front-End.md) — frontend architecture details
-- [SETUP.md](SETUP.md) — Docker and local setup
+- [docs/SETUP.md](docs/SETUP.md) — Docker and local setup
 
 ## Project Layout
 
 ```
-src/                          # React 18 + Vite + TypeScript frontend
-  api/                        # API client functions (plain fetch, no axios)
-  components/                 # Business components + ui/ (shadcn/ui primitives)
-  pages/                      # Route views (Index, NotFound)
-  types/                      # TypeScript interfaces
-  hooks/, lib/, utils/, data/ # Hooks, utilities, mock data
-api/                          # .NET 9 backend (Clean Architecture)
-  src/PersonalFinance.Api/           # Controllers, middleware, Program.cs
-  src/PersonalFinance.Application/   # CQRS commands/handlers, services, validators, DTOs
-  src/PersonalFinance.Domain/        # Entities, domain events (zero external deps)
-  src/PersonalFinance.Infrastructure/# Bank parsers, validation pipeline, external services
-    BankParsers/                     # IBankStatementParser implementations
-      BcaCsvParser.cs                # Direct CSV parser for BCA
-      WiseCsvParser.cs               # Direct CSV parser for Wise (+ FX conversion)
-      DefaultCsvParser.cs            # Fallback CSV parser
-      LlmExtractionClient.cs        # HTTP client to Python AI service
-    BankProfiles/                    # YAML/JSON bank config files
-    Validation/                      # ValidationPipeline + individual validators
-  src/PersonalFinance.Persistence/   # EF Core DbContext, migrations, DI registration
-  tests/PersonalFinance.Tests/       # xUnit + Moq tests
-ai-service/                   # Python FastAPI AI service (NEW)
-  app/
-    main.py                   # FastAPI app, health check
-    routers/
-      extract.py              # POST /extract/pdf, POST /extract/image
-    services/
-      llm_extractor.py        # Claude/OpenAI structured output extraction
-      pdf_text_extractor.py   # PyMuPDF text extraction (pre-LLM)
-    models/
-      transaction.py          # Pydantic models matching master schema
-    prompts/
-      superbank_pdf_v1.py     # Bank-specific prompt templates
-      neobank_pdf_v1.py
-      bankjago_image_v1.py
-    config/
-      settings.py             # Environment config, API keys
-  tests/
-  Dockerfile
-  pyproject.toml
+apps/
+  frontend/                   # React 18 + Vite + TypeScript frontend
+    src/
+      api/                    # API client functions (plain fetch, no axios)
+      components/             # Business components + ui/ (shadcn/ui primitives)
+      pages/                  # Route views (Index, NotFound)
+      types/                  # TypeScript interfaces
+      hooks/, lib/, utils/, data/ # Hooks, utilities, mock data
+    e2e/                      # Playwright E2E tests
+    package.json              # Frontend dependencies
+    vite.config.ts
+    tsconfig*.json
+    tailwind.config.ts
+    playwright.config.ts
+  api/                        # .NET 9 backend (Clean Architecture)
+    src/PersonalFinance.Api/           # Controllers, middleware, Program.cs
+    src/PersonalFinance.Application/   # CQRS commands/handlers, services, validators, DTOs
+    src/PersonalFinance.Domain/        # Entities, domain events (zero external deps)
+    src/PersonalFinance.Infrastructure/# Bank parsers, validation pipeline, external services
+      BankParsers/                     # IBankStatementParser implementations
+        BcaCsvParser.cs                # Direct CSV parser for BCA
+        WiseCsvParser.cs               # Direct CSV parser for Wise (+ FX conversion)
+        DefaultCsvParser.cs            # Fallback CSV parser
+        LlmExtractionClient.cs        # HTTP client to Python AI service
+      BankProfiles/                    # YAML/JSON bank config files
+      Validation/                      # ValidationPipeline + individual validators
+    src/PersonalFinance.Persistence/   # EF Core DbContext, migrations, DI registration
+    tests/PersonalFinance.Tests/       # xUnit + Moq tests
+services/
+  ai-service/                 # Python FastAPI AI service
+    app/
+      main.py                 # FastAPI app, health check
+      routers/
+        extract.py            # POST /extract/pdf, POST /extract/image
+      services/
+        llm_extractor.py      # Claude/OpenAI structured output extraction
+        pdf_text_extractor.py # PyMuPDF text extraction (pre-LLM)
+      models/
+        transaction.py        # Pydantic models matching master schema
+      prompts/
+        superbank_pdf_v1.py   # Bank-specific prompt templates
+        neobank_pdf_v1.py
+        bankjago_image_v1.py
+      config/
+        settings.py           # Environment config, API keys
+    tests/
+    Dockerfile
+    pyproject.toml
 ```
 
 ## Quick Commands
 
 ### Frontend
-- Install: `npm install`
-- Dev server: `npm run dev` (port 8080)
-- Build: `npm run build`
-- Lint: `npm run lint`
+- Install: `cd apps/frontend && npm install`
+- Dev server: `cd apps/frontend && npm run dev` (port 8080)
+- Build: `cd apps/frontend && npm run build`
+- Lint: `cd apps/frontend && npm run lint`
 
 ### Backend (.NET)
-- Restore: `cd api && dotnet restore PersonalFinance.slnx`
-- Build: `cd api && dotnet build PersonalFinance.slnx`
-- Run API: `cd api && dotnet run --project src/PersonalFinance.Api`
-- Run tests: `cd api && dotnet test`
-- Single test: `cd api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
-- Add migration: `cd api && dotnet ef migrations add <Name> --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
-- Apply migration: `cd api && dotnet ef database update --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
+- Restore: `cd apps/api && dotnet restore PersonalFinance.slnx`
+- Build: `cd apps/api && dotnet build PersonalFinance.slnx`
+- Run API: `cd apps/api && dotnet run --project src/PersonalFinance.Api`
+- Run tests: `cd apps/api && dotnet test`
+- Single test: `cd apps/api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
+- Add migration: `cd apps/api && dotnet ef migrations add <Name> --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
+- Apply migration: `cd apps/api && dotnet ef database update --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
 
 ### AI Service (Python)
-- Setup: `cd ai-service && python -m venv .venv && source .venv/bin/activate && pip install -e .`
-- Run: `cd ai-service && uvicorn app.main:app --reload --port 8000`
-- Test: `cd ai-service && pytest`
+- Setup: `cd services/ai-service && python -m venv .venv && source .venv/bin/activate && pip install -e .`
+- Run: `cd services/ai-service && uvicorn app.main:app --reload --port 8000`
+- Test: `cd services/ai-service && pytest`
 
 ### Start everything (recommended)
 ```
@@ -325,13 +334,13 @@ Starts DB (Docker, detached), .NET API, and frontend in one terminal with labele
 docker compose up db
 
 # Terminal 2 — .NET API
-cd api && dotnet run --project src/PersonalFinance.Api
+cd apps/api && dotnet run --project src/PersonalFinance.Api
 
 # Terminal 3 — Python AI service
-cd ai-service && uvicorn app.main:app --reload --port 8000
+cd services/ai-service && uvicorn app.main:app --reload --port 8000
 
 # Terminal 4 — Frontend
-npm run dev
+cd apps/frontend && npm run dev
 ```
 
 ## Ports & URLs

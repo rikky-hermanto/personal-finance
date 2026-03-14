@@ -3,10 +3,10 @@
 Write-Host "🚀 Starting Personal Finance App (Full Stack)..." -ForegroundColor Green
 
 # 1. Setup Backend Environment
-$backendPath = Join-Path $PSScriptRoot "api\src\PersonalFinance.Api"
+$backendPath = Join-Path $PSScriptRoot "apps\api\src\PersonalFinance.Api"
 if (-not (Test-Path "$backendPath\bin")) {
-    Write-Host "� Restoring .NET dependencies..." -ForegroundColor Yellow
-    dotnet restore "$PSScriptRoot\api\personal-finance.sln"
+    Write-Host "📦 Restoring .NET dependencies..." -ForegroundColor Yellow
+    dotnet restore "$PSScriptRoot\apps\api\PersonalFinance.slnx"
 }
 
 # 2. Start Backend (New Window)
@@ -14,14 +14,15 @@ Write-Host "🔙 Starting .NET Backend..." -ForegroundColor Cyan
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$backendPath'; dotnet run"
 
 # 3. Setup Frontend Dependencies
-if (-not (Test-Path "$PSScriptRoot\node_modules")) {
+$frontendPath = Join-Path $PSScriptRoot "apps\frontend"
+if (-not (Test-Path "$frontendPath\node_modules")) {
     Write-Host "📦 Installing frontend dependencies..." -ForegroundColor Yellow
-    npm install
+    Push-Location $frontendPath; npm install; Pop-Location
 }
 
 # 4. Start Frontend (New Window)
 Write-Host "🖥️  Starting React Frontend..." -ForegroundColor Cyan
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PSScriptRoot'; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$frontendPath'; npm run dev"
 
 Write-Host "✅ All services started!" -ForegroundColor Green
 Write-Host "   - Backend: http://localhost:7208"
