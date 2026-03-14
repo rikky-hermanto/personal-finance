@@ -1,6 +1,6 @@
 ---
 description: Rules for frontend React/TypeScript development
-globs: src/**
+globs: apps/frontend/**
 ---
 
 # Frontend Development Rules (React 18 + TypeScript)
