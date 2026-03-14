@@ -32,7 +32,9 @@
       "Bash(go run *)",
       "Bash(go build *)",
       "Bash(go test *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(ls -la \"c:\\\\workspaces\\\\personal-finance\\\\apps\\\\api\\\\src\\\\PersonalFinance.Infrastructure\"\" 2>/dev/null | grep -E \"^d)",
+      "Bash(^- \")"
     ],
     "deny": [
       "Bash(rm -rf *)",
