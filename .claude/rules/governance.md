@@ -1,12 +1,12 @@
 ---
 description: Project governance rulebook — architectural constraints, coding conventions, testing, security, and CI enforcement derived from structural analysis
-globs: api/**,src/**,docker-compose.yml,Dockerfile,*.csproj,.github/**
+globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 ---
 
 # PROJECT GOVERNANCE RULEBOOK
 
-> 28 rules across 7 categories. All grounded in observed code violations.
-> Last updated: 2026-03-01
+> 33 rules across 8 categories. All grounded in observed code violations.
+> Last updated: 2026-03-16
 
 ---
 
@@ -416,11 +416,88 @@ foreach (var tx in transactions)
 
 ---
 
+## 8. Reasoning Alignment Rules
+
+### THINK-01: Route to Direct Parser Before Considering LLM
+
+**Rationale:** CSV banks (BCA, Wise) are deterministic — zero LLM cost, 100% accuracy. LLM extraction adds latency and API cost and is only justified for unstructured formats (PDF with variable layout, screenshots).
+
+**Rule:** Before implementing any new bank parser, answer: "Is this format fully deterministic (fixed column positions, known delimiters)?"
+- **YES** → implement `IBankStatementParser` in .NET `Infrastructure/BankParsers/`
+- **NO** → implement LLM extractor in Python `services/ai-service/app/services/`
+- Document the routing decision explicitly in the bank's YAML profile config
+
+**Enforcement:** Manual Review Required — check the profile config for a `parser: direct_csv` or `parser: llm_extraction` field.
+
+---
+
+### THINK-02: Use Extended Thinking for Architecture Decisions, Not Code Generation
+
+**Rationale:** Chain-of-thought reasoning is valuable for deciding which layer owns a concern or which parser strategy to apply. It is wasteful for writing a `ParseAsync` implementation where the pattern is already established.
+
+**Rule:** Reason step-by-step explicitly ONLY when:
+- (a) deciding which layer owns a new service, interface, or concern
+- (b) designing a new `tool_use` extraction schema
+- (c) evaluating whether a new bank should use direct parsing or LLM extraction
+
+For all other tasks (implementing known patterns, writing tests, adding CRUD), proceed directly to implementation.
+
+**Enforcement:** Manual Review Required.
+
+---
+
+### THINK-03: LLM Extraction Schema Requires Field-by-Field Justification Before Writing Code
+
+**Rationale:** A wrong field type in the `tool_use` schema (e.g., `string` for amounts instead of `number`) causes silent data corruption in PostgreSQL — no compile error, no runtime exception, just wrong data.
+
+**Rule:** When designing or modifying any `tool_use` extraction schema, list every field with:
+1. Field name
+2. JSON schema type
+3. Example value from actual bank statement text
+4. The corresponding `TransactionDto` C# field name (from `TransactionDto.cs`)
+
+Do this BEFORE writing schema code. Never infer field types from generic knowledge — verify against real bank statement samples.
+
+**Enforcement:** Manual Review Required — review schema PR diff against the field table in `.claude/rules/ai-service.md`.
+
+---
+
+### THINK-04: Test Failures Are Diagnostic Signals, Not Obstacles
+
+**Rationale:** The codebase has very few tests. When tests are added and fail, there is a temptation to change the assertion to match buggy behavior rather than fixing the bug.
+
+**Rule:** When a test fails: (1) read the full error message, (2) identify whether the failure is in test setup or code under test, (3) fix the code. Only change a test assertion if the test was definitively testing the wrong behavior — document why in a `# Reason:` comment on the changed line.
+
+**Compliant:**
+```csharp
+// Reason: spec clarified that Balance is calculated server-side, not stored
+Assert.Equal(0, result.Balance);
+```
+
+**Enforcement:** Code review — reject PRs that change assertions without a reason comment.
+
+---
+
+### THINK-05: Cross-Service Contract Fields Are Frozen Until Both Sides Update
+
+**Rationale:** `TransactionDto` field names are the boundary contract between .NET and Python. Renaming `AmountIdr` on one side without updating the other causes silent null values — undetectable without end-to-end testing.
+
+**Rule:** The following fields are a shared frozen contract across `TransactionDto.cs` (C#) and `models.py` (Python):
+
+`Date/date` · `Description/description` · `Remarks/remarks` · `Flow/flow` · `Type/type` · `AmountIdr/amount_idr` · `Currency/currency` · `ExchangeRate/exchange_rate` · `Wallet/wallet`
+
+Any rename requires updating **both files in the same commit**. After the change, update the contract table in `.claude/rules/ai-service.md` and the `ai-service.md` memory topic file.
+
+**Enforcement:** Integration test verifying the full .NET → Python → .NET round-trip with all fields populated.
+
+---
+
 # SELF-VALIDATION SUMMARY
 
-- **28 rules total** across 7 categories
-- **All 28 grounded** in Phase 1 file-level evidence
-- **0 generic/preference-based rules** — every rule traces to observed code
+- **33 rules total** across 8 categories (28 original + 5 reasoning alignment rules)
+- **All 33 grounded** in observed code or architectural decisions
+- **0 generic/preference-based rules** — every rule traces to observed code or design trade-offs
 - **0 contradictions** detected
-- **26 of 28 automatically enforceable** (2 marked Manual Review Required: ARCH-02, ERR-02)
+- **26 of 28 original rules automatically enforceable** (2 marked Manual Review Required: ARCH-02, ERR-02)
+- **THINK rules (5):** Manual Review Required — enforced via code review and planning discipline
 - **0 redundancies** after review (ARCH-01 and ARCH-05 are complementary: project-level vs code-level)
