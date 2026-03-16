@@ -1,0 +1,4 @@
+anthropic>=0.49.0
+
+[dev]
+python-dotenv>=1.0.0
