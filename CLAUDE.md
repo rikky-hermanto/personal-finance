@@ -77,127 +77,29 @@ Each bank is defined by a configuration profile (JSON/YAML). Adding a new bank =
 | Wise | CSV | Direct parser | Multi-currency, FX rate conversion to IDR |
 | Bank Jago | Screenshot | LLM extraction (vision) | Mobile app screenshots, OCR via vision API |
 
-**Bank profile config example:**
-```yaml
-# bank-profiles/bca.yaml
-bank_id: bca
-display_name: "BCA"
-format: csv
-parser: direct_csv
-date_format: "DD/MM/YYYY"
-decimal_separator: ","
-thousands_separator: "."
-currency: "IDR"
-column_mapping:
-  date: 0
-  description: 1
-  debit: 3
-  credit: 4
-  balance: 5
-```
-
-```yaml
-# bank-profiles/superbank.yaml
-bank_id: superbank
-display_name: "Superbank"
-format: pdf
-parser: llm_extraction
-currency: "IDR"
-llm_prompt_template: "superbank_pdf_v1"
-extraction_model: "claude-sonnet"  # cost-efficient for extraction
-```
+→ Full profile YAML examples and field schema: [docs/bank-profiles-reference.md](docs/bank-profiles-reference.md)
 
 ### Validation Pipeline
 
-The validation layer runs on ALL parsed output regardless of source parser. This is the component that eliminates the manual "check format, fix dates, fix decimals" pain:
+The validation layer runs on ALL parsed output regardless of source parser:
 
 1. **DateNormalizer** — converts any date format to ISO 8601 (YYYY-MM-DD)
-2. **DecimalFixer** — detects and normalizes decimal/thousands separators (Indonesian convention: 1.000.000,50 → 1000000.50)
+2. **DecimalFixer** — detects and normalizes decimal/thousands separators (Indonesian: 1.000.000,50 → 1000000.50)
 3. **CurrencyStandardizer** — ensures consistent currency codes, handles Wise multi-currency → IDR conversion
 4. **SchemaValidator** — validates against master cashflow schema (required fields, types, ranges)
 5. **DeduplicateCheck** — detects duplicate transactions across uploads (same date + amount + description hash)
 
 ### Master Cashflow Schema
 
-All banks converge to this unified schema before persisting:
+All banks converge to this unified schema before persisting. Key fields: `date` (ISO 8601), `description`, `amount_idr` (decimal), `currency` (ISO 4217), `type` (DEBIT|CREDIT), `bank_id`, `category`, `fx_rate?`.
 
-```
-Transaction {
-  date: Date           // ISO 8601
-  description: string  // original bank description
-  amount: decimal(18,4)// positive for credit, negative for debit
-  currency: string     // ISO 4217 (IDR, USD, EUR, etc.)
-  amount_idr: decimal  // converted amount in IDR (for Wise multi-currency)
-  type: enum           // DEBIT | CREDIT
-  bank_id: string      // references bank profile
-  account_name: string // e.g. "Jago Main Pocket", "BCA Checking"
-  category: string     // auto-categorized by LLM or rule-based
-  raw_text: string     // original unparsed line (for audit/debugging)
-  source_file: string  // original filename
-  fx_rate: decimal?    // exchange rate used (Wise only)
-}
-```
+→ Full schema definition and C# DTO details: [docs/validation-pipeline.md](docs/validation-pipeline.md)
 
 ## Architecture
 
-Full-stack monorepo: React 18 + Vite frontend (`src/`) with .NET 9 Clean Architecture API (`api/`) and PostgreSQL 16, orchestrated via Docker Compose. Python AI service (FastAPI) handles LLM extraction for PDF/image bank statements.
+React 18 frontend → .NET 9 API → (CSV banks: direct parsers | PDF/image banks: Python FastAPI AI service) → Validation Pipeline → PostgreSQL 16 + pgvector.
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    React Frontend                       │
-│              (TypeScript + Tailwind CSS)                │
-└──────────────────────┬──────────────────────────────────┘
-                       │ REST API
-┌──────────────────────▼──────────────────────────────────┐
-│              .NET 9 Web API (C#)                        │
-│  ┌──────────┐ ┌──────────┐ ┌───────────┐ ┌──────────┐  │
-│  │ Accounts │ │ Transact │ │  Assets   │ │   Tax    │  │
-│  │ Module   │ │ Module   │ │  Module   │ │  Module  │  │
-│  └──────────┘ └──────────┘ └───────────┘ └──────────┘  │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ MediatR (CQRS) + FluentValidation                │   │
-│  └──────────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ Bank Identifier + Direct CSV Parsers             │   │
-│  │ → BCA parser, Wise parser (+ FX conversion)      │   │
-│  └──────────────────────────────────────────────────┘   │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ Validation Pipeline                              │   │
-│  │ → DateNorm → DecimalFix → CurrencyStd → Schema   │   │
-│  └──────────────┬───────────────────────────────────┘   │
-│                 │ (PDF/image uploads forwarded)         │
-└─────────────────┼───────────────────────────────────────┘
-                  │ Internal HTTP
-┌─────────────────▼───────────────────────────────────────┐
-│           Python AI Service (FastAPI)                   │
-│  ┌──────────────────────────────────────────────────┐   │
-│  │ LLM Extractor (PDF → structured JSON)            │   │
-│  │ Vision Extractor (screenshot → structured JSON)  │   │
-│  │ → Claude API (primary) / OpenAI (fallback)       │   │
-│  │ → Structured output (JSON mode / tool_use)       │   │
-│  └──────────────────────────────────────────────────┘   │
-│  ┌──────────┐ ┌──────────┐ ┌────────────┐               │
-│  │   RAG    │ │ Embeddings│ │ Categorizer│  (Sprint 2+) │
-│  │ Pipeline │ │  Service  │ │  Service   │              │
-│  └──────────┘ └──────────┘ └────────────┘               │
-└─────────────────┬───────────────────────────────────────┘
-                  │
-┌─────────────────▼───────────────────────────────────────┐
-│              PostgreSQL 16 + pgvector                   │
-│  ┌──────────────────┐  ┌─────────────────────────┐      │
-│  │ Relational Data  │  │  Vector Embeddings      │      │
-│  │ (EF Core)        │  │  (pgvector / cosine)    │      │
-│  └──────────────────┘  └─────────────────────────┘      │
-└─────────────────────────────────────────────────────────┘
-```
-
-### Key Architecture Decisions
-
-- **CSV banks stay in .NET** — BCA and Wise parsers are deterministic, no LLM needed. They live in `Infrastructure/BankParsers/` as `IBankStatementParser` implementations. Zero latency, zero cost.
-- **PDF/image banks go to Python** — Superbank, NeoBank, Bank Jago require LLM extraction. The .NET API forwards the file to the Python FastAPI service, which returns structured JSON matching the master schema.
-- **Validation is shared** — Both parser paths feed into the same `ValidationPipeline` in .NET before persisting. This is the single source of truth for data quality.
-- **LLM structured output, not free text** — The Python service uses Claude's `tool_use` or JSON mode to force structured output matching the master schema. No regex parsing of LLM output, no "formatted CSV" intermediate step.
-- **Bank profiles as config** — Adding a new bank = adding a YAML config file + (if CSV) a parser class, or (if PDF/image) a prompt template. The bank identifier auto-detects which profile to use.
+→ Full architecture diagram and key decisions: [docs/architecture-diagram.md](docs/architecture-diagram.md)
 
 ## Tech Stack
 
@@ -234,9 +136,12 @@ Full-stack monorepo: React 18 + Vite frontend (`src/`) with .NET 9 Clean Archite
 For detailed docs (read on demand — not auto-imported):
 - [docs/API-endpoints.md](docs/API-endpoints.md) — all REST endpoints with curl examples
 - [docs/API-backend.md](docs/API-backend.md) — backend architecture details
-- [docs/Backend-AI.md](docs/Backend-AI.md) — AI services architecture details [TO BE UPDATED]
 - [docs/Front-End.md](docs/Front-End.md) — frontend architecture details
 - [docs/SETUP.md](docs/SETUP.md) — Docker and local setup
+- [docs/architecture-diagram.md](docs/architecture-diagram.md) — full architecture ASCII diagram + decisions
+- [docs/bank-profiles-reference.md](docs/bank-profiles-reference.md) — bank profile YAML schemas
+- [docs/validation-pipeline.md](docs/validation-pipeline.md) — validation pipeline + master schema
+- [docs/sprint-plan.md](docs/sprint-plan.md) — Sprint 1-4 full breakdown
 
 ## Project Layout
 
@@ -476,7 +381,7 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 
 ## Current Phase
 
-> **Last updated:** 2026-03-13
+> **Last updated:** 2026-03-16
 
 ### Status: Cleanup Sprint (4/7 core done) → Ramp-Up started
 
@@ -484,7 +389,7 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - **Cleanup sprint (PF-027–PF-033 + extras):** IN PROGRESS
   - Done: PF-027, PF-030, PF-032, PF-033, PF-041 (Playwright E2E)
   - Ready: PF-028 (exception leaks), PF-029 (N+1), PF-031 (controller logic)
-  - Backlog: PF-034–PF-040, PF-042 (test suites, bugs, MCP exploration)
+  - Backlog: PF-034–PF-040, PF-042 (MCP exploration — now done via this audit)
 - **Ramp-Up:** PF-009 (Hello LLM) — IN PROGRESS
 
 ### What's Working
@@ -494,6 +399,7 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - Docker Compose full-stack orchestration
 - GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4)) with all 42 tasks migrated
 - Playwright E2E test infrastructure (PF-041 — `e2e/` with 4 spec files + BCA CSV fixture)
+- Claude Code config: MCP servers, ai-service rules, reasoning alignment rules (THINK-01–05)
 
 ### What's Not Built Yet
 - Python FastAPI AI service (ai-service/)
@@ -517,32 +423,5 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - No backend handler/validator/parser/controller tests (PF-034–PF-037)
 - No frontend tests (PF-038)
 
-### Revised Sprint Plan (Hybrid Approach)
-
-**Sprint 1 — Hybrid Parser Pipeline (Week 1-2)**
-- Build Python FastAPI AI service skeleton (health check, extract endpoints)
-- Implement LLM extraction for Superbank PDF using Claude structured output
-- Implement LLM extraction for Bank Jago screenshot using Claude vision
-- Build Wise CSV direct parser (with FX rate conversion logic)
-- Build bank profile config system (YAML loader)
-- Build validation pipeline (.NET side): DateNormalizer, DecimalFixer, CurrencyStandardizer, SchemaValidator, DeduplicateCheck
-- Wire .NET → Python HTTP forwarding for PDF/image uploads
-- Integration tests for full pipeline (upload → parse → validate → persist)
-
-**Sprint 2 — RAG Pipeline (Week 3-4)**
-- Embedding generation for transaction descriptions + metadata
-- pgvector storage and similarity search
-- Natural language query endpoint
-- RAG pipeline: embed question → retrieve → LLM answer
-
-**Sprint 3 — AI Agents (Week 5-6)**
-- Function calling: .NET API endpoints as LLM tools
-- Agent loop for multi-step operations
-- Semantic Kernel integration on .NET side
-
-**Sprint 4 — Production Hardening (Week 7-8)**
-- AI observability: token usage, latency, cost per query
-- Semantic caching for repeated queries
-- Error recovery and retry logic for LLM calls
-- Rate limiting, security, API key management
-- Optional: n8n orchestration layer for scheduled monthly imports
+### Sprint Plan
+→ Full Sprint 1-4 breakdown: [docs/sprint-plan.md](docs/sprint-plan.md)
