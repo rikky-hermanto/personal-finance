@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "prestart": "powershell -Command \"Stop-Process -Id (Get-NetTCPConnection -LocalPort 7208 -ErrorAction SilentlyContinue).OwningProcess -Force -ErrorAction SilentlyContinue\" || exit 0",
+    "prestart": "powershell -ExecutionPolicy Bypass -File ./scripts/prestart.ps1",
     "start": "(docker start personalfinance-db || docker compose up -d db) && concurrently --kill-others-on-fail --names \"api,ui\" --prefix-colors \"yellow,cyan\" \"cd apps/api && dotnet run --project src/PersonalFinance.Api\" \"cd apps/frontend && npm run dev\"",
     "dev": "cd apps/frontend && npm run dev",
     "build": "cd apps/frontend && npm run build",
