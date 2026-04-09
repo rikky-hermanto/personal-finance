@@ -1,73 +1,78 @@
-# Welcome to your Lovable project
+# Personal Finance Platform
 
-## Project info
+An automated, cross-bank personal finance tracker that ingests bank statements (CSV, PDF, Images), normalizes the data, and provides a unified dashboard. Built as a scalable alternative to tedious manual spreadsheet tracking.
 
-**URL**: https://lovable.dev/projects/b634d3b0-f417-40fc-ac34-bc46c554f242
+## 🚀 The Problem It Solves
 
-## How can I edit this code?
+Managing personal finance across multiple bank accounts is a nightmare because **every bank has a different statement format**. You might download a CSV from one bank, a PDF from another, or even just take a screenshot of your balance history on a neo-bank app.
 
-There are several ways of editing your application.
+If you hate manual data entry like I do, you're stuck doing manual AI conversions every month: copy-pasting data to ChatGPT and manually massaging CSVs. 
 
-**Use Lovable**
+This project **automates the entire pipeline**:
+1. **Upload** any bank statement (CSV, PDF, Screenshot).
+2. **AI Extractor** standardizes the data using Bank Profiles and LLMs (Anthropic/OpenAI) equipped with state-of-the-art unstructured data extraction.
+3. **Database** saves all your normalized data using EF Core and PostgreSQL.
+4. **Dashboard** visualizes your true multi-bank cash flowchart. 
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/b634d3b0-f417-40fc-ac34-bc46c554f242) and start prompting.
+## 🛠️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Backend:** .NET 9 Web API (C# 13), MediatR, Entity Framework Core 9
+- **AI Service:** Python 3.12, FastAPI, LangChain, PyMuPDF
+- **Frontend:** React 18, TypeScript, Tailwind CSS, TanStack Query
+- **Database:** PostgreSQL 16 + pgvector (for future RAG/natural language querying)
+- **Infrastructure:** Docker Compose
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🏃 Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- Docker Engine (with Docker Compose)
+- Node.js 20+
+- .NET 9 SDK
+- PowerShell (Windows) or standard bash (Linux/Mac)
 
-Follow these steps:
+### 1. Configure the Environment
+Clone the repository, then copy the `.env.example` file to create your own configuration.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+cp .env.example .env
 ```
 
-**Edit a file directly in GitHub**
+Open `.env` and configure your database password.
+```env
+# Example .env configuration
+VITE_API_URL=http://localhost:7208
+POSTGRES_DB=personal_finance
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password_here
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 2. Run the Application
+The project includes a convenient script that will launch the PostgreSQL database, the .NET Web API Backend, and the React Frontend simultaneously. 
 
-**Use GitHub Codespaces**
+#### On Windows (PowerShell)
+```powershell
+./start-all.ps1
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+#### Via npm
+```bash
+npm start
+```
+*Note: Ensure Docker is running before executing these commands!*
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## 💡 Usage Quickstart
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. Navigate to **http://localhost:8080** to see your main dashboard.
+2. The Backend API swagger is available at **http://localhost:7208/swagger**.
+3. Head over to **Settings -> Bank Profiles** to ensure configurations for banks (BCA, Superbank, Wise, etc.) meet your expectations.
+4. Go to **Import**, and upload your CSV, PDF, or screenshot statements. The system will automatically infer the appropriate extractor, normalize outputs securely into PostgreSQL, and update your master Cash Flow dashboard.
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/b634d3b0-f417-40fc-ac34-bc46c554f242) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 🏗 Roadmap & Learning Goals
+This project serves as a comprehensive system showcasing Document AI handling and Multi-Agent Orchestration. Future sprints include:
+- Generating dynamic embeddings on transactions
+- Adding Natural Language querying *(e.g., "Show me all Wise transport transactions above $150 in the last 3 months")* via RAG.
+- Auto-categorization optimizations.
