@@ -5,7 +5,7 @@
 Whenever you are asked to work on a GitHub issue ticket (any reference to `PF-XXX`, a GitHub issue number, or a task from the board), you MUST:
 
 1. **Read the issue** via `gh issue view <number> --repo rikky-hermanto/personal-finance`
-2. **Generate a planning file** at `.claude/plannings/PF-XXX-todo.md` before writing any code
+2. **Generate a planning file** at `.claude/plans/PF-XXX-todo.md` before writing any code
 3. **Follow the planning template** defined below
 4. **Update the planning file** as you progress — check off completed steps, add notes on blockers or discoveries
 
@@ -13,7 +13,7 @@ Whenever you are asked to work on a GitHub issue ticket (any reference to `PF-XX
 
 ## Planning File Template
 
-File name: `.claude/plannings/PF-{number}-todo.md`
+File name: `.claude/plans/PF-{number}-todo.md`
 
 ````markdown
 # PF-XXX — {Issue Title}

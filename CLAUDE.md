@@ -97,9 +97,10 @@ All banks converge to this unified schema before persisting. Key fields: `date` 
 
 ## Architecture
 
-React 18 frontend → .NET 9 API → (CSV banks: direct parsers | PDF/image banks: Python FastAPI AI service) → Validation Pipeline → PostgreSQL 16 + pgvector.
+React 18 frontend → .NET 9 API (supabase-csharp) → Supabase (PostgreSQL 16 + pgvector, Auth, Storage, Realtime, Webhooks). PDF/image uploads are event-driven: Storage upload → Database Webhook → Python FastAPI AI service → results written back to Supabase → Realtime notifies frontend.
 
-→ Full architecture diagram and key decisions: [docs/architecture-diagram.md](docs/architecture-diagram.md)
+→ Full architecture diagram and event flow: [docs/architecture-diagram.md](docs/architecture-diagram.md)
+→ Supabase migration rationale and phases: [docs/supabase-migration.md](docs/supabase-migration.md)
 
 ## Tech Stack
 
@@ -108,37 +109,47 @@ React 18 frontend → .NET 9 API → (CSV banks: direct parsers | PDF/image bank
 - **Language:** C# 13
 - **API:** ASP.NET Core Web API (REST)
 - **Patterns:** CQRS via MediatR, FluentValidation, Clean Architecture
-- **ORM:** Entity Framework Core 9
-- **Database:** PostgreSQL 16 + pgvector extension (vector storage for RAG)
-- **Auth:** Auth0 (OAuth 2.0 / OIDC) — defer implementation until core features stable
+- **Database client:** `supabase-csharp` SDK (PostgREST) — replaces EF Core
+- **Auth:** Supabase Auth (JWT validation via `JwtBearer` middleware)
 - **Testing:** xUnit, Moq, Playwright (E2E)
+
+### Supabase Platform
+- **Database:** PostgreSQL 16 + pgvector (vector storage for RAG)
+- **Auth:** GoTrue (JWT tokens, OAuth providers)
+- **Storage:** File buckets for bank statement uploads (`bank-statements/`)
+- **Realtime:** WebSocket subscriptions for live AI processing status
+- **Webhooks:** Database Webhooks trigger Python AI service on INSERT
+- **Local dev:** Supabase CLI (`supabase start`) — Studio at `http://localhost:54323`
 
 ### Backend — AI Services (Python)
 - **Runtime:** Python 3.12+
 - **Framework:** FastAPI
 - **AI SDK:** Anthropic SDK (primary), OpenAI SDK (secondary/fallback)
+- **Supabase client:** `supabase-py` — writes AI extraction results directly to Supabase
 - **LLM Extraction:** Claude structured output via `tool_use` (PDF/image → JSON)
 - **Document Parsing:** PyMuPDF for PDF text extraction (pre-processing before LLM)
 - **Vision:** Claude vision API for screenshot extraction (Bank Jago)
-- **AI Orchestration:** LangChain (future Sprint 2+ — RAG, agents)
+- **AI Orchestration:** Sprint 2+ — RAG, embeddings, agents
 
 ### Frontend
 - **Framework:** React 18 + TypeScript
 - **Styling:** Tailwind CSS
 - **State:** React Query (TanStack Query) for server state
+- **Supabase client:** `@supabase/supabase-js` — Auth flows + Realtime subscriptions
 
 ### Infrastructure
 - **Containers:** Docker Compose (local dev), individual Dockerfiles per service
 - **CI/CD:** GitHub Actions
 - **Monitoring:** Structured logging (Serilog), OpenTelemetry-ready
-- **Cloud Target:** Azure (primary), AWS (secondary option)
+- **Cloud Target:** Supabase Cloud (database + platform), Azure (API + AI service hosting)
 
 For detailed docs (read on demand — not auto-imported):
 - [docs/API-endpoints.md](docs/API-endpoints.md) — all REST endpoints with curl examples
 - [docs/API-backend.md](docs/API-backend.md) — backend architecture details
 - [docs/Front-End.md](docs/Front-End.md) — frontend architecture details
 - [docs/SETUP.md](docs/SETUP.md) — Docker and local setup
-- [docs/architecture-diagram.md](docs/architecture-diagram.md) — full architecture ASCII diagram + decisions
+- [docs/architecture-diagram.md](docs/architecture-diagram.md) — full architecture diagram + event flow
+- [docs/supabase-migration.md](docs/supabase-migration.md) — Supabase migration phases and rationale
 - [docs/bank-profiles-reference.md](docs/bank-profiles-reference.md) — bank profile YAML schemas
 - [docs/validation-pipeline.md](docs/validation-pipeline.md) — validation pipeline + master schema
 - [docs/sprint-plan.md](docs/sprint-plan.md) — Sprint 1-4 full breakdown
@@ -172,7 +183,7 @@ apps/
         LlmExtractionClient.cs        # HTTP client to Python AI service
       BankProfiles/                    # YAML/JSON bank config files
       Validation/                      # ValidationPipeline + individual validators
-    src/PersonalFinance.Persistence/   # EF Core DbContext, migrations, DI registration
+    src/PersonalFinance.Persistence/   # EF Core DbContext, migrations, DI registration (to be deleted in Supabase migration Phase 2)
     tests/PersonalFinance.Tests/       # xUnit + Moq tests
 services/
   ai-service/                 # Python FastAPI AI service
@@ -210,8 +221,14 @@ services/
 - Run API: `cd apps/api && dotnet run --project src/PersonalFinance.Api`
 - Run tests: `cd apps/api && dotnet test`
 - Single test: `cd apps/api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
-- Add migration: `cd apps/api && dotnet ef migrations add <Name> --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
-- Apply migration: `cd apps/api && dotnet ef database update --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
+
+### Supabase (local dev)
+- Start local stack: `supabase start` (Postgres, Auth, Storage, Realtime, Studio)
+- Stop local stack: `supabase stop`
+- Apply migrations: `supabase db push`
+- Reset local DB: `supabase db reset`
+- Open Studio: `http://localhost:54323`
+- Generate SQL from EF (migration only): `cd apps/api && dotnet ef migrations script --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
 
 ### AI Service (Python)
 - Setup: `cd services/ai-service && python -m venv .venv && source .venv/bin/activate && pip install -e .`
@@ -227,16 +244,15 @@ Starts DB (Docker, detached), .NET API, and frontend in one terminal with labele
 ### Docker (full stack)
 - **Fresh start (recommended):** `docker compose down && docker compose up --build`
   - Always run `down` first to remove stale containers (avoids container name conflicts)
-- DB + API only: `docker compose down && docker compose up --build db api`
-- DB only: `docker compose up db`
+- API + AI service only: `docker compose down && docker compose up --build api ai-service`
 - Stop: `docker compose down`
-- Reset DB: `docker compose down -v`
 - View logs: `docker compose logs -f api`
+- Note: Supabase local stack is managed via `supabase start`, not Docker Compose
 
 ### Run everything locally (no Docker)
 ```
-# Terminal 1 — DB only via Docker
-docker compose up db
+# Terminal 1 — Supabase local stack (replaces standalone postgres container)
+supabase start
 
 # Terminal 2 — .NET API
 cd apps/api && dotnet run --project src/PersonalFinance.Api
@@ -250,46 +266,60 @@ cd apps/frontend && npm run dev
 
 ## Ports & URLs
 
-| Service      | Port | URL                         | Start command        |
-|--------------|------|-----------------------------|----------------------|
-| Frontend     | 8080 | http://localhost:8080        | `npm run dev`        |
-| .NET API     | 7208 | http://localhost:7208        | `dotnet run` / Docker|
-| AI Service   | 8000 | http://localhost:8000        | `uvicorn` / Docker   |
-| PostgreSQL   | 5432 | personal_finance database   | Docker               |
-| Health check |      | http://localhost:7208/health |                      |
-| AI health    |      | http://localhost:8000/health |                      |
+| Service           | Port  | URL                            | Start command         |
+|-------------------|-------|--------------------------------|-----------------------|
+| Frontend          | 8080  | http://localhost:8080           | `npm run dev`         |
+| .NET API          | 7208  | http://localhost:7208           | `dotnet run` / Docker |
+| AI Service        | 8000  | http://localhost:8000           | `uvicorn` / Docker    |
+| Supabase API      | 54321 | http://localhost:54321          | `supabase start`      |
+| Supabase Studio   | 54323 | http://localhost:54323          | `supabase start`      |
+| Supabase Inbucket | 54324 | http://localhost:54324          | `supabase start`      |
+| PostgreSQL        | 54322 | (Supabase-managed)             | `supabase start`      |
+| API health check  |       | http://localhost:7208/health    |                       |
+| AI health check   |       | http://localhost:8000/health    |                       |
 
 ## Environment Variables
 
 - Frontend: `VITE_API_URL` (default: `http://localhost:7208`) — set in `.env`
-- Backend: `ConnectionStrings__Default` — PostgreSQL connection string in `appsettings.Development.json` or Docker env
+- Frontend: `VITE_SUPABASE_URL` — Supabase project URL (for `@supabase/supabase-js`)
+- Frontend: `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key
+- Backend: `Supabase__Url` — Supabase project URL
+- Backend: `Supabase__AnonKey` — Supabase anon key (for client-context operations)
+- Backend: `Supabase__ServiceRoleKey` — Supabase service role key (for server-side operations bypassing RLS)
 - Backend: `AiService__BaseUrl` (default: `http://localhost:8000`) — Python AI service URL
+- AI Service: `SUPABASE_URL` — Supabase project URL (for supabase-py)
+- AI Service: `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (write access for AI results)
 - AI Service: `ANTHROPIC_API_KEY` — Claude API key (required for LLM extraction)
 - AI Service: `OPENAI_API_KEY` — OpenAI API key (fallback provider, optional)
+- AI Service: `WEBHOOK_SECRET` — Shared secret to validate Supabase webhook requests
 
 ## Key Patterns
 
 ### Backend (.NET 9)
-- **Clean Architecture**: Domain (no deps) → Application → Infrastructure/Persistence → Api
+- **Clean Architecture**: Domain (no deps) → Application → Infrastructure → Api
 - **CQRS via MediatR**: Commands as `record` types implementing `IRequest<T>`, handlers in `Application/Commands/`
 - **FluentValidation**: Validators in `Application/Validation/`, naming: `Create{Entity}CommandValidator`
-- **Domain Events**: `INotification` classes in `Domain/Events/`, published via MediatR after `SaveChangesAsync`
+- **Domain Events**: `INotification` classes in `Domain/Events/`, published via MediatR after write operations
+- **Supabase data access**: All persistence via `supabase-csharp` SDK — `supabase.From<T>().Filter().Get()` / `.Insert()` / `.Update()` / `.Delete()`. No EF Core, no DbContext.
+- **Entity model convention**: Entities in `Domain/Entities/` inherit `BaseModel` (Supabase.Postgrest.Models) and use `[Table]`, `[PrimaryKey]`, `[Column]` attributes with snake_case names matching the DB.
+- **DI Registration**: Supabase client registered via `AddSupabase()` extension in `Infrastructure/Supabase/DependencyInjection.cs`, called from `Program.cs`
 - **Hybrid Bank Parser Strategy**:
-  - `IBankStatementParser` implementations for CSV banks (BCA, Wise) — deterministic, zero LLM cost
-  - `ILlmExtractionClient` for PDF/image banks — forwards to Python AI service
-  - `IBankIdentifier.IdentifyAsync()` detects bank from file content and routes to correct parser
+  - `IBankStatementParser` implementations for CSV banks (BCA, Wise) — synchronous, deterministic, zero LLM cost
+  - PDF/image banks go event-driven: file → Supabase Storage → Database Webhook → Python AI service
+  - `IBankIdentifier.IdentifyAsync()` detects bank from file content and routes to correct path
   - Bank profiles loaded from YAML config files in `Infrastructure/BankProfiles/`
-- **Validation Pipeline**: `IValidationPipeline` chains validators: DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck. Runs on ALL parsed output regardless of source parser.
-- **EF Core**: Snake_case naming via `UseSnakeCaseNamingConvention()`. Tables: `transactions`, `category_rules`, `bank_profiles`. Auto-migrate on startup in `Program.cs`
-- **DI Registration**: Persistence uses `AddPersistence()` extension. Other services registered directly in `Program.cs`
+- **Validation Pipeline**: `IValidationPipeline` chains validators: DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck (queries via supabase-csharp). Runs on ALL parsed output.
+- **Auth**: Supabase JWT validated via `JwtBearer` middleware. Service role key used for server-to-server operations (bypasses RLS). Anon key used for user-context operations (respects RLS).
 
 ### AI Service (Python FastAPI)
+- **Trigger**: Receives POST from Supabase Database Webhook on INSERT to `statement_uploads`. Validates request with `WEBHOOK_SECRET`.
+- **File access**: Downloads bank statement from Supabase Storage using `supabase-py`. Writes extraction results back to Supabase directly.
 - **LLM Provider Abstraction**: `ILLMProvider` interface with `AnthropicProvider` (primary) and `OpenAIProvider` (fallback). Switch via config.
-- **Structured Output**: All LLM extraction uses `tool_use` (Claude) or JSON mode (OpenAI) to force output matching Pydantic models. No regex parsing of free text.
+- **Structured Output**: All LLM extraction uses `tool_use` (Claude) to force output matching Pydantic models. No regex parsing of free text.
 - **Bank-Specific Prompts**: Each bank has a prompt template in `prompts/` that includes the bank's typical format, expected fields, and edge cases.
-- **Pre-processing**: PDF text is extracted via PyMuPDF before sending to LLM (reduces token cost). For screenshots, the raw image is sent to Claude vision API.
-- **Pydantic Models**: All request/response schemas use Pydantic v2. Response models match the master cashflow schema.
-- **Async**: All FastAPI endpoints are async. LLM calls use async SDK methods.
+- **Pre-processing**: PDF text extracted via PyMuPDF before LLM call (reduces token cost). Screenshots sent directly to Claude Vision API.
+- **Pydantic Models**: Pydantic v2 throughout. Response models match the master cashflow schema and the `TransactionDto` contract (see `.claude/rules/ai-service.md`).
+- **Async**: All FastAPI endpoints and LLM calls are async.
 
 ### Frontend (React/TypeScript)
 - **UI Theme**: Always apply `.claude/skills/data-oriented-theme/SKILL.md` when building any UI component, page, dashboard, or artifact — read it before starting any frontend work. Skip only if the user explicitly requests a different style (e.g., landing page, marketing, creative design).
@@ -346,11 +376,12 @@ cd apps/frontend && npm run dev
 ## File Protection
 
 - NEVER commit `.env` files with real credentials
-- NEVER commit API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY) — use environment variables
+- NEVER commit API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY) — use environment variables
 - NEVER modify files in `src/components/ui/` (managed by `npx shadcn@latest add`)
-- NEVER manually edit migration `Designer.cs` or `Snapshot.cs` files
-- ALWAYS use `dotnet ef migrations add` for schema changes
+- NEVER manually edit EF Core migration `Designer.cs` or `Snapshot.cs` files (being phased out)
+- Schema changes go in `supabase/migrations/` as numbered SQL files — apply via `supabase db push`
 - Use `docker compose` (V2 syntax), never `docker-compose` (V1)
+- NEVER use the Supabase `service_role` key on the frontend — it bypasses RLS entirely
 
 ## Task Management
 
@@ -375,53 +406,55 @@ gh issue create \
 - **Always update `.kanban/BOARD.md`** to reflect the new state
 
 ### Next task ID
-Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-042** → next is **PF-043**.
+Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-054** → next is **PF-055**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13).
 
 ---
 
 ## Current Phase
 
-> **Last updated:** 2026-03-16
+> **Last updated:** 2026-04-11
 
-### Status: Cleanup Sprint (4/7 core done) → Ramp-Up started
+### Status: Supabase Migration Planned → Pre-Sprint Cleanup Next
 
 - **Setup phase (PF-001–PF-008):** COMPLETE
-- **Cleanup sprint (PF-027–PF-033 + extras):** IN PROGRESS
+- **Cleanup sprint:** IN PROGRESS (5/18 done)
   - Done: PF-027, PF-030, PF-032, PF-033, PF-041 (Playwright E2E)
-  - Ready: PF-028 (exception leaks), PF-029 (N+1), PF-031 (controller logic)
-  - Backlog: PF-034–PF-040, PF-042 (MCP exploration — now done via this audit)
-- **Ramp-Up:** PF-009 (Hello LLM) — IN PROGRESS
+  - Next (pre-Supabase): PF-028 (exception leaks), PF-031 (dashboard extraction), PF-051 (ILogger)
+  - Backlog: PF-029, PF-034–PF-038, PF-042, PF-043, PF-045, PF-051, PF-052
+- **AI Ramp-Up:** PF-009 (Hello LLM) — READY, not started
+- **Supabase Migration:** PLANNED — 6 phases, tasks PF-S01–PF-S13
+  - See [docs/supabase-migration.md](docs/supabase-migration.md) for full phase breakdown
 
 ### What's Working
-- Full upload-preview-submit pipeline (BCA CSV, NeoBank PDF, Default CSV)
+- Full upload-preview-submit pipeline (BCA CSV, NeoBank PDF stub, Default CSV)
 - 106 seeded category rules with longest-keyword-match
 - Dashboard with aggregated stats, top categories, 6-month cash flow
 - Docker Compose full-stack orchestration
-- GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4)) with all 42 tasks migrated
-- Playwright E2E test infrastructure (PF-041 — `e2e/` with 4 spec files + BCA CSV fixture)
-- Claude Code config: MCP servers, ai-service rules, reasoning alignment rules (THINK-01–05)
+- GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4))
+- Playwright E2E test infrastructure (`e2e/` with 4 spec files + BCA CSV fixture)
 
 ### What's Not Built Yet
-- Python FastAPI AI service (ai-service/)
+- Supabase integration (Phases 1–6 — the main work ahead)
+- Python FastAPI AI service (to be built event-driven via Supabase Webhooks)
 - LLM extraction for PDF/image banks (Superbank, NeoBank, Bank Jago)
 - Wise CSV parser (with FX rate conversion)
 - Bank profile config system (YAML-driven)
-- Validation pipeline (DateNormalizer, DecimalFixer, CurrencyStandardizer, SchemaValidator, DeduplicateCheck)
-- LLM integration (PF-009 in progress — first Anthropic API call)
+- Validation pipeline (5-stage, replaces EF Core DeduplicateCheck)
+- Auth (Supabase Auth replaces planned Auth0)
 - RAG pipeline, embeddings, natural language querying (Sprint 2+)
-- Authentication
 
-### Known Tech Debt (remaining)
-- Application.csproj still references Persistence (Clean Arch violation — ARCH-01)
-- N+1 queries in CategorizeAsync (PF-029)
-- N+1 in SubmitTransactions: GetAllAsync() called per transaction (PF-039)
-- ~100 lines business logic in controller (PF-031)
-- Exception details leaked in HTTP 500 responses (PF-028)
-- Dashboard cash flow ignores year/month query params (PF-040)
-- TypeScript strict mode disabled
-- Zero ILogger usage
+### Known Tech Debt (pre-migration)
+- Application.csproj references Persistence (ARCH-01 — resolved when Persistence is deleted in Phase 2)
+- N+1 in CategorizeAsync (PF-029 — rewritten in Phase 2 Supabase SDK migration)
+- N+1 in SubmitTransactions (PF-039 — absorbed into Phase 2 handler rewrite)
+- ~100 lines business logic in controller (PF-031 — cleanup before migration)
+- Exception details leaked in HTTP 500 responses (PF-028 — cleanup before migration)
+- Dashboard cash flow ignores year/month params (PF-040 — absorbed into PF-031 rewrite)
+- TypeScript strict mode disabled (PF-052)
+- Zero ILogger usage (PF-051)
 - No backend handler/validator/parser/controller tests (PF-034–PF-037)
 - No frontend tests (PF-038)
 
 ### Sprint Plan
-→ Full Sprint 1-4 breakdown: [docs/sprint-plan.md](docs/sprint-plan.md)
+→ Revised sprint plan interleaving AI + Supabase: [docs/supabase-migration.md](docs/supabase-migration.md)
+→ Original Sprint 1-4 AI breakdown: [docs/sprint-plan.md](docs/sprint-plan.md)
