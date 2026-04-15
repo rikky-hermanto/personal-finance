@@ -11,7 +11,7 @@ Write a minimal Python script that calls the Google Gemini API, receives a respo
 ## Acceptance Criteria
 
 - [x] Python 3.12+ virtual environment set up under `services/ai-service/`
-- [ ] Google GenAI SDK installed (`pip install google-genai`)
+- [x] Google GenAI SDK installed (`pip install google-genai`)
 - [ ] Script `services/ai-service/scripts/hello_llm.py` calls Gemini API with a system instruction and user message
 - [ ] Successfully receives and prints a response
 - [ ] Token usage logged from response metadata
@@ -44,7 +44,7 @@ cd services/ai-service
 
 ---
 
-### [ ] STEP 2 — Create `pyproject.toml`
+### [x] STEP 2 — Create `pyproject.toml`
 Create the file `services/ai-service/pyproject.toml` with this content:
 
 ```toml
@@ -97,7 +97,7 @@ source .venv/bin/activate
 
 ---
 
-### [ ] STEP 5 — Install dependencies
+### [x] STEP 5 — Install dependencies
 ```bash
 # On Windows (Git Bash / bash):
 pip install -e ".[dev]"
@@ -112,7 +112,7 @@ pip install -e ".[dev]"
 
 ---
 
-### [ ] STEP 6 — Get your Gemini API key
+### [x] STEP 6 — Get your Gemini API key
 1. Go to https://aistudio.google.com/app/apikey
 2. Sign in with your Google account.
 3. Click **Create API key**.
@@ -122,7 +122,7 @@ pip install -e ".[dev]"
 
 ---
 
-### [ ] STEP 7 — Create `.env` and `.env.example`
+### [x] STEP 7 — Create `.env` and `.env.example`
 
 **`.env`** (your real key — never commit this):
 ```
@@ -138,7 +138,7 @@ GEMINI_API_KEY=your-key-here
 
 ---
 
-### [ ] STEP 8 — Understand the key LLM concepts (read before coding)
+### [x] STEP 8 — Understand the key LLM concepts (read before coding)
 
 Before writing the script, internalize these concepts:
 
