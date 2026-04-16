@@ -20,6 +20,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-006 | [#14](https://github.com/rikky-hermanto/personal-finance/issues/14) | CQRS + MediatR Pipeline |
 | PF-007 | [#15](https://github.com/rikky-hermanto/personal-finance/issues/15) | Category Rules Feature (CRUD) |
 | PF-008 | [#16](https://github.com/rikky-hermanto/personal-finance/issues/16) | Cash Flow Dashboard with Charts |
+| PF-009 | [#17](https://github.com/rikky-hermanto/personal-finance/issues/17) | Hello LLM — First Anthropic API Call |
 | PF-027 | [#35](https://github.com/rikky-hermanto/personal-finance/issues/35) | Delete scaffold leftovers and dead code |
 | PF-030 | [#38](https://github.com/rikky-hermanto/personal-finance/issues/38) | Move DTOs to correct project |
 | PF-032 | [#40](https://github.com/rikky-hermanto/personal-finance/issues/40) | Update PROJECT_CONTEXT.md to match codebase |
@@ -32,7 +33,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
-| PF-009 | [#17](https://github.com/rikky-hermanto/personal-finance/issues/17) | Hello LLM — First Anthropic API Call |
 | PF-010 | [#18](https://github.com/rikky-hermanto/personal-finance/issues/18) | Structured Output — Text → JSON via LLM |
 | PF-011 | [#19](https://github.com/rikky-hermanto/personal-finance/issues/19) | FastAPI AI Microservice Scaffold |
 | PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
@@ -123,12 +123,12 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 ```
 Setup:      ████████████████████ 100% (8/8)
 Cleanup:    ██████░░░░░░░░░░░░░░  28% (5/18 — 8 issues now obsolete)
-Ramp-Up:    ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
+Ramp-Up:    ███░░░░░░░░░░░░░░░░░  16% (1/6)
 Sprint 1:   ░░░░░░░░░░░░░░░░░░░░   0% (0/8 active)
 Supabase:   ░░░░░░░░░░░░░░░░░░░░   0% (0/13)
 Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 ──────────────────────────────────
-Overall:    ██░░░░░░░░░░░░░░░░░░  20% (13/55 active, 8 obsolete)
+Overall:    ███░░░░░░░░░░░░░░░░░  21% (14/55 active, 8 obsolete)
 ```
 
 > Next task ID: **PF-055** (PF-S series: PF-S14 if more Supabase tasks needed)
