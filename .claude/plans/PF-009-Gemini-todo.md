@@ -1,7 +1,7 @@
 # PF-009 — Hello LLM: First Gemini API Call
 
 > **GitHub Issue:** #17
-> **Status:** In Progress
+> **Status:** Done
 > **Started:** 2026-03-14
 
 ## Objective
@@ -12,11 +12,11 @@ Write a minimal Python script that calls the Google Gemini API, receives a respo
 
 - [x] Python 3.12+ virtual environment set up under `services/ai-service/`
 - [x] Google GenAI SDK installed (`pip install google-genai`)
-- [ ] Script `services/ai-service/scripts/hello_llm.py` calls Gemini API with a system instruction and user message
-- [ ] Successfully receives and prints a response
-- [ ] Token usage logged from response metadata
-- [ ] API key read from `GEMINI_API_KEY` environment variable (never hardcoded)
-- [ ] Script is runnable: `python scripts/hello_llm.py`
+- [x] Script `services/ai-service/scripts/hello_llm.py` calls Gemini API with a system instruction and user message
+- [x] Successfully receives and prints a response
+- [x] Token usage logged from response metadata
+- [x] API key read from `GEMINI_API_KEY` environment variable (never hardcoded)
+- [x] Script is runnable: `python scripts/hello_llm.py`
 
 ## Approach
 
@@ -154,7 +154,7 @@ Before writing the script, internalize these concepts:
 
 ---
 
-### [ ] STEP 9 — Write `scripts/hello_llm.py`
+### [x] STEP 9 — Write `scripts/hello_llm.py`
 
 Write the file line by line, understanding each part:
 
@@ -233,7 +233,7 @@ print("Done.")
 
 ---
 
-### [ ] STEP 10 — Run the script
+### [x] STEP 10 — Run the script
 ```bash
 # Make sure you are in services/ai-service/ with (.venv) active
 python scripts/hello_llm.py
@@ -264,7 +264,7 @@ Done.
 
 ---
 
-### [ ] STEP 11 — Learning experiments
+### [x] STEP 11 — Learning experiments
 
 Run each experiment, observe the change, then reset to original before the next:
 
@@ -285,7 +285,7 @@ Change the `system_instruction` to `"You are a sarcastic assistant who hates ban
 
 ---
 
-### [ ] STEP 12 — Commit what was built
+### [x] STEP 12 — Commit what was built
 
 ```bash
 # From repo root
