@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-04-11
+> **Last synced:** 2026-04-20
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -26,6 +26,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-032 | [#40](https://github.com/rikky-hermanto/personal-finance/issues/40) | Update PROJECT_CONTEXT.md to match codebase |
 | PF-033 | [#41](https://github.com/rikky-hermanto/personal-finance/issues/41) | Add Current Phase section to CLAUDE.md |
 | PF-041 | [#49](https://github.com/rikky-hermanto/personal-finance/issues/49) | E2E functional test infrastructure — Playwright |
+| PF-S01 | [#64](https://github.com/rikky-hermanto/personal-finance/issues/64) | Supabase project init + CLI setup |
 
 ---
 
@@ -47,7 +48,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title | Phase |
 |----|-------|-------|-------|
-| PF-S01 | [#64](https://github.com/rikky-hermanto/personal-finance/issues/64) | Supabase project init + CLI setup | 1 |
+| ~~PF-S01~~ | ~~[#64](https://github.com/rikky-hermanto/personal-finance/issues/64)~~ | ~~Supabase project init + CLI setup~~ | ~~1~~ |
 | PF-S02 | [#65](https://github.com/rikky-hermanto/personal-finance/issues/65) | Migrate EF Core schema to Supabase SQL migrations | 1 |
 | PF-S03 | [#66](https://github.com/rikky-hermanto/personal-finance/issues/66) | Seed category rules + basic RLS setup | 1 |
 | PF-S04 | [#67](https://github.com/rikky-hermanto/personal-finance/issues/67) | Add supabase-csharp SDK — DI setup and SupabaseSettings | 2 |
@@ -125,10 +126,10 @@ Setup:      ████████████████████ 100% (8
 Cleanup:    ██████░░░░░░░░░░░░░░  28% (5/18 — 8 issues now obsolete)
 Ramp-Up:    ███░░░░░░░░░░░░░░░░░  16% (1/6)
 Sprint 1:   ░░░░░░░░░░░░░░░░░░░░   0% (0/8 active)
-Supabase:   ░░░░░░░░░░░░░░░░░░░░   0% (0/13)
+Supabase:   ██░░░░░░░░░░░░░░░░░░   8% (1/13)
 Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 ──────────────────────────────────
-Overall:    ███░░░░░░░░░░░░░░░░░  21% (14/55 active, 8 obsolete)
+Overall:    ███░░░░░░░░░░░░░░░░░  22% (15/55 active, 8 obsolete)
 ```
 
 > Next task ID: **PF-055** (PF-S series: PF-S14 if more Supabase tasks needed)
