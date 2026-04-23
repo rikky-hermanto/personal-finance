@@ -26,6 +26,22 @@ dist-ssr
 **/bin/
 **/obj/
 
+# Environment files — never commit real credentials
+.env
+.env.*
+!.env.example
+
 # Claude Code worktrees (stale branches from past sessions)
 .claude/worktrees/
 services/ai-service/.env
+
+# GitHub API export dumps (generated, not repo artifacts)
+issues.json
+issues_utf8.json
+project_items.json
+project_items_utf8.json
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+supabase/local-setup.md
