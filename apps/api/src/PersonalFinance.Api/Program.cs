@@ -1,8 +1,7 @@
-using Microsoft.EntityFrameworkCore;
 using PersonalFinance.Api.Extensions;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Infrastructure.Parsers;
-using PersonalFinance.Persistence;
+using PersonalFinance.Infrastructure.Supabase;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 
@@ -20,7 +19,7 @@ namespace PersonalFinance.Api
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
-            builder.Services.AddPersistence(builder.Configuration.GetConnectionString("Default")!);
+            builder.Services.AddSupabase(builder.Configuration);
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<BcaCsvParser>();
             builder.Services.AddScoped<NeoBankPdfParser>();
@@ -62,13 +61,6 @@ namespace PersonalFinance.Api
             });
 
             var app = builder.Build();
-
-            // Apply pending EF Core migrations on startup
-            using (var scope = app.Services.CreateScope())
-            {
-                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                dbContext.Database.Migrate();
-            }
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

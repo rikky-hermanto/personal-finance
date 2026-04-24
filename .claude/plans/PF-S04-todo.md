@@ -1,8 +1,20 @@
 # PF-S04 — Add supabase-csharp SDK — DI setup and SupabaseSettings
 
 > **GitHub Issue:** [#67](https://github.com/rikky-hermanto/personal-finance/issues/67)
-> **Status:** Ready
+> **Status:** Done
 > **Phase:** 2 — Replace EF Core with supabase-csharp (first task)
+
+## Acceptance Criteria
+
+- [x] `Supabase` v1.1.1 NuGet package added to `PersonalFinance.Infrastructure.csproj`
+- [x] `SupabaseSettings` record created in `Infrastructure/Supabase/SupabaseSettings.cs`
+- [x] `AddSupabase()` DI extension created in `Infrastructure/Supabase/DependencyInjection.cs`
+- [x] `AddPersistence()` call replaced by `AddSupabase()` in `Program.cs`
+- [x] EF Core migration auto-run block removed from `Program.cs`
+- [x] `.env.example` updated with Supabase vars
+- [x] `dotnet build` passes with no errors
+
+> **Note:** `Microsoft.Extensions.Configuration.Binder` v10.0.0 was also added to `Infrastructure.csproj` — required for `IConfigurationSection.Get<T>()` which is not pulled in transitively by Infrastructure's existing deps.
 
 ## Current state
 
