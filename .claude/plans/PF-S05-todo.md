@@ -11,12 +11,12 @@ Prepare `Transaction` and `CategoryRule` domain entities to work with the supaba
 
 ## Acceptance Criteria
 
-- [ ] `Supabase.Postgrest` v4.1.0 NuGet added to `PersonalFinance.Domain.csproj`
-- [ ] `Transaction` inherits `Supabase.Postgrest.Models.BaseModel`
-- [ ] `CategoryRule` inherits `Supabase.Postgrest.Models.BaseModel`
-- [ ] Both entities annotated with `[Table]`, `[PrimaryKey]`, `[Column]` — all snake_case matching the DB
-- [ ] `[PrimaryKey("id", shouldInsert: false)]` on both (identity column — never sent on INSERT)
-- [ ] `dotnet build` passes with 0 errors — no attribute conflicts with EF Core
+- [x] `Supabase.Postgrest` v4.1.0 NuGet added to `PersonalFinance.Domain.csproj`
+- [x] `Transaction` inherits `Supabase.Postgrest.Models.BaseModel`
+- [x] `CategoryRule` inherits `Supabase.Postgrest.Models.BaseModel`
+- [x] Both entities annotated with `[Table]`, `[PrimaryKey]`, `[Column]` — all snake_case matching the DB
+- [x] `[PrimaryKey("id", shouldInsert: false)]` on both (identity column — never sent on INSERT)
+- [x] `dotnet build` passes with 0 errors — no attribute conflicts with EF Core
 
 ## Approach
 
@@ -38,7 +38,7 @@ Out of scope: rewriting handlers, changing queries, modifying controllers — th
 
 ## TODO
 
-### [ ] STEP 1 — Add `Supabase.Postgrest` to Domain project
+### [x] STEP 1 — Add `Supabase.Postgrest` to Domain project
 
 Edit `apps/api/src/PersonalFinance.Domain/PersonalFinance.Domain.csproj`:
 
@@ -53,7 +53,7 @@ Edit `apps/api/src/PersonalFinance.Domain/PersonalFinance.Domain.csproj`:
 
 ---
 
-### [ ] STEP 2 — Rewrite `Transaction.cs`
+### [x] STEP 2 — Rewrite `Transaction.cs`
 
 File: `apps/api/src/PersonalFinance.Domain/Entities/Transaction.cs`
 
@@ -107,7 +107,7 @@ public class Transaction : BaseModel
 
 ---
 
-### [ ] STEP 3 — Rewrite `CategoryRule.cs`
+### [x] STEP 3 — Rewrite `CategoryRule.cs`
 
 File: `apps/api/src/PersonalFinance.Domain/Entities/CategoryRule.cs`
 
@@ -145,7 +145,7 @@ public class CategoryRule : BaseModel
 
 ---
 
-### [ ] STEP 4 — Build verification
+### [x] STEP 4 — Build verification
 
 ```bash
 cd apps/api && dotnet build PersonalFinance.slnx
