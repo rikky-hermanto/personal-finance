@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-04-22 (PF-S04, PF-S05 moved to Ready)
+> **Last synced:** 2026-04-28 (PF-S06 moved to Done; PF-S07 moved to Ready)
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -29,6 +29,9 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-S01 | [#64](https://github.com/rikky-hermanto/personal-finance/issues/64) | Supabase project init + CLI setup |
 | PF-S02 | [#65](https://github.com/rikky-hermanto/personal-finance/issues/65) | Migrate EF Core schema to Supabase SQL migrations |
 | PF-S03 | [#66](https://github.com/rikky-hermanto/personal-finance/issues/66) | Seed category rules + basic RLS setup |
+| PF-S04 | [#67](https://github.com/rikky-hermanto/personal-finance/issues/67) | Add supabase-csharp SDK — DI setup and SupabaseSettings |
+| PF-S05 | [#68](https://github.com/rikky-hermanto/personal-finance/issues/68) | Annotate Domain entities for Supabase PostgREST |
+| PF-S06 | [#69](https://github.com/rikky-hermanto/personal-finance/issues/69) | Rewrite CQRS handlers + services — DbContext → supabase-csharp |
 
 ---
 
@@ -41,8 +44,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
 | PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
 | PF-031 | [#39](https://github.com/rikky-hermanto/personal-finance/issues/39) | Extract dashboard aggregation from controller |
-| PF-S04 | [#67](https://github.com/rikky-hermanto/personal-finance/issues/67) | Add supabase-csharp SDK — DI setup and SupabaseSettings |
-| PF-S05 | [#68](https://github.com/rikky-hermanto/personal-finance/issues/68) | Annotate Domain entities for Supabase PostgREST |
+| PF-S07 | [#70](https://github.com/rikky-hermanto/personal-finance/issues/70) | Delete PersonalFinance.Persistence project — eliminate EF Core |
 
 ---
 
@@ -57,8 +59,8 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | ~~PF-S03~~ | ~~[#66](https://github.com/rikky-hermanto/personal-finance/issues/66)~~ | ~~Seed category rules + basic RLS setup~~ | ~~1~~ |
 | ~~PF-S04~~ | ~~[#67](https://github.com/rikky-hermanto/personal-finance/issues/67)~~ | ~~Add supabase-csharp SDK — DI setup and SupabaseSettings~~ | ~~2~~ |
 | ~~PF-S05~~ | ~~[#68](https://github.com/rikky-hermanto/personal-finance/issues/68)~~ | ~~Annotate Domain entities for Supabase PostgREST~~ | ~~2~~ |
-| PF-S06 | [#69](https://github.com/rikky-hermanto/personal-finance/issues/69) | Rewrite CQRS handlers + services — DbContext → supabase-csharp | 2 |
-| PF-S07 | [#70](https://github.com/rikky-hermanto/personal-finance/issues/70) | Delete PersonalFinance.Persistence project — eliminate EF Core | 2 |
+| ~~PF-S06~~ | ~~[#69](https://github.com/rikky-hermanto/personal-finance/issues/69)~~ | ~~Rewrite CQRS handlers + services — DbContext → supabase-csharp~~ | ~~2~~ |
+| ~~PF-S07~~ | ~~[#70](https://github.com/rikky-hermanto/personal-finance/issues/70)~~ | ~~Delete PersonalFinance.Persistence project — eliminate EF Core~~ | ~~2~~ (→ Ready) |
 | PF-S08 | [#71](https://github.com/rikky-hermanto/personal-finance/issues/71) | Supabase Auth — JWT middleware + user_id columns + RLS policies | 3 |
 | PF-S09 | [#72](https://github.com/rikky-hermanto/personal-finance/issues/72) | Frontend Supabase Auth — login/signup + JWT forwarding | 3 |
 | PF-S10 | [#73](https://github.com/rikky-hermanto/personal-finance/issues/73) | Supabase Storage — bank-statements bucket + StorageService + upload endpoint | 4 |
@@ -130,10 +132,10 @@ Setup:      ████████████████████ 100% (8
 Cleanup:    ██████░░░░░░░░░░░░░░  28% (5/18 — 8 issues now obsolete)
 Ramp-Up:    ███░░░░░░░░░░░░░░░░░  16% (1/6)
 Sprint 1:   ░░░░░░░░░░░░░░░░░░░░   0% (0/8 active)
-Supabase:   ████░░░░░░░░░░░░░░░░  23% (3/13)
+Supabase:   ██████░░░░░░░░░░░░░░  46% (6/13)
 Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 ──────────────────────────────────
-Overall:    ███░░░░░░░░░░░░░░░░░  25% (17/55 active, 8 obsolete)
+Overall:    ████░░░░░░░░░░░░░░░░  29% (20/55 active, 8 obsolete)
 ```
 
 > Next task ID: **PF-055** (PF-S series: PF-S14 if more Supabase tasks needed)

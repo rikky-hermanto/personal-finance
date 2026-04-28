@@ -1,5 +1,4 @@
 {
-  "model": "opusplan",
   "permissions": {
     "allow": [
       "Bash(npm install*)",
@@ -41,7 +40,10 @@
       "Bash(pip show *)",
       "Bash(gh issue *)",
       "Bash(gh pr *)",
-      "Bash(gh project *)"
+      "Bash(gh project *)",
+      "Bash(powershell -Command \"npx supabase status 2>&1\")",
+      "Bash(powershell -Command \"npx supabase status --output env 2>&1\")",
+      "Bash(powershell -Command \"Stop-Process -Id \\(Get-NetTCPConnection -LocalPort 7208 -ErrorAction SilentlyContinue\\).OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host 'API process stopped'\")"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -53,5 +55,6 @@
       "Bash(docker volume rm *)",
       "Bash(dotnet ef database drop*)"
     ]
-  }
+  },
+  "model": "opusplan"
 }
