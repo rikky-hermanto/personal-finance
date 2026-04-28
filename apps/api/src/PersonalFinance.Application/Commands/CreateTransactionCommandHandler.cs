@@ -1,33 +1,28 @@
+using FluentValidation;
 using MediatR;
 using PersonalFinance.Domain.Entities;
-using PersonalFinance.Persistence;
-using FluentValidation;
 
 public class CreateTransactionCommandHandler : IRequestHandler<CreateTransactionCommand, Transaction>
 {
-    private readonly AppDbContext _dbContext;
+    private readonly Supabase.Client _supabase;
     private readonly IMediator _mediator;
     private readonly IValidator<CreateTransactionCommand> _validator;
 
-    public CreateTransactionCommandHandler(AppDbContext dbContext, IMediator mediator, IValidator<CreateTransactionCommand> validator)
+    public CreateTransactionCommandHandler(Supabase.Client supabase, IMediator mediator, IValidator<CreateTransactionCommand> validator)
     {
-        _dbContext = dbContext;
+        _supabase = supabase;
         _mediator = mediator;
         _validator = validator;
     }
 
     public async Task<Transaction> Handle(CreateTransactionCommand request, CancellationToken cancellationToken)
     {
-        // FluentValidation
         await _validator.ValidateAndThrowAsync(request, cancellationToken);
 
-        var t = request.Transaction;
+        var result = await _supabase.From<Transaction>().Insert(request.Transaction);
+        var inserted = result.Models.First();
 
-        await _dbContext.Transactions.AddAsync(t, cancellationToken);
-        await _dbContext.SaveChangesAsync(cancellationToken);
-
-        await _mediator.Publish(new TransactionCreatedEvent(t), cancellationToken);
-
-        return t;
+        await _mediator.Publish(new TransactionCreatedEvent(inserted), cancellationToken);
+        return inserted;
     }
 }

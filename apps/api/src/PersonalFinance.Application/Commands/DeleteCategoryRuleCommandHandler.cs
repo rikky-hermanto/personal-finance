@@ -1,22 +1,27 @@
 using MediatR;
 using PersonalFinance.Application.Commands;
-using PersonalFinance.Persistence;
+using PersonalFinance.Domain.Entities;
+using static Supabase.Postgrest.Constants;
 
 public class DeleteCategoryRuleCommandHandler : IRequestHandler<DeleteCategoryRuleCommand, bool>
 {
-    private readonly AppDbContext _dbContext;
+    private readonly Supabase.Client _supabase;
 
-    public DeleteCategoryRuleCommandHandler(AppDbContext dbContext)
+    public DeleteCategoryRuleCommandHandler(Supabase.Client supabase)
     {
-        _dbContext = dbContext;
+        _supabase = supabase;
     }
 
     public async Task<bool> Handle(DeleteCategoryRuleCommand request, CancellationToken cancellationToken)
     {
-        var rule = await _dbContext.CategoryRules.FindAsync(new object[] { request.Id }, cancellationToken);
-        if (rule == null) return false;
-        _dbContext.CategoryRules.Remove(rule);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        var existing = await _supabase.From<CategoryRule>()
+            .Filter("id", Operator.Equals, request.Id.ToString())
+            .Single();
+        if (existing == null) return false;
+
+        await _supabase.From<CategoryRule>()
+            .Filter("id", Operator.Equals, request.Id.ToString())
+            .Delete();
         return true;
     }
 }
