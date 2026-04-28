@@ -1,30 +1,29 @@
-using Microsoft.EntityFrameworkCore;
+using MediatR;
+using PersonalFinance.Application.Commands;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
-using PersonalFinance.Persistence;
-using MediatR;
-using PersonalFinance.Application.Commands;
+using static Supabase.Postgrest.Constants;
 
 public class CategoryRuleService : ICategoryRuleService
 {
-    private readonly AppDbContext _dbContext;
+    private readonly Supabase.Client _supabase;
     private readonly IMediator _mediator;
 
-    public CategoryRuleService(AppDbContext dbContext, IMediator mediator)
+    public CategoryRuleService(Supabase.Client supabase, IMediator mediator)
     {
-        _dbContext = dbContext;
+        _supabase = supabase;
         _mediator = mediator;
     }
 
     public async Task<string> CategorizeAsync(string description, string type)
     {
-        var rules = await _dbContext.CategoryRules
-            .Where(r => r.Type.ToLower() == type.ToLower())
-            .OrderByDescending(r => r.KeywordLength)
-            .ToListAsync();
+        var result = await _supabase.From<CategoryRule>()
+            .Filter("type", Operator.ILike, type)
+            .Order("keyword_length", Ordering.Descending)
+            .Get();
 
-        foreach (var rule in rules)
+        foreach (var rule in result.Models)
         {
             if (description.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
                 return rule.Category;
@@ -35,15 +34,17 @@ public class CategoryRuleService : ICategoryRuleService
 
     public async Task<List<CategoryRuleDto>> GetAllAsync()
     {
-        var rules = await _dbContext.CategoryRules
-            .OrderByDescending(r => r.KeywordLength)
-            .ToListAsync();
-        return rules.Select(MapToDto).ToList();
+        var result = await _supabase.From<CategoryRule>()
+            .Order("keyword_length", Ordering.Descending)
+            .Get();
+        return result.Models.Select(MapToDto).ToList();
     }
 
     public async Task<CategoryRuleDto?> GetByIdAsync(int id)
     {
-        var rule = await _dbContext.CategoryRules.FindAsync(id);
+        var rule = await _supabase.From<CategoryRule>()
+            .Filter("id", Operator.Equals, id.ToString())
+            .Single();
         return rule == null ? null : MapToDto(rule);
     }
 
@@ -66,27 +67,20 @@ public class CategoryRuleService : ICategoryRuleService
         return await _mediator.Send(new DeleteCategoryRuleCommand(id));
     }
 
-    private static CategoryRuleDto MapToDto(CategoryRule entity)
+    private static CategoryRuleDto MapToDto(CategoryRule entity) => new()
     {
-        return new CategoryRuleDto
-        {
-            Id = entity.Id,
-            Keyword = entity.Keyword,
-            Type = entity.Type,
-            Category = entity.Category,
-            KeywordLength = entity.KeywordLength
-        };
-    }
+        Id = entity.Id,
+        Keyword = entity.Keyword,
+        Type = entity.Type,
+        Category = entity.Category,
+        KeywordLength = entity.KeywordLength
+    };
 
-    private static CategoryRule MapToEntity(CategoryRuleDto dto)
+    private static CategoryRule MapToEntity(CategoryRuleDto dto) => new()
     {
-        return new CategoryRule
-        {
-            Id = dto.Id,
-            Keyword = dto.Keyword,
-            Type = dto.Type,
-            Category = dto.Category,
-            KeywordLength = dto.KeywordLength
-        };
-    }
+        Id = dto.Id,
+        Keyword = dto.Keyword,
+        Type = dto.Type,
+        Category = dto.Category
+    };
 }
