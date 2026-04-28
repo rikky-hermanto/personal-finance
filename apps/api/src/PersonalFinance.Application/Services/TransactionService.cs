@@ -1,166 +1,103 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
-using PersonalFinance.Domain.Entities;
-using PersonalFinance.Persistence;
 using PersonalFinance.Application.Dtos;
-using FluentValidation;
+using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Domain.Entities;
+using static Supabase.Postgrest.Constants;
 
 public class TransactionService : ITransactionService
 {
-    private readonly AppDbContext _dbContext;
+    private readonly Supabase.Client _supabase;
     private readonly IMediator _mediator;
 
-    public TransactionService(AppDbContext dbContext, IMediator mediator)
+    public TransactionService(Supabase.Client supabase, IMediator mediator)
     {
-        _dbContext = dbContext;
+        _supabase = supabase;
         _mediator = mediator;
     }
 
     public async Task<List<TransactionDto>> AddTransactionsAsync(IEnumerable<TransactionDto> transactionDtos)
     {
-        try
-        {
-            List<TransactionDto> addedDtos = new List<TransactionDto>();
-            foreach (var dto in transactionDtos)
-            {
-                var entity = MapToEntity(dto);
-                var added = await _mediator.Send(new CreateTransactionCommand(entity));
-                addedDtos.Add(MapToDto(added));
-            }
+        var entities = transactionDtos.Select(MapToEntity).ToList();
 
-            return addedDtos;
-        }
-        catch (DbUpdateException ex)
-        {
-            // Preserve the original exception details
-            throw new InvalidOperationException($"Database update failed: {ex.Message}", ex);
-        }
-        catch (ValidationException ex)
-        {
-            // Handle validation errors specifically
-            var validationErrors = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage));
-            throw new InvalidOperationException($"Validation failed: {validationErrors}", ex);
-        }
-        catch (Exception ex)
-        {
-            // Handle any other exceptions
-            throw new InvalidOperationException($"An error occurred while adding transactions: {ex.Message}", ex);
-        }
+        // Bulk insert — one DB round-trip (N+1 fix for PF-039)
+        var result = await _supabase.From<Transaction>().Insert(entities);
+
+        return result.Models.Select(MapToDto).ToList();
     }
 
     public async Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos)
     {
-        var keys = transactionDtos
-             .Select(t => new
-             {
-                 t.Date,
-                 t.Description,
-                 t.Flow,
-                 t.Type,
-                 t.Wallet
-             })
-             .ToList();
+        var dtoList = transactionDtos.ToList();
+        var wallets = dtoList.Select(t => t.Wallet).Distinct().ToList();
 
-        var dates = keys.Select(k => k.Date).Distinct().ToList();
-        var descriptions = keys.Select(k => k.Description).Distinct().ToList();
-        var flows = keys.Select(k => k.Flow).Distinct().ToList();
-        var types = keys.Select(k => k.Type).Distinct().ToList();
-        var wallets = keys.Select(k => k.Wallet).Distinct().ToList();
-
-        var possibleMatches = await _dbContext.Transactions
-            .Where(t =>
-                dates.Contains(t.Date) &&
-                descriptions.Contains(t.Description) &&
-                flows.Contains(t.Flow) &&
-                types.Contains(t.Type) &&
-                wallets.Contains(t.Wallet))
-            .Select(t => new
-            {
-                t.Date,
-                t.Description,
-                t.Flow,
-                t.Type,
-                t.Wallet
-            })
-            .ToListAsync();
+        var result = await _supabase.From<Transaction>()
+            .Filter("wallet", Operator.In, wallets)
+            .Get();
 
         var existingKeySet = new HashSet<string>(
-            possibleMatches.Select(k => $"{k.Date:u}|{k.Description}|{k.Flow}|{k.Type}|{k.Wallet}")
+            result.Models.Select(t => $"{t.Date:u}|{t.Description}|{t.Flow}|{t.Type}|{t.Wallet}")
         );
 
-        return transactionDtos
-              .Where(t => !existingKeySet.Contains($"{t.Date:u}|{t.Description}|{t.Flow}|{t.Type}|{t.Wallet}"))
-              .ToList();
+        return dtoList
+            .Where(t => !existingKeySet.Contains($"{t.Date:u}|{t.Description}|{t.Flow}|{t.Type}|{t.Wallet}"))
+            .ToList();
     }
 
     public async Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(string? wallet)
     {
-        var transactionsQuery = _dbContext.Transactions.AsQueryable();
+        var query = _supabase.From<Transaction>()
+            .Order("date", Ordering.Ascending)
+            .Order("id", Ordering.Ascending);
 
         if (!string.IsNullOrEmpty(wallet))
-        {
-            transactionsQuery = transactionsQuery.Where(t => t.Wallet == wallet);
-        }
+            query = query.Filter("wallet", Operator.Equals, wallet);
 
-        var transactions = await transactionsQuery
-            .OrderBy(t => t.Date)
-            .ThenBy(t => t.Id)
-            .ToListAsync();
+        var result = await query.Get();
 
-        var result = new List<TransactionDto>();
-        decimal runningBalance = 0;
-
-        foreach (var t in transactions)
+        var runningBalance = 0m;
+        return result.Models.Select(t =>
         {
             runningBalance += t.Flow == "CR" ? t.AmountIdr : -t.AmountIdr;
             var dto = MapToDto(t);
             dto.Balance = runningBalance;
-            result.Add(dto);
-        }
-
-        return result;
+            return dto;
+        }).ToList();
     }
 
     public async Task<TransactionDto?> GetTransactionByIdAsync(int id)
     {
-        var entity = await _dbContext.Transactions.FindAsync(id);
+        var entity = await _supabase.From<Transaction>()
+            .Filter("id", Operator.Equals, id.ToString())
+            .Single();
         return entity == null ? null : MapToDto(entity);
     }
 
-    private static Transaction MapToEntity(TransactionDto dto)
+    private static Transaction MapToEntity(TransactionDto dto) => new()
     {
-        return new Transaction
-        {
-            Id = dto.Id,
-            Date = dto.Date,
-            Description = dto.Description,
-            Remarks = dto.Remarks,
-            Flow = dto.Flow,
-            Type = dto.Type,
-            Category = dto.Category,
-            Wallet = dto.Wallet,
-            AmountIdr = dto.AmountIdr,
-            Currency = dto.Currency,
-            ExchangeRate = dto.ExchangeRate
-        };
-    }
+        Date = dto.Date,
+        Description = dto.Description,
+        Remarks = dto.Remarks,
+        Flow = dto.Flow,
+        Type = dto.Type,
+        Category = dto.Category,
+        Wallet = dto.Wallet,
+        AmountIdr = dto.AmountIdr,
+        Currency = dto.Currency,
+        ExchangeRate = dto.ExchangeRate
+    };
 
-    private static TransactionDto MapToDto(Transaction entity)
+    private static TransactionDto MapToDto(Transaction t) => new()
     {
-        return new TransactionDto
-        {
-            Id = entity.Id,
-            Date = entity.Date,
-            Description = entity.Description,
-            Remarks = entity.Remarks,
-            Flow = entity.Flow,
-            Type = entity.Type,
-            Category = entity.Category,
-            Wallet = entity.Wallet,
-            AmountIdr = entity.AmountIdr,
-            Currency = entity.Currency,
-            ExchangeRate = entity.ExchangeRate,
-            // Balance is set in GetTransactionsWithBalanceAsync
-        };
-    }
+        Id = t.Id,
+        Date = t.Date,
+        Description = t.Description,
+        Remarks = t.Remarks,
+        Flow = t.Flow,
+        Type = t.Type,
+        Category = t.Category,
+        Wallet = t.Wallet,
+        AmountIdr = t.AmountIdr,
+        Currency = t.Currency,
+        ExchangeRate = t.ExchangeRate
+    };
 }
