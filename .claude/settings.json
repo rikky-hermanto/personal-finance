@@ -43,7 +43,9 @@
       "Bash(gh project *)",
       "Bash(powershell -Command \"npx supabase status 2>&1\")",
       "Bash(powershell -Command \"npx supabase status --output env 2>&1\")",
-      "Bash(powershell -Command \"Stop-Process -Id \\(Get-NetTCPConnection -LocalPort 7208 -ErrorAction SilentlyContinue\\).OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host 'API process stopped'\")"
+      "Bash(powershell -Command \"Stop-Process -Id \\(Get-NetTCPConnection -LocalPort 7208 -ErrorAction SilentlyContinue\\).OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host 'API process stopped'\")",
+      "Bash(powershell -Command \"Remove-Item -Recurse -Force 'c:\\\\workspaces\\\\personal-finance\\\\apps\\\\api\\\\src\\\\PersonalFinance.Persistence'\")",
+      "Bash(powershell -Command \"Stop-Process -Id 37420 -Force -ErrorAction SilentlyContinue; Write-Host 'done'\")"
     ],
     "deny": [
       "Bash(rm -rf *)",
