@@ -1,10 +1,19 @@
 using System.Text;
 using UglyToad.PdfPig;
+using Microsoft.Extensions.Logging;
  
 public class BankIdentifier : IBankIdentifier
 {
+    private readonly ILogger<BankIdentifier> _logger;
+
+    public BankIdentifier(ILogger<BankIdentifier> logger)
+    {
+        _logger = logger;
+    }
+
     public async Task<string?> IdentifyAsync(Stream stream, string contentType, string? pdfPassword = null)
     {
+        _logger.LogInformation("Identifying bank from stream with Content-Type: {ContentType}", contentType);
         if (contentType == "text/csv")
         {
             stream.Position = 0;
@@ -16,16 +25,18 @@ public class BankIdentifier : IBankIdentifier
                 if (line.Contains("Tanggal,Keterangan,Cabang,Jumlah,,Saldo", StringComparison.OrdinalIgnoreCase))
                 {
                     stream.Position = 0;
+                    _logger.LogDebug("Bank identified as BCA.");
                     return "BCA";
                 }
-                
+
                 // Check for standard CSV headers
-                if (line.Contains("Date", StringComparison.OrdinalIgnoreCase) && 
-                    (line.Contains("Item", StringComparison.OrdinalIgnoreCase) || 
+                if (line.Contains("Date", StringComparison.OrdinalIgnoreCase) &&
+                    (line.Contains("Item", StringComparison.OrdinalIgnoreCase) ||
                      line.Contains("Description", StringComparison.OrdinalIgnoreCase)) &&
                     line.Contains("Amount", StringComparison.OrdinalIgnoreCase))
                 {
                     stream.Position = 0;
+                    _logger.LogDebug("Bank identified as STANDARD.");
                     return "STANDARD";
                 }
             }
@@ -46,16 +57,19 @@ public class BankIdentifier : IBankIdentifier
                 if (firstPageText.Contains("NOW Savings", StringComparison.OrdinalIgnoreCase))
                 {
                     stream.Position = 0;
+                    _logger.LogDebug("Bank identified as NEOBANK.");
                     return "NEOBANK";
                 }
             }
-            catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException)
+            catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException ex)
             {
+                _logger.LogWarning(ex, "PDF Document is encrypted and requires a password.");
                 // Handle encrypted PDF without password
                 return null;
             }
             stream.Position = 0;
         }
+        _logger.LogDebug("Bank could not be identified.");
         return null;
     }
 }   

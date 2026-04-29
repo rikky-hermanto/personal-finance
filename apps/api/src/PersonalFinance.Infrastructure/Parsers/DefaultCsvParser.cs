@@ -3,18 +3,22 @@ using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using CsvHelper;
 using CsvHelper.Configuration;
+using Microsoft.Extensions.Logging;
 
 public class DefaultCsvParser : IBankStatementParser
 {
     private readonly ICategoryRuleService _categoryRuleService;
+    private readonly ILogger<DefaultCsvParser> _logger;
 
-    public DefaultCsvParser(ICategoryRuleService categoryRuleService)
+    public DefaultCsvParser(ICategoryRuleService categoryRuleService, ILogger<DefaultCsvParser> logger)
     {
         _categoryRuleService = categoryRuleService;
+        _logger = logger;
     }
 
     public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
     {
+        _logger.LogInformation("Starting default CSV parsing.");
         var transactions = new List<TransactionDto>();
 
         using var reader = new StreamReader(fileStream);
@@ -77,6 +81,7 @@ public class DefaultCsvParser : IBankStatementParser
             transactions.Add(transaction);
         }
 
+        _logger.LogInformation("Default CSV parsing complete. Parsed {Count} transactions.", transactions.Count);
         return transactions;
     }
 
