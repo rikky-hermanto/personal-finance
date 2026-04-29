@@ -58,5 +58,17 @@
       "Bash(dotnet ef database drop*)"
     ]
   },
-  "model": "opusplan"
+  "model": "opusplan",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/push-notify.sh"
+          }
+        ]
+      }
+    ]
+  }
 }
