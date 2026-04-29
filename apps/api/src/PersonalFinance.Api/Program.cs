@@ -24,15 +24,15 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<BcaCsvParser>();
             builder.Services.AddScoped<NeoBankPdfParser>();
             builder.Services.AddScoped<DefaultCsvParser>();
-            builder.Services.AddScoped<IStatementImportService>(sp =>
+            builder.Services.AddScoped<IStatementImportService>(serviceProvider =>
             {
                 var parsers = new Dictionary<string, IBankStatementParser>
                 {
-                    { "BCA", sp.GetRequiredService<BcaCsvParser>() },
-                    { "NEOBANK", sp.GetRequiredService<NeoBankPdfParser>() },
-                    { "STANDARD", sp.GetRequiredService<DefaultCsvParser>() }
+                    { "BCA", serviceProvider.GetRequiredService<BcaCsvParser>() },
+                    { "NEOBANK", serviceProvider.GetRequiredService<NeoBankPdfParser>() },
+                    { "STANDARD", serviceProvider.GetRequiredService<DefaultCsvParser>() }
                 };
-                return new StatementImportService(parsers);
+                return new StatementImportService(parsers, serviceProvider.GetRequiredService<ILogger<StatementImportService>>());
             });
             builder.Services.AddScoped<ICategoryRuleService, CategoryRuleService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
