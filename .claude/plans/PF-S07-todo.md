@@ -1,7 +1,7 @@
 # PF-S07 — Delete PersonalFinance.Persistence — Eliminate EF Core
 
 > **GitHub Issue:** [#70](https://github.com/rikky-hermanto/personal-finance/issues/70)
-> **Status:** Not Started
+> **Status:** Done ✅ (verified 2026-04-29)
 > **Phase:** Supabase Migration Phase 2 (step 7/13)
 > **Depends on:** PF-S06 (handlers/services rewritten to supabase-csharp — ✅ done)
 
@@ -11,13 +11,13 @@ Delete the `PersonalFinance.Persistence` project and all EF Core references from
 
 ## Acceptance Criteria
 
-- [ ] `src/PersonalFinance.Persistence/` directory fully deleted (all files including `obj/`, `bin/`)
-- [ ] Persistence project removed from `PersonalFinance.slnx`
-- [ ] `Application.csproj` no longer references Persistence (ARCH-01 resolved)
-- [ ] `Api.csproj` no longer references EF Core Design or PdfPig (ARCH-06 resolved)
-- [ ] `Tests.csproj` no longer references Persistence project or EF Core packages
-- [ ] `dotnet build PersonalFinance.slnx` passes with 0 errors, 0 warnings
-- [ ] `dotnet test` passes (all existing tests green)
+- [x] `src/PersonalFinance.Persistence/` directory fully deleted (all files including `obj/`, `bin/`)
+- [x] Persistence project removed from `PersonalFinance.slnx`
+- [x] `Application.csproj` no longer references Persistence (ARCH-01 resolved)
+- [x] `Api.csproj` no longer references EF Core Design or PdfPig (ARCH-06 resolved)
+- [x] `Tests.csproj` no longer references Persistence project or EF Core packages
+- [x] `dotnet build PersonalFinance.slnx` passes with 0 errors (3 pre-existing CS8618 warnings in ParsedFileResult.cs — unrelated to this task)
+- [x] `dotnet test` passes — 4 passed, 8 skipped (expected), 0 failed
 
 ## Approach
 
@@ -39,7 +39,7 @@ Out of scope: writing new tests, adding integration test harness (tracked in PF-
 
 ## TODO
 
-### [ ] STEP 1 — Remove Persistence from the solution file
+### [x] STEP 1 — Remove Persistence from the solution file
 
 Edit `apps/api/PersonalFinance.slnx`: delete the line referencing the Persistence project inside the `/src/` folder:
 
@@ -52,7 +52,7 @@ Edit `apps/api/PersonalFinance.slnx`: delete the line referencing the Persistenc
 
 ---
 
-### [ ] STEP 2 — Remove Persistence reference from Application.csproj
+### [x] STEP 2 — Remove Persistence reference from Application.csproj
 
 Edit `apps/api/src/PersonalFinance.Application/PersonalFinance.Application.csproj`: remove the `<ProjectReference>` to Persistence:
 
@@ -65,7 +65,7 @@ Edit `apps/api/src/PersonalFinance.Application/PersonalFinance.Application.cspro
 
 ---
 
-### [ ] STEP 3 — Remove EF Core Design and PdfPig from Api.csproj
+### [x] STEP 3 — Remove EF Core Design and PdfPig from Api.csproj
 
 Edit `apps/api/src/PersonalFinance.Api/PersonalFinance.Api.csproj`: remove these two `<PackageReference>` entries:
 
@@ -82,7 +82,7 @@ Edit `apps/api/src/PersonalFinance.Api/PersonalFinance.Api.csproj`: remove these
 
 ---
 
-### [ ] STEP 4 — Remove Persistence reference and EF packages from Tests.csproj
+### [x] STEP 4 — Remove Persistence reference and EF packages from Tests.csproj
 
 Edit `apps/api/tests/PersonalFinance.Tests/PersonalFinance.Tests.csproj`:
 
@@ -99,7 +99,7 @@ Edit `apps/api/tests/PersonalFinance.Tests/PersonalFinance.Tests.csproj`:
 
 ---
 
-### [ ] STEP 5 — Delete the Persistence project directory
+### [x] STEP 5 — Delete the Persistence project directory
 
 ```bash
 rm -rf apps/api/src/PersonalFinance.Persistence
@@ -109,7 +109,7 @@ rm -rf apps/api/src/PersonalFinance.Persistence
 
 ---
 
-### [ ] STEP 6 — Build and verify zero errors
+### [x] STEP 6 — Build and verify zero errors
 
 ```bash
 cd apps/api && dotnet build PersonalFinance.slnx
@@ -121,7 +121,7 @@ Expected: `Build succeeded. 0 Error(s) 0 Warning(s)` (or only pre-existing warni
 
 ---
 
-### [ ] STEP 7 — Run tests and confirm all pass
+### [x] STEP 7 — Run tests and confirm all pass
 
 ```bash
 cd apps/api && dotnet test
