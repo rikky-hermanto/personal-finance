@@ -31,6 +31,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Local .NET dev settings — copy from appsettings.Development.example.json
+appsettings.Development.json
+
 # Claude Code worktrees (stale branches from past sessions)
 .claude/worktrees/
 services/ai-service/.env
