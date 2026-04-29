@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 
@@ -94,9 +94,9 @@ public class TransactionsController : ControllerBase
         {
             return BadRequest(ex.Message);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Failed to parse file: {ex.Message}");
+            return StatusCode(500, new { Message = "File processing failed." });
         }
     }
 
@@ -273,9 +273,9 @@ public class TransactionsController : ControllerBase
             
             return Ok(dashboardData);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            return StatusCode(500, $"Failed to retrieve dashboard data: {ex.Message}");
+            return StatusCode(500, new { Message = "Failed to retrieve dashboard data." });
         }
     }
 }
