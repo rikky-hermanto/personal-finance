@@ -3,6 +3,7 @@ using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 public class NeoBankPdfParser : IBankStatementParser
 {
@@ -12,14 +13,17 @@ public class NeoBankPdfParser : IBankStatementParser
     private static readonly Regex AmountRegex = new(@"-?[\d.]+,\d{2}", RegexOptions.Compiled);
 
     private readonly ICategoryRuleService _categoryRuleService;
+    private readonly ILogger<NeoBankPdfParser> _logger;
 
-    public NeoBankPdfParser(ICategoryRuleService categoryRuleService)
+    public NeoBankPdfParser(ICategoryRuleService categoryRuleService, ILogger<NeoBankPdfParser> logger)
     {
         _categoryRuleService = categoryRuleService;
+        _logger = logger;
     }
 
     public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
     {
+        _logger.LogInformation("Starting PDF parse for NeoBank.");
         var transactions = new List<TransactionDto>();
         using var pdf = password == null
             ? PdfDocument.Open(fileStream)
@@ -111,10 +115,11 @@ public class NeoBankPdfParser : IBankStatementParser
             }
             catch (Exception ex)
             {
-                LogSkip(entry, $"Exception: {ex.Message}");
+                _logger.LogWarning(ex, "Skipped entry due to exception. Raw: {RawEntry}", entry.Substring(0, Math.Min(100, entry.Length)));
             }
         }
 
+        _logger.LogInformation("NeoBank PDF parsing complete. Parsed {Count} transactions.", transactions.Count);
         return transactions;
     }
 
@@ -124,8 +129,8 @@ public class NeoBankPdfParser : IBankStatementParser
         return decimal.TryParse(normalized, NumberStyles.Any, CultureInfo.InvariantCulture, out value);
     }
 
-    private static void LogSkip(string rawEntry, string reason)
+    private void LogSkip(string rawEntry, string reason)
     {
-        Console.WriteLine($"[NeoBankPdfParser] Skipped Entry: {reason}\n? {rawEntry.Substring(0, Math.Min(100, rawEntry.Length))}\n");
+        _logger.LogWarning("Skipped Entry: {Reason}. Raw: {RawEntry}", reason, rawEntry.Substring(0, Math.Min(100, rawEntry.Length)));
     }
 }

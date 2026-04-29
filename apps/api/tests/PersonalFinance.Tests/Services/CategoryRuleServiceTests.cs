@@ -4,20 +4,23 @@ using PersonalFinance.Application.Dtos;
 using PersonalFinance.Domain.Entities;
 using MediatR;
 using PersonalFinance.Application.Commands;
+using Microsoft.Extensions.Logging;
 
 namespace PersonalFinance.Tests.Services;
 
 public class CategoryRuleServiceTests
 {
     private readonly Mock<IMediator> _mediatorMock;
+    private readonly Mock<ILogger<CategoryRuleService>> _loggerMock;
     private readonly CategoryRuleService _service;
 
     public CategoryRuleServiceTests()
     {
         _mediatorMock = new Mock<IMediator>();
+        _loggerMock = new Mock<ILogger<CategoryRuleService>>();
         // Supabase.Client is a concrete class — pass null for tests that only exercise the MediatR-delegating methods.
         // Tests requiring a real Supabase connection are skipped until an integration test harness exists (see PF-034).
-        _service = new CategoryRuleService(null!, _mediatorMock.Object);
+        _service = new CategoryRuleService(null!, _mediatorMock.Object, _loggerMock.Object);
     }
 
     [Fact(Skip = "Requires Supabase integration — EF Core removed in PF-S06, integration harness tracked in PF-034")]
