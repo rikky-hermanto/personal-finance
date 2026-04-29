@@ -4,20 +4,24 @@ using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using static Supabase.Postgrest.Constants;
+using Microsoft.Extensions.Logging;
 
 public class CategoryRuleService : ICategoryRuleService
 {
     private readonly Supabase.Client _supabase;
     private readonly IMediator _mediator;
+    private readonly ILogger<CategoryRuleService> _logger;
 
-    public CategoryRuleService(Supabase.Client supabase, IMediator mediator)
+    public CategoryRuleService(Supabase.Client supabase, IMediator mediator, ILogger<CategoryRuleService> logger)
     {
         _supabase = supabase;
         _mediator = mediator;
+        _logger = logger;
     }
 
     public async Task<string> CategorizeAsync(string description, string type)
     {
+        _logger.LogDebug("Categorizing description of type {Type}", type);
         var result = await _supabase.From<CategoryRule>()
             .Filter("type", Operator.ILike, type)
             .Order("keyword_length", Ordering.Descending)
