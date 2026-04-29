@@ -1,18 +1,22 @@
 using System.Globalization;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
+using Microsoft.Extensions.Logging;
 
 public class BcaCsvParser : IBankStatementParser
 {
     private readonly ICategoryRuleService _categoryRuleService;
+    private readonly ILogger<BcaCsvParser> _logger;
 
-    public BcaCsvParser(ICategoryRuleService categoryRuleService)
+    public BcaCsvParser(ICategoryRuleService categoryRuleService, ILogger<BcaCsvParser> logger)
     {
         _categoryRuleService = categoryRuleService;
+        _logger = logger;
     }
 
     public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
     {
+        _logger.LogInformation("Starting BCA CSV parsing.");
         var transactions = new List<TransactionDto>();
         using var reader = new StreamReader(fileStream);
 
@@ -24,7 +28,10 @@ public class BcaCsvParser : IBankStatementParser
                 break;
         }
         if (header == null)
+        {
+            _logger.LogWarning("BCA CSV header not found.");
             throw new InvalidDataException("BCA CSV header not found");
+        }
 
         string? line;
         while ((line = await reader.ReadLineAsync()) != null)
@@ -80,6 +87,7 @@ public class BcaCsvParser : IBankStatementParser
             transactions.Add(transaction);
         }
 
+        _logger.LogInformation("BCA CSV parsing complete. Parsed {Count} transactions.", transactions.Count);
         return transactions;
     }
 
