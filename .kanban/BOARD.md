@@ -33,6 +33,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-S05 | [#68](https://github.com/rikky-hermanto/personal-finance/issues/68) | Annotate Domain entities for Supabase PostgREST |
 | PF-S06 | [#69](https://github.com/rikky-hermanto/personal-finance/issues/69) | Rewrite CQRS handlers + services — DbContext → supabase-csharp |
 | PF-S07 | [#70](https://github.com/rikky-hermanto/personal-finance/issues/70) | Delete PersonalFinance.Persistence project — eliminate EF Core |
+| PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
 
 ---
 
@@ -42,7 +43,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 |----|-------|-------|
 | PF-010 | [#18](https://github.com/rikky-hermanto/personal-finance/issues/18) | Structured Output — Text → JSON via LLM |
 | PF-011 | [#19](https://github.com/rikky-hermanto/personal-finance/issues/19) | FastAPI AI Microservice Scaffold |
-| PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
 | PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
 | PF-031 | [#39](https://github.com/rikky-hermanto/personal-finance/issues/39) | Extract dashboard aggregation from controller |
 
