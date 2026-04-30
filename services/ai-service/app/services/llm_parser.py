@@ -20,13 +20,16 @@ EXTRACT_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "date":        {"type": "string", "description": "ISO 8601: YYYY-MM-DD"},
-                    "description": {"type": "string"},
-                    "flow":        {"type": "string", "enum": ["DB", "CR"]},
-                    "amount_idr":  {"type": "number"},
-                    "currency":    {"type": "string"},
-                    "wallet":      {"type": "string"},
-                    "raw_text":    {"type": "string"},
+                    "date":          {"type": "string", "description": "ISO 8601: YYYY-MM-DD"},
+                    "description":   {"type": "string"},
+                    "remarks":       {"type": "string", "description": "Secondary description or memo"},
+                    "flow":          {"type": "string", "enum": ["DB", "CR"]},
+                    "type":          {"type": "string", "enum": ["Expense", "Income"]},
+                    "amount_idr":    {"type": "number"},
+                    "currency":      {"type": "string"},
+                    "exchange_rate": {"type": "number"},
+                    "wallet":        {"type": "string"},
+                    "raw_text":      {"type": "string"},
                 },
                 "required": ["date", "description", "flow", "amount_idr"],
             },
@@ -40,6 +43,8 @@ SYSTEM_PROMPT = (
     "Extract ALL transactions from the bank statement text. "
     "Normalize dates to YYYY-MM-DD format. "
     "Use DB for debit/withdrawal, CR for credit/deposit. "
+    "Set type to Expense for DB and Income for CR unless context clearly indicates otherwise. "
+    "Populate remarks with any secondary description, reference number, or memo field present. "
 )
 
 
