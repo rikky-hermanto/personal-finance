@@ -1,0 +1,179 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - img [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: Finance
+              - generic [ref=e12]: Personal tracker
+          - button [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - button "New upload" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e20]: New upload
+        - navigation [ref=e21]:
+          - list [ref=e22]:
+            - listitem [ref=e23]:
+              - button "Dashboard" [ref=e24] [cursor=pointer]:
+                - img [ref=e25]
+                - generic [ref=e27]: Dashboard
+            - listitem [ref=e28]:
+              - button "Upload" [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+                - generic [ref=e33]: Upload
+            - listitem [ref=e34]:
+              - button "Transactions" [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - generic [ref=e37]: Transactions
+            - listitem [ref=e38]:
+              - button "Categories" [ref=e39] [cursor=pointer]:
+                - img [ref=e40]
+                - generic [ref=e43]: Categories
+            - listitem [ref=e44]:
+              - button "Settings" [ref=e45] [cursor=pointer]:
+                - img [ref=e46]
+                - generic [ref=e49]: Settings
+      - main [ref=e50]:
+        - generic [ref=e51]:
+          - generic [ref=e52]:
+            - tablist [ref=e54]:
+              - tab "All Wallets" [selected] [ref=e55] [cursor=pointer]
+              - tab "BCA" [ref=e56] [cursor=pointer]
+              - tab "Superbank" [ref=e57] [cursor=pointer]
+              - tab "Neo" [ref=e58] [cursor=pointer]
+              - tab "Wise" [ref=e59] [cursor=pointer]
+              - tab "Jago" [ref=e60] [cursor=pointer]
+            - generic [ref=e61]:
+              - generic [ref=e63]:
+                - generic [ref=e64]: Net
+                - generic [ref=e65]: Rp 26.084.337,74
+                - generic [ref=e66]: ▴
+              - generic [ref=e67]: Updated Apr 30
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - generic [ref=e70]:
+                - generic [ref=e71]:
+                  - generic [ref=e72]:
+                    - generic [ref=e73]: BCA
+                    - generic [ref=e74]: Rp 18.4M
+                  - generic [ref=e75]: ▴ 2.3%
+                - img [ref=e78]
+              - generic [ref=e81]:
+                - generic [ref=e82]:
+                  - generic [ref=e83]:
+                    - generic [ref=e84]: Superbank
+                    - generic [ref=e85]: Rp 5.0M
+                  - generic [ref=e86]: ▾ 1.5%
+                - img [ref=e89]
+              - generic [ref=e92]:
+                - generic [ref=e93]:
+                  - generic [ref=e94]:
+                    - generic [ref=e95]: Neo
+                    - generic [ref=e96]: Rp 11.2M
+                  - generic [ref=e97]: ▴ 5.0%
+                - img [ref=e100]
+              - generic [ref=e103]:
+                - generic [ref=e104]:
+                  - generic [ref=e105]:
+                    - generic [ref=e106]: Wise
+                    - generic [ref=e107]: $215
+                  - generic [ref=e108]: ▴ 0.8%
+                - img [ref=e111]
+              - generic [ref=e114]:
+                - generic [ref=e115]:
+                  - generic [ref=e116]:
+                    - generic [ref=e117]: Jago
+                    - generic [ref=e118]: Rp 950k
+                  - generic [ref=e119]: ▾ 0.2%
+                - img [ref=e122]
+            - generic [ref=e125]:
+              - generic [ref=e126]:
+                - generic [ref=e127]:
+                  - generic [ref=e128]:
+                    - heading "Cash Flow" [level=3] [ref=e129]
+                    - generic [ref=e130]: Last 6 months
+                  - img [ref=e133]:
+                    - generic [ref=e135]:
+                      - generic [ref=e137]: Feb 25
+                      - generic [ref=e139]: Jan 25
+                - generic [ref=e146]:
+                  - generic [ref=e147]:
+                    - heading "Top Categories" [level=3] [ref=e148]
+                    - generic [ref=e149]: April 2025
+                  - generic [ref=e150]:
+                    - button "Charity Rp 1.000.000 55.6%" [ref=e151] [cursor=pointer]:
+                      - generic [ref=e154]: Charity
+                      - generic [ref=e155]:
+                        - generic [ref=e156]: Rp 1.000.000
+                        - generic [ref=e157]: 55.6%
+                    - button "Transfer Out Rp 800.000 44.4%" [ref=e158] [cursor=pointer]:
+                      - generic [ref=e161]: Transfer Out
+                      - generic [ref=e162]:
+                        - generic [ref=e163]: Rp 800.000
+                        - generic [ref=e164]: 44.4%
+                  - paragraph [ref=e165]: Click category to view transactions
+              - generic [ref=e166]:
+                - generic [ref=e167]:
+                  - heading "Spending Breakdown" [level=3] [ref=e168]
+                  - generic [ref=e169]: April 2025
+                - region [ref=e171]:
+                  - img [ref=e172]:
+                    - generic [ref=e173]:
+                      - generic [ref=e179] [cursor=pointer]:
+                        - generic [ref=e181]: Charity
+                        - generic [ref=e182]: Rp 1.0M
+                      - generic [ref=e185] [cursor=pointer]:
+                        - generic [ref=e187]: Transfer Out
+                        - generic [ref=e188]: Rp 0.8M
+      - generic [ref=e189]:
+        - generic [ref=e190]:
+          - generic [ref=e191]: Recent
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - generic [ref=e197]: TRANSFER IN SYAFTRACO 702319…
+                - generic [ref=e198]: +10.125.304
+              - generic [ref=e199]: Neo Savings
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - generic [ref=e204]: TRANSFER OUT RIKKI H HASIBUA…
+                - generic [ref=e205]: −800.000
+              - generic [ref=e206]: Neo Savings
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - generic [ref=e211]: Opening Balance
+                - generic [ref=e212]: +2.828.700,84
+              - generic [ref=e213]: Neo Savings
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e218]: SAVING INTEREST
+                - generic [ref=e219]: +329,36
+              - generic [ref=e220]: Neo Savings
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e225]: TRANSFER OUT YAYASAN BALI RE…
+                - generic [ref=e226]: −1.000.000
+              - generic [ref=e227]: Neo Savings
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e232]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e233]: −55.440
+              - generic [ref=e234]: Superbank
+            - generic [ref=e235]:
+              - generic [ref=e236]:
+                - generic [ref=e239]: TRSF E-BANKING DB 0602/FTSCY…
+                - generic [ref=e240]: −24.000
+              - generic [ref=e241]: Superbank
+            - generic [ref=e242]:
+              - generic [ref=e243]:
+                - generic [ref=e246]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e247]: −31.000
+              - generic [ref=e248]: Superbank
+        - generic [ref=e249]:
+          - text: Processing
+          - paragraph [ref=e250]: No active uploads
+  - generic [ref=e251]: Apr 25

@@ -1,0 +1,784 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - img [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: Finance
+              - generic [ref=e12]: Personal tracker
+          - button [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - button "New upload" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e20]: New upload
+        - navigation [ref=e21]:
+          - list [ref=e22]:
+            - listitem [ref=e23]:
+              - button "Dashboard" [ref=e24] [cursor=pointer]:
+                - img [ref=e25]
+                - generic [ref=e27]: Dashboard
+            - listitem [ref=e28]:
+              - button "Upload" [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+                - generic [ref=e33]: Upload
+            - listitem [ref=e34]:
+              - button "Transactions" [active] [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - generic [ref=e37]: Transactions
+            - listitem [ref=e38]:
+              - button "Categories" [ref=e39] [cursor=pointer]:
+                - img [ref=e40]
+                - generic [ref=e43]: Categories
+            - listitem [ref=e44]:
+              - button "Settings" [ref=e45] [cursor=pointer]:
+                - img [ref=e46]
+                - generic [ref=e49]: Settings
+      - main [ref=e50]:
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - heading "Transactions" [level=1] [ref=e255]
+            - paragraph [ref=e256]: View and manage all your transactions
+          - generic [ref=e257]:
+            - generic [ref=e258]:
+              - generic [ref=e259]:
+                - img [ref=e260]
+                - textbox "Search transactions…" [ref=e263]
+              - combobox [ref=e264]:
+                - option "All Categories" [selected]
+                - option "Bill"
+                - option "Food"
+                - option "Groceries"
+                - option "Medical"
+                - option "Transfer/Admin Fee"
+                - option "Untracked Category"
+                - option "Vet and Dog Supply"
+                - option "Withdrawing"
+              - combobox [ref=e265]:
+                - option "All Types" [selected]
+                - option "Income"
+                - option "Expense"
+            - table [ref=e267]:
+              - rowgroup [ref=e268]:
+                - row "Date Description Category Wallet Amount Balance" [ref=e269]:
+                  - columnheader "Date" [ref=e270] [cursor=pointer]:
+                    - text: Date
+                    - img [ref=e271]
+                  - columnheader "Description" [ref=e273]
+                  - columnheader "Category" [ref=e274]
+                  - columnheader "Wallet" [ref=e275]
+                  - columnheader "Amount" [ref=e276] [cursor=pointer]
+                  - columnheader "Balance" [ref=e277]
+                  - columnheader [ref=e278]
+              - rowgroup [ref=e279]:
+                - 'row "28 Feb 2026 TRANSAKSI DEBIT TGL: 0228 QR 002 00000.00- DIPTA SA Untracked Category BCA −Rp 25.000 -Rp 670.826" [ref=e280]':
+                  - cell "28 Feb 2026" [ref=e281]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0228 QR 002 00000.00- DIPTA SA" [ref=e282]'
+                  - cell "Untracked Category" [ref=e283]:
+                    - generic [ref=e284]: Untracked Category
+                  - cell "BCA" [ref=e285]
+                  - cell "−Rp 25.000" [ref=e286]
+                  - cell "-Rp 670.826" [ref=e287]
+                  - cell [ref=e288]:
+                    - button [ref=e289] [cursor=pointer]:
+                      - img [ref=e290]
+                - row "28 Feb 2026 KARTU DEBIT GRANDLUCKY SANUR H Groceries BCA −Rp 99.500 -Rp 770.326" [ref=e292]:
+                  - cell "28 Feb 2026" [ref=e293]
+                  - cell "KARTU DEBIT GRANDLUCKY SANUR H" [ref=e294]
+                  - cell "Groceries" [ref=e295]:
+                    - generic [ref=e296]: Groceries
+                  - cell "BCA" [ref=e297]
+                  - cell "−Rp 99.500" [ref=e298]
+                  - cell "-Rp 770.326" [ref=e299]
+                  - cell [ref=e300]:
+                    - button [ref=e301] [cursor=pointer]:
+                      - img [ref=e302]
+                - row "27 Feb 2026 BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN Untracked Category BCA +Rp 800.000 -Rp 150.950" [ref=e304]:
+                  - cell "27 Feb 2026" [ref=e305]
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e306]
+                  - cell "Untracked Category" [ref=e307]:
+                    - generic [ref=e308]: Untracked Category
+                  - cell "BCA" [ref=e309]
+                  - cell "+Rp 800.000" [ref=e310]
+                  - cell "-Rp 150.950" [ref=e311]
+                  - cell [ref=e312]:
+                    - button [ref=e313] [cursor=pointer]:
+                      - img [ref=e314]
+                - 'row "27 Feb 2026 TRANSAKSI DEBIT TGL: 0227 QR 014 00000.00DEPOT HENG Untracked Category BCA −Rp 194.876 -Rp 345.826" [ref=e316]':
+                  - cell "27 Feb 2026" [ref=e317]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0227 QR 014 00000.00DEPOT HENG" [ref=e318]'
+                  - cell "Untracked Category" [ref=e319]:
+                    - generic [ref=e320]: Untracked Category
+                  - cell "BCA" [ref=e321]
+                  - cell "−Rp 194.876" [ref=e322]
+                  - cell "-Rp 345.826" [ref=e323]
+                  - cell [ref=e324]:
+                    - button [ref=e325] [cursor=pointer]:
+                      - img [ref=e326]
+                - row "27 Feb 2026 TARIKAN ATM TARIKAN ATM 27/02 Withdrawing BCA −Rp 300.000 -Rp 645.826" [ref=e328]:
+                  - cell "27 Feb 2026" [ref=e329]
+                  - cell "TARIKAN ATM TARIKAN ATM 27/02" [ref=e330]
+                  - cell "Withdrawing" [ref=e331]:
+                    - generic [ref=e332]: Withdrawing
+                  - cell "BCA" [ref=e333]
+                  - cell "−Rp 300.000" [ref=e334]
+                  - cell "-Rp 645.826" [ref=e335]
+                  - cell [ref=e336]:
+                    - button [ref=e337] [cursor=pointer]:
+                      - img [ref=e338]
+                - row "26 Feb 2026 TARIKAN ATM TARIKAN ATM 26/02 Withdrawing BCA −Rp 300.000 -Rp 904.950" [ref=e340]:
+                  - cell "26 Feb 2026" [ref=e341]
+                  - cell "TARIKAN ATM TARIKAN ATM 26/02" [ref=e342]
+                  - cell "Withdrawing" [ref=e343]:
+                    - generic [ref=e344]: Withdrawing
+                  - cell "BCA" [ref=e345]
+                  - cell "−Rp 300.000" [ref=e346]
+                  - cell "-Rp 904.950" [ref=e347]
+                  - cell [ref=e348]:
+                    - button [ref=e349] [cursor=pointer]:
+                      - img [ref=e350]
+                - 'row "26 Feb 2026 TRANSAKSI DEBIT TGL: 0226 QR 002 00000.00WARUNG DWI Food BCA −Rp 46.000 -Rp 950.950" [ref=e352]':
+                  - cell "26 Feb 2026" [ref=e353]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0226 QR 002 00000.00WARUNG DWI" [ref=e354]'
+                  - cell "Food" [ref=e355]:
+                    - generic [ref=e356]: Food
+                  - cell "BCA" [ref=e357]
+                  - cell "−Rp 46.000" [ref=e358]
+                  - cell "-Rp 950.950" [ref=e359]
+                  - cell [ref=e360]:
+                    - button [ref=e361] [cursor=pointer]:
+                      - img [ref=e362]
+                - row "25 Feb 2026 BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN Untracked Category BCA +Rp 800.000 -Rp 405.985" [ref=e364]:
+                  - cell "25 Feb 2026" [ref=e365]
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e366]
+                  - cell "Untracked Category" [ref=e367]:
+                    - generic [ref=e368]: Untracked Category
+                  - cell "BCA" [ref=e369]
+                  - cell "+Rp 800.000" [ref=e370]
+                  - cell "-Rp 405.985" [ref=e371]
+                  - cell [ref=e372]:
+                    - button [ref=e373] [cursor=pointer]:
+                      - img [ref=e374]
+                - row "25 Feb 2026 KARTU DEBIT GRANDLUCKY SANUR H Groceries BCA −Rp 80.000 -Rp 485.985" [ref=e376]:
+                  - cell "25 Feb 2026" [ref=e377]
+                  - cell "KARTU DEBIT GRANDLUCKY SANUR H" [ref=e378]
+                  - cell "Groceries" [ref=e379]:
+                    - generic [ref=e380]: Groceries
+                  - cell "BCA" [ref=e381]
+                  - cell "−Rp 80.000" [ref=e382]
+                  - cell "-Rp 485.985" [ref=e383]
+                  - cell [ref=e384]:
+                    - button [ref=e385] [cursor=pointer]:
+                      - img [ref=e386]
+                - 'row "25 Feb 2026 TRANSAKSI DEBIT TGL: 0225 QR 009 00000.00MEN RAMEN Untracked Category BCA −Rp 118.965 -Rp 604.950" [ref=e388]':
+                  - cell "25 Feb 2026" [ref=e389]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0225 QR 009 00000.00MEN RAMEN" [ref=e390]'
+                  - cell "Untracked Category" [ref=e391]:
+                    - generic [ref=e392]: Untracked Category
+                  - cell "BCA" [ref=e393]
+                  - cell "−Rp 118.965" [ref=e394]
+                  - cell "-Rp 604.950" [ref=e395]
+                  - cell [ref=e396]:
+                    - button [ref=e397] [cursor=pointer]:
+                      - img [ref=e398]
+                - row "23 Feb 2026 TARIKAN ATM TARIKAN ATM 23/02 Withdrawing BCA −Rp 300.000 -Rp 1.205.985" [ref=e400]:
+                  - cell "23 Feb 2026" [ref=e401]
+                  - cell "TARIKAN ATM TARIKAN ATM 23/02" [ref=e402]
+                  - cell "Withdrawing" [ref=e403]:
+                    - generic [ref=e404]: Withdrawing
+                  - cell "BCA" [ref=e405]
+                  - cell "−Rp 300.000" [ref=e406]
+                  - cell "-Rp 1.205.985" [ref=e407]
+                  - cell [ref=e408]:
+                    - button [ref=e409] [cursor=pointer]:
+                      - img [ref=e410]
+                - 'row "22 Feb 2026 TRANSAKSI DEBIT TGL: 0222 QR 014 00000.00ARYS MIKRO Groceries BCA −Rp 33.500 -Rp 905.985" [ref=e412]':
+                  - cell "22 Feb 2026" [ref=e413]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0222 QR 014 00000.00ARYS MIKRO" [ref=e414]'
+                  - cell "Groceries" [ref=e415]:
+                    - generic [ref=e416]: Groceries
+                  - cell "BCA" [ref=e417]
+                  - cell "−Rp 33.500" [ref=e418]
+                  - cell "-Rp 905.985" [ref=e419]
+                  - cell [ref=e420]:
+                    - button [ref=e421] [cursor=pointer]:
+                      - img [ref=e422]
+                - 'row "21 Feb 2026 TRANSAKSI DEBIT TGL: 0221 QR 002 00000.00- DIPTA SA Untracked Category BCA −Rp 25.000 -Rp 489.162" [ref=e424]':
+                  - cell "21 Feb 2026" [ref=e425]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0221 QR 002 00000.00- DIPTA SA" [ref=e426]'
+                  - cell "Untracked Category" [ref=e427]:
+                    - generic [ref=e428]: Untracked Category
+                  - cell "BCA" [ref=e429]
+                  - cell "−Rp 25.000" [ref=e430]
+                  - cell "-Rp 489.162" [ref=e431]
+                  - cell [ref=e432]:
+                    - button [ref=e433] [cursor=pointer]:
+                      - img [ref=e434]
+                - row "21 Feb 2026 BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN Untracked Category BCA +Rp 800.000 Rp 310.838" [ref=e436]:
+                  - cell "21 Feb 2026" [ref=e437]
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e438]
+                  - cell "Untracked Category" [ref=e439]:
+                    - generic [ref=e440]: Untracked Category
+                  - cell "BCA" [ref=e441]
+                  - cell "+Rp 800.000" [ref=e442]
+                  - cell "Rp 310.838" [ref=e443]
+                  - cell [ref=e444]:
+                    - button [ref=e445] [cursor=pointer]:
+                      - img [ref=e446]
+                - row "21 Feb 2026 KARTU KREDIT/PL 0100 BCA CARD 5409120041132608 RIKKI H HASIBUAN Bill BCA −Rp 756.891 -Rp 446.053" [ref=e448]:
+                  - cell "21 Feb 2026" [ref=e449]
+                  - cell "KARTU KREDIT/PL 0100 BCA CARD 5409120041132608 RIKKI H HASIBUAN" [ref=e450]
+                  - cell "Bill" [ref=e451]:
+                    - generic [ref=e452]: Bill
+                  - cell "BCA" [ref=e453]
+                  - cell "−Rp 756.891" [ref=e454]
+                  - cell "-Rp 446.053" [ref=e455]
+                  - cell [ref=e456]:
+                    - button [ref=e457] [cursor=pointer]:
+                      - img [ref=e458]
+                - row "21 Feb 2026 TRSF E-BANKING DB 2102/FTFVA/WS9503171262/Telkomsel PO08123488851 Bill BCA −Rp 126.432 -Rp 572.485" [ref=e460]:
+                  - cell "21 Feb 2026" [ref=e461]
+                  - cell "TRSF E-BANKING DB 2102/FTFVA/WS9503171262/Telkomsel PO08123488851" [ref=e462]
+                  - cell "Bill" [ref=e463]:
+                    - generic [ref=e464]: Bill
+                  - cell "BCA" [ref=e465]
+                  - cell "−Rp 126.432" [ref=e466]
+                  - cell "-Rp 572.485" [ref=e467]
+                  - cell [ref=e468]:
+                    - button [ref=e469] [cursor=pointer]:
+                      - img [ref=e470]
+                - row "21 Feb 2026 TARIKAN ATM TARIKAN ATM 21/02 Withdrawing BCA −Rp 300.000 -Rp 872.485" [ref=e472]:
+                  - cell "21 Feb 2026" [ref=e473]
+                  - cell "TARIKAN ATM TARIKAN ATM 21/02" [ref=e474]
+                  - cell "Withdrawing" [ref=e475]:
+                    - generic [ref=e476]: Withdrawing
+                  - cell "BCA" [ref=e477]
+                  - cell "−Rp 300.000" [ref=e478]
+                  - cell "-Rp 872.485" [ref=e479]
+                  - cell [ref=e480]:
+                    - button [ref=e481] [cursor=pointer]:
+                      - img [ref=e482]
+                - row "20 Feb 2026 BIAYA ADM Transfer/Admin Fee BCA −Rp 17.000 -Rp 464.162" [ref=e484]:
+                  - cell "20 Feb 2026" [ref=e485]
+                  - cell "BIAYA ADM" [ref=e486]
+                  - cell "Transfer/Admin Fee" [ref=e487]:
+                    - generic [ref=e488]: Transfer/Admin Fee
+                  - cell "BCA" [ref=e489]
+                  - cell "−Rp 17.000" [ref=e490]
+                  - cell "-Rp 464.162" [ref=e491]
+                  - cell [ref=e492]:
+                    - button [ref=e493] [cursor=pointer]:
+                      - img [ref=e494]
+                - row "19 Feb 2026 TARIKAN ATM TARIKAN ATM 19/02 Withdrawing BCA −Rp 300.000 -Rp 347.162" [ref=e496]:
+                  - cell "19 Feb 2026" [ref=e497]
+                  - cell "TARIKAN ATM TARIKAN ATM 19/02" [ref=e498]
+                  - cell "Withdrawing" [ref=e499]:
+                    - generic [ref=e500]: Withdrawing
+                  - cell "BCA" [ref=e501]
+                  - cell "−Rp 300.000" [ref=e502]
+                  - cell "-Rp 347.162" [ref=e503]
+                  - cell [ref=e504]:
+                    - button [ref=e505] [cursor=pointer]:
+                      - img [ref=e506]
+                - row "19 Feb 2026 DB DEBIT DOMESTIK TRN DEBIT DOM 022 KLINIK HEWAN LISTR Medical BCA −Rp 100.000 -Rp 447.162" [ref=e508]:
+                  - cell "19 Feb 2026" [ref=e509]
+                  - cell "DB DEBIT DOMESTIK TRN DEBIT DOM 022 KLINIK HEWAN LISTR" [ref=e510]
+                  - cell "Medical" [ref=e511]:
+                    - generic [ref=e512]: Medical
+                  - cell "BCA" [ref=e513]
+                  - cell "−Rp 100.000" [ref=e514]
+                  - cell "-Rp 447.162" [ref=e515]
+                  - cell [ref=e516]:
+                    - button [ref=e517] [cursor=pointer]:
+                      - img [ref=e518]
+                - row "18 Feb 2026 BI-FAST CR TRANSFER DR 490 RIKKI H HASIBUAN Untracked Category BCA +Rp 2.000.000 Rp 915.126" [ref=e520]:
+                  - cell "18 Feb 2026" [ref=e521]
+                  - cell "BI-FAST CR TRANSFER DR 490 RIKKI H HASIBUAN" [ref=e522]
+                  - cell "Untracked Category" [ref=e523]:
+                    - generic [ref=e524]: Untracked Category
+                  - cell "BCA" [ref=e525]
+                  - cell "+Rp 2.000.000" [ref=e526]
+                  - cell "Rp 915.126" [ref=e527]
+                  - cell [ref=e528]:
+                    - button [ref=e529] [cursor=pointer]:
+                      - img [ref=e530]
+                - row "18 Feb 2026 TARIKAN ATM TARIKAN ATM 18/02 Withdrawing BCA −Rp 300.000 Rp 615.126" [ref=e532]:
+                  - cell "18 Feb 2026" [ref=e533]
+                  - cell "TARIKAN ATM TARIKAN ATM 18/02" [ref=e534]
+                  - cell "Withdrawing" [ref=e535]:
+                    - generic [ref=e536]: Withdrawing
+                  - cell "BCA" [ref=e537]
+                  - cell "−Rp 300.000" [ref=e538]
+                  - cell "Rp 615.126" [ref=e539]
+                  - cell [ref=e540]:
+                    - button [ref=e541] [cursor=pointer]:
+                      - img [ref=e542]
+                - row "18 Feb 2026 BYR VIA E-BANKING Untracked Category BCA −Rp 662.288 -Rp 47.162" [ref=e544]:
+                  - cell "18 Feb 2026" [ref=e545]
+                  - cell "BYR VIA E-BANKING" [ref=e546]
+                  - cell "Untracked Category" [ref=e547]:
+                    - generic [ref=e548]: Untracked Category
+                  - cell "BCA" [ref=e549]
+                  - cell "−Rp 662.288" [ref=e550]
+                  - cell "-Rp 47.162" [ref=e551]
+                  - cell [ref=e552]:
+                    - button [ref=e553] [cursor=pointer]:
+                      - img [ref=e554]
+                - 'row "16 Feb 2026 TRANSAKSI DEBIT TGL: 0216 QR 014 00000.00only donut Food BCA −Rp 28.000 -Rp 748.874" [ref=e556]':
+                  - cell "16 Feb 2026" [ref=e557]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0216 QR 014 00000.00only donut" [ref=e558]'
+                  - cell "Food" [ref=e559]:
+                    - generic [ref=e560]: Food
+                  - cell "BCA" [ref=e561]
+                  - cell "−Rp 28.000" [ref=e562]
+                  - cell "-Rp 748.874" [ref=e563]
+                  - cell [ref=e564]:
+                    - button [ref=e565] [cursor=pointer]:
+                      - img [ref=e566]
+                - 'row "16 Feb 2026 TRANSAKSI DEBIT TGL: 0216 QR 009 00000.00MIE PANGSI Food BCA −Rp 36.000 -Rp 784.874" [ref=e568]':
+                  - cell "16 Feb 2026" [ref=e569]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0216 QR 009 00000.00MIE PANGSI" [ref=e570]'
+                  - cell "Food" [ref=e571]:
+                    - generic [ref=e572]: Food
+                  - cell "BCA" [ref=e573]
+                  - cell "−Rp 36.000" [ref=e574]
+                  - cell "-Rp 784.874" [ref=e575]
+                  - cell [ref=e576]:
+                    - button [ref=e577] [cursor=pointer]:
+                      - img [ref=e578]
+                - row "16 Feb 2026 TARIKAN ATM TARIKAN ATM 16/02 Withdrawing BCA −Rp 300.000 -Rp 1.084.874" [ref=e580]:
+                  - cell "16 Feb 2026" [ref=e581]
+                  - cell "TARIKAN ATM TARIKAN ATM 16/02" [ref=e582]
+                  - cell "Withdrawing" [ref=e583]:
+                    - generic [ref=e584]: Withdrawing
+                  - cell "BCA" [ref=e585]
+                  - cell "−Rp 300.000" [ref=e586]
+                  - cell "-Rp 1.084.874" [ref=e587]
+                  - cell [ref=e588]:
+                    - button [ref=e589] [cursor=pointer]:
+                      - img [ref=e590]
+                - 'row "15 Feb 2026 TRANSAKSI DEBIT TGL: 0215 QR 008 00000.00Roti Goolu Food BCA −Rp 22.000 -Rp 520.874" [ref=e592]':
+                  - cell "15 Feb 2026" [ref=e593]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0215 QR 008 00000.00Roti Goolu" [ref=e594]'
+                  - cell "Food" [ref=e595]:
+                    - generic [ref=e596]: Food
+                  - cell "BCA" [ref=e597]
+                  - cell "−Rp 22.000" [ref=e598]
+                  - cell "-Rp 520.874" [ref=e599]
+                  - cell [ref=e600]:
+                    - button [ref=e601] [cursor=pointer]:
+                      - img [ref=e602]
+                - row "15 Feb 2026 TARIKAN ATM TARIKAN ATM 15/02 Withdrawing BCA −Rp 200.000 -Rp 720.874" [ref=e604]:
+                  - cell "15 Feb 2026" [ref=e605]
+                  - cell "TARIKAN ATM TARIKAN ATM 15/02" [ref=e606]
+                  - cell "Withdrawing" [ref=e607]:
+                    - generic [ref=e608]: Withdrawing
+                  - cell "BCA" [ref=e609]
+                  - cell "−Rp 200.000" [ref=e610]
+                  - cell "-Rp 720.874" [ref=e611]
+                  - cell [ref=e612]:
+                    - button [ref=e613] [cursor=pointer]:
+                      - img [ref=e614]
+                - row "14 Feb 2026 TARIKAN ATM TARIKAN ATM 14/02 Withdrawing BCA −Rp 200.000 -Rp 390.304" [ref=e616]:
+                  - cell "14 Feb 2026" [ref=e617]
+                  - cell "TARIKAN ATM TARIKAN ATM 14/02" [ref=e618]
+                  - cell "Withdrawing" [ref=e619]:
+                    - generic [ref=e620]: Withdrawing
+                  - cell "BCA" [ref=e621]
+                  - cell "−Rp 200.000" [ref=e622]
+                  - cell "-Rp 390.304" [ref=e623]
+                  - cell [ref=e624]:
+                    - button [ref=e625] [cursor=pointer]:
+                      - img [ref=e626]
+                - 'row "14 Feb 2026 TRANSAKSI DEBIT TGL: 0214 QR 014 00000.00REDDRAGONR Food BCA −Rp 108.570 -Rp 498.874" [ref=e628]':
+                  - cell "14 Feb 2026" [ref=e629]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0214 QR 014 00000.00REDDRAGONR" [ref=e630]'
+                  - cell "Food" [ref=e631]:
+                    - generic [ref=e632]: Food
+                  - cell "BCA" [ref=e633]
+                  - cell "−Rp 108.570" [ref=e634]
+                  - cell "-Rp 498.874" [ref=e635]
+                  - cell [ref=e636]:
+                    - button [ref=e637] [cursor=pointer]:
+                      - img [ref=e638]
+                - row "13 Feb 2026 TARIKAN ATM TARIKAN ATM 13/02 Withdrawing BCA −Rp 300.000 -Rp 165.304" [ref=e640]:
+                  - cell "13 Feb 2026" [ref=e641]
+                  - cell "TARIKAN ATM TARIKAN ATM 13/02" [ref=e642]
+                  - cell "Withdrawing" [ref=e643]:
+                    - generic [ref=e644]: Withdrawing
+                  - cell "BCA" [ref=e645]
+                  - cell "−Rp 300.000" [ref=e646]
+                  - cell "-Rp 165.304" [ref=e647]
+                  - cell [ref=e648]:
+                    - button [ref=e649] [cursor=pointer]:
+                      - img [ref=e650]
+                - 'row "13 Feb 2026 TRANSAKSI DEBIT TGL: 0213 QR 002 00000.00- DIPTA SA Untracked Category BCA −Rp 25.000 -Rp 190.304" [ref=e652]':
+                  - cell "13 Feb 2026" [ref=e653]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0213 QR 002 00000.00- DIPTA SA" [ref=e654]'
+                  - cell "Untracked Category" [ref=e655]:
+                    - generic [ref=e656]: Untracked Category
+                  - cell "BCA" [ref=e657]
+                  - cell "−Rp 25.000" [ref=e658]
+                  - cell "-Rp 190.304" [ref=e659]
+                  - cell [ref=e660]:
+                    - button [ref=e661] [cursor=pointer]:
+                      - img [ref=e662]
+                - row "12 Feb 2026 BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN Untracked Category BCA +Rp 800.000 Rp 363.296" [ref=e664]:
+                  - cell "12 Feb 2026" [ref=e665]
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e666]
+                  - cell "Untracked Category" [ref=e667]:
+                    - generic [ref=e668]: Untracked Category
+                  - cell "BCA" [ref=e669]
+                  - cell "+Rp 800.000" [ref=e670]
+                  - cell "Rp 363.296" [ref=e671]
+                  - cell [ref=e672]:
+                    - button [ref=e673] [cursor=pointer]:
+                      - img [ref=e674]
+                - row "12 Feb 2026 KARTU DEBIT GRANDLUCKY SANUR H Groceries BCA −Rp 67.600 Rp 295.696" [ref=e676]:
+                  - cell "12 Feb 2026" [ref=e677]
+                  - cell "KARTU DEBIT GRANDLUCKY SANUR H" [ref=e678]
+                  - cell "Groceries" [ref=e679]:
+                    - generic [ref=e680]: Groceries
+                  - cell "BCA" [ref=e681]
+                  - cell "−Rp 67.600" [ref=e682]
+                  - cell "Rp 295.696" [ref=e683]
+                  - cell [ref=e684]:
+                    - button [ref=e685] [cursor=pointer]:
+                      - img [ref=e686]
+                - row "12 Feb 2026 KARTU DEBIT LAKSMI UD HO Groceries BCA −Rp 148.000 Rp 147.696" [ref=e688]:
+                  - cell "12 Feb 2026" [ref=e689]
+                  - cell "KARTU DEBIT LAKSMI UD HO" [ref=e690]
+                  - cell "Groceries" [ref=e691]:
+                    - generic [ref=e692]: Groceries
+                  - cell "BCA" [ref=e693]
+                  - cell "−Rp 148.000" [ref=e694]
+                  - cell "Rp 147.696" [ref=e695]
+                  - cell [ref=e696]:
+                    - button [ref=e697] [cursor=pointer]:
+                      - img [ref=e698]
+                - 'row "12 Feb 2026 TRANSAKSI DEBIT TGL: 0212 QR 014 00000.00ARYS MIKRO Groceries BCA −Rp 13.000 Rp 134.696" [ref=e700]':
+                  - cell "12 Feb 2026" [ref=e701]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0212 QR 014 00000.00ARYS MIKRO" [ref=e702]'
+                  - cell "Groceries" [ref=e703]:
+                    - generic [ref=e704]: Groceries
+                  - cell "BCA" [ref=e705]
+                  - cell "−Rp 13.000" [ref=e706]
+                  - cell "Rp 134.696" [ref=e707]
+                  - cell [ref=e708]:
+                    - button [ref=e709] [cursor=pointer]:
+                      - img [ref=e710]
+                - 'row "11 Feb 2026 TRANSAKSI DEBIT TGL: 0211 QR 014 00000.00KETOPRAK A Untracked Category BCA −Rp 38.000 -Rp 691.704" [ref=e712]':
+                  - cell "11 Feb 2026" [ref=e713]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0211 QR 014 00000.00KETOPRAK A" [ref=e714]'
+                  - cell "Untracked Category" [ref=e715]:
+                    - generic [ref=e716]: Untracked Category
+                  - cell "BCA" [ref=e717]
+                  - cell "−Rp 38.000" [ref=e718]
+                  - cell "-Rp 691.704" [ref=e719]
+                  - cell [ref=e720]:
+                    - button [ref=e721] [cursor=pointer]:
+                      - img [ref=e722]
+                - row "11 Feb 2026 BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN Untracked Category BCA +Rp 800.000 Rp 108.296" [ref=e724]:
+                  - cell "11 Feb 2026" [ref=e725]
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e726]
+                  - cell "Untracked Category" [ref=e727]:
+                    - generic [ref=e728]: Untracked Category
+                  - cell "BCA" [ref=e729]
+                  - cell "+Rp 800.000" [ref=e730]
+                  - cell "Rp 108.296" [ref=e731]
+                  - cell [ref=e732]:
+                    - button [ref=e733] [cursor=pointer]:
+                      - img [ref=e734]
+                - 'row "11 Feb 2026 TRANSAKSI DEBIT TGL: 0211 QR 014 00000.00TIMBUL JAY Vet and Dog Supply BCA −Rp 295.000 -Rp 186.704" [ref=e736]':
+                  - cell "11 Feb 2026" [ref=e737]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0211 QR 014 00000.00TIMBUL JAY" [ref=e738]'
+                  - cell "Vet and Dog Supply" [ref=e739]:
+                    - generic [ref=e740]: Vet and Dog Supply
+                  - cell "BCA" [ref=e741]
+                  - cell "−Rp 295.000" [ref=e742]
+                  - cell "-Rp 186.704" [ref=e743]
+                  - cell [ref=e744]:
+                    - button [ref=e745] [cursor=pointer]:
+                      - img [ref=e746]
+                - 'row "11 Feb 2026 TRANSAKSI DEBIT TGL: 0211 QR 008 00000.00LISTRIANI Untracked Category BCA −Rp 250.000 -Rp 436.704" [ref=e748]':
+                  - cell "11 Feb 2026" [ref=e749]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0211 QR 008 00000.00LISTRIANI" [ref=e750]'
+                  - cell "Untracked Category" [ref=e751]:
+                    - generic [ref=e752]: Untracked Category
+                  - cell "BCA" [ref=e753]
+                  - cell "−Rp 250.000" [ref=e754]
+                  - cell "-Rp 436.704" [ref=e755]
+                  - cell [ref=e756]:
+                    - button [ref=e757] [cursor=pointer]:
+                      - img [ref=e758]
+                - row "10 Feb 2026 BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN Untracked Category BCA +Rp 800.000 -Rp 353.704" [ref=e760]:
+                  - cell "10 Feb 2026" [ref=e761]
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e762]
+                  - cell "Untracked Category" [ref=e763]:
+                    - generic [ref=e764]: Untracked Category
+                  - cell "BCA" [ref=e765]
+                  - cell "+Rp 800.000" [ref=e766]
+                  - cell "-Rp 353.704" [ref=e767]
+                  - cell [ref=e768]:
+                    - button [ref=e769] [cursor=pointer]:
+                      - img [ref=e770]
+                - row "10 Feb 2026 TARIKAN ATM TARIKAN ATM 10/02 Withdrawing BCA −Rp 300.000 -Rp 653.704" [ref=e772]:
+                  - cell "10 Feb 2026" [ref=e773]
+                  - cell "TARIKAN ATM TARIKAN ATM 10/02" [ref=e774]
+                  - cell "Withdrawing" [ref=e775]:
+                    - generic [ref=e776]: Withdrawing
+                  - cell "BCA" [ref=e777]
+                  - cell "−Rp 300.000" [ref=e778]
+                  - cell "-Rp 653.704" [ref=e779]
+                  - cell [ref=e780]:
+                    - button [ref=e781] [cursor=pointer]:
+                      - img [ref=e782]
+                - row "09 Feb 2026 KR OTOMATIS LLG-MANDIRI RIKKI H HASIBUAN TD260209823 260209001427221492 Untracked Category BCA +Rp 50.000.000 Rp 48.895.796" [ref=e784]:
+                  - cell "09 Feb 2026" [ref=e785]
+                  - cell "KR OTOMATIS LLG-MANDIRI RIKKI H HASIBUAN TD260209823 260209001427221492" [ref=e786]
+                  - cell "Untracked Category" [ref=e787]:
+                    - generic [ref=e788]: Untracked Category
+                  - cell "BCA" [ref=e789]
+                  - cell "+Rp 50.000.000" [ref=e790]
+                  - cell "Rp 48.895.796" [ref=e791]
+                  - cell [ref=e792]:
+                    - button [ref=e793] [cursor=pointer]:
+                      - img [ref=e794]
+                - row "09 Feb 2026 TRSF E-BANKING DB 0902/FTSCY/WS95031 50000000.00deposit stockbit RIKKI H HASIBUAN Untracked Category BCA −Rp 50.000.000 -Rp 1.104.204" [ref=e796]:
+                  - cell "09 Feb 2026" [ref=e797]
+                  - cell "TRSF E-BANKING DB 0902/FTSCY/WS95031 50000000.00deposit stockbit RIKKI H HASIBUAN" [ref=e798]
+                  - cell "Untracked Category" [ref=e799]:
+                    - generic [ref=e800]: Untracked Category
+                  - cell "BCA" [ref=e801]
+                  - cell "−Rp 50.000.000" [ref=e802]
+                  - cell "-Rp 1.104.204" [ref=e803]
+                  - cell [ref=e804]:
+                    - button [ref=e805] [cursor=pointer]:
+                      - img [ref=e806]
+                - 'row "09 Feb 2026 TRANSAKSI DEBIT TGL: 0209 QR 002 00000.00- DIPTA SA Untracked Category BCA −Rp 25.000 -Rp 1.129.204" [ref=e808]':
+                  - cell "09 Feb 2026" [ref=e809]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0209 QR 002 00000.00- DIPTA SA" [ref=e810]'
+                  - cell "Untracked Category" [ref=e811]:
+                    - generic [ref=e812]: Untracked Category
+                  - cell "BCA" [ref=e813]
+                  - cell "−Rp 25.000" [ref=e814]
+                  - cell "-Rp 1.129.204" [ref=e815]
+                  - cell [ref=e816]:
+                    - button [ref=e817] [cursor=pointer]:
+                      - img [ref=e818]
+                - 'row "09 Feb 2026 TRANSAKSI DEBIT TGL: 0209 QR 014 00000.00ARYS MIKRO Groceries BCA −Rp 24.500 -Rp 1.153.704" [ref=e820]':
+                  - cell "09 Feb 2026" [ref=e821]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0209 QR 014 00000.00ARYS MIKRO" [ref=e822]'
+                  - cell "Groceries" [ref=e823]:
+                    - generic [ref=e824]: Groceries
+                  - cell "BCA" [ref=e825]
+                  - cell "−Rp 24.500" [ref=e826]
+                  - cell "-Rp 1.153.704" [ref=e827]
+                  - cell [ref=e828]:
+                    - button [ref=e829] [cursor=pointer]:
+                      - img [ref=e830]
+                - row "08 Feb 2026 TARIKAN ATM TARIKAN ATM 08/02 Withdrawing BCA −Rp 300.000 -Rp 1.104.204" [ref=e832]:
+                  - cell "08 Feb 2026" [ref=e833]
+                  - cell "TARIKAN ATM TARIKAN ATM 08/02" [ref=e834]
+                  - cell "Withdrawing" [ref=e835]:
+                    - generic [ref=e836]: Withdrawing
+                  - cell "BCA" [ref=e837]
+                  - cell "−Rp 300.000" [ref=e838]
+                  - cell "-Rp 1.104.204" [ref=e839]
+                  - cell [ref=e840]:
+                    - button [ref=e841] [cursor=pointer]:
+                      - img [ref=e842]
+                - 'row "07 Feb 2026 TRANSAKSI DEBIT TGL: 0207 QR 008 00000.00Roti Goolu Food BCA −Rp 22.000 -Rp 804.204" [ref=e844]':
+                  - cell "07 Feb 2026" [ref=e845]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0207 QR 008 00000.00Roti Goolu" [ref=e846]'
+                  - cell "Food" [ref=e847]:
+                    - generic [ref=e848]: Food
+                  - cell "BCA" [ref=e849]
+                  - cell "−Rp 22.000" [ref=e850]
+                  - cell "-Rp 804.204" [ref=e851]
+                  - cell [ref=e852]:
+                    - button [ref=e853] [cursor=pointer]:
+                      - img [ref=e854]
+                - row "06 Feb 2026 TARIKAN ATM TARIKAN ATM 05/02 Withdrawing BCA −Rp 300.000 -Rp 763.704" [ref=e856]:
+                  - cell "06 Feb 2026" [ref=e857]
+                  - cell "TARIKAN ATM TARIKAN ATM 05/02" [ref=e858]
+                  - cell "Withdrawing" [ref=e859]:
+                    - generic [ref=e860]: Withdrawing
+                  - cell "BCA" [ref=e861]
+                  - cell "−Rp 300.000" [ref=e862]
+                  - cell "-Rp 763.704" [ref=e863]
+                  - cell [ref=e864]:
+                    - button [ref=e865] [cursor=pointer]:
+                      - img [ref=e866]
+                - 'row "06 Feb 2026 TRANSAKSI DEBIT TGL: 0206 QR 014 00000.00ARYS MIKRO Groceries BCA −Rp 18.500 -Rp 782.204" [ref=e868]':
+                  - cell "06 Feb 2026" [ref=e869]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0206 QR 014 00000.00ARYS MIKRO" [ref=e870]'
+                  - cell "Groceries" [ref=e871]:
+                    - generic [ref=e872]: Groceries
+                  - cell "BCA" [ref=e873]
+                  - cell "−Rp 18.500" [ref=e874]
+                  - cell "-Rp 782.204" [ref=e875]
+                  - cell [ref=e876]:
+                    - button [ref=e877] [cursor=pointer]:
+                      - img [ref=e878]
+                - row "05 Feb 2026 TRSF E-BANKING DB 0502/ADSCY/WS9505100590277580 BPJS KES 0226 0002338686865 Bill BCA −Rp 152.500 -Rp 451.200" [ref=e880]:
+                  - cell "05 Feb 2026" [ref=e881]
+                  - cell "TRSF E-BANKING DB 0502/ADSCY/WS9505100590277580 BPJS KES 0226 0002338686865" [ref=e882]
+                  - cell "Bill" [ref=e883]:
+                    - generic [ref=e884]: Bill
+                  - cell "BCA" [ref=e885]
+                  - cell "−Rp 152.500" [ref=e886]
+                  - cell "-Rp 451.200" [ref=e887]
+                  - cell [ref=e888]:
+                    - button [ref=e889] [cursor=pointer]:
+                      - img [ref=e890]
+                - 'row "05 Feb 2026 TRANSAKSI DEBIT TGL: 0205 QR 014 00000.00ARYS MIKRO Groceries BCA −Rp 12.504 -Rp 463.704" [ref=e892]':
+                  - cell "05 Feb 2026" [ref=e893]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0205 QR 014 00000.00ARYS MIKRO" [ref=e894]'
+                  - cell "Groceries" [ref=e895]:
+                    - generic [ref=e896]: Groceries
+                  - cell "BCA" [ref=e897]
+                  - cell "−Rp 12.504" [ref=e898]
+                  - cell "-Rp 463.704" [ref=e899]
+                  - cell [ref=e900]:
+                    - button [ref=e901] [cursor=pointer]:
+                      - img [ref=e902]
+                - 'row "04 Feb 2026 TRANSAKSI DEBIT TGL: 0204 QR 002 00000.00LAKLAK BAL Food BCA −Rp 25.000 -Rp 98.700" [ref=e904]':
+                  - cell "04 Feb 2026" [ref=e905]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0204 QR 002 00000.00LAKLAK BAL" [ref=e906]'
+                  - cell "Food" [ref=e907]:
+                    - generic [ref=e908]: Food
+                  - cell "BCA" [ref=e909]
+                  - cell "−Rp 25.000" [ref=e910]
+                  - cell "-Rp 98.700" [ref=e911]
+                  - cell [ref=e912]:
+                    - button [ref=e913] [cursor=pointer]:
+                      - img [ref=e914]
+                - row "04 Feb 2026 TARIKAN ATM TARIKAN ATM 04/02 Withdrawing BCA −Rp 200.000 -Rp 298.700" [ref=e916]:
+                  - cell "04 Feb 2026" [ref=e917]
+                  - cell "TARIKAN ATM TARIKAN ATM 04/02" [ref=e918]
+                  - cell "Withdrawing" [ref=e919]:
+                    - generic [ref=e920]: Withdrawing
+                  - cell "BCA" [ref=e921]
+                  - cell "−Rp 200.000" [ref=e922]
+                  - cell "-Rp 298.700" [ref=e923]
+                  - cell [ref=e924]:
+                    - button [ref=e925] [cursor=pointer]:
+                      - img [ref=e926]
+                - row "02 Feb 2026 TARIKAN ATM TARIKAN ATM 02/02 Withdrawing BCA −Rp 300.000 -Rp 46.200" [ref=e928]:
+                  - cell "02 Feb 2026" [ref=e929]
+                  - cell "TARIKAN ATM TARIKAN ATM 02/02" [ref=e930]
+                  - cell "Withdrawing" [ref=e931]:
+                    - generic [ref=e932]: Withdrawing
+                  - cell "BCA" [ref=e933]
+                  - cell "−Rp 300.000" [ref=e934]
+                  - cell "-Rp 46.200" [ref=e935]
+                  - cell [ref=e936]:
+                    - button [ref=e937] [cursor=pointer]:
+                      - img [ref=e938]
+                - 'row "02 Feb 2026 TRANSAKSI DEBIT TGL: 0202 QR 014 00000.00ARYS MIKRO Groceries BCA −Rp 27.500 -Rp 73.700" [ref=e940]':
+                  - cell "02 Feb 2026" [ref=e941]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0202 QR 014 00000.00ARYS MIKRO" [ref=e942]'
+                  - cell "Groceries" [ref=e943]:
+                    - generic [ref=e944]: Groceries
+                  - cell "BCA" [ref=e945]
+                  - cell "−Rp 27.500" [ref=e946]
+                  - cell "-Rp 73.700" [ref=e947]
+                  - cell [ref=e948]:
+                    - button [ref=e949] [cursor=pointer]:
+                      - img [ref=e950]
+                - row "01 Feb 2026 BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN Untracked Category BCA +Rp 800.000 Rp 800.000" [ref=e952]:
+                  - cell "01 Feb 2026" [ref=e953]
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e954]
+                  - cell "Untracked Category" [ref=e955]:
+                    - generic [ref=e956]: Untracked Category
+                  - cell "BCA" [ref=e957]
+                  - cell "+Rp 800.000" [ref=e958]
+                  - cell "Rp 800.000" [ref=e959]
+                  - cell [ref=e960]:
+                    - button [ref=e961] [cursor=pointer]:
+                      - img [ref=e962]
+                - row "01 Feb 2026 TARIKAN ATM TARIKAN ATM 01/02 Withdrawing BCA −Rp 300.000 Rp 500.000" [ref=e964]:
+                  - cell "01 Feb 2026" [ref=e965]
+                  - cell "TARIKAN ATM TARIKAN ATM 01/02" [ref=e966]
+                  - cell "Withdrawing" [ref=e967]:
+                    - generic [ref=e968]: Withdrawing
+                  - cell "BCA" [ref=e969]
+                  - cell "−Rp 300.000" [ref=e970]
+                  - cell "Rp 500.000" [ref=e971]
+                  - cell [ref=e972]:
+                    - button [ref=e973] [cursor=pointer]:
+                      - img [ref=e974]
+                - row "01 Feb 2026 KARTU DEBIT A435 AZKO BALI BAT Untracked Category BCA −Rp 216.700 Rp 283.300" [ref=e976]:
+                  - cell "01 Feb 2026" [ref=e977]
+                  - cell "KARTU DEBIT A435 AZKO BALI BAT" [ref=e978]
+                  - cell "Untracked Category" [ref=e979]:
+                    - generic [ref=e980]: Untracked Category
+                  - cell "BCA" [ref=e981]
+                  - cell "−Rp 216.700" [ref=e982]
+                  - cell "Rp 283.300" [ref=e983]
+                  - cell [ref=e984]:
+                    - button [ref=e985] [cursor=pointer]:
+                      - img [ref=e986]
+                - 'row "01 Feb 2026 TRANSAKSI DEBIT TGL: 0201 QR 014 00000.00ARYS MIKRO Groceries BCA −Rp 29.500 Rp 253.800" [ref=e988]':
+                  - cell "01 Feb 2026" [ref=e989]
+                  - 'cell "TRANSAKSI DEBIT TGL: 0201 QR 014 00000.00ARYS MIKRO" [ref=e990]'
+                  - cell "Groceries" [ref=e991]:
+                    - generic [ref=e992]: Groceries
+                  - cell "BCA" [ref=e993]
+                  - cell "−Rp 29.500" [ref=e994]
+                  - cell "Rp 253.800" [ref=e995]
+                  - cell [ref=e996]:
+                    - button [ref=e997] [cursor=pointer]:
+                      - img [ref=e998]
+      - generic [ref=e189]:
+        - generic [ref=e190]:
+          - generic [ref=e191]: Recent
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - generic [ref=e197]: TRANSFER IN SYAFTRACO 702319…
+                - generic [ref=e198]: +10.125.304
+              - generic [ref=e199]: Neo Savings
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - generic [ref=e204]: TRANSFER OUT RIKKI H HASIBUA…
+                - generic [ref=e205]: −800.000
+              - generic [ref=e206]: Neo Savings
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - generic [ref=e211]: Opening Balance
+                - generic [ref=e212]: +2.828.700,84
+              - generic [ref=e213]: Neo Savings
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e218]: SAVING INTEREST
+                - generic [ref=e219]: +329,36
+              - generic [ref=e220]: Neo Savings
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e225]: TRANSFER OUT YAYASAN BALI RE…
+                - generic [ref=e226]: −1.000.000
+              - generic [ref=e227]: Neo Savings
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e232]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e233]: −55.440
+              - generic [ref=e234]: Superbank
+            - generic [ref=e235]:
+              - generic [ref=e236]:
+                - generic [ref=e239]: TRSF E-BANKING DB 0602/FTSCY…
+                - generic [ref=e240]: −24.000
+              - generic [ref=e241]: Superbank
+            - generic [ref=e242]:
+              - generic [ref=e243]:
+                - generic [ref=e246]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e247]: −31.000
+              - generic [ref=e248]: Superbank
+        - generic [ref=e249]:
+          - text: Processing
+          - paragraph [ref=e250]: No active uploads
+  - generic [ref=e251]: Apr 25

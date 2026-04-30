@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { Transaction } from '@/types/Transaction';
 import { Search, ChevronDown, Edit2 } from 'lucide-react';
 import * as transactionsApi from '@/api/transactionsApi';
+import { formatCurrency } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 interface TransactionTableProps {
   onTransactionUpdate: (id: string, updates: Partial<Transaction>) => void;
@@ -13,12 +15,14 @@ const mapApiTransactionToTransaction = (t: transactionsApi.TransactionDto): Tran
   description: t.description,
   flow: t.flow,
   amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-  //type: (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
-  type: t.type.toLowerCase(),
+  type: t.type.toLowerCase() as 'income' | 'expense',
   category: t.category,
   bank: t.wallet,
   balance: t.balance,
 });
+
+const formatDate = (ds: string) =>
+  new Date(ds).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -31,184 +35,153 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
 
   useEffect(() => {
     transactionsApi.getTransactions()
-      .then(data => setTransactions(data.map(mapApiTransactionToTransaction)))
+      .then((data) => setTransactions(data.map(mapApiTransactionToTransaction)))
       .catch(console.error);
   }, []);
 
   const categories = useMemo(() => {
-    const cats = Array.from(new Set(transactions.map(t => t.category)));
-    return cats.sort();
+    return Array.from(new Set(transactions.map((t) => t.category))).sort();
   }, [transactions]);
 
-  const filteredAndSortedTransactions = useMemo(() => {
-    let filtered = transactions.filter(transaction => {
-      const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || transaction.category === categoryFilter;
-      const matchesType = typeFilter === 'all' || transaction.type === typeFilter;
+  const filtered = useMemo(() => {
+    const rows = transactions.filter((tx) => {
+      const matchesSearch =
+        tx.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        tx.category.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === 'all' || tx.category === categoryFilter;
+      const matchesType = typeFilter === 'all' || tx.type === typeFilter;
       return matchesSearch && matchesCategory && matchesType;
     });
 
-    return filtered.sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === 'date') {
-        comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
-      } else {
-        comparison = Math.abs(a.amount) - Math.abs(b.amount);
-      }
-      return sortOrder === 'asc' ? comparison : -comparison;
+    return rows.sort((a, b) => {
+      const cmp =
+        sortBy === 'date'
+          ? new Date(a.date).getTime() - new Date(b.date).getTime()
+          : Math.abs(a.amount) - Math.abs(b.amount);
+      return sortOrder === 'asc' ? cmp : -cmp;
     });
   }, [transactions, searchTerm, categoryFilter, typeFilter, sortBy, sortOrder]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(Math.abs(amount));
+  const toggleSort = (col: 'date' | 'amount') => {
+    if (sortBy === col) setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    else { setSortBy(col); setSortOrder(col === 'date' ? 'desc' : 'desc'); }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  const inputCls = 'bg-muted border border-border rounded text-foreground text-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring w-full';
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Transactions</h2>
-        <div className="flex flex-wrap gap-4">
-          <div className="flex-1 min-w-64">
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search transactions..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Categories</option>
-            {categories.map(category => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
-          </select>
+    <div className="bg-card rounded-lg border border-border overflow-hidden">
+      {/* Toolbar */}
+      <div className="px-5 py-4 border-b border-border flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-48">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
+          <input
+            type="text"
+            placeholder="Search transactions…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-3 py-1.5 bg-muted border border-border rounded text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          />
         </div>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="px-3 py-1.5 bg-muted border border-border rounded text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        >
+          <option value="all">All Categories</option>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="px-3 py-1.5 bg-muted border border-border rounded text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+        >
+          <option value="all">All Types</option>
+          <option value="income">Income</option>
+          <option value="expense">Expense</option>
+        </select>
       </div>
+
+      {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => {
-                  if (sortBy === 'date') {
-                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                  } else {
-                    setSortBy('date');
-                    setSortOrder('asc');
-                  }
-                }}
-              >
-                Date {sortBy === 'date' && <ChevronDown className={`w-4 h-4 inline ml-1 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Description
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Category
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Wallet
-              </th>
-              <th
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                onClick={() => {
-                  if (sortBy === 'amount') {
-                    setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-                  } else {
-                    setSortBy('amount');
-                    setSortOrder('desc');
-                  }
-                }}
-              >
-                Amount {sortBy === 'amount' && <ChevronDown className={`w-4 h-4 inline ml-1 ${sortOrder === 'asc' ? 'rotate-180' : ''}`} />}
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Balance
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+          <thead>
+            <tr className="border-b border-border">
+              {[
+                { key: 'date', label: 'Date', sortable: true },
+                { key: 'description', label: 'Description', sortable: false },
+                { key: 'category', label: 'Category', sortable: false },
+                { key: 'wallet', label: 'Wallet', sortable: false },
+                { key: 'amount', label: 'Amount', sortable: true },
+                { key: 'balance', label: 'Balance', sortable: false },
+                { key: 'actions', label: '', sortable: false },
+              ].map(({ key, label, sortable }) => (
+                <th
+                  key={key}
+                  onClick={sortable ? () => toggleSort(key as 'date' | 'amount') : undefined}
+                  className={cn(
+                    'px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider',
+                    sortable && 'cursor-pointer hover:text-foreground'
+                  )}
+                >
+                  {label}
+                  {sortable && sortBy === key && (
+                    <ChevronDown
+                      className={cn('w-3 h-3 inline ml-1', sortOrder === 'asc' && 'rotate-180')}
+                      strokeWidth={1.5}
+                    />
+                  )}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredAndSortedTransactions.map((transaction) => (
-              <tr key={transaction.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatDate(transaction.date)}
+          <tbody className="divide-y divide-border">
+            {filtered.map((tx) => (
+              <tr key={tx.id} className="hover:bg-accent transition-colors">
+                <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
+                  {formatDate(tx.date)}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
-                  {transaction.description}
+                <td className="px-5 py-3 text-sm text-foreground max-w-xs truncate">
+                  {tx.description}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {editingId === transaction.id ? (
+                <td className="px-5 py-3 whitespace-nowrap">
+                  {editingId === tx.id ? (
                     <select
-                      value={transaction.category}
-                      onChange={(e) => {
-                        onTransactionUpdate(transaction.id, { category: e.target.value });
-                        setEditingId(null);
-                      }}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
+                      value={tx.category}
                       autoFocus
                       onBlur={() => setEditingId(null)}
+                      onChange={(e) => {
+                        onTransactionUpdate(tx.id, { category: e.target.value });
+                        setEditingId(null);
+                      }}
+                      className={inputCls}
                     >
-                      {categories.map(category => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
+                      {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   ) : (
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {transaction.category}
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
+                      {tx.category}
                     </span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {transaction.bank}
+                <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
+                  {tx.bank}
                 </td>
-                <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
-                  transaction.flow === 'CR' ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {transaction.flow === 'CR' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                <td className={cn(
+                  'px-5 py-3 whitespace-nowrap font-mono text-sm tabular-nums',
+                  tx.flow === 'CR' ? 'text-success' : 'text-destructive'
+                )}>
+                  {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {formatCurrency(transaction.balance)}
+                <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
+                  {tx.balance != null ? formatCurrency(tx.balance) : '—'}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-5 py-3 whitespace-nowrap">
                   <button
-                    onClick={() => setEditingId(transaction.id)}
-                    className="text-blue-600 hover:text-blue-900"
+                    onClick={() => setEditingId(tx.id)}
+                    className="text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                   </button>
                 </td>
               </tr>
@@ -216,9 +189,10 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
           </tbody>
         </table>
       </div>
-      {filteredAndSortedTransactions.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No transactions found matching your criteria.</p>
+
+      {filtered.length === 0 && (
+        <div className="py-16 text-center">
+          <p className="text-sm text-muted-foreground">No transactions found matching your criteria.</p>
         </div>
       )}
     </div>

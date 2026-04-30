@@ -1,0 +1,119 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - img [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: Finance
+              - generic [ref=e12]: Personal tracker
+          - button [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - button "New upload" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e20]: New upload
+        - navigation [ref=e21]:
+          - list [ref=e22]:
+            - listitem [ref=e23]:
+              - button "Dashboard" [ref=e24] [cursor=pointer]:
+                - img [ref=e25]
+                - generic [ref=e27]: Dashboard
+            - listitem [ref=e28]:
+              - button "Upload" [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+                - generic [ref=e33]: Upload
+            - listitem [ref=e34]:
+              - button "Transactions" [active] [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - generic [ref=e37]: Transactions
+            - listitem [ref=e38]:
+              - button "Categories" [ref=e39] [cursor=pointer]:
+                - img [ref=e40]
+                - generic [ref=e43]: Categories
+            - listitem [ref=e44]:
+              - button "Settings" [ref=e45] [cursor=pointer]:
+                - img [ref=e46]
+                - generic [ref=e49]: Settings
+      - main [ref=e50]:
+        - generic [ref=e341]:
+          - generic [ref=e342]:
+            - heading "Transactions" [level=1] [ref=e343]
+            - paragraph [ref=e344]: View and manage all your transactions
+          - generic [ref=e345]:
+            - generic [ref=e346]:
+              - heading "Transactions" [level=2] [ref=e347]
+              - generic [ref=e348]:
+                - generic [ref=e350]:
+                  - img [ref=e351]
+                  - textbox "Search transactions..." [ref=e354]
+                - combobox [ref=e355]:
+                  - option "All Categories" [selected]
+                - combobox [ref=e356]:
+                  - option "All Types" [selected]
+                  - option "Income"
+                  - option "Expense"
+            - table [ref=e358]:
+              - rowgroup [ref=e359]:
+                - row "Date Description Category Wallet Amount Balance Actions" [ref=e360]:
+                  - columnheader "Date" [ref=e361] [cursor=pointer]:
+                    - text: Date
+                    - img [ref=e362]
+                  - columnheader "Description" [ref=e364]
+                  - columnheader "Category" [ref=e365]
+                  - columnheader "Wallet" [ref=e366]
+                  - columnheader "Amount" [ref=e367] [cursor=pointer]
+                  - columnheader "Balance" [ref=e368]
+                  - columnheader "Actions" [ref=e369]
+              - rowgroup
+            - paragraph [ref=e371]: No transactions found matching your criteria.
+      - generic [ref=e189]:
+        - generic [ref=e190]:
+          - generic [ref=e191]: Recent
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - generic [ref=e197]: TRANSFER IN SYAFTRACO 702319…
+                - generic [ref=e198]: +10.125.304
+              - generic [ref=e199]: Neo Savings
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - generic [ref=e204]: TRANSFER OUT RIKKI H HASIBUA…
+                - generic [ref=e205]: −800.000
+              - generic [ref=e206]: Neo Savings
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - generic [ref=e211]: Opening Balance
+                - generic [ref=e212]: +2.828.700,84
+              - generic [ref=e213]: Neo Savings
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e218]: SAVING INTEREST
+                - generic [ref=e219]: +329,36
+              - generic [ref=e220]: Neo Savings
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e225]: TRANSFER OUT YAYASAN BALI RE…
+                - generic [ref=e226]: −1.000.000
+              - generic [ref=e227]: Neo Savings
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e232]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e233]: −55.440
+              - generic [ref=e234]: Superbank
+            - generic [ref=e235]:
+              - generic [ref=e236]:
+                - generic [ref=e239]: TRSF E-BANKING DB 0602/FTSCY…
+                - generic [ref=e240]: −24.000
+              - generic [ref=e241]: Superbank
+            - generic [ref=e242]:
+              - generic [ref=e243]:
+                - generic [ref=e246]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e247]: −31.000
+              - generic [ref=e248]: Superbank
+        - generic [ref=e249]:
+          - text: Processing
+          - paragraph [ref=e250]: No active uploads
+  - generic [ref=e251]: Apr

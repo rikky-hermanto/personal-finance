@@ -1,0 +1,1261 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - img [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: Finance
+              - generic [ref=e12]: Personal tracker
+          - button [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - button "New upload" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e20]: New upload
+        - navigation [ref=e21]:
+          - list [ref=e22]:
+            - listitem [ref=e23]:
+              - button "Dashboard" [ref=e24] [cursor=pointer]:
+                - img [ref=e25]
+                - generic [ref=e27]: Dashboard
+            - listitem [ref=e28]:
+              - button "Upload" [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+                - generic [ref=e33]: Upload
+            - listitem [ref=e34]:
+              - button "Transactions" [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - generic [ref=e37]: Transactions
+            - listitem [ref=e38]:
+              - button "Categories" [active] [ref=e39] [cursor=pointer]:
+                - img [ref=e40]
+                - generic [ref=e43]: Categories
+            - listitem [ref=e44]:
+              - button "Settings" [ref=e45] [cursor=pointer]:
+                - img [ref=e46]
+                - generic [ref=e49]: Settings
+      - main [ref=e50]:
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - heading "Categories" [level=1] [ref=e255]
+            - paragraph [ref=e256]: Keywords matched case-insensitively against transaction descriptions
+          - generic [ref=e257]:
+            - generic [ref=e258]:
+              - paragraph [ref=e260]: 106 rules — longest-keyword match applies first
+              - button "Add Rule" [ref=e261] [cursor=pointer]:
+                - img [ref=e262]
+                - text: Add Rule
+            - table [ref=e265]:
+              - rowgroup [ref=e266]:
+                - row "Keyword Type Category" [ref=e267]:
+                  - columnheader "Keyword" [ref=e268]
+                  - columnheader "Type" [ref=e269]
+                  - columnheader "Category" [ref=e270]
+                  - columnheader [ref=e271]
+              - rowgroup [ref=e272]:
+                - row "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN fund switching" [ref=e273]:
+                  - cell "BI-FAST CR TRANSFER DR 562 RIKKI H HASIBUAN" [ref=e274]
+                  - cell "fund switching" [ref=e275]
+                  - cell [ref=e276]
+                  - cell [ref=e278]:
+                    - generic [ref=e279]:
+                      - button [ref=e280] [cursor=pointer]:
+                        - img [ref=e281]
+                      - button [ref=e283] [cursor=pointer]:
+                        - img [ref=e284]
+                - row "BI-FAST CR TRANSFER DR 490 RIKKI H HASIBUAN fund switching" [ref=e287]:
+                  - cell "BI-FAST CR TRANSFER DR 490 RIKKI H HASIBUAN" [ref=e288]
+                  - cell "fund switching" [ref=e289]
+                  - cell [ref=e290]
+                  - cell [ref=e292]:
+                    - generic [ref=e293]:
+                      - button [ref=e294] [cursor=pointer]:
+                        - img [ref=e295]
+                      - button [ref=e297] [cursor=pointer]:
+                        - img [ref=e298]
+                - row "TRANSFER OUT RIKKI H HASIBUAN 1310013349 saving" [ref=e301]:
+                  - cell "TRANSFER OUT RIKKI H HASIBUAN 1310013349" [ref=e302]
+                  - cell "saving" [ref=e303]
+                  - cell [ref=e304]
+                  - cell [ref=e306]:
+                    - generic [ref=e307]:
+                      - button [ref=e308] [cursor=pointer]:
+                        - img [ref=e309]
+                      - button [ref=e311] [cursor=pointer]:
+                        - img [ref=e312]
+                - row "TRANSFER OUT MUHAMMAD IZUDDIN HAN expense Bill" [ref=e315]:
+                  - cell "TRANSFER OUT MUHAMMAD IZUDDIN HAN" [ref=e316]
+                  - cell "expense" [ref=e317]
+                  - cell "Bill" [ref=e318]:
+                    - generic [ref=e319]: Bill
+                  - cell [ref=e320]:
+                    - generic [ref=e321]:
+                      - button [ref=e322] [cursor=pointer]:
+                        - img [ref=e323]
+                      - button [ref=e325] [cursor=pointer]:
+                        - img [ref=e326]
+                - row "Sent money to Rikki H Hasibuan fund switching" [ref=e329]:
+                  - cell "Sent money to Rikki H Hasibuan" [ref=e330]
+                  - cell "fund switching" [ref=e331]
+                  - cell [ref=e332]
+                  - cell [ref=e334]:
+                    - generic [ref=e335]:
+                      - button [ref=e336] [cursor=pointer]:
+                        - img [ref=e337]
+                      - button [ref=e339] [cursor=pointer]:
+                        - img [ref=e340]
+                - row "Transfer dari RIKKI H HASIBUAN fund switching" [ref=e343]:
+                  - cell "Transfer dari RIKKI H HASIBUAN" [ref=e344]
+                  - cell "fund switching" [ref=e345]
+                  - cell [ref=e346]
+                  - cell [ref=e348]:
+                    - generic [ref=e349]:
+                      - button [ref=e350] [cursor=pointer]:
+                        - img [ref=e351]
+                      - button [ref=e353] [cursor=pointer]:
+                        - img [ref=e354]
+                - row "TRANSFER OUT RIKKI H HASIBUAN fund switching" [ref=e357]:
+                  - cell "TRANSFER OUT RIKKI H HASIBUAN" [ref=e358]
+                  - cell "fund switching" [ref=e359]
+                  - cell [ref=e360]
+                  - cell [ref=e362]:
+                    - generic [ref=e363]:
+                      - button [ref=e364] [cursor=pointer]:
+                        - img [ref=e365]
+                      - button [ref=e367] [cursor=pointer]:
+                        - img [ref=e368]
+                - row "Transfer ke Rikki H Hasibuan fund switching" [ref=e371]:
+                  - cell "Transfer ke Rikki H Hasibuan" [ref=e372]
+                  - cell "fund switching" [ref=e373]
+                  - cell [ref=e374]
+                  - cell [ref=e376]:
+                    - generic [ref=e377]:
+                      - button [ref=e378] [cursor=pointer]:
+                        - img [ref=e379]
+                      - button [ref=e381] [cursor=pointer]:
+                        - img [ref=e382]
+                - row "TRANSFER IN SYAFTRACO fund switching" [ref=e385]:
+                  - cell "TRANSFER IN SYAFTRACO" [ref=e386]
+                  - cell "fund switching" [ref=e387]
+                  - cell [ref=e388]
+                  - cell [ref=e390]:
+                    - generic [ref=e391]:
+                      - button [ref=e392] [cursor=pointer]:
+                        - img [ref=e393]
+                      - button [ref=e395] [cursor=pointer]:
+                        - img [ref=e396]
+                - row "Yayasan Bali Rescue expense Vet and Dog Supply" [ref=e399]:
+                  - cell "Yayasan Bali Rescue" [ref=e400]
+                  - cell "expense" [ref=e401]
+                  - cell "Vet and Dog Supply" [ref=e402]:
+                    - generic [ref=e403]: Vet and Dog Supply
+                  - cell [ref=e404]:
+                    - generic [ref=e405]:
+                      - button [ref=e406] [cursor=pointer]:
+                        - img [ref=e407]
+                      - button [ref=e409] [cursor=pointer]:
+                        - img [ref=e410]
+                - row "KADEK KRISNA CHAND expense Self-Care" [ref=e413]:
+                  - cell "KADEK KRISNA CHAND" [ref=e414]
+                  - cell "expense" [ref=e415]
+                  - cell "Self-Care" [ref=e416]:
+                    - generic [ref=e417]: Self-Care
+                  - cell [ref=e418]:
+                    - generic [ref=e419]:
+                      - button [ref=e420] [cursor=pointer]:
+                        - img [ref=e421]
+                      - button [ref=e423] [cursor=pointer]:
+                        - img [ref=e424]
+                - row "BERKAT LISAN MULIA expense Vet and Dog Supply" [ref=e427]:
+                  - cell "BERKAT LISAN MULIA" [ref=e428]
+                  - cell "expense" [ref=e429]
+                  - cell "Vet and Dog Supply" [ref=e430]:
+                    - generic [ref=e431]: Vet and Dog Supply
+                  - cell [ref=e432]:
+                    - generic [ref=e433]:
+                      - button [ref=e434] [cursor=pointer]:
+                        - img [ref=e435]
+                      - button [ref=e437] [cursor=pointer]:
+                        - img [ref=e438]
+                - row "LIDYA EVANGELISTA expense Bill" [ref=e441]:
+                  - cell "LIDYA EVANGELISTA" [ref=e442]
+                  - cell "expense" [ref=e443]
+                  - cell "Bill" [ref=e444]:
+                    - generic [ref=e445]: Bill
+                  - cell [ref=e446]:
+                    - generic [ref=e447]:
+                      - button [ref=e448] [cursor=pointer]:
+                        - img [ref=e449]
+                      - button [ref=e451] [cursor=pointer]:
+                        - img [ref=e452]
+                - row "BALI RESCUE DOG expense Vet and Dog Supply" [ref=e455]:
+                  - cell "BALI RESCUE DOG" [ref=e456]
+                  - cell "expense" [ref=e457]
+                  - cell "Vet and Dog Supply" [ref=e458]:
+                    - generic [ref=e459]: Vet and Dog Supply
+                  - cell [ref=e460]:
+                    - generic [ref=e461]:
+                      - button [ref=e462] [cursor=pointer]:
+                        - img [ref=e463]
+                      - button [ref=e465] [cursor=pointer]:
+                        - img [ref=e466]
+                - row "NI MADE CHRISTA expense Vet and Dog Supply" [ref=e469]:
+                  - cell "NI MADE CHRISTA" [ref=e470]
+                  - cell "expense" [ref=e471]
+                  - cell "Vet and Dog Supply" [ref=e472]:
+                    - generic [ref=e473]: Vet and Dog Supply
+                  - cell [ref=e474]:
+                    - generic [ref=e475]:
+                      - button [ref=e476] [cursor=pointer]:
+                        - img [ref=e477]
+                      - button [ref=e479] [cursor=pointer]:
+                        - img [ref=e480]
+                - row "Bunga Didapat income Saving Interest" [ref=e483]:
+                  - cell "Bunga Didapat" [ref=e484]
+                  - cell "income" [ref=e485]
+                  - cell "Saving Interest" [ref=e486]:
+                    - generic [ref=e487]: Saving Interest
+                  - cell [ref=e488]:
+                    - generic [ref=e489]:
+                      - button [ref=e490] [cursor=pointer]:
+                        - img [ref=e491]
+                      - button [ref=e493] [cursor=pointer]:
+                        - img [ref=e494]
+                - row "Nyoman Sunita expense Vet and Dog Supply" [ref=e497]:
+                  - cell "Nyoman Sunita" [ref=e498]
+                  - cell "expense" [ref=e499]
+                  - cell "Vet and Dog Supply" [ref=e500]:
+                    - generic [ref=e501]: Vet and Dog Supply
+                  - cell [ref=e502]:
+                    - generic [ref=e503]:
+                      - button [ref=e504] [cursor=pointer]:
+                        - img [ref=e505]
+                      - button [ref=e507] [cursor=pointer]:
+                        - img [ref=e508]
+                - row "Housekeeping expense Housekeeping" [ref=e511]:
+                  - cell "Housekeeping" [ref=e512]
+                  - cell "expense" [ref=e513]
+                  - cell "Housekeeping" [ref=e514]:
+                    - generic [ref=e515]: Housekeeping
+                  - cell [ref=e516]:
+                    - generic [ref=e517]:
+                      - button [ref=e518] [cursor=pointer]:
+                        - img [ref=e519]
+                      - button [ref=e521] [cursor=pointer]:
+                        - img [ref=e522]
+                - row "Saepul Anwar expense Self-Care" [ref=e525]:
+                  - cell "Saepul Anwar" [ref=e526]
+                  - cell "expense" [ref=e527]
+                  - cell "Self-Care" [ref=e528]:
+                    - generic [ref=e529]: Self-Care
+                  - cell [ref=e530]:
+                    - generic [ref=e531]:
+                      - button [ref=e532] [cursor=pointer]:
+                        - img [ref=e533]
+                      - button [ref=e535] [cursor=pointer]:
+                        - img [ref=e536]
+                - row "KETUT CATRA expense Bill" [ref=e539]:
+                  - cell "KETUT CATRA" [ref=e540]
+                  - cell "expense" [ref=e541]
+                  - cell "Bill" [ref=e542]:
+                    - generic [ref=e543]: Bill
+                  - cell [ref=e544]:
+                    - generic [ref=e545]:
+                      - button [ref=e546] [cursor=pointer]:
+                        - img [ref=e547]
+                      - button [ref=e549] [cursor=pointer]:
+                        - img [ref=e550]
+                - row "Olahan Laut expense Food" [ref=e553]:
+                  - cell "Olahan Laut" [ref=e554]
+                  - cell "expense" [ref=e555]
+                  - cell "Food" [ref=e556]:
+                    - generic [ref=e557]: Food
+                  - cell [ref=e558]:
+                    - generic [ref=e559]:
+                      - button [ref=e560] [cursor=pointer]:
+                        - img [ref=e561]
+                      - button [ref=e563] [cursor=pointer]:
+                        - img [ref=e564]
+                - row "WARKOP AGE expense Food" [ref=e567]:
+                  - cell "WARKOP AGE" [ref=e568]
+                  - cell "expense" [ref=e569]
+                  - cell "Food" [ref=e570]:
+                    - generic [ref=e571]: Food
+                  - cell [ref=e572]:
+                    - generic [ref=e573]:
+                      - button [ref=e574] [cursor=pointer]:
+                        - img [ref=e575]
+                      - button [ref=e577] [cursor=pointer]:
+                        - img [ref=e578]
+                - row "Coco Super expense Groceries" [ref=e581]:
+                  - cell "Coco Super" [ref=e582]
+                  - cell "expense" [ref=e583]
+                  - cell "Groceries" [ref=e584]:
+                    - generic [ref=e585]: Groceries
+                  - cell [ref=e586]:
+                    - generic [ref=e587]:
+                      - button [ref=e588] [cursor=pointer]:
+                        - img [ref=e589]
+                      - button [ref=e591] [cursor=pointer]:
+                        - img [ref=e592]
+                - row "WR WAJAR H expense Food" [ref=e595]:
+                  - cell "WR WAJAR H" [ref=e596]
+                  - cell "expense" [ref=e597]
+                  - cell "Food" [ref=e598]:
+                    - generic [ref=e599]: Food
+                  - cell [ref=e600]:
+                    - generic [ref=e601]:
+                      - button [ref=e602] [cursor=pointer]:
+                        - img [ref=e603]
+                      - button [ref=e605] [cursor=pointer]:
+                        - img [ref=e606]
+                - row "Red Dragon expense Food" [ref=e609]:
+                  - cell "Red Dragon" [ref=e610]
+                  - cell "expense" [ref=e611]
+                  - cell "Food" [ref=e612]:
+                    - generic [ref=e613]: Food
+                  - cell [ref=e614]:
+                    - generic [ref=e615]:
+                      - button [ref=e616] [cursor=pointer]:
+                        - img [ref=e617]
+                      - button [ref=e619] [cursor=pointer]:
+                        - img [ref=e620]
+                - row "Tomoro BNI expense Food" [ref=e623]:
+                  - cell "Tomoro BNI" [ref=e624]
+                  - cell "expense" [ref=e625]
+                  - cell "Food" [ref=e626]:
+                    - generic [ref=e627]: Food
+                  - cell [ref=e628]:
+                    - generic [ref=e629]:
+                      - button [ref=e630] [cursor=pointer]:
+                        - img [ref=e631]
+                      - button [ref=e633] [cursor=pointer]:
+                        - img [ref=e634]
+                - row "Bakso Solo expense Food" [ref=e637]:
+                  - cell "Bakso Solo" [ref=e638]
+                  - cell "expense" [ref=e639]
+                  - cell "Food" [ref=e640]:
+                    - generic [ref=e641]: Food
+                  - cell [ref=e642]:
+                    - generic [ref=e643]:
+                      - button [ref=e644] [cursor=pointer]:
+                        - img [ref=e645]
+                      - button [ref=e647] [cursor=pointer]:
+                        - img [ref=e648]
+                - row "BALE UDANG expense Food" [ref=e651]:
+                  - cell "BALE UDANG" [ref=e652]
+                  - cell "expense" [ref=e653]
+                  - cell "Food" [ref=e654]:
+                    - generic [ref=e655]: Food
+                  - cell [ref=e656]:
+                    - generic [ref=e657]:
+                      - button [ref=e658] [cursor=pointer]:
+                        - img [ref=e659]
+                      - button [ref=e661] [cursor=pointer]:
+                        - img [ref=e662]
+                - row "JUICE TIME expense Food" [ref=e665]:
+                  - cell "JUICE TIME" [ref=e666]
+                  - cell "expense" [ref=e667]
+                  - cell "Food" [ref=e668]:
+                    - generic [ref=e669]: Food
+                  - cell [ref=e670]:
+                    - generic [ref=e671]:
+                      - button [ref=e672] [cursor=pointer]:
+                        - img [ref=e673]
+                      - button [ref=e675] [cursor=pointer]:
+                        - img [ref=e676]
+                - row "Rumah Maka expense Food" [ref=e679]:
+                  - cell "Rumah Maka" [ref=e680]
+                  - cell "expense" [ref=e681]
+                  - cell "Food" [ref=e682]:
+                    - generic [ref=e683]: Food
+                  - cell [ref=e684]:
+                    - generic [ref=e685]:
+                      - button [ref=e686] [cursor=pointer]:
+                        - img [ref=e687]
+                      - button [ref=e689] [cursor=pointer]:
+                        - img [ref=e690]
+                - row "Kedai Kopi expense Food" [ref=e693]:
+                  - cell "Kedai Kopi" [ref=e694]
+                  - cell "expense" [ref=e695]
+                  - cell "Food" [ref=e696]:
+                    - generic [ref=e697]: Food
+                  - cell [ref=e698]:
+                    - generic [ref=e699]:
+                      - button [ref=e700] [cursor=pointer]:
+                        - img [ref=e701]
+                      - button [ref=e703] [cursor=pointer]:
+                        - img [ref=e704]
+                - row "Kopi Kenan expense Food" [ref=e707]:
+                  - cell "Kopi Kenan" [ref=e708]
+                  - cell "expense" [ref=e709]
+                  - cell "Food" [ref=e710]:
+                    - generic [ref=e711]: Food
+                  - cell [ref=e712]:
+                    - generic [ref=e713]:
+                      - button [ref=e714] [cursor=pointer]:
+                        - img [ref=e715]
+                      - button [ref=e717] [cursor=pointer]:
+                        - img [ref=e718]
+                - row "Gusto Gela expense Food" [ref=e721]:
+                  - cell "Gusto Gela" [ref=e722]
+                  - cell "expense" [ref=e723]
+                  - cell "Food" [ref=e724]:
+                    - generic [ref=e725]: Food
+                  - cell [ref=e726]:
+                    - generic [ref=e727]:
+                      - button [ref=e728] [cursor=pointer]:
+                        - img [ref=e729]
+                      - button [ref=e731] [cursor=pointer]:
+                        - img [ref=e732]
+                - row "BIJI WORLD expense Food" [ref=e735]:
+                  - cell "BIJI WORLD" [ref=e736]
+                  - cell "expense" [ref=e737]
+                  - cell "Food" [ref=e738]:
+                    - generic [ref=e739]: Food
+                  - cell [ref=e740]:
+                    - generic [ref=e741]:
+                      - button [ref=e742] [cursor=pointer]:
+                        - img [ref=e743]
+                      - button [ref=e745] [cursor=pointer]:
+                        - img [ref=e746]
+                - row "NIRMALA BA expense Groceries" [ref=e749]:
+                  - cell "NIRMALA BA" [ref=e750]
+                  - cell "expense" [ref=e751]
+                  - cell "Groceries" [ref=e752]:
+                    - generic [ref=e753]: Groceries
+                  - cell [ref=e754]:
+                    - generic [ref=e755]:
+                      - button [ref=e756] [cursor=pointer]:
+                        - img [ref=e757]
+                      - button [ref=e759] [cursor=pointer]:
+                        - img [ref=e760]
+                - row "Olahan Lau expense Food" [ref=e763]:
+                  - cell "Olahan Lau" [ref=e764]
+                  - cell "expense" [ref=e765]
+                  - cell "Food" [ref=e766]:
+                    - generic [ref=e767]: Food
+                  - cell [ref=e768]:
+                    - generic [ref=e769]:
+                      - button [ref=e770] [cursor=pointer]:
+                        - img [ref=e771]
+                      - button [ref=e773] [cursor=pointer]:
+                        - img [ref=e774]
+                - row "Astra Moto expense Motor/Car Service" [ref=e777]:
+                  - cell "Astra Moto" [ref=e778]
+                  - cell "expense" [ref=e779]
+                  - cell "Motor/Car Service" [ref=e780]:
+                    - generic [ref=e781]: Motor/Car Service
+                  - cell [ref=e782]:
+                    - generic [ref=e783]:
+                      - button [ref=e784] [cursor=pointer]:
+                        - img [ref=e785]
+                      - button [ref=e787] [cursor=pointer]:
+                        - img [ref=e788]
+                - row "Planet Ban expense Motor/Car Service" [ref=e791]:
+                  - cell "Planet Ban" [ref=e792]
+                  - cell "expense" [ref=e793]
+                  - cell "Motor/Car Service" [ref=e794]:
+                    - generic [ref=e795]: Motor/Car Service
+                  - cell [ref=e796]:
+                    - generic [ref=e797]:
+                      - button [ref=e798] [cursor=pointer]:
+                        - img [ref=e799]
+                      - button [ref=e801] [cursor=pointer]:
+                        - img [ref=e802]
+                - row "DAPUR PRIM expense Workstation" [ref=e805]:
+                  - cell "DAPUR PRIM" [ref=e806]
+                  - cell "expense" [ref=e807]
+                  - cell "Workstation" [ref=e808]:
+                    - generic [ref=e809]: Workstation
+                  - cell [ref=e810]:
+                    - generic [ref=e811]:
+                      - button [ref=e812] [cursor=pointer]:
+                        - img [ref=e813]
+                      - button [ref=e815] [cursor=pointer]:
+                        - img [ref=e816]
+                - row "TIMBUL JAY expense Vet and Dog Supply" [ref=e819]:
+                  - cell "TIMBUL JAY" [ref=e820]
+                  - cell "expense" [ref=e821]
+                  - cell "Vet and Dog Supply" [ref=e822]:
+                    - generic [ref=e823]: Vet and Dog Supply
+                  - cell [ref=e824]:
+                    - generic [ref=e825]:
+                      - button [ref=e826] [cursor=pointer]:
+                        - img [ref=e827]
+                      - button [ref=e829] [cursor=pointer]:
+                        - img [ref=e830]
+                - row "transferxx fund switching" [ref=e833]:
+                  - cell "transferxx" [ref=e834]
+                  - cell "fund switching" [ref=e835]
+                  - cell [ref=e836]
+                  - cell [ref=e838]:
+                    - generic [ref=e839]:
+                      - button [ref=e840] [cursor=pointer]:
+                        - img [ref=e841]
+                      - button [ref=e843] [cursor=pointer]:
+                        - img [ref=e844]
+                - row "AYAM KREME expense Food" [ref=e847]:
+                  - cell "AYAM KREME" [ref=e848]
+                  - cell "expense" [ref=e849]
+                  - cell "Food" [ref=e850]:
+                    - generic [ref=e851]: Food
+                  - cell [ref=e852]:
+                    - generic [ref=e853]:
+                      - button [ref=e854] [cursor=pointer]:
+                        - img [ref=e855]
+                      - button [ref=e857] [cursor=pointer]:
+                        - img [ref=e858]
+                - row "RM ASLI MI expense Food" [ref=e861]:
+                  - cell "RM ASLI MI" [ref=e862]
+                  - cell "expense" [ref=e863]
+                  - cell "Food" [ref=e864]:
+                    - generic [ref=e865]: Food
+                  - cell [ref=e866]:
+                    - generic [ref=e867]:
+                      - button [ref=e868] [cursor=pointer]:
+                        - img [ref=e869]
+                      - button [ref=e871] [cursor=pointer]:
+                        - img [ref=e872]
+                - row "GRANDLUCKY expense Groceries" [ref=e875]:
+                  - cell "GRANDLUCKY" [ref=e876]
+                  - cell "expense" [ref=e877]
+                  - cell "Groceries" [ref=e878]:
+                    - generic [ref=e879]: Groceries
+                  - cell [ref=e880]:
+                    - generic [ref=e881]:
+                      - button [ref=e882] [cursor=pointer]:
+                        - img [ref=e883]
+                      - button [ref=e885] [cursor=pointer]:
+                        - img [ref=e886]
+                - row "MOTO KOPI expense Food" [ref=e889]:
+                  - cell "MOTO KOPI" [ref=e890]
+                  - cell "expense" [ref=e891]
+                  - cell "Food" [ref=e892]:
+                    - generic [ref=e893]: Food
+                  - cell [ref=e894]:
+                    - generic [ref=e895]:
+                      - button [ref=e896] [cursor=pointer]:
+                        - img [ref=e897]
+                      - button [ref=e899] [cursor=pointer]:
+                        - img [ref=e900]
+                - row "TELKOMSEL expense Bill" [ref=e903]:
+                  - cell "TELKOMSEL" [ref=e904]
+                  - cell "expense" [ref=e905]
+                  - cell "Bill" [ref=e906]:
+                    - generic [ref=e907]: Bill
+                  - cell [ref=e908]:
+                    - generic [ref=e909]:
+                      - button [ref=e910] [cursor=pointer]:
+                        - img [ref=e911]
+                      - button [ref=e913] [cursor=pointer]:
+                        - img [ref=e914]
+                - row "Dimsum GM expense Food" [ref=e917]:
+                  - cell "Dimsum GM" [ref=e918]
+                  - cell "expense" [ref=e919]
+                  - cell "Food" [ref=e920]:
+                    - generic [ref=e921]: Food
+                  - cell [ref=e922]:
+                    - generic [ref=e923]:
+                      - button [ref=e924] [cursor=pointer]:
+                        - img [ref=e925]
+                      - button [ref=e927] [cursor=pointer]:
+                        - img [ref=e928]
+                - row "RM PADANG expense Food" [ref=e931]:
+                  - cell "RM PADANG" [ref=e932]
+                  - cell "expense" [ref=e933]
+                  - cell "Food" [ref=e934]:
+                    - generic [ref=e935]: Food
+                  - cell [ref=e936]:
+                    - generic [ref=e937]:
+                      - button [ref=e938] [cursor=pointer]:
+                        - img [ref=e939]
+                      - button [ref=e941] [cursor=pointer]:
+                        - img [ref=e942]
+                - row "REDDRAGON expense Food" [ref=e945]:
+                  - cell "REDDRAGON" [ref=e946]
+                  - cell "expense" [ref=e947]
+                  - cell "Food" [ref=e948]:
+                    - generic [ref=e949]: Food
+                  - cell [ref=e950]:
+                    - generic [ref=e951]:
+                      - button [ref=e952] [cursor=pointer]:
+                        - img [ref=e953]
+                      - button [ref=e955] [cursor=pointer]:
+                        - img [ref=e956]
+                - row "LAKSMI UD expense Groceries" [ref=e959]:
+                  - cell "LAKSMI UD" [ref=e960]
+                  - cell "expense" [ref=e961]
+                  - cell "Groceries" [ref=e962]:
+                    - generic [ref=e963]: Groceries
+                  - cell [ref=e964]:
+                    - generic [ref=e965]:
+                      - button [ref=e966] [cursor=pointer]:
+                        - img [ref=e967]
+                      - button [ref=e969] [cursor=pointer]:
+                        - img [ref=e970]
+                - row "Furbabies expense Vet and Dog Supply" [ref=e973]:
+                  - cell "Furbabies" [ref=e974]
+                  - cell "expense" [ref=e975]
+                  - cell "Vet and Dog Supply" [ref=e976]:
+                    - generic [ref=e977]: Vet and Dog Supply
+                  - cell [ref=e978]:
+                    - generic [ref=e979]:
+                      - button [ref=e980] [cursor=pointer]:
+                        - img [ref=e981]
+                      - button [ref=e983] [cursor=pointer]:
+                        - img [ref=e984]
+                - row "EKA PRINT expense Vet and Dog Supply" [ref=e987]:
+                  - cell "EKA PRINT" [ref=e988]
+                  - cell "expense" [ref=e989]
+                  - cell "Vet and Dog Supply" [ref=e990]:
+                    - generic [ref=e991]: Vet and Dog Supply
+                  - cell [ref=e992]:
+                    - generic [ref=e993]:
+                      - button [ref=e994] [cursor=pointer]:
+                        - img [ref=e995]
+                      - button [ref=e997] [cursor=pointer]:
+                        - img [ref=e998]
+                - row "Biaya Adm expense Transfer/Admin Fee" [ref=e1001]:
+                  - cell "Biaya Adm" [ref=e1002]
+                  - cell "expense" [ref=e1003]
+                  - cell "Transfer/Admin Fee" [ref=e1004]:
+                    - generic [ref=e1005]: Transfer/Admin Fee
+                  - cell [ref=e1006]:
+                    - generic [ref=e1007]:
+                      - button [ref=e1008] [cursor=pointer]:
+                        - img [ref=e1009]
+                      - button [ref=e1011] [cursor=pointer]:
+                        - img [ref=e1012]
+                - row "UBI BAKAR expense Food" [ref=e1015]:
+                  - cell "UBI BAKAR" [ref=e1016]
+                  - cell "expense" [ref=e1017]
+                  - cell "Food" [ref=e1018]:
+                    - generic [ref=e1019]: Food
+                  - cell [ref=e1020]:
+                    - generic [ref=e1021]:
+                      - button [ref=e1022] [cursor=pointer]:
+                        - img [ref=e1023]
+                      - button [ref=e1025] [cursor=pointer]:
+                        - img [ref=e1026]
+                - row "INTEREST income Saving Interest" [ref=e1029]:
+                  - cell "INTEREST" [ref=e1030]
+                  - cell "income" [ref=e1031]
+                  - cell "Saving Interest" [ref=e1032]:
+                    - generic [ref=e1033]: Saving Interest
+                  - cell [ref=e1034]:
+                    - generic [ref=e1035]:
+                      - button [ref=e1036] [cursor=pointer]:
+                        - img [ref=e1037]
+                      - button [ref=e1039] [cursor=pointer]:
+                        - img [ref=e1040]
+                - row "BCA CARD expense Bill" [ref=e1043]:
+                  - cell "BCA CARD" [ref=e1044]
+                  - cell "expense" [ref=e1045]
+                  - cell "Bill" [ref=e1046]:
+                    - generic [ref=e1047]: Bill
+                  - cell [ref=e1048]:
+                    - generic [ref=e1049]:
+                      - button [ref=e1050] [cursor=pointer]:
+                        - img [ref=e1051]
+                      - button [ref=e1053] [cursor=pointer]:
+                        - img [ref=e1054]
+                - row "Cinnamon expense Food" [ref=e1057]:
+                  - cell "Cinnamon" [ref=e1058]
+                  - cell "expense" [ref=e1059]
+                  - cell "Food" [ref=e1060]:
+                    - generic [ref=e1061]: Food
+                  - cell [ref=e1062]:
+                    - generic [ref=e1063]:
+                      - button [ref=e1064] [cursor=pointer]:
+                        - img [ref=e1065]
+                      - button [ref=e1067] [cursor=pointer]:
+                        - img [ref=e1068]
+                - row "WSS BATU expense Food" [ref=e1071]:
+                  - cell "WSS BATU" [ref=e1072]
+                  - cell "expense" [ref=e1073]
+                  - cell "Food" [ref=e1074]:
+                    - generic [ref=e1075]: Food
+                  - cell [ref=e1076]:
+                    - generic [ref=e1077]:
+                      - button [ref=e1078] [cursor=pointer]:
+                        - img [ref=e1079]
+                      - button [ref=e1081] [cursor=pointer]:
+                        - img [ref=e1082]
+                - row "MULARASA expense Food" [ref=e1085]:
+                  - cell "MULARASA" [ref=e1086]
+                  - cell "expense" [ref=e1087]
+                  - cell "Food" [ref=e1088]:
+                    - generic [ref=e1089]: Food
+                  - cell [ref=e1090]:
+                    - generic [ref=e1091]:
+                      - button [ref=e1092] [cursor=pointer]:
+                        - img [ref=e1093]
+                      - button [ref=e1095] [cursor=pointer]:
+                        - img [ref=e1096]
+                - row "Jus Masa expense Food" [ref=e1099]:
+                  - cell "Jus Masa" [ref=e1100]
+                  - cell "expense" [ref=e1101]
+                  - cell "Food" [ref=e1102]:
+                    - generic [ref=e1103]: Food
+                  - cell [ref=e1104]:
+                    - generic [ref=e1105]:
+                      - button [ref=e1106] [cursor=pointer]:
+                        - img [ref=e1107]
+                      - button [ref=e1109] [cursor=pointer]:
+                        - img [ref=e1110]
+                - row "MISANTO expense Food" [ref=e1113]:
+                  - cell "MISANTO" [ref=e1114]
+                  - cell "expense" [ref=e1115]
+                  - cell "Food" [ref=e1116]:
+                    - generic [ref=e1117]: Food
+                  - cell [ref=e1118]:
+                    - generic [ref=e1119]:
+                      - button [ref=e1120] [cursor=pointer]:
+                        - img [ref=e1121]
+                      - button [ref=e1123] [cursor=pointer]:
+                        - img [ref=e1124]
+                - row "KYOUDAI expense Food" [ref=e1127]:
+                  - cell "KYOUDAI" [ref=e1128]
+                  - cell "expense" [ref=e1129]
+                  - cell "Food" [ref=e1130]:
+                    - generic [ref=e1131]: Food
+                  - cell [ref=e1132]:
+                    - generic [ref=e1133]:
+                      - button [ref=e1134] [cursor=pointer]:
+                        - img [ref=e1135]
+                      - button [ref=e1137] [cursor=pointer]:
+                        - img [ref=e1138]
+                - row "1310013 saving Stock" [ref=e1141]:
+                  - cell "1310013" [ref=e1142]
+                  - cell "saving" [ref=e1143]
+                  - cell "Stock" [ref=e1144]:
+                    - generic [ref=e1145]: Stock
+                  - cell [ref=e1146]:
+                    - generic [ref=e1147]:
+                      - button [ref=e1148] [cursor=pointer]:
+                        - img [ref=e1149]
+                      - button [ref=e1151] [cursor=pointer]:
+                        - img [ref=e1152]
+                - row "IZUDDIN expense Bill" [ref=e1155]:
+                  - cell "IZUDDIN" [ref=e1156]
+                  - cell "expense" [ref=e1157]
+                  - cell "Bill" [ref=e1158]:
+                    - generic [ref=e1159]: Bill
+                  - cell [ref=e1160]:
+                    - generic [ref=e1161]:
+                      - button [ref=e1162] [cursor=pointer]:
+                        - img [ref=e1163]
+                      - button [ref=e1165] [cursor=pointer]:
+                        - img [ref=e1166]
+                - row "Netflix expense Bill" [ref=e1169]:
+                  - cell "Netflix" [ref=e1170]
+                  - cell "expense" [ref=e1171]
+                  - cell "Bill" [ref=e1172]:
+                    - generic [ref=e1173]: Bill
+                  - cell [ref=e1174]:
+                    - generic [ref=e1175]:
+                      - button [ref=e1176] [cursor=pointer]:
+                        - img [ref=e1177]
+                      - button [ref=e1179] [cursor=pointer]:
+                        - img [ref=e1180]
+                - row "chatGPT expense Bill" [ref=e1183]:
+                  - cell "chatGPT" [ref=e1184]
+                  - cell "expense" [ref=e1185]
+                  - cell "Bill" [ref=e1186]:
+                    - generic [ref=e1187]: Bill
+                  - cell [ref=e1188]:
+                    - generic [ref=e1189]:
+                      - button [ref=e1190] [cursor=pointer]:
+                        - img [ref=e1191]
+                      - button [ref=e1193] [cursor=pointer]:
+                        - img [ref=e1194]
+                - row "Tarikan expense Withdrawing" [ref=e1197]:
+                  - cell "Tarikan" [ref=e1198]
+                  - cell "expense" [ref=e1199]
+                  - cell "Withdrawing" [ref=e1200]:
+                    - generic [ref=e1201]: Withdrawing
+                  - cell [ref=e1202]:
+                    - generic [ref=e1203]:
+                      - button [ref=e1204] [cursor=pointer]:
+                        - img [ref=e1205]
+                      - button [ref=e1207] [cursor=pointer]:
+                        - img [ref=e1208]
+                - row "Holland expense Food" [ref=e1211]:
+                  - cell "Holland" [ref=e1212]
+                  - cell "expense" [ref=e1213]
+                  - cell "Food" [ref=e1214]:
+                    - generic [ref=e1215]: Food
+                  - cell [ref=e1216]:
+                    - generic [ref=e1217]:
+                      - button [ref=e1218] [cursor=pointer]:
+                        - img [ref=e1219]
+                      - button [ref=e1221] [cursor=pointer]:
+                        - img [ref=e1222]
+                - row "KWETIAU expense Food" [ref=e1225]:
+                  - cell "KWETIAU" [ref=e1226]
+                  - cell "expense" [ref=e1227]
+                  - cell "Food" [ref=e1228]:
+                    - generic [ref=e1229]: Food
+                  - cell [ref=e1230]:
+                    - generic [ref=e1231]:
+                      - button [ref=e1232] [cursor=pointer]:
+                        - img [ref=e1233]
+                      - button [ref=e1235] [cursor=pointer]:
+                        - img [ref=e1236]
+                - row "Charges expense Transfer/Admin Fee" [ref=e1239]:
+                  - cell "Charges" [ref=e1240]
+                  - cell "expense" [ref=e1241]
+                  - cell "Transfer/Admin Fee" [ref=e1242]:
+                    - generic [ref=e1243]: Transfer/Admin Fee
+                  - cell [ref=e1244]:
+                    - generic [ref=e1245]:
+                      - button [ref=e1246] [cursor=pointer]:
+                        - img [ref=e1247]
+                      - button [ref=e1249] [cursor=pointer]:
+                        - img [ref=e1250]
+                - row "PT MNC expense Entertainment" [ref=e1253]:
+                  - cell "PT MNC" [ref=e1254]
+                  - cell "expense" [ref=e1255]
+                  - cell "Entertainment" [ref=e1256]:
+                    - generic [ref=e1257]: Entertainment
+                  - cell [ref=e1258]:
+                    - generic [ref=e1259]:
+                      - button [ref=e1260] [cursor=pointer]:
+                        - img [ref=e1261]
+                      - button [ref=e1263] [cursor=pointer]:
+                        - img [ref=e1264]
+                - row "LAKLAK expense Food" [ref=e1267]:
+                  - cell "LAKLAK" [ref=e1268]
+                  - cell "expense" [ref=e1269]
+                  - cell "Food" [ref=e1270]:
+                    - generic [ref=e1271]: Food
+                  - cell [ref=e1272]:
+                    - generic [ref=e1273]:
+                      - button [ref=e1274] [cursor=pointer]:
+                        - img [ref=e1275]
+                      - button [ref=e1277] [cursor=pointer]:
+                        - img [ref=e1278]
+                - row "WIGUNA expense Bill" [ref=e1281]:
+                  - cell "WIGUNA" [ref=e1282]
+                  - cell "expense" [ref=e1283]
+                  - cell "Bill" [ref=e1284]:
+                    - generic [ref=e1285]: Bill
+                  - cell [ref=e1286]:
+                    - generic [ref=e1287]:
+                      - button [ref=e1288] [cursor=pointer]:
+                        - img [ref=e1289]
+                      - button [ref=e1291] [cursor=pointer]:
+                        - img [ref=e1292]
+                - row "Conato expense Food" [ref=e1295]:
+                  - cell "Conato" [ref=e1296]
+                  - cell "expense" [ref=e1297]
+                  - cell "Food" [ref=e1298]:
+                    - generic [ref=e1299]: Food
+                  - cell [ref=e1300]:
+                    - generic [ref=e1301]:
+                      - button [ref=e1302] [cursor=pointer]:
+                        - img [ref=e1303]
+                      - button [ref=e1305] [cursor=pointer]:
+                        - img [ref=e1306]
+                - row "Pepito expense Food" [ref=e1309]:
+                  - cell "Pepito" [ref=e1310]
+                  - cell "expense" [ref=e1311]
+                  - cell "Food" [ref=e1312]:
+                    - generic [ref=e1313]: Food
+                  - cell [ref=e1314]:
+                    - generic [ref=e1315]:
+                      - button [ref=e1316] [cursor=pointer]:
+                        - img [ref=e1317]
+                      - button [ref=e1319] [cursor=pointer]:
+                        - img [ref=e1320]
+                - row "INDOMA expense Food" [ref=e1323]:
+                  - cell "INDOMA" [ref=e1324]
+                  - cell "expense" [ref=e1325]
+                  - cell "Food" [ref=e1326]:
+                    - generic [ref=e1327]: Food
+                  - cell [ref=e1328]:
+                    - generic [ref=e1329]:
+                      - button [ref=e1330] [cursor=pointer]:
+                        - img [ref=e1331]
+                      - button [ref=e1333] [cursor=pointer]:
+                        - img [ref=e1334]
+                - row "Es Teh expense Food" [ref=e1337]:
+                  - cell "Es Teh" [ref=e1338]
+                  - cell "expense" [ref=e1339]
+                  - cell "Food" [ref=e1340]:
+                    - generic [ref=e1341]: Food
+                  - cell [ref=e1342]:
+                    - generic [ref=e1343]:
+                      - button [ref=e1344] [cursor=pointer]:
+                        - img [ref=e1345]
+                      - button [ref=e1347] [cursor=pointer]:
+                        - img [ref=e1348]
+                - row "Sambal expense Food" [ref=e1351]:
+                  - cell "Sambal" [ref=e1352]
+                  - cell "expense" [ref=e1353]
+                  - cell "Food" [ref=e1354]:
+                    - generic [ref=e1355]: Food
+                  - cell [ref=e1356]:
+                    - generic [ref=e1357]:
+                      - button [ref=e1358] [cursor=pointer]:
+                        - img [ref=e1359]
+                      - button [ref=e1361] [cursor=pointer]:
+                        - img [ref=e1362]
+                - row "WARUNG expense Food" [ref=e1365]:
+                  - cell "WARUNG" [ref=e1366]
+                  - cell "expense" [ref=e1367]
+                  - cell "Food" [ref=e1368]:
+                    - generic [ref=e1369]: Food
+                  - cell [ref=e1370]:
+                    - generic [ref=e1371]:
+                      - button [ref=e1372] [cursor=pointer]:
+                        - img [ref=e1373]
+                      - button [ref=e1375] [cursor=pointer]:
+                        - img [ref=e1376]
+                - row "Klinik expense Medical" [ref=e1379]:
+                  - cell "Klinik" [ref=e1380]
+                  - cell "expense" [ref=e1381]
+                  - cell "Medical" [ref=e1382]:
+                    - generic [ref=e1383]: Medical
+                  - cell [ref=e1384]:
+                    - generic [ref=e1385]:
+                      - button [ref=e1386] [cursor=pointer]:
+                        - img [ref=e1387]
+                      - button [ref=e1389] [cursor=pointer]:
+                        - img [ref=e1390]
+                - row "Uniqlo expense Clothing" [ref=e1393]:
+                  - cell "Uniqlo" [ref=e1394]
+                  - cell "expense" [ref=e1395]
+                  - cell "Clothing" [ref=e1396]:
+                    - generic [ref=e1397]: Clothing
+                  - cell [ref=e1398]:
+                    - generic [ref=e1399]:
+                      - button [ref=e1400] [cursor=pointer]:
+                        - img [ref=e1401]
+                      - button [ref=e1403] [cursor=pointer]:
+                        - img [ref=e1404]
+                - row "londri expense Housekeeping" [ref=e1407]:
+                  - cell "londri" [ref=e1408]
+                  - cell "expense" [ref=e1409]
+                  - cell "Housekeeping" [ref=e1410]:
+                    - generic [ref=e1411]: Housekeeping
+                  - cell [ref=e1412]:
+                    - generic [ref=e1413]:
+                      - button [ref=e1414] [cursor=pointer]:
+                        - img [ref=e1415]
+                      - button [ref=e1417] [cursor=pointer]:
+                        - img [ref=e1418]
+                - row "Pempek expense Food" [ref=e1421]:
+                  - cell "Pempek" [ref=e1422]
+                  - cell "expense" [ref=e1423]
+                  - cell "Food" [ref=e1424]:
+                    - generic [ref=e1425]: Food
+                  - cell [ref=e1426]:
+                    - generic [ref=e1427]:
+                      - button [ref=e1428] [cursor=pointer]:
+                        - img [ref=e1429]
+                      - button [ref=e1431] [cursor=pointer]:
+                        - img [ref=e1432]
+                - row "CRxxx income" [ref=e1435]:
+                  - cell "CRxxx" [ref=e1436]
+                  - cell "income" [ref=e1437]
+                  - cell [ref=e1438]
+                  - cell [ref=e1440]:
+                    - generic [ref=e1441]:
+                      - button [ref=e1442] [cursor=pointer]:
+                        - img [ref=e1443]
+                      - button [ref=e1445] [cursor=pointer]:
+                        - img [ref=e1446]
+                - row "Gohan expense Food" [ref=e1449]:
+                  - cell "Gohan" [ref=e1450]
+                  - cell "expense" [ref=e1451]
+                  - cell "Food" [ref=e1452]:
+                    - generic [ref=e1453]: Food
+                  - cell [ref=e1454]:
+                    - generic [ref=e1455]:
+                      - button [ref=e1456] [cursor=pointer]:
+                        - img [ref=e1457]
+                      - button [ref=e1459] [cursor=pointer]:
+                        - img [ref=e1460]
+                - row "Esteh expense Food" [ref=e1463]:
+                  - cell "Esteh" [ref=e1464]
+                  - cell "expense" [ref=e1465]
+                  - cell "Food" [ref=e1466]:
+                    - generic [ref=e1467]: Food
+                  - cell [ref=e1468]:
+                    - generic [ref=e1469]:
+                      - button [ref=e1470] [cursor=pointer]:
+                        - img [ref=e1471]
+                      - button [ref=e1473] [cursor=pointer]:
+                        - img [ref=e1474]
+                - row "Donut expense Food" [ref=e1477]:
+                  - cell "Donut" [ref=e1478]
+                  - cell "expense" [ref=e1479]
+                  - cell "Food" [ref=e1480]:
+                    - generic [ref=e1481]: Food
+                  - cell [ref=e1482]:
+                    - generic [ref=e1483]:
+                      - button [ref=e1484] [cursor=pointer]:
+                        - img [ref=e1485]
+                      - button [ref=e1487] [cursor=pointer]:
+                        - img [ref=e1488]
+                - row "BAKMI expense Food" [ref=e1491]:
+                  - cell "BAKMI" [ref=e1492]
+                  - cell "expense" [ref=e1493]
+                  - cell "Food" [ref=e1494]:
+                    - generic [ref=e1495]: Food
+                  - cell [ref=e1496]:
+                    - generic [ref=e1497]:
+                      - button [ref=e1498] [cursor=pointer]:
+                        - img [ref=e1499]
+                      - button [ref=e1501] [cursor=pointer]:
+                        - img [ref=e1502]
+                - row "Bakso expense Food" [ref=e1505]:
+                  - cell "Bakso" [ref=e1506]
+                  - cell "expense" [ref=e1507]
+                  - cell "Food" [ref=e1508]:
+                    - generic [ref=e1509]: Food
+                  - cell [ref=e1510]:
+                    - generic [ref=e1511]:
+                      - button [ref=e1512] [cursor=pointer]:
+                        - img [ref=e1513]
+                      - button [ref=e1515] [cursor=pointer]:
+                        - img [ref=e1516]
+                - row "Pajak expense Tax" [ref=e1519]:
+                  - cell "Pajak" [ref=e1520]
+                  - cell "expense" [ref=e1521]
+                  - cell "Tax" [ref=e1522]:
+                    - generic [ref=e1523]: Tax
+                  - cell [ref=e1524]:
+                    - generic [ref=e1525]:
+                      - button [ref=e1526] [cursor=pointer]:
+                        - img [ref=e1527]
+                      - button [ref=e1529] [cursor=pointer]:
+                        - img [ref=e1530]
+                - row "Donat expense Food" [ref=e1533]:
+                  - cell "Donat" [ref=e1534]
+                  - cell "expense" [ref=e1535]
+                  - cell "Food" [ref=e1536]:
+                    - generic [ref=e1537]: Food
+                  - cell [ref=e1538]:
+                    - generic [ref=e1539]:
+                      - button [ref=e1540] [cursor=pointer]:
+                        - img [ref=e1541]
+                      - button [ref=e1543] [cursor=pointer]:
+                        - img [ref=e1544]
+                - row "nelly fund switching" [ref=e1547]:
+                  - cell "nelly" [ref=e1548]
+                  - cell "fund switching" [ref=e1549]
+                  - cell [ref=e1550]
+                  - cell [ref=e1552]:
+                    - generic [ref=e1553]:
+                      - button [ref=e1554] [cursor=pointer]:
+                        - img [ref=e1555]
+                      - button [ref=e1557] [cursor=pointer]:
+                        - img [ref=e1558]
+                - row "K2FLY income Salary" [ref=e1561]:
+                  - cell "K2FLY" [ref=e1562]
+                  - cell "income" [ref=e1563]
+                  - cell "Salary" [ref=e1564]:
+                    - generic [ref=e1565]: Salary
+                  - cell [ref=e1566]:
+                    - generic [ref=e1567]:
+                      - button [ref=e1568] [cursor=pointer]:
+                        - img [ref=e1569]
+                      - button [ref=e1571] [cursor=pointer]:
+                        - img [ref=e1572]
+                - row "Bills expense Bill" [ref=e1575]:
+                  - cell "Bills" [ref=e1576]
+                  - cell "expense" [ref=e1577]
+                  - cell "Bill" [ref=e1578]:
+                    - generic [ref=e1579]: Bill
+                  - cell [ref=e1580]:
+                    - generic [ref=e1581]:
+                      - button [ref=e1582] [cursor=pointer]:
+                        - img [ref=e1583]
+                      - button [ref=e1585] [cursor=pointer]:
+                        - img [ref=e1586]
+                - row "Yoyok expense Food" [ref=e1589]:
+                  - cell "Yoyok" [ref=e1590]
+                  - cell "expense" [ref=e1591]
+                  - cell "Food" [ref=e1592]:
+                    - generic [ref=e1593]: Food
+                  - cell [ref=e1594]:
+                    - generic [ref=e1595]:
+                      - button [ref=e1596] [cursor=pointer]:
+                        - img [ref=e1597]
+                      - button [ref=e1599] [cursor=pointer]:
+                        - img [ref=e1600]
+                - row "Bubur expense Food" [ref=e1603]:
+                  - cell "Bubur" [ref=e1604]
+                  - cell "expense" [ref=e1605]
+                  - cell "Food" [ref=e1606]:
+                    - generic [ref=e1607]: Food
+                  - cell [ref=e1608]:
+                    - generic [ref=e1609]:
+                      - button [ref=e1610] [cursor=pointer]:
+                        - img [ref=e1611]
+                      - button [ref=e1613] [cursor=pointer]:
+                        - img [ref=e1614]
+                - row "Nasi expense Food" [ref=e1617]:
+                  - cell "Nasi" [ref=e1618]
+                  - cell "expense" [ref=e1619]
+                  - cell "Food" [ref=e1620]:
+                    - generic [ref=e1621]: Food
+                  - cell [ref=e1622]:
+                    - generic [ref=e1623]:
+                      - button [ref=e1624] [cursor=pointer]:
+                        - img [ref=e1625]
+                      - button [ref=e1627] [cursor=pointer]:
+                        - img [ref=e1628]
+                - row "Gogo expense Food" [ref=e1631]:
+                  - cell "Gogo" [ref=e1632]
+                  - cell "expense" [ref=e1633]
+                  - cell "Food" [ref=e1634]:
+                    - generic [ref=e1635]: Food
+                  - cell [ref=e1636]:
+                    - generic [ref=e1637]:
+                      - button [ref=e1638] [cursor=pointer]:
+                        - img [ref=e1639]
+                      - button [ref=e1641] [cursor=pointer]:
+                        - img [ref=e1642]
+                - row "Arys expense Groceries" [ref=e1645]:
+                  - cell "Arys" [ref=e1646]
+                  - cell "expense" [ref=e1647]
+                  - cell "Groceries" [ref=e1648]:
+                    - generic [ref=e1649]: Groceries
+                  - cell [ref=e1650]:
+                    - generic [ref=e1651]:
+                      - button [ref=e1652] [cursor=pointer]:
+                        - img [ref=e1653]
+                      - button [ref=e1655] [cursor=pointer]:
+                        - img [ref=e1656]
+                - row "BPJS expense Bill" [ref=e1659]:
+                  - cell "BPJS" [ref=e1660]
+                  - cell "expense" [ref=e1661]
+                  - cell "Bill" [ref=e1662]:
+                    - generic [ref=e1663]: Bill
+                  - cell [ref=e1664]:
+                    - generic [ref=e1665]:
+                      - button [ref=e1666] [cursor=pointer]:
+                        - img [ref=e1667]
+                      - button [ref=e1669] [cursor=pointer]:
+                        - img [ref=e1670]
+                - row "Roti expense Food" [ref=e1673]:
+                  - cell "Roti" [ref=e1674]
+                  - cell "expense" [ref=e1675]
+                  - cell "Food" [ref=e1676]:
+                    - generic [ref=e1677]: Food
+                  - cell [ref=e1678]:
+                    - generic [ref=e1679]:
+                      - button [ref=e1680] [cursor=pointer]:
+                        - img [ref=e1681]
+                      - button [ref=e1683] [cursor=pointer]:
+                        - img [ref=e1684]
+                - row "Mie expense Food" [ref=e1687]:
+                  - cell "Mie" [ref=e1688]
+                  - cell "expense" [ref=e1689]
+                  - cell "Food" [ref=e1690]:
+                    - generic [ref=e1691]: Food
+                  - cell [ref=e1692]:
+                    - generic [ref=e1693]:
+                      - button [ref=e1694] [cursor=pointer]:
+                        - img [ref=e1695]
+                      - button [ref=e1697] [cursor=pointer]:
+                        - img [ref=e1698]
+                - row "ARY expense Groceries" [ref=e1701]:
+                  - cell "ARY" [ref=e1702]
+                  - cell "expense" [ref=e1703]
+                  - cell "Groceries" [ref=e1704]:
+                    - generic [ref=e1705]: Groceries
+                  - cell [ref=e1706]:
+                    - generic [ref=e1707]:
+                      - button [ref=e1708] [cursor=pointer]:
+                        - img [ref=e1709]
+                      - button [ref=e1711] [cursor=pointer]:
+                        - img [ref=e1712]
+                - row "PET expense Vet and Dog Supply" [ref=e1715]:
+                  - cell "PET" [ref=e1716]
+                  - cell "expense" [ref=e1717]
+                  - cell "Vet and Dog Supply" [ref=e1718]:
+                    - generic [ref=e1719]: Vet and Dog Supply
+                  - cell [ref=e1720]:
+                    - generic [ref=e1721]:
+                      - button [ref=e1722] [cursor=pointer]:
+                        - img [ref=e1723]
+                      - button [ref=e1725] [cursor=pointer]:
+                        - img [ref=e1726]
+                - row "FEE expense Transfer/Admin Fee" [ref=e1729]:
+                  - cell "FEE" [ref=e1730]
+                  - cell "expense" [ref=e1731]
+                  - cell "Transfer/Admin Fee" [ref=e1732]:
+                    - generic [ref=e1733]: Transfer/Admin Fee
+                  - cell [ref=e1734]:
+                    - generic [ref=e1735]:
+                      - button [ref=e1736] [cursor=pointer]:
+                        - img [ref=e1737]
+                      - button [ref=e1739] [cursor=pointer]:
+                        - img [ref=e1740]
+                - row "VET expense Vet and Dog Supply" [ref=e1743]:
+                  - cell "VET" [ref=e1744]
+                  - cell "expense" [ref=e1745]
+                  - cell "Vet and Dog Supply" [ref=e1746]:
+                    - generic [ref=e1747]: Vet and Dog Supply
+                  - cell [ref=e1748]:
+                    - generic [ref=e1749]:
+                      - button [ref=e1750] [cursor=pointer]:
+                        - img [ref=e1751]
+                      - button [ref=e1753] [cursor=pointer]:
+                        - img [ref=e1754]
+      - generic [ref=e189]:
+        - generic [ref=e190]:
+          - generic [ref=e191]: Recent
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - generic [ref=e197]: TRANSFER IN SYAFTRACO 702319…
+                - generic [ref=e198]: +10.125.304
+              - generic [ref=e199]: Neo Savings
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - generic [ref=e204]: TRANSFER OUT RIKKI H HASIBUA…
+                - generic [ref=e205]: −800.000
+              - generic [ref=e206]: Neo Savings
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - generic [ref=e211]: Opening Balance
+                - generic [ref=e212]: +2.828.700,84
+              - generic [ref=e213]: Neo Savings
+            - generic [ref=e214]:
+              - generic [ref=e215]:
+                - generic [ref=e218]: SAVING INTEREST
+                - generic [ref=e219]: +329,36
+              - generic [ref=e220]: Neo Savings
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e225]: TRANSFER OUT YAYASAN BALI RE…
+                - generic [ref=e226]: −1.000.000
+              - generic [ref=e227]: Neo Savings
+            - generic [ref=e228]:
+              - generic [ref=e229]:
+                - generic [ref=e232]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e233]: −55.440
+              - generic [ref=e234]: Superbank
+            - generic [ref=e235]:
+              - generic [ref=e236]:
+                - generic [ref=e239]: TRSF E-BANKING DB 0602/FTSCY…
+                - generic [ref=e240]: −24.000
+              - generic [ref=e241]: Superbank
+            - generic [ref=e242]:
+              - generic [ref=e243]:
+                - generic [ref=e246]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e247]: −31.000
+              - generic [ref=e248]: Superbank
+        - generic [ref=e249]:
+          - text: Processing
+          - paragraph [ref=e250]: No active uploads
+  - generic [ref=e251]: Apr 25
