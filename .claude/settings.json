@@ -45,7 +45,9 @@
       "Bash(powershell -Command \"npx supabase status --output env 2>&1\")",
       "Bash(powershell -Command \"Stop-Process -Id \\(Get-NetTCPConnection -LocalPort 7208 -ErrorAction SilentlyContinue\\).OwningProcess -Force -ErrorAction SilentlyContinue; Write-Host 'API process stopped'\")",
       "Bash(powershell -Command \"Remove-Item -Recurse -Force 'c:\\\\workspaces\\\\personal-finance\\\\apps\\\\api\\\\src\\\\PersonalFinance.Persistence'\")",
-      "Bash(powershell -Command \"Stop-Process -Id 37420 -Force -ErrorAction SilentlyContinue; Write-Host 'done'\")"
+      "Bash(powershell -Command \"Stop-Process -Id 37420 -Force -ErrorAction SilentlyContinue; Write-Host 'done'\")",
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(GEMINI_API_KEY=test-key .venv/Scripts/python -m pytest tests/ -v)"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -56,6 +58,9 @@
       "Bash(docker system prune*)",
       "Bash(docker volume rm *)",
       "Bash(dotnet ef database drop*)"
+    ],
+    "additionalDirectories": [
+      "c:\\workspaces\\personal-finance\\.claude\\plans"
     ]
   },
   "model": "opusplan",

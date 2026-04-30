@@ -4,3 +4,16 @@ ai_service.egg-info/SOURCES.txt
 ai_service.egg-info/dependency_links.txt
 ai_service.egg-info/requires.txt
 ai_service.egg-info/top_level.txt
+app/__init__.py
+app/config.py
+app/main.py
+app/models.py
+app/providers/__init__.py
+app/providers/anthropic.py
+app/providers/base.py
+app/providers/factory.py
+app/providers/gemini.py
+app/services/__init__.py
+app/services/llm_parser.py
+tests/test_health.py
+tests/test_parse.py
