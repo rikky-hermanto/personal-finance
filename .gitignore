@@ -26,6 +26,12 @@ dist-ssr
 **/bin/
 **/obj/
 
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+
 # Environment files — never commit real credentials
 .env
 .env.*
