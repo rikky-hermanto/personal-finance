@@ -4,7 +4,7 @@ export interface Transaction {
   date: string;
   description: string;
   amount: number;
-  flow: string;
+  flow?: string;
   type: 'income' | 'expense';
   category: string;
   bank: string;
@@ -13,7 +13,7 @@ export interface Transaction {
 }
 
 export interface CategoryRule {
-  id: number;
+  id: number | string;
   keyword: string;
   category: string;
   type: 'income' | 'expense';
@@ -25,4 +25,15 @@ export interface MonthlySum {
   income: number;
   expenses: number;
   balance: number;
+}
+
+export type BankId = 'BCA' | 'Superbank' | 'NeoBank' | 'Wise' | 'Jago';
+
+export interface WalletBalance {
+  bankId: BankId;
+  label: string;
+  balance: number;
+  currency: 'IDR' | 'USD';
+  delta30d: number;
+  sparkline: number[];
 }

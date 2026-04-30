@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { BarChart3, Upload, List, PieChart, Settings, Menu, X } from 'lucide-react';
+import { BarChart3, Upload, List, PieChart, Settings, Menu, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SidebarProps {
@@ -8,46 +8,67 @@ interface SidebarProps {
   onViewChange: (view: string) => void;
 }
 
+const menuItems = [
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  { id: 'upload', label: 'Upload', icon: Upload },
+  { id: 'transactions', label: 'Transactions', icon: List },
+  { id: 'categories', label: 'Categories', icon: PieChart },
+  { id: 'settings', label: 'Settings', icon: Settings },
+];
+
 const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
   const [collapsed, setCollapsed] = useState(false);
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'upload', label: 'Upload', icon: Upload },
-    { id: 'transactions', label: 'Transactions', icon: List },
-    { id: 'categories', label: 'Categories', icon: PieChart },
-    { id: 'settings', label: 'Settings', icon: Settings },
-  ];
-
   return (
-    <div className={cn(
-      "bg-white border-r border-gray-200 h-screen flex flex-col transition-all duration-300 ease-in-out",
-      collapsed ? "w-16" : "w-64"
-    )}>
+    <div
+      className={cn(
+        'bg-sidebar border-r border-sidebar-border h-screen flex flex-col flex-shrink-0 transition-all duration-200 ease-in-out',
+        collapsed ? 'w-14' : 'w-52'
+      )}
+    >
       {/* Header */}
-      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+      <div className="h-14 px-3 flex items-center justify-between border-b border-sidebar-border">
         {!collapsed && (
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-900 rounded flex items-center justify-center">
-              <BarChart3 className="w-4 h-4 text-white" />
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 bg-foreground/10 rounded flex items-center justify-center flex-shrink-0">
+              <BarChart3 className="w-3.5 h-3.5 text-sidebar-primary" />
             </div>
-            <div>
-              <h1 className="text-base font-semibold text-gray-900">Finance</h1>
-              <p className="text-xs text-gray-500">Personal tracker</p>
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-sidebar-primary leading-none">Finance</div>
+              <div className="text-[10px] text-sidebar-foreground mt-0.5 leading-none">Personal tracker</div>
             </div>
           </div>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-md hover:bg-gray-50 transition-colors duration-200"
+          className="p-1.5 rounded hover:bg-sidebar-accent transition-colors flex-shrink-0"
         >
-          {collapsed ? <Menu className="w-4 h-4 text-gray-600" /> : <X className="w-4 h-4 text-gray-600" />}
+          {collapsed
+            ? <Menu className="w-3.5 h-3.5 text-sidebar-foreground" />
+            : <X className="w-3.5 h-3.5 text-sidebar-foreground" />}
         </button>
       </div>
-      
+
+      {/* New upload CTA */}
+      <div className={cn('px-3 pt-4 pb-2', collapsed && 'flex justify-center')}>
+        <button
+          onClick={() => onViewChange('upload')}
+          className={cn(
+            'flex items-center gap-2 rounded-md transition-colors bg-foreground/8 hover:bg-foreground/12 text-sidebar-primary border border-sidebar-border',
+            collapsed
+              ? 'p-2 justify-center w-8 h-8'
+              : 'px-3 py-1.5 w-full text-xs font-medium'
+          )}
+          title={collapsed ? 'New upload' : undefined}
+        >
+          <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+          {!collapsed && <span>New upload</span>}
+        </button>
+      </div>
+
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <ul className="space-y-1">
+      <nav className="flex-1 px-3 pb-4 pt-2 overflow-y-auto">
+        <ul className="space-y-0.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeView === item.id;
@@ -55,21 +76,18 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
               <li key={item.id}>
                 <button
                   onClick={() => onViewChange(item.id)}
-                  className={cn(
-                    "w-full flex items-center text-left rounded-md transition-all duration-200 group",
-                    collapsed ? "px-3 py-3 justify-center" : "px-3 py-2",
-                    isActive
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                  )}
                   title={collapsed ? item.label : undefined}
+                  className={cn(
+                    'w-full flex items-center rounded-md transition-colors',
+                    collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-2.5',
+                    isActive
+                      ? 'bg-sidebar-accent text-sidebar-primary'
+                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                  )}
                 >
-                  <Icon className={cn(
-                    "w-4 h-4 flex-shrink-0",
-                    !collapsed && "mr-3"
-                  )} />
+                  <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
                   {!collapsed && (
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <span className="text-xs font-medium">{item.label}</span>
                   )}
                 </button>
               </li>

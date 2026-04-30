@@ -2,6 +2,7 @@
 import { useMemo } from 'react';
 import { Transaction } from '@/types/Transaction';
 import { ArrowLeft, Calendar, CreditCard } from 'lucide-react';
+import { formatCurrency, formatMonth } from '@/lib/format';
 
 interface DrillDownViewProps {
   transactions: Transaction[];
@@ -11,120 +12,88 @@ interface DrillDownViewProps {
 }
 
 const DrillDownView = ({ transactions, category, month, onBack }: DrillDownViewProps) => {
-  const filteredTransactions = useMemo(() => {
-    return transactions.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      const transactionMonth = `${transactionDate.getFullYear()}-${String(transactionDate.getMonth() + 1).padStart(2, '0')}`;
-      return transaction.category === category && 
-             transactionMonth === month && 
-             transaction.type === 'expense';
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const filtered = useMemo(() => {
+    return transactions
+      .filter((tx) => {
+        const d = new Date(tx.date);
+        const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return tx.category === category && m === month && tx.type === 'expense';
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, category, month]);
 
-  const totalAmount = useMemo(() => {
-    return filteredTransactions.reduce((sum, transaction) => sum + Math.abs(transaction.amount), 0);
-  }, [filteredTransactions]);
+  const total = useMemo(
+    () => filtered.reduce((s, tx) => s + Math.abs(tx.amount), 0),
+    [filtered]
+  );
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatMonth = (monthString: string) => {
-    const [year, month] = monthString.split('-');
-    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString('en-US', {
-      month: 'long',
-      year: 'numeric',
-    });
-  };
+  const formatDate = (ds: string) =>
+    new Date(ds).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto p-8 space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={onBack}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors p-2 rounded-md hover:bg-gray-50"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to Dashboard</span>
-          </button>
-        </div>
+    <div className="min-h-full bg-background p-6 space-y-5">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors text-sm"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
+        Back to Dashboard
+      </button>
 
-        {/* Category Summary */}
-        <div className="bg-white border border-gray-200 rounded-lg p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold text-gray-900">{category}</h1>
-              <div className="flex items-center space-x-6 text-sm text-gray-600">
-                <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{formatMonth(month)}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CreditCard className="w-4 h-4" />
-                  <span>{filteredTransactions.length} transaction{filteredTransactions.length !== 1 ? 's' : ''}</span>
-                </div>
+      <div className="bg-card border border-border rounded-lg p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-foreground">{category}</h1>
+            <div className="flex items-center gap-5 mt-2 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5" strokeWidth={1.5} />
+                {formatMonth(month)}
+              </div>
+              <div className="flex items-center gap-1.5">
+                <CreditCard className="w-3.5 h-3.5" strokeWidth={1.5} />
+                {filtered.length} transaction{filtered.length !== 1 ? 's' : ''}
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray-600 mb-1">Total spent</div>
-              <div className="text-2xl font-semibold text-red-600">{formatCurrency(totalAmount)}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-muted-foreground mb-1">Total spent</div>
+            <div className="font-mono text-base font-medium text-destructive tabular-nums">
+              {formatCurrency(total)}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Transactions List */}
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-gray-100">
-            <h3 className="text-lg font-medium text-gray-900">Transactions</h3>
-          </div>
-          
-          {filteredTransactions.length > 0 ? (
-            <div className="divide-y divide-gray-100">
-              {filteredTransactions.map((transaction) => (
-                <div key={transaction.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-medium text-gray-900 truncate max-w-md">
-                          {transaction.description}
-                        </h4>
-                        <div className="text-lg font-semibold text-red-600">
-                          {formatCurrency(transaction.amount)}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <span>{formatDate(transaction.date)}</span>
-                        <span>{transaction.bank}</span>
-                      </div>
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-border">
+          <h3 className="text-sm font-medium text-foreground">Transactions</h3>
+        </div>
+
+        {filtered.length > 0 ? (
+          <div className="divide-y divide-border">
+            {filtered.map((tx) => (
+              <div key={tx.id} className="px-6 py-3 hover:bg-accent transition-colors">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm text-foreground truncate max-w-md">{tx.description}</p>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                      <span>{formatDate(tx.date)}</span>
+                      <span>{tx.bank}</span>
                     </div>
                   </div>
+                  <span className="font-mono text-sm text-destructive tabular-nums ml-4 flex-shrink-0">
+                    {formatCurrency(Math.abs(tx.amount))}
+                  </span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-12 text-center">
-              <div className="w-16 h-16 mx-auto bg-gray-100 rounded-lg flex items-center justify-center mb-4">
-                <CreditCard className="w-8 h-8 text-gray-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
-              <p className="text-gray-600">No transactions found for this category and month.</p>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-16 text-center">
+            <CreditCard className="w-8 h-8 text-muted-foreground/40 mx-auto mb-3" strokeWidth={1} />
+            <p className="text-sm text-muted-foreground">No transactions found</p>
+          </div>
+        )}
       </div>
     </div>
   );
