@@ -1,9 +1,7 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileText, CheckCircle, Eye, Send, X } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Eye, X, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { Transaction } from '@/types/Transaction';
-import { parseTransactionFiles } from '@/utils/transactionParser';
 import TransactionPreview from './TransactionPreview';
 import * as transactionsApi from '@/api/transactionsApi';
 
@@ -13,14 +11,23 @@ interface FileUploadProps {
 
 type WorkflowStep = 'upload' | 'review' | 'preview' | 'submitted';
 
+const STEPS: { key: WorkflowStep; label: string }[] = [
+  { key: 'upload',    label: 'Upload'  },
+  { key: 'review',   label: 'Review'  },
+  { key: 'preview',  label: 'Preview' },
+  { key: 'submitted', label: 'Submit' },
+];
+
+const stepIndex = (s: WorkflowStep) => STEPS.findIndex(x => x.key === s);
+
 const FileUpload = ({ onFileUpload }: FileUploadProps) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [currentStep, setCurrentStep] = useState<WorkflowStep>('upload');
+  const [isDragging, setIsDragging]           = useState(false);
+  const [uploadedFiles, setUploadedFiles]     = useState<File[]>([]);
+  const [currentStep, setCurrentStep]         = useState<WorkflowStep>('upload');
   const [parsedTransactions, setParsedTransactions] = useState<Transaction[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [pdfPassword, setPdfPassword] = useState<string>('');
-  const [apiError, setApiError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing]       = useState(false);
+  const [pdfPassword, setPdfPassword]         = useState('');
+  const [apiError, setApiError]               = useState<string | null>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -35,20 +42,13 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
-    const files = Array.from(e.dataTransfer.files);
-    const validFiles = files.filter(file => 
-      file.type === 'text/csv' || 
-      file.type === 'application/pdf' ||
-      file.name.endsWith('.csv') || 
-      file.name.endsWith('.pdf')
+    const validFiles = Array.from(e.dataTransfer.files).filter(f =>
+      f.type === 'text/csv' || f.type === 'application/pdf' ||
+      f.name.endsWith('.csv') || f.name.endsWith('.pdf')
     );
-    
     if (validFiles.length > 0) {
       setUploadedFiles(prev => [...prev, ...validFiles]);
-      if (currentStep === 'upload') {
-        setCurrentStep('review');
-      }
+      if (currentStep === 'upload') setCurrentStep('review');
     }
   }, [currentStep]);
 
@@ -56,40 +56,35 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       setUploadedFiles(prev => [...prev, ...files]);
-      if (currentStep === 'upload') {
-        setCurrentStep('review');
-      }
+      if (currentStep === 'upload') setCurrentStep('review');
     }
   }, [currentStep]);
 
   const handleRemoveFile = useCallback((index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
-    if (uploadedFiles.length === 1) {
-      setCurrentStep('upload');
-    }
-  }, [uploadedFiles.length]);
+    setUploadedFiles(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      if (next.length === 0) setCurrentStep('upload');
+      return next;
+    });
+  }, []);
 
   const handleProcessFiles = useCallback(async () => {
     setIsProcessing(true);
     setApiError(null);
     try {
-      // Only process the first file for now (API expects one file per request)
       const file = uploadedFiles[0];
       if (!file) return;
-
-      // Call the actual API for upload-preview
       const apiTransactions = await transactionsApi.uploadPreview(file, pdfPassword);
-      // Map API response to your Transaction type with proper type casting
       const transactions: Transaction[] = apiTransactions.map((t: transactionsApi.TransactionDto) => ({
-        id: t.id.toString(),
-        date: t.date,
+        id:          t.id.toString(),
+        date:        t.date,
         description: t.description,
-        flow: t.flow,
-        amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-        type: (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
-        category: t.category,
-        bank: t.wallet,
-        balance: t.balance,
+        flow:        t.flow,
+        amount:      t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
+        type:        (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
+        category:    t.category,
+        bank:        t.wallet,
+        balance:     t.balance,
       }));
       setParsedTransactions(transactions);
       setCurrentStep('preview');
@@ -97,21 +92,17 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       let message = 'Error processing files.';
       try {
         const data = await error.response?.json?.();
-        if (data?.Message) {
-          message = data.Message + (data.Detail ? `: ${data.Detail}` : '');
-        }
+        if (data?.Message) message = data.Message + (data.Detail ? `: ${data.Detail}` : '');
       } catch {
-        // fallback to error.message
         if (error instanceof Error && error.message) message = error.message;
       }
       setApiError(message);
-      console.error('Error processing files:', error);
     } finally {
       setIsProcessing(false);
     }
   }, [uploadedFiles, pdfPassword]);
 
-  const handleConfirmData = useCallback((transactions: Transaction[]) => {
+  const handleConfirmData = useCallback(() => {
     onFileUpload(uploadedFiles);
     setCurrentStep('submitted');
   }, [uploadedFiles, onFileUpload]);
@@ -122,243 +113,209 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     setCurrentStep('upload');
   }, []);
 
-  const renderStepIndicator = () => (
-    <div className="flex items-center justify-center mb-8">
-      <div className="flex items-center space-x-4">
-        <div className={cn(
-          "flex items-center space-x-2",
-          currentStep === 'upload' ? "text-gray-900" : "text-gray-600"
-        )}>
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border",
-            currentStep === 'upload' ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-300"
-          )}>
-            {currentStep === 'upload' ? '1' : <CheckCircle className="w-5 h-5" />}
-          </div>
-          <span className="text-sm font-medium">Upload</span>
-        </div>
-        
-        <div className={cn(
-          "w-8 h-1 rounded",
-          currentStep === 'upload' ? "bg-gray-200" : "bg-gray-400"
-        )} />
-        
-        <div className={cn(
-          "flex items-center space-x-2",
-          currentStep === 'upload' ? "text-gray-400" : 
-          currentStep === 'review' ? "text-gray-900" : "text-gray-600"
-        )}>
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border",
-            currentStep === 'upload' ? "bg-white text-gray-400 border-gray-200" :
-            currentStep === 'review' ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-300"
-          )}>
-            {['preview', 'submitted'].includes(currentStep) ? <CheckCircle className="w-5 h-5" /> : '2'}
-          </div>
-          <span className="text-sm font-medium">Review</span>
-        </div>
-        
-        <div className={cn(
-          "w-8 h-1 rounded",
-          ['preview', 'submitted'].includes(currentStep) ? "bg-gray-400" : "bg-gray-200"
-        )} />
-        
-        <div className={cn(
-          "flex items-center space-x-2",
-          currentStep === 'preview' ? "text-gray-900" : 
-          currentStep === 'submitted' ? "text-gray-600" : "text-gray-400"
-        )}>
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border",
-            currentStep === 'preview' ? "bg-gray-900 text-white border-gray-900" :
-            currentStep === 'submitted' ? "bg-white text-gray-600 border-gray-300" : "bg-white text-gray-400 border-gray-200"
-          )}>
-            {currentStep === 'submitted' ? <CheckCircle className="w-5 h-5" /> : '3'}
-          </div>
-          <span className="text-sm font-medium">Preview</span>
-        </div>
-        
-        <div className={cn(
-          "w-8 h-1 rounded",
-          currentStep === 'submitted' ? "bg-gray-400" : "bg-gray-200"
-        )} />
-        
-        <div className={cn(
-          "flex items-center space-x-2",
-          currentStep === 'submitted' ? "text-gray-600" : "text-gray-400"
-        )}>
-          <div className={cn(
-            "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium border",
-            currentStep === 'submitted' ? "bg-white text-gray-600 border-gray-300" : "bg-white text-gray-400 border-gray-200"
-          )}>
-            {currentStep === 'submitted' ? <CheckCircle className="w-5 h-5" /> : '4'}
-          </div>
-          <span className="text-sm font-medium">Submit</span>
-        </div>
+  // ── Step indicator ──────────────────────────────────────────────────────────
+  const renderStepIndicator = () => {
+    const current = stepIndex(currentStep);
+    return (
+      <div className="flex items-center justify-center gap-0 mb-10">
+        {STEPS.map((step, i) => {
+          const done   = i < current;
+          const active = i === current;
+          return (
+            <div key={step.key} className="flex items-center">
+              <div className="flex items-center gap-1.5">
+                <div className={cn(
+                  'w-5 h-5 rounded-full flex items-center justify-center border transition-colors',
+                  done   && 'border-foreground/40 bg-transparent text-foreground/60',
+                  active && 'border-foreground bg-foreground text-background',
+                  !done && !active && 'border-border bg-transparent text-muted-foreground',
+                )}>
+                  {done
+                    ? <CheckCircle className="w-3 h-3" strokeWidth={2} />
+                    : <span className="text-[10px] font-semibold leading-none">{i + 1}</span>
+                  }
+                </div>
+                <span className={cn(
+                  'text-xs transition-colors',
+                  active ? 'text-foreground font-medium' : done ? 'text-foreground/50' : 'text-muted-foreground/50',
+                )}>
+                  {step.label}
+                </span>
+              </div>
+              {i < STEPS.length - 1 && (
+                <div className={cn(
+                  'w-8 h-px mx-3 transition-colors',
+                  i < current ? 'bg-foreground/20' : 'bg-border',
+                )} />
+              )}
+            </div>
+          );
+        })}
       </div>
-    </div>
-  );
+    );
+  };
 
+  // ── Preview step ────────────────────────────────────────────────────────────
   if (currentStep === 'preview') {
     return (
-      <>
+      <div className="max-w-4xl mx-auto px-6">
         {renderStepIndicator()}
         <TransactionPreview
           transactions={parsedTransactions}
           onConfirm={handleConfirmData}
           onBack={() => setCurrentStep('review')}
         />
-      </>
+      </div>
     );
   }
 
+  // ── Submitted step ──────────────────────────────────────────────────────────
   if (currentStep === 'submitted') {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-md mx-auto px-6">
         {renderStepIndicator()}
-        
-        <div className="text-center">
-          <CheckCircle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Data Imported Successfully!</h2>
-          <p className="text-gray-600 mb-6">
-            Your {parsedTransactions.length} transaction{parsedTransactions.length > 1 ? 's have' : ' has'} been imported and categorized.
+        <div className="text-center py-8">
+          <div className="w-10 h-10 rounded-full bg-success/10 border border-success/20 flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-5 h-5 text-success" strokeWidth={1.5} />
+          </div>
+          <p className="text-base font-semibold text-foreground mb-1">Import complete</p>
+          <p className="text-sm text-muted-foreground mb-6">
+            {parsedTransactions.length} transaction{parsedTransactions.length !== 1 ? 's' : ''} imported and categorized.
           </p>
-          
-          <Button onClick={handleStartOver} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
-            Import More Files
-          </Button>
+          <button
+            onClick={handleStartOver}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Import more files
+          </button>
         </div>
       </div>
     );
   }
 
+  // ── Review step ─────────────────────────────────────────────────────────────
   if (currentStep === 'review') {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-lg mx-auto px-6">
         {renderStepIndicator()}
-        <div className="mb-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Review Your Files</h2>
-          <p className="text-gray-600">
-            Please review the files below before processing them for data extraction.
+
+        <div className="mb-5">
+          <p className="text-xs text-muted-foreground">
+            Review files before processing. Only the first file will be parsed.
           </p>
         </div>
+
         {apiError && (
-          <div className="mb-4 p-3 rounded bg-red-50 border border-red-200 text-red-700 text-sm">
+          <div className="mb-4 px-3 py-2.5 rounded-md bg-destructive/10 border border-destructive/20 text-destructive text-xs">
             {apiError}
           </div>
         )}
-        <div className="space-y-3 mb-6">
+
+        <div className="space-y-2 mb-5">
           {uploadedFiles.map((file, index) => (
-            <div key={index} className="flex items-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <FileText className="w-5 h-5 text-gray-600 mr-3" />
-              <div className="flex-1">
-                <p className="font-medium text-gray-900">{file.name}</p>
-                <p className="text-sm text-gray-500">
-                  {(file.size / 1024).toFixed(1)} KB • {file.type || 'Unknown type'}
+            <div key={index} className="flex items-center gap-3 px-3 py-2.5 bg-card border border-border rounded-md">
+              <FileText className="w-4 h-4 text-muted-foreground shrink-0" strokeWidth={1.5} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">{file.name}</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {(file.size / 1024).toFixed(1)} KB · {file.type || 'unknown'}
                 </p>
               </div>
               <button
                 onClick={() => handleRemoveFile(index)}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="text-muted-foreground hover:text-foreground transition-colors p-0.5"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
               </button>
             </div>
           ))}
         </div>
+
         {uploadedFiles.some(f => f.name.toLowerCase().endsWith('.pdf')) && (
-          <div className="mb-6">
+          <div className="mb-5">
             <input
               type="password"
-              placeholder="PDF Password (if needed)"
+              placeholder="PDF password (if protected)"
               value={pdfPassword}
               onChange={e => setPdfPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+              className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
         )}
-        <div className="flex gap-4 justify-center">
-          <Button onClick={() => setCurrentStep('upload')} variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50">
-            <Upload className="w-4 h-4 mr-2" />
-            Add More Files
-          </Button>
-          <Button
-            onClick={handleProcessFiles}
-            className="bg-gray-900 hover:bg-gray-800 text-white"
-            disabled={isProcessing || uploadedFiles.length === 0}
+
+        <div className="flex items-center justify-end gap-4 pt-1">
+          <button
+            onClick={() => setCurrentStep('upload')}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            <Eye className="w-4 h-4 mr-2" />
-            {isProcessing ? 'Processing...' : `Process Files (${uploadedFiles.length})`}
-          </Button>
+            <Upload className="w-3 h-3" strokeWidth={1.5} />
+            Add files
+          </button>
+          <button
+            onClick={handleProcessFiles}
+            disabled={isProcessing || uploadedFiles.length === 0}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40"
+          >
+            <Eye className="w-3 h-3" strokeWidth={1.5} />
+            {isProcessing ? 'Processing…' : `Process (${uploadedFiles.length})`}
+          </button>
         </div>
       </div>
     );
   }
 
+  // ── Upload step ─────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-lg mx-auto px-6">
       {renderStepIndicator()}
-      
-      <div className="mb-8 text-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">Upload Bank Statements</h2>
-        <p className="text-gray-600">
-          Drag and drop your CSV or PDF bank statements from BCA, NeoBank, Superbank, or Wise
+
+      <div className="mb-5 text-center">
+        <h2 className="text-base font-semibold text-foreground mb-1">Upload bank statements</h2>
+        <p className="text-xs text-muted-foreground">
+          CSV or PDF from BCA, NeoBank, Superbank, or Wise
         </p>
       </div>
 
-      <div
+      <input
+        type="file"
+        multiple
+        accept=".csv,.pdf"
+        onChange={handleFileSelect}
+        className="hidden"
+        id="file-upload"
+      />
+      <label
+        htmlFor="file-upload"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={cn(
-          "border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200",
+          'block border border-dashed rounded-lg py-10 text-center transition-all duration-150 cursor-pointer',
           isDragging
-            ? "border-gray-400 bg-gray-50"
-            : "border-gray-300 hover:border-gray-400"
+            ? 'border-foreground/30 bg-muted/40'
+            : 'border-border hover:border-foreground/20 hover:bg-muted/20',
         )}
       >
-        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">
-          Drop files here or click to browse
-        </h3>
-        <p className="text-gray-500 mb-4">
-          Supports CSV and PDF files up to 10MB
+        <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-2.5" strokeWidth={1.5} />
+        <p className="text-sm text-muted-foreground mb-1">
+          Drop files here or{' '}
+          <span className="text-foreground font-medium">click to browse</span>
         </p>
-        
-        <input
-          type="file"
-          multiple
-          accept=".csv,.pdf"
-          onChange={handleFileSelect}
-          className="hidden"
-          id="file-upload"
-        />
-        <label
-          htmlFor="file-upload"
-          className="inline-flex items-center px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          Choose Files
-        </label>
-      </div>
+        <p className="text-[11px] text-muted-foreground/50 tracking-wide">
+          CSV · PDF &nbsp;·&nbsp; max 10 MB
+        </p>
+      </label>
 
-      <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="text-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="font-semibold text-gray-900">BCA</div>
-          <div className="text-sm text-gray-500">CSV & PDF</div>
-        </div>
-        <div className="text-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="font-semibold text-gray-900">NeoBank</div>
-          <div className="text-sm text-gray-500">CSV & PDF</div>
-        </div>
-        <div className="text-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="font-semibold text-gray-900">Superbank</div>
-          <div className="text-sm text-gray-500">CSV & PDF</div>
-        </div>
-        <div className="text-center p-4 bg-gray-50 border border-gray-200 rounded-lg">
-          <div className="font-semibold text-gray-900">Wise</div>
-          <div className="text-sm text-gray-500">CSV & PDF</div>
-        </div>
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
+        <span className="text-[11px] text-muted-foreground/60">Supported:</span>
+        {(['BCA', 'NeoBank', 'Superbank', 'Wise'] as const).map(bank => (
+          <span
+            key={bank}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-[11px] text-muted-foreground"
+          >
+            {bank}
+          </span>
+        ))}
       </div>
     </div>
   );
