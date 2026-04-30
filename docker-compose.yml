@@ -16,6 +16,22 @@ services:
       timeout: 5s
       retries: 10
 
+  ai-service:
+    build:
+      context: ./services/ai-service
+      dockerfile: Dockerfile
+    container_name: personalfinance-ai
+    ports:
+      - "8000:8000"
+    environment:
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-gemini-2.5-flash}
+      - LOG_LEVEL=INFO
+    depends_on:
+      - db
+
   api:
     build:
       context: ./apps/api
@@ -27,6 +43,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:7208
       - ConnectionStrings__Default=Host=db;Port=5432;Database=${POSTGRES_DB:-personal_finance};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres_password_here}
+      - AiService__BaseUrl=http://ai-service:8000
     depends_on:
       db:
         condition: service_healthy
