@@ -58,6 +58,7 @@ async def parse_transactions(request: ParseRequest) -> ParseResponse:
 async def parse_pdf(
     file: UploadFile = File(...),
     bank_hint: str | None = None,
+    password: str | None = None,
 ) -> PdfParseResponse:
     if file.content_type != "application/pdf":
         raise HTTPException(
@@ -69,7 +70,7 @@ async def parse_pdf(
     logger.info("PDF upload received | filename=%s | size=%d bytes", file.filename, len(pdf_bytes))
 
     try:
-        text, page_count = app.state.pdf_extractor.extract(pdf_bytes)
+        text, page_count = app.state.pdf_extractor.extract(pdf_bytes, password=password)
     except PdfExtractionError as e:
         raise HTTPException(status_code=422, detail=str(e))
 
