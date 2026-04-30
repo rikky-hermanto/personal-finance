@@ -13,7 +13,7 @@ class PdfExtractionError(Exception):
 class PdfExtractor:
     """Extracts raw text from PDF bytes using PyMuPDF."""
 
-    def extract(self, pdf_bytes: bytes) -> tuple[str, int]:
+    def extract(self, pdf_bytes: bytes, password: str | None = None) -> tuple[str, int]:
         """
         Extract text from all pages.
 
@@ -21,7 +21,7 @@ class PdfExtractor:
             (full_text, page_count) — text has page-break markers between pages.
 
         Raises:
-            PdfExtractionError — for password-protected, corrupted, or unreadable PDFs.
+            PdfExtractionError — for wrong/missing password, corrupted, or unreadable PDFs.
         """
         try:
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -29,8 +29,12 @@ class PdfExtractor:
             raise PdfExtractionError(f"Failed to open PDF: {e}") from e
 
         if doc.needs_pass:
-            doc.close()
-            raise PdfExtractionError("PDF is password-protected")
+            if not password:
+                doc.close()
+                raise PdfExtractionError("PDF is password-protected — provide a password")
+            if not doc.authenticate(password):
+                doc.close()
+                raise PdfExtractionError("Wrong password for PDF")
 
         pages: list[str] = []
         for i, page in enumerate(doc, start=1):
