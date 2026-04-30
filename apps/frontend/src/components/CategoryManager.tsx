@@ -7,28 +7,27 @@ import {
   updateCategoryRule,
   deleteCategoryRule,
 } from '@/api/categoryRulesApi';
+import { cn } from '@/lib/utils';
 
-interface CategoryManagerProps {
-   categoryRules: CategoryRule[];
-   onRuleUpdate: (rules: CategoryRule[]) => void;
-}
+const predefinedCategories = [
+  'Food & Dining', 'Groceries', 'Shopping', 'Entertainment', 'Transportation',
+  'Bills & Utilities', 'Healthcare', 'Investment Income', 'Salary',
+  'Transfer In', 'Transfer Out', 'Cash Withdrawal', 'Bank Fees', 'Charity', 'Other',
+];
+
+const inputCls = 'w-full px-2 py-1 bg-muted border border-border rounded text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring';
 
 const CategoryManager = () => {
   const [categoryRules, setCategoryRules] = useState<CategoryRule[]>([]);
   const [editingRule, setEditingRule] = useState<CategoryRule | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
-  const [newRule, setNewRule] = useState<Omit<CategoryRule, 'id'>>({
-    keyword: '',
-    category: '',
-    type: 'expense'
-  });
+  const [newRule, setNewRule] = useState<Omit<CategoryRule, 'id'>>({ keyword: '', category: '', type: 'expense' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     getCategoryRules()
       .then((dtos) => {
-        console.log("Fetched category rules:", dtos);
         setCategoryRules(
           dtos.map((dto) => ({
             id: dto.id,
@@ -39,252 +38,199 @@ const CategoryManager = () => {
           }))
         );
       })
-      .catch((err) => {
-        console.error("Failed to fetch category rules", err);
-      })
+      .catch((err) => console.error('Failed to fetch category rules', err))
       .finally(() => setLoading(false));
   }, []);
 
   const handleSaveRule = async (rule: CategoryRule) => {
-    const ruleDto = {
-      keyword: rule.keyword,
-      category: rule.category,
-      type: rule.type,
-    };
-    const updated = await updateCategoryRule(rule.id, ruleDto);
-    const normalized: CategoryRule = {
-      id: updated.id,
-      keyword: updated.keyword ?? '',
-      category: updated.category ?? '',
-      type: (updated.type?.toLowerCase() ?? 'expense') as 'income' | 'expense',
-      keywordLength: updated.keywordLength,
-    };
-    setCategoryRules(rules => rules.map(r => r.id === rule.id ? normalized : r));
+    const updated = await updateCategoryRule(rule.id as number, { keyword: rule.keyword, category: rule.category, type: rule.type });
+    setCategoryRules((rules) =>
+      rules.map((r) =>
+        r.id === rule.id
+          ? { id: updated.id, keyword: updated.keyword ?? '', category: updated.category ?? '', type: (updated.type?.toLowerCase() ?? 'expense') as 'income' | 'expense', keywordLength: updated.keywordLength }
+          : r
+      )
+    );
     setEditingRule(null);
   };
 
-  const handleDeleteRule = async (id: number) => {
-    await deleteCategoryRule(id);
-    setCategoryRules(rules => rules.filter(r => r.id !== id));
+  const handleDeleteRule = async (id: number | string) => {
+    await deleteCategoryRule(id as number);
+    setCategoryRules((rules) => rules.filter((r) => r.id !== id));
   };
 
   const handleAddRule = async () => {
-    if (newRule.keyword && newRule.category) {
-      const created = await addCategoryRule({
-        keyword: newRule.keyword,
-        category: newRule.category,
-        type: newRule.type,
-      });
-      const normalized: CategoryRule = {
-        id: created.id,
-        keyword: created.keyword ?? '',
-        category: created.category ?? '',
-        type: (created.type?.toLowerCase() ?? 'expense') as 'income' | 'expense',
-        keywordLength: created.keywordLength,
-      };
-      setCategoryRules(rules => [...rules, normalized]);
-      setNewRule({ keyword: '', category: '', type: 'expense' });
-      setIsAddingNew(false);
-    }
+    if (!newRule.keyword || !newRule.category) return;
+    const created = await addCategoryRule({ keyword: newRule.keyword, category: newRule.category, type: newRule.type });
+    setCategoryRules((rules) => [
+      ...rules,
+      { id: created.id, keyword: created.keyword ?? '', category: created.category ?? '', type: (created.type?.toLowerCase() ?? 'expense') as 'income' | 'expense', keywordLength: created.keywordLength },
+    ]);
+    setNewRule({ keyword: '', category: '', type: 'expense' });
+    setIsAddingNew(false);
   };
 
-  const predefinedCategories = [
-    'Food & Dining',
-    'Groceries',
-    'Shopping',
-    'Entertainment',
-    'Transportation',
-    'Bills & Utilities',
-    'Healthcare',
-    'Investment Income',
-    'Salary',
-    'Transfer In',
-    'Transfer Out',
-    'Cash Withdrawal',
-    'Bank Fees',
-    'Charity',
-    'Other'
-  ];
-
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-gray-900">Category Management</h2>
+    <div className="space-y-4">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {categoryRules.length} rules — longest-keyword match applies first
+          </p>
+        </div>
         <button
           onClick={() => setIsAddingNew(true)}
-          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
           Add Rule
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Categorization Rules</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Define keywords to automatically categorize transactions
-          </p>
-        </div>
-
+      {/* Table card */}
+      <div className="bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Keyword
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
-                </th>
-                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+            <thead>
+              <tr className="border-b border-border">
+                {['Keyword', 'Type', 'Category', ''].map((h) => (
+                  <th
+                    key={h}
+                    className="px-5 py-3 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {categoryRules.map((rule) => (
-                <tr key={rule.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {editingRule?.id === rule.id ? (
-                      <input
-                        type="text"
-                        value={editingRule.keyword}
-                        onChange={(e) => setEditingRule({ ...editingRule, keyword: e.target.value })}
-                        className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
-                      />
-                    ) : (
-                      <span className="text-sm font-medium text-gray-900">{rule.keyword}</span>
-                    )}
-                  </td>
-              
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {editingRule?.id === rule.id ? (
-                      <select
-                        value={editingRule.type}
-                        onChange={(e) => setEditingRule({ ...editingRule, type: e.target.value as 'income' | 'expense' })}
-                        className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
-                      >
-                        <option value="income">Income</option>
-                        <option value="expense">Expense</option>
-                      </select>
-                    ) : (
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        rule.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {rule.type}
-                      </span>
-                    )}
-                  </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                    {editingRule?.id === rule.id ? (
-                      <select
-                        value={editingRule.category}
-                        onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
-                        className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
-                      >
-                        {predefinedCategories.map(cat => (
-                          <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {rule.category}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {editingRule?.id === rule.id ? (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => handleSaveRule(editingRule)}
-                          className="text-green-600 hover:text-green-900"
+            <tbody className="divide-y divide-border">
+              {categoryRules.map((rule) => {
+                const isEditing = editingRule?.id === rule.id;
+                return (
+                  <tr key={String(rule.id)} className="hover:bg-accent transition-colors">
+                    {/* Keyword */}
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      {isEditing ? (
+                        <input
+                          type="text"
+                          value={editingRule.keyword}
+                          onChange={(e) => setEditingRule({ ...editingRule, keyword: e.target.value })}
+                          className={inputCls}
+                        />
+                      ) : (
+                        <span className="font-mono text-xs text-foreground">{rule.keyword}</span>
+                      )}
+                    </td>
+
+                    {/* Type */}
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      {isEditing ? (
+                        <select
+                          value={editingRule.type}
+                          onChange={(e) => setEditingRule({ ...editingRule, type: e.target.value as 'income' | 'expense' })}
+                          className={inputCls}
                         >
-                          <Save className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setEditingRule(null)}
-                          className="text-gray-600 hover:text-gray-900"
+                          <option value="income">Income</option>
+                          <option value="expense">Expense</option>
+                        </select>
+                      ) : (
+                        <span className={cn(
+                          'text-xs font-medium',
+                          rule.type === 'income' ? 'text-success' : 'text-destructive'
+                        )}>
+                          {rule.type}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Category */}
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      {isEditing ? (
+                        <select
+                          value={editingRule.category}
+                          onChange={(e) => setEditingRule({ ...editingRule, category: e.target.value })}
+                          className={inputCls}
                         >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => setEditingRule(rule)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteRule(rule.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              
+                          {predefinedCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
+                          {rule.category}
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => handleSaveRule(editingRule)} className="text-success hover:text-foreground transition-colors">
+                            <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                          <button onClick={() => setEditingRule(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                            <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setEditingRule(rule)} className="text-muted-foreground hover:text-foreground transition-colors">
+                            <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                          <button onClick={() => handleDeleteRule(rule.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {/* New rule inline row */}
               {isAddingNew && (
-                <tr className="bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                <tr className="bg-muted">
+                  <td className="px-5 py-3">
                     <input
                       type="text"
-                      placeholder="Enter keyword..."
+                      placeholder="KEYWORD"
                       value={newRule.keyword}
                       onChange={(e) => setNewRule({ ...newRule, keyword: e.target.value })}
-                      className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                      className={inputCls}
+                      autoFocus
                     />
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <select
-                      value={newRule.category}
-                      onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
-                      className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
-                    >
-                      <option value="">Select category...</option>
-                      {predefinedCategories.map(cat => (
-                        <option key={cat} value={cat}>{cat}</option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-5 py-3">
                     <select
                       value={newRule.type}
                       onChange={(e) => setNewRule({ ...newRule, type: e.target.value as 'income' | 'expense' })}
-                      className="w-full px-3 py-1 border border-gray-300 rounded-md text-sm"
+                      className={inputCls}
                     >
                       <option value="expense">Expense</option>
                       <option value="income">Income</option>
                     </select>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={handleAddRule}
-                        className="text-green-600 hover:text-green-900"
-                      >
-                        <Save className="w-4 h-4" />
+                  <td className="px-5 py-3">
+                    <select
+                      value={newRule.category}
+                      onChange={(e) => setNewRule({ ...newRule, category: e.target.value })}
+                      className={inputCls}
+                    >
+                      <option value="">Select category…</option>
+                      {predefinedCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <button onClick={handleAddRule} className="text-success hover:text-foreground transition-colors">
+                        <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
                       </button>
-                      <button
-                        onClick={() => {
-                          setIsAddingNew(false);
-                          setNewRule({ keyword: '', category: '', type: 'expense' });
-                        }}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        <X className="w-4 h-4" />
+                      <button onClick={() => { setIsAddingNew(false); setNewRule({ keyword: '', category: '', type: 'expense' }); }} className="text-muted-foreground hover:text-foreground transition-colors">
+                        <X className="w-3.5 h-3.5" strokeWidth={1.5} />
                       </button>
                     </div>
                   </td>

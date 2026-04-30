@@ -1,5 +1,5 @@
 
-import { Transaction, CategoryRule } from '@/types/Transaction';
+import { Transaction, CategoryRule, WalletBalance } from '@/types/Transaction';
 
 export const categoryRules: CategoryRule[] = [
   { id: '1', keyword: 'SAVING INTEREST', category: 'Investment Income', type: 'income' },
@@ -200,6 +200,49 @@ export const mockTransactions: Transaction[] = [
     bank: 'BCA',
     balance: 18357943.54
   }
+];
+
+export const mockWalletBalances: WalletBalance[] = [
+  {
+    bankId: 'BCA',
+    label: 'BCA',
+    balance: 18357943,
+    currency: 'IDR',
+    delta30d: 2.3,
+    sparkline: [14200000, 15100000, 16000000, 17800000, 17200000, 18357943],
+  },
+  {
+    bankId: 'Superbank',
+    label: 'Superbank',
+    balance: 5012703,
+    currency: 'IDR',
+    delta30d: -1.5,
+    sparkline: [6200000, 5900000, 5700000, 5300000, 5100000, 5012703],
+  },
+  {
+    bankId: 'NeoBank',
+    label: 'Neo',
+    balance: 11155852,
+    currency: 'IDR',
+    delta30d: 5.0,
+    sparkline: [8900000, 9200000, 9800000, 10100000, 10600000, 11155852],
+  },
+  {
+    bankId: 'Wise',
+    label: 'Wise',
+    balance: 215,
+    currency: 'USD',
+    delta30d: 0.8,
+    sparkline: [180, 190, 200, 210, 212, 215],
+  },
+  {
+    bankId: 'Jago',
+    label: 'Jago',
+    balance: 950000,
+    currency: 'IDR',
+    delta30d: -0.2,
+    sparkline: [1100000, 1050000, 1000000, 980000, 960000, 950000],
+  },
 ];
 
 export const categorizeTransaction = (description: string): { category: string; type: 'income' | 'expense' } => {
