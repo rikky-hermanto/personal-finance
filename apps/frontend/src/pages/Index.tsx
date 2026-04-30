@@ -72,7 +72,9 @@ const Index = () => {
                   Import your bank statements and transaction files
                 </p>
               </div>
-              <FileUpload onFileUpload={handleFileUpload} />
+              <div className="mt-[15vh]">
+                <FileUpload onFileUpload={handleFileUpload} />
+              </div>
             </div>
           </div>
         );
