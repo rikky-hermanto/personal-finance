@@ -1,29 +1,37 @@
 # PF-011 — FastAPI AI Microservice Scaffold
 
 > **GitHub Issue:** #19
-> **Status:** In Progress
+> **Status:** Done
 > **Started:** 2026-03-14
+> **Completed:** 2026-04-30
 
 ## Objective
 
-Wrap the LLM parsing logic from PF-009/PF-010 into a proper FastAPI microservice. This creates the Python AI service that the .NET API will call in Sprint 1 for PDF/image bank statement extraction. It establishes the service contract (`POST /parse`), Pydantic models, Docker packaging, and structured logging from day one.
+Wrap the LLM parsing logic into a proper FastAPI microservice. This creates the Python AI service that the .NET API will call in Sprint 1 for PDF/image bank statement extraction. It establishes the service contract (`POST /parse`), Pydantic models, Docker packaging, and structured logging from day one.
+
+**Key design decision (updated 2026-04-30):** The LLM provider is abstracted behind a `LlmProvider` protocol so the service is not coupled to any single vendor. Swap providers by changing one env var — no code changes. Default is Gemini (current available key); Anthropic is fully implemented and ready to activate.
 
 ## Acceptance Criteria
 
-- [ ] FastAPI app with `/health` and `POST /parse` endpoints
-- [ ] Pydantic request model: `{ text: str, bank_hint?: str }`
-- [ ] Pydantic response model: `{ transactions: list[TransactionResult] }`
-- [ ] LLM call (Claude `tool_use`) integrated into the `/parse` endpoint
-- [ ] Proper error handling: LLM failures → 502, invalid input → 422, unexpected → 500
-- [ ] Structured JSON logging
-- [ ] Runs via `uvicorn` on port 8000
-- [ ] Dockerfile for the service
+- [x] FastAPI app with `/health` and `POST /parse` endpoints
+- [x] Pydantic request model: `{ text: str, bank_hint?: str }`
+- [x] Pydantic response model: `{ transactions: list[TransactionResult] }`
+- [x] LLM provider is switchable via `AI_PROVIDER` env var (`gemini` | `anthropic`)
+- [x] `GeminiProvider` and `AnthropicProvider` both implement the shared `LlmProvider` protocol
+- [x] `LlmParser` depends only on the protocol — never imports a specific SDK directly
+- [x] Running with `AI_PROVIDER=gemini` + `GEMINI_API_KEY` works out of the box
+- [x] Proper error handling: LLM failures → 502, invalid input → 422, unexpected → 500 (FastAPI default)
+- [x] Structured JSON logging
+- [x] Runs via `uvicorn` on port 8000
+- [x] Dockerfile for the service
 
 ## Approach
 
-Use FastAPI with Pydantic v2 and the Anthropic SDK's async client. The `POST /parse` endpoint receives pre-extracted text (not raw PDFs — that's Sprint 1), calls Claude via `tool_use` for structured extraction, and returns a list of `TransactionResult` objects. Pydantic models are shaped to match the live .NET `TransactionDto` field names (`flow`, `wallet`, `amount_idr`) so the response can be deserialized directly on the .NET side. No `ILLMProvider` abstraction yet — that's Sprint 1 when OpenAI fallback is needed.
+FastAPI with Pydantic v2. The `POST /parse` endpoint receives pre-extracted text, routes it through `LlmParser`, and returns a list of `TransactionResult` objects shaped to match the .NET `TransactionDto` field names.
 
-Out of scope: PDF extraction, raw file handling, provider abstraction — Sprint 1 tasks.
+`LlmParser` depends on a `LlmProvider` protocol — it knows nothing about Gemini or Anthropic. A `ProviderFactory` reads `AI_PROVIDER` from settings and constructs the right implementation. Both providers translate the same JSON schema into their native structured-output mechanism: Gemini uses `response_schema` + JSON mode; Anthropic uses `tool_use`.
+
+Out of scope: PDF extraction, raw file handling, OpenAI provider, per-bank prompt templates — Sprint 1 tasks.
 
 ## Affected Files
 
@@ -33,17 +41,21 @@ Out of scope: PDF extraction, raw file handling, provider abstraction — Sprint
 | `services/ai-service/app/__init__.py` | Create |
 | `services/ai-service/app/main.py` | Create — FastAPI app, lifespan, CORS, JSON logging, endpoints |
 | `services/ai-service/app/models.py` | Create — ParseRequest, ParseResponse, TransactionResult |
-| `services/ai-service/app/config.py` | Create — Settings via pydantic-settings |
+| `services/ai-service/app/config.py` | Create — multi-provider Settings via pydantic-settings |
+| `services/ai-service/app/providers/__init__.py` | Create |
+| `services/ai-service/app/providers/base.py` | Create — LlmProvider Protocol |
+| `services/ai-service/app/providers/gemini.py` | Create — GeminiProvider (google-genai, JSON mode) |
+| `services/ai-service/app/providers/anthropic.py` | Create — AnthropicProvider (tool_use) |
+| `services/ai-service/app/providers/factory.py` | Create — ProviderFactory.create(settings) |
 | `services/ai-service/app/services/__init__.py` | Create |
-| `services/ai-service/app/services/llm_parser.py` | Create — LlmParser, LlmParseError, EXTRACT_TOOL schema |
+| `services/ai-service/app/services/llm_parser.py` | Create — LlmParser(provider: LlmProvider) |
 | `services/ai-service/tests/__init__.py` | Create |
 | `services/ai-service/tests/test_health.py` | Create |
-| `services/ai-service/tests/test_parse.py` | Create — 4 test cases with mocked Anthropic client |
+| `services/ai-service/tests/test_parse.py` | Create — 4 test cases mocking at LlmProvider level |
 | `services/ai-service/Dockerfile` | Create |
-| `services/ai-service/.env.example` | Create/update |
-| `services/ai-service/README.md` | Create |
-| `docker-compose.yml` | Modify — add `ai-service` block + `AiService__BaseUrl` to `api` env |
-| `.gitignore` | Modify — add `.env` if missing (SEC-04 fix) |
+| `services/ai-service/.env.example` | Create |
+| `docker-compose.yml` | Modify — add `ai-service` block |
+| `.gitignore` | Modify — add `.env` if missing |
 
 ---
 
@@ -53,7 +65,7 @@ Out of scope: PDF extraction, raw file handling, provider abstraction — Sprint
 
 ---
 
-### STEP 1 — Update `pyproject.toml` with FastAPI dependencies
+### STEP 1 — Update `pyproject.toml` with all dependencies
 
 Replace the `[project]` and `[project.optional-dependencies]` sections in `services/ai-service/pyproject.toml`:
 
@@ -67,6 +79,7 @@ name = "ai-service"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "google-genai>=0.1.0",
     "anthropic>=0.49.0",
     "fastapi>=0.115.0",
     "uvicorn[standard]>=0.34.0",
@@ -82,6 +95,9 @@ dev = [
     "httpx>=0.28.0",
     "anyio>=4.8.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 ```
 
 Then reinstall:
@@ -91,18 +107,7 @@ source .venv/Scripts/activate   # Windows
 pip install -e ".[dev]"
 ```
 
-> **Why each dep:**
-> - `fastapi` — the web framework. Equivalent to ASP.NET Core Web API. Handles routing, request parsing, response serialization.
-> - `uvicorn[standard]` — the ASGI HTTP server. Equivalent to Kestrel. The `[standard]` extra adds `uvloop` (faster event loop) and `httptools` (faster HTTP parser).
-> - `pydantic>=2.11.0` — request/response schema validation. Equivalent to C# `record` types with FluentValidation built in.
-> - `pydantic-settings` — reads environment variables into a typed `Settings` class. Equivalent to `IOptions<T>` + `appsettings.json`.
-> - `pytest-asyncio` + `httpx` — async test support + HTTP client for testing FastAPI endpoints (like `WebApplicationFactory` + `HttpClient` in .NET).
->
-> **Check:**
-> ```bash
-> pip list | grep -E "fastapi|uvicorn|pydantic"
-> ```
-> All three should appear with version numbers.
+> **Why both `google-genai` and `anthropic`?** Both providers are implemented. The one that's active depends on `AI_PROVIDER` in `.env` — you only need the matching API key. Having both packages installed costs nothing (they're small) and means switching providers requires zero reinstall.
 
 ---
 
@@ -111,35 +116,269 @@ pip install -e ".[dev]"
 Create `services/ai-service/app/config.py`:
 
 ```python
+from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
-    anthropic_api_key: str
-    anthropic_model: str = "claude-sonnet-4-6"
+    ai_provider: Literal["gemini", "anthropic"] = "gemini"
+
+    # Only the active provider's key is required — the other can stay empty
+    gemini_api_key: str = ""
+    anthropic_api_key: str = ""
+
+    # Model name — set a sensible default per provider, override via env var
+    ai_model: str = "gemini-2.5-flash"
+
     log_level: str = "INFO"
     cors_origins: list[str] = ["http://localhost:7208"]
 
+    def validate_provider_key(self) -> None:
+        if self.ai_provider == "gemini" and not self.gemini_api_key:
+            raise ValueError("GEMINI_API_KEY is required when AI_PROVIDER=gemini")
+        if self.ai_provider == "anthropic" and not self.anthropic_api_key:
+            raise ValueError("ANTHROPIC_API_KEY is required when AI_PROVIDER=anthropic")
+
 
 settings = Settings()
+settings.validate_provider_key()
 ```
 
-> **Why `pydantic-settings`?**
-> This is Python's equivalent of `IOptions<T>` + `appsettings.json` + environment variable overrides in one package. `Settings()` reads from `.env` first, then environment variables override. In Docker/production, env vars are injected externally — no `.env` file needed.
+> **Why `validate_provider_key()` instead of making both keys required?** Making `anthropic_api_key: str` (no default) would force you to have an Anthropic key even when running Gemini. With both optional + runtime validation, you only need the key for the provider you're actually using. The service fails fast on startup with a clear message if the active provider's key is missing.
 >
-> **Why `anthropic_api_key: str` with no default?** Pydantic-settings will throw a `ValidationError` on startup if `ANTHROPIC_API_KEY` is missing from the environment. This is intentional — fail fast, loudly. Equivalent to throwing in `Program.cs` if a required config key is absent.
+> **To switch from Gemini to Anthropic:** change `.env` to `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=your-key`. No code changes needed.
 >
-> **Check:** Import it in a Python REPL to verify it reads from `.env`:
+> **Check:**
 > ```bash
-> python -c "from app.config import settings; print(settings.anthropic_model)"
-> # Expected: claude-sonnet-4-6
+> python -c "from app.config import settings; print(settings.ai_provider, settings.ai_model)"
+> # Expected: gemini gemini-2.5-flash
 > ```
 
 ---
 
-### STEP 3 — Create `app/models.py`
+### Phase 2 — Provider Abstraction Layer
+
+---
+
+### STEP 3 — Create `app/providers/base.py`
+
+Create the package and protocol:
+
+```bash
+mkdir services/ai-service/app/providers
+touch services/ai-service/app/providers/__init__.py
+```
+
+Create `services/ai-service/app/providers/base.py`:
+
+```python
+from typing import Protocol, runtime_checkable
+
+
+@runtime_checkable
+class LlmProvider(Protocol):
+    async def extract_structured(
+        self,
+        system_prompt: str,
+        user_text: str,
+        schema: dict,
+    ) -> dict:
+        """
+        Extract structured data from user_text.
+
+        Args:
+            system_prompt: Instructions for the model (role, format rules).
+            user_text: The bank statement text to extract from.
+            schema: JSON Schema dict defining the expected output shape.
+
+        Returns:
+            dict matching the schema — ready for Pydantic validation.
+
+        Raises:
+            Exception: Any provider-level failure (API error, truncation, etc.).
+        """
+        ...
+```
+
+> **Why `Protocol` instead of `ABC`?**
+> Python `Protocol` is structural typing — any class with a matching `extract_structured` method satisfies it, without inheriting from the base. This means `GeminiProvider` and `AnthropicProvider` don't need to import or inherit from `base.py`. Equivalent to C# interface but with duck typing. `runtime_checkable` lets you use `isinstance(obj, LlmProvider)` in tests.
+>
+> **Why a single `extract_structured` method?**
+> Both providers do the same thing: take text + a schema, return structured JSON. The difference is *how* they enforce the schema — Gemini uses `response_schema` JSON mode; Anthropic uses `tool_use`. That difference lives inside each provider, not in the interface.
+
+---
+
+### STEP 4 — Create `app/providers/gemini.py`
+
+Create `services/ai-service/app/providers/gemini.py`:
+
+```python
+import json
+import logging
+
+from google import genai
+from google.genai import types
+
+logger = logging.getLogger(__name__)
+
+
+class GeminiProvider:
+    def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
+        self._client = genai.Client(api_key=api_key)
+        self._model = model
+
+    async def extract_structured(
+        self,
+        system_prompt: str,
+        user_text: str,
+        schema: dict,
+    ) -> dict:
+        config = types.GenerateContentConfig(
+            temperature=0.0,
+            response_mime_type="application/json",
+            response_schema=schema,
+            system_instruction=system_prompt,
+        )
+
+        response = await self._client.aio.models.generate_content(
+            model=self._model,
+            contents=user_text,
+            config=config,
+        )
+
+        logger.info(
+            "Gemini extract complete | model=%s | input_tokens=%d | output_tokens=%d",
+            self._model,
+            response.usage_metadata.prompt_token_count,
+            response.usage_metadata.candidates_token_count,
+        )
+
+        return json.loads(response.text)
+```
+
+> **Why `response_mime_type="application/json"` + `response_schema`?**
+> This is Gemini's structured output mechanism — equivalent to Anthropic's `tool_use`. Setting `response_mime_type` tells Gemini to return raw JSON (no markdown fences). Adding `response_schema` constrains the JSON to exactly match the given shape. Without `response_schema`, you'd get valid JSON but with unpredictable field names.
+>
+> **Why `client.aio.models.generate_content` (not `client.models.generate_content`)?**
+> `client.aio` is the async namespace in `google-genai`. Using the sync version blocks FastAPI's event loop — same reason we use `AsyncAnthropic` not `Anthropic`. The `hello_llm.py` script used the sync version because it's a one-shot script, not a server.
+>
+> **Why `json.loads(response.text)`?**
+> With `response_mime_type="application/json"`, `response.text` is a raw JSON string — no markdown wrapping. `json.loads` turns it into a dict. The Pydantic validation in `LlmParser` then validates the shape.
+
+---
+
+### STEP 5 — Create `app/providers/anthropic.py`
+
+Create `services/ai-service/app/providers/anthropic.py`:
+
+```python
+import logging
+
+from anthropic import AsyncAnthropic
+
+logger = logging.getLogger(__name__)
+
+
+class AnthropicProvider:
+    def __init__(self, api_key: str, model: str = "claude-sonnet-4-6") -> None:
+        self._client = AsyncAnthropic(api_key=api_key)
+        self._model = model
+
+    async def extract_structured(
+        self,
+        system_prompt: str,
+        user_text: str,
+        schema: dict,
+    ) -> dict:
+        tool = {
+            "name": "extract_transactions",
+            "description": "Extract all bank transactions from the provided text.",
+            "input_schema": schema,
+        }
+
+        message = await self._client.messages.create(
+            model=self._model,
+            max_tokens=4096,
+            temperature=0.0,
+            system=system_prompt,
+            tools=[tool],
+            tool_choice={"type": "tool", "name": "extract_transactions"},
+            messages=[{"role": "user", "content": user_text}],
+        )
+
+        if message.stop_reason == "max_tokens":
+            raise RuntimeError(
+                "Response truncated — statement too long. Split into pages before re-extracting."
+            )
+
+        tool_block = next(
+            (b for b in message.content if b.type == "tool_use"), None
+        )
+        if tool_block is None:
+            raise ValueError("Anthropic did not return a tool_use block")
+
+        logger.info(
+            "Anthropic extract complete | model=%s | input_tokens=%d | output_tokens=%d",
+            self._model,
+            message.usage.input_tokens,
+            message.usage.output_tokens,
+        )
+
+        return tool_block.input
+```
+
+> **Why `tool_choice={"type": "tool", "name": "extract_transactions"}`?**
+> This forces Claude to always call this specific tool — it cannot respond with free text. Without `tool_choice`, Claude might decide the input doesn't need a tool call and return prose instead. For extraction, we need 100% structured output, not ~95%. See `.claude/rules/ai-service.md` for the full rationale.
+>
+> **Why check `stop_reason == "max_tokens"` before looking for the tool block?**
+> A truncated response may have no tool block at all, or a partial one. Treating truncation as an error (rather than returning partial data) prevents phantom duplicates — partial data + re-extraction = duplicate rows in the DB.
+>
+> **Activate this provider:** set `AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY=your-key` in `.env`.
+
+---
+
+### STEP 6 — Create `app/providers/factory.py`
+
+Create `services/ai-service/app/providers/factory.py`:
+
+```python
+from app.config import Settings
+from app.providers.base import LlmProvider
+from app.providers.gemini import GeminiProvider
+from app.providers.anthropic import AnthropicProvider
+
+
+class ProviderFactory:
+    @staticmethod
+    def create(settings: Settings) -> LlmProvider:
+        if settings.ai_provider == "gemini":
+            return GeminiProvider(
+                api_key=settings.gemini_api_key,
+                model=settings.ai_model,
+            )
+        if settings.ai_provider == "anthropic":
+            return AnthropicProvider(
+                api_key=settings.anthropic_api_key,
+                model=settings.ai_model,
+            )
+        raise ValueError(f"Unsupported AI_PROVIDER: '{settings.ai_provider}'")
+```
+
+> **Why a static factory method (not a function)?**
+> Consistent with how factories are used in tests — `ProviderFactory.create(mock_settings)` reads clearly. A module-level function would work too; the class just groups it semantically.
+>
+> **Why does the factory return `LlmProvider` (the protocol type)?**
+> The return type annotation enforces that whatever `create()` returns must satisfy the protocol. If you add a new provider that's missing `extract_structured`, mypy/pyright will catch it at the factory, not at the callsite.
+
+---
+
+### Phase 3 — Models & FastAPI App
+
+---
+
+### STEP 7 — Create `app/models.py`
 
 Create `services/ai-service/app/models.py`:
 
@@ -154,25 +393,25 @@ class FlowType(str, Enum):
 
 
 class TransactionResult(BaseModel):
-    date: str                           # ISO 8601: YYYY-MM-DD
+    date: str                            # ISO 8601: YYYY-MM-DD
     description: str
     flow: FlowType
     amount_idr: float
     currency: str = "IDR"
     wallet: str = ""
-    category: str = "Untracked Expense" # .NET ICategoryRuleService re-categorizes this
-    raw_text: str = ""                  # original line from bank statement (for audit)
+    category: str = "Untracked Expense"  # .NET ICategoryRuleService re-categorizes this
+    raw_text: str = ""                   # original line from bank statement (for audit)
 
 
 class ParseRequest(BaseModel):
     text: str = Field(..., min_length=1)
-    bank_hint: str | None = None        # e.g. "bca", "neobank" — used in system prompt
+    bank_hint: str | None = None         # e.g. "bca", "neobank" — used in system prompt
 
 
 class ParseResponse(BaseModel):
     transactions: list[TransactionResult]
     total_parsed: int
-    skipped_rows: int = 0               # rows Claude returned that failed Pydantic validation
+    skipped_rows: int = 0                # rows that failed Pydantic validation
 
 
 class HealthResponse(BaseModel):
@@ -180,18 +419,19 @@ class HealthResponse(BaseModel):
     version: str
 ```
 
-> **Why field names like `flow`, `wallet`, `amount_idr`?**
-> These match the .NET `TransactionDto` property names exactly. The .NET API deserializes the JSON response directly into `TransactionDto` — no mapping layer needed. Changing these names = breaking the .NET integration.
+> **Why field names like `flow`, `wallet`, `amount_idr`?** These match the .NET `TransactionDto` property names exactly — changing them breaks .NET deserialization. Frozen contract per `THINK-05` in governance.md.
 >
-> **Why `category = "Untracked Expense"` default?**
-> The LLM doesn't categorize — it only extracts. Categorization is handled by `.NET`'s `ICategoryRuleService` using keyword rules (106 rules already seeded). This keeps the Python service's responsibility narrow: extract structured data, nothing more.
->
-> **Why `skipped_rows`?**
-> Row-level fault tolerance — if Claude extracts 50 rows but 2 fail Pydantic validation, we return 48 valid rows with `skipped_rows: 2` and log a warning, rather than failing the whole request. Equivalent to a partial success pattern in batch operations.
+> **Why `category = "Untracked Expense"` default?** The LLM only extracts. Categorization is .NET's job via `ICategoryRuleService` (106 keyword rules already seeded).
 
 ---
 
-### STEP 4 — Create `app/main.py` (health endpoint only)
+### STEP 8 — Create `app/main.py` (health endpoint only)
+
+Create the package init files:
+```bash
+touch services/ai-service/app/__init__.py
+touch services/ai-service/app/services/__init__.py
+```
 
 Create `services/ai-service/app/main.py`:
 
@@ -205,7 +445,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.models import HealthResponse
 
-# JSON-structured logging (matches what .NET Serilog produces)
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
     format='{"time":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","msg":"%(message)s"}',
@@ -215,10 +454,8 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
-    logger.info("AI service starting up | model=%s", settings.anthropic_model)
+    logger.info("AI service starting up | provider=%s | model=%s", settings.ai_provider, settings.ai_model)
     yield
-    # Shutdown
     logger.info("AI service shutting down")
 
 
@@ -241,21 +478,9 @@ async def health() -> HealthResponse:
     return HealthResponse(status="healthy", version="0.1.0")
 ```
 
-Create the package init files:
-```bash
-touch services/ai-service/app/__init__.py
-touch services/ai-service/app/services/__init__.py
-```
-
-> **Why `lifespan` instead of `@app.on_event("startup")`?**
-> `on_event` is deprecated since FastAPI 0.99. `lifespan` is the modern pattern — it's a single async context manager that handles both startup and shutdown. Equivalent to `IHostedService.StartAsync/StopAsync` in .NET.
->
-> **Why `getattr(logging, settings.log_level)`?**
-> `settings.log_level` is the string `"INFO"`. `logging.INFO` is the integer `20`. `getattr(logging, "INFO")` converts `"INFO" → 20` at runtime. This lets you change log level via env var without code changes.
-
 ---
 
-### STEP 5 — Smoke test: run the server and hit `/health`
+### STEP 9 — Smoke test: run the server and hit `/health`
 
 ```bash
 # From services/ai-service/ with (.venv) active
@@ -267,25 +492,18 @@ In a second terminal:
 curl http://localhost:8000/health
 ```
 
-**Expected output:**
+**Expected:**
 ```json
 {"status":"healthy","version":"0.1.0"}
 ```
 
-Also open the auto-generated API docs (free with FastAPI):
-```
-http://localhost:8000/docs
-```
+Also open: `http://localhost:8000/docs` — Swagger UI auto-generated by FastAPI.
 
-> **Why `--reload`?** Equivalent to `dotnet watch run` — restarts the server on file save during development. Never use in production.
->
-> **What is `/docs`?** FastAPI auto-generates a Swagger UI from your Pydantic models and endpoint signatures. This is equivalent to Swashbuckle in .NET — you get interactive API docs for free. Use it to manually test `POST /parse` once you build it in Phase 2.
->
-> Stop the server with `Ctrl+C` when done.
+Stop the server with `Ctrl+C`.
 
 ---
 
-### STEP 6 — Create `Dockerfile`
+### STEP 10 — Create `Dockerfile`
 
 Create `services/ai-service/Dockerfile`:
 
@@ -294,11 +512,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Copy dependency declaration first (Docker layer cache — only reinstall if pyproject.toml changes)
 COPY pyproject.toml .
 RUN pip install --no-cache-dir .
 
-# Copy application code
 COPY app/ ./app/
 
 EXPOSE 8000
@@ -306,23 +522,13 @@ EXPOSE 8000
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
-> **Why `COPY pyproject.toml` before `COPY app/`?**
-> Docker builds in layers. If you copy everything at once, every code change invalidates the `pip install` cache layer and reinstalls all packages. By copying `pyproject.toml` first and running `pip install`, that layer only re-runs when `pyproject.toml` changes — not when you edit a `.py` file. This makes rebuilds fast. Equivalent pattern to caching `dotnet restore` separately from `dotnet build` in .NET Dockerfiles.
->
-> **Why no `--reload` in CMD?** `--reload` watches the filesystem for changes. In a container, no one is editing files — the container is immutable. `--reload` in production wastes CPU and can mask startup errors.
->
-> **Check:** Build it locally to verify it works:
-> ```bash
-> docker build -t ai-service:dev .
-> docker run --rm -p 8000:8000 -e ANTHROPIC_API_KEY=test ai-service:dev
-> curl http://localhost:8000/health
-> ```
+> **Why `COPY pyproject.toml` before `COPY app/`?** Docker layer cache — `pip install` only reruns when `pyproject.toml` changes, not when `.py` files change. Equivalent to caching `dotnet restore` separately from `dotnet build`.
 
 ---
 
-### STEP 7 — Add `ai-service` to `docker-compose.yml`
+### STEP 11 — Add `ai-service` to `docker-compose.yml`
 
-Open `docker-compose.yml` (repo root). Add the `ai-service` block and update the `api` service environment:
+Add the `ai-service` block and update the `api` environment:
 
 ```yaml
   ai-service:
@@ -333,7 +539,10 @@ Open `docker-compose.yml` (repo root). Add the `ai-service` block and update the
     ports:
       - "8000:8000"
     environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - AI_PROVIDER=${AI_PROVIDER:-gemini}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - AI_MODEL=${AI_MODEL:-gemini-2.5-flash}
       - LOG_LEVEL=INFO
     depends_on:
       - db
@@ -344,172 +553,121 @@ In the existing `api` service environment section, add:
       - AiService__BaseUrl=http://ai-service:8000
 ```
 
-> **Why `${ANTHROPIC_API_KEY}`?** Docker Compose reads `.env` from the same directory as `docker-compose.yml` and substitutes `${VAR}` syntax. This means your key lives in the root `.env` file and is injected into the container at runtime — never baked into the image.
->
-> **Why `http://ai-service:8000` (not `localhost`)?** Inside Docker Compose, containers communicate via service names on the internal Docker network. `localhost` inside the `api` container refers to the `api` container itself, not the `ai-service` container. Service name `ai-service` resolves to the correct container.
->
-> **Check:** `docker compose config` prints the resolved config with substitutions applied — use it to verify your YAML is valid.
+> **Why `${AI_PROVIDER:-gemini}`?** The `:-` syntax provides a default if the variable is unset. This means `docker compose up` works without any `.env` file as long as `GEMINI_API_KEY` is set.
 
 ---
 
-### STEP 8 — Fix `.gitignore` and create `.env.example`
+### STEP 12 — Fix `.gitignore` and create `.env.example`
 
 ```bash
-# From repo root — check if .env is already covered
 git check-ignore -v .env
 git check-ignore -v services/ai-service/.env
 ```
 
-If either prints nothing (not ignored), add to root `.gitignore`:
+If either prints nothing, add to root `.gitignore`:
 ```
 .env
 ```
 
 Create `services/ai-service/.env.example`:
 ```
-ANTHROPIC_API_KEY=your-key-here
-ANTHROPIC_MODEL=claude-sonnet-4-6
+# Active provider: gemini | anthropic
+AI_PROVIDER=gemini
+
+# Gemini (default — get key at aistudio.google.com)
+GEMINI_API_KEY=your-gemini-key-here
+AI_MODEL=gemini-2.5-flash
+
+# Anthropic (set AI_PROVIDER=anthropic to use)
+# ANTHROPIC_API_KEY=your-anthropic-key-here
+# AI_MODEL=claude-sonnet-4-6
+
 LOG_LEVEL=INFO
 ```
 
-> **Why:** SEC-04 compliance — the root `.gitignore` currently covers `*.local` but NOT `.env`. Until fixed, `git add .` could accidentally commit your API key. Always verify with `git check-ignore` before first commit.
+---
+
+### Phase 4 — LLM Integration
 
 ---
 
-### Phase 2 — LLM Integration
-
----
-
-### STEP 9 — Understand `tool_use` (concept — read before coding)
-
-`tool_use` is the mechanism to force Claude to return **structured JSON** matching an exact schema — instead of free text. This is the core pattern for all extraction work in this project.
-
-| `tool_use` concept | Familiar analogy | What it does |
-|---|---|---|
-| Tool schema (`EXTRACT_TOOL`) | TypeScript interface / Pydantic model | Defines the exact JSON shape Claude must return |
-| `tools=[EXTRACT_TOOL]` | Declaring an available function | Tells Claude "you can call this function" |
-| `tool_choice={"type":"tool","name":"..."}` | Forcing a specific response format | Forces Claude to ALWAYS call this tool (no free text fallback) |
-| `tool_use` block in response | Function call return value | Claude's structured output, guaranteed to match your schema |
-| `block.input` | The returned JSON | The actual extracted data — pass directly to Pydantic for validation |
-
-**Why not just ask Claude to "return JSON"?**
-Asking in the prompt for JSON works ~95% of the time. `tool_use` makes it 100% — Claude's API guarantees a structured response matching the schema when `tool_choice` is forced. For a financial extraction pipeline, 5% failure rate means corrupted data. Always use `tool_use` for production extraction.
-
-**The flow:**
-```
-Your request (text + tool schema)
-    ↓
-Claude processes text
-    ↓
-Claude "calls" the tool (returns structured JSON block)
-    ↓
-You extract block.input → validate with Pydantic → return ParseResponse
-```
-
----
-
-### STEP 10 — Create `app/services/llm_parser.py`
+### STEP 13 — Create `app/services/llm_parser.py`
 
 Create `services/ai-service/app/services/llm_parser.py`:
 
 ```python
 import logging
 
-from anthropic import AsyncAnthropic
-
-from app.config import settings
+from app.providers.base import LlmProvider
 from app.models import ParseRequest, ParseResponse, TransactionResult
 
 logger = logging.getLogger(__name__)
 
 
 class LlmParseError(Exception):
-    """Raised when the LLM call fails or returns an unexpected response."""
     pass
 
 
-# The tool schema defines the EXACT JSON structure Claude must return.
-# Think of this as your API response contract — Claude is the service, this is the spec.
-EXTRACT_TOOL = {
-    "name": "extract_transactions",
-    "description": "Extract all bank transactions from the provided bank statement text.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "transactions": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "date":        {"type": "string", "description": "ISO 8601: YYYY-MM-DD"},
-                        "description": {"type": "string"},
-                        "flow":        {"type": "string", "enum": ["DB", "CR"]},
-                        "amount_idr":  {"type": "number"},
-                        "currency":    {"type": "string", "default": "IDR"},
-                        "wallet":      {"type": "string"},
-                        "raw_text":    {"type": "string", "description": "Original line from statement"},
-                    },
-                    "required": ["date", "description", "flow", "amount_idr"],
+# Shared extraction schema — both providers receive this exact dict.
+# Gemini maps it to response_schema; Anthropic maps it to tool input_schema.
+EXTRACT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "transactions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "date":        {"type": "string", "description": "ISO 8601: YYYY-MM-DD"},
+                    "description": {"type": "string"},
+                    "flow":        {"type": "string", "enum": ["DB", "CR"]},
+                    "amount_idr":  {"type": "number"},
+                    "currency":    {"type": "string"},
+                    "wallet":      {"type": "string"},
+                    "raw_text":    {"type": "string"},
                 },
-            }
-        },
-        "required": ["transactions"],
+                "required": ["date", "description", "flow", "amount_idr"],
+            },
+        }
     },
+    "required": ["transactions"],
 }
+
+SYSTEM_PROMPT = (
+    "You are a financial data extraction assistant. "
+    "Extract ALL transactions from the bank statement text. "
+    "Normalize dates to YYYY-MM-DD format. "
+    "Use DB for debit/withdrawal, CR for credit/deposit. "
+)
 
 
 class LlmParser:
-    def __init__(self) -> None:
-        # AsyncAnthropic reads ANTHROPIC_API_KEY from env automatically
-        self._client = AsyncAnthropic()
+    def __init__(self, provider: LlmProvider) -> None:
+        self._provider = provider
 
     async def parse(self, request: ParseRequest) -> ParseResponse:
+        system = SYSTEM_PROMPT + f"Bank context: {request.bank_hint or 'unknown'}."
+
         try:
-            message = await self._client.messages.create(
-                model=settings.anthropic_model,
-                max_tokens=4096,
-                temperature=0.0,    # ALWAYS 0.0 for extraction — we want deterministic output
-                system=(
-                    "You are a financial data extraction assistant. "
-                    "Extract ALL transactions from the bank statement text. "
-                    "Normalize dates to YYYY-MM-DD format. "
-                    "Use DB for debit/withdrawal, CR for credit/deposit. "
-                    f"Bank context: {request.bank_hint or 'unknown'}."
-                ),
-                tools=[EXTRACT_TOOL],
-                tool_choice={"type": "tool", "name": "extract_transactions"},  # force structured output
-                messages=[{"role": "user", "content": request.text}],
+            result = await self._provider.extract_structured(
+                system_prompt=system,
+                user_text=request.text,
+                schema=EXTRACT_SCHEMA,
             )
         except Exception as e:
-            logger.error("Anthropic API call failed: %s", e)
-            raise LlmParseError(f"LLM API error: {e}") from e
+            logger.error("LLM extraction failed: %s", e)
+            raise LlmParseError(f"LLM extraction error: {e}") from e
 
-        # Extract the tool_use block from the response content list
-        tool_block = next(
-            (block for block in message.content if block.type == "tool_use"),
-            None,
-        )
-        if tool_block is None:
-            # Should not happen when tool_choice forces tool use — but defensive check
-            raise LlmParseError("Claude did not return a tool_use block")
-
-        raw_rows = tool_block.input.get("transactions", [])
-
+        raw_rows = result.get("transactions", [])
         parsed, skipped = [], 0
         for row in raw_rows:
             try:
                 parsed.append(TransactionResult(**row))
             except Exception as e:
-                # Row-level fault tolerance: skip bad rows, don't fail the whole request
                 logger.warning("Skipping invalid row | row=%s | error=%s", row, e)
                 skipped += 1
 
-        logger.info(
-            "Parse complete | parsed=%d | skipped=%d | input_tokens=%d | output_tokens=%d",
-            len(parsed), skipped,
-            message.usage.input_tokens, message.usage.output_tokens,
-        )
-
+        logger.info("Parse complete | parsed=%d | skipped=%d", len(parsed), skipped)
         return ParseResponse(
             transactions=parsed,
             total_parsed=len(parsed),
@@ -517,36 +675,36 @@ class LlmParser:
         )
 ```
 
-> **Why `AsyncAnthropic` (not `Anthropic`)?**
-> FastAPI runs on an async event loop (uvloop). Using the sync `Anthropic()` client blocks the event loop during the LLM call — meaning no other requests can be processed while waiting for Claude to respond. `AsyncAnthropic` uses `await` so the event loop stays free. Equivalent to using `HttpClient` with `await` in .NET rather than `.Result` or `.Wait()`.
+> **Why does `LlmParser` not import `AsyncAnthropic` or `genai` anywhere?**
+> This is the point of the abstraction. `LlmParser` owns the schema definition, prompt construction, and row-level validation. The provider owns the API call mechanics. If you add a third provider tomorrow, `LlmParser` doesn't change.
 >
-> **Why log `input_tokens` and `output_tokens` on every call?**
-> Token usage is the cost tracking unit for LLM APIs. Logging it on every parse call gives you visibility into cost per request, which compounds at scale (500 statements × tokens per page = real money). Build this habit now — it's cheap to add and expensive to retrofit.
+> **Why define `EXTRACT_SCHEMA` here (not in each provider)?**
+> The schema is a product-level concern — it defines what data we want out of the statement. It belongs with the parsing logic, not with the transport layer.
 
 ---
 
-### STEP 11 — Add `POST /parse` to `main.py`
+### STEP 14 — Add `POST /parse` to `main.py`
 
-Add these imports at the top of `app/main.py`:
+Add imports at the top of `app/main.py`:
 ```python
 from fastapi import HTTPException
 from app.models import ParseRequest, ParseResponse
+from app.providers.factory import ProviderFactory
 from app.services.llm_parser import LlmParser, LlmParseError
 ```
 
-Add parser initialization to the `lifespan` function:
+Update `lifespan` to initialize the parser:
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup — initialize shared resources
-    app.state.parser = LlmParser()
-    logger.info("AI service starting up | model=%s", settings.anthropic_model)
+    provider = ProviderFactory.create(settings)
+    app.state.parser = LlmParser(provider=provider)
+    logger.info("AI service starting up | provider=%s | model=%s", settings.ai_provider, settings.ai_model)
     yield
-    # Shutdown
     logger.info("AI service shutting down")
 ```
 
-Add the endpoint after the `/health` route:
+Add the endpoint after `/health`:
 ```python
 @app.post("/parse", response_model=ParseResponse)
 async def parse_transactions(request: ParseRequest) -> ParseResponse:
@@ -556,17 +714,11 @@ async def parse_transactions(request: ParseRequest) -> ParseResponse:
         raise HTTPException(status_code=502, detail=str(e))
 ```
 
-> **Why `app.state.parser`?**
-> `AsyncAnthropic()` initializes an HTTP connection pool. Creating it once at startup (via lifespan) and reusing it on every request is more efficient than creating a new client per request. `app.state` is FastAPI's equivalent of a singleton registered in `IServiceCollection` — shared across requests.
->
-> **Why 502 for `LlmParseError`?**
-> 502 Bad Gateway = upstream service failed. Anthropic is an upstream dependency of this service, so its failures are gateway errors from the caller's perspective — not the caller's fault (400) and not our server's fault (500). This gives the .NET side a clear signal to retry or fallback.
-
 ---
 
-### STEP 12 — Manual end-to-end test
+### STEP 15 — Manual end-to-end test
 
-With the server running (`uvicorn app.main:app --reload --port 8000`):
+With the server running:
 
 ```bash
 curl -X POST http://localhost:8000/parse \
@@ -577,35 +729,30 @@ curl -X POST http://localhost:8000/parse \
   }'
 ```
 
-**Expected output (structure — values will vary):**
+**Expected:**
 ```json
 {
   "transactions": [
-    {"date": "2024-03-14", "description": "TRANSFER TO GOFOOD GEPREK BENSU", "flow": "DB", "amount_idr": 85000.0, "currency": "IDR", "wallet": "", "category": "Untracked Expense", "raw_text": "..."},
-    {"date": "2024-03-15", "description": "GAJI MASUK PT CONTOH", "flow": "CR", "amount_idr": 10000000.0, "currency": "IDR", "wallet": "", "category": "Untracked Expense", "raw_text": "..."},
-    {"date": "2024-03-16", "description": "GRAB-GRABCAR BALI", "flow": "DB", "amount_idr": 35000.0, "currency": "IDR", "wallet": "", "category": "Untracked Expense", "raw_text": "..."}
+    {"date": "2024-03-14", "description": "TRANSFER TO GOFOOD GEPREK BENSU", "flow": "DB", "amount_idr": 85000.0, ...},
+    {"date": "2024-03-15", "description": "GAJI MASUK PT CONTOH", "flow": "CR", "amount_idr": 10000000.0, ...},
+    {"date": "2024-03-16", "description": "GRAB-GRABCAR BALI", "flow": "DB", "amount_idr": 35000.0, ...}
   ],
   "total_parsed": 3,
   "skipped_rows": 0
 }
 ```
 
-> **What to verify:**
-> - All 3 transactions extracted
-> - Dates normalized to ISO 8601
-> - `flow` values are `"DB"` or `"CR"` (not "debit"/"credit")
-> - `skipped_rows: 0` — no validation failures
-> - Server logs show `input_tokens` and `output_tokens`
+Server logs should show `provider=gemini` (or `anthropic`) and the parse complete line.
 
 ---
 
-### Phase 3 — Tests & Docs
+### Phase 5 — Tests
 
 ---
 
-### STEP 13 — Create `tests/test_health.py`
+### STEP 16 — Create `tests/test_health.py`
 
-Create `services/ai-service/tests/__init__.py` (empty) and `tests/test_health.py`:
+Create `services/ai-service/tests/__init__.py` (empty) and `services/ai-service/tests/test_health.py`:
 
 ```python
 import pytest
@@ -622,60 +769,42 @@ async def test_health_returns_200():
     assert response.json() == {"status": "healthy", "version": "0.1.0"}
 ```
 
-Add pytest-asyncio config to `pyproject.toml`:
-```toml
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
-```
-
-> **Why `ASGITransport` + `AsyncClient` instead of `TestClient`?**
-> FastAPI's `TestClient` is a synchronous wrapper. Our endpoints are async — using `AsyncClient` with `ASGITransport` tests them as async properly. Equivalent to `WebApplicationFactory<Program>` + `HttpClient` in .NET integration tests.
-
 ---
 
-### STEP 14 — Create `tests/test_parse.py`
+### STEP 17 — Create `tests/test_parse.py`
+
+Tests mock at the `LlmProvider` protocol level — no SDK mocking needed, provider-agnostic.
 
 Create `services/ai-service/tests/test_parse.py`:
 
 ```python
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 from httpx import AsyncClient, ASGITransport
 
 from app.main import app
+from app.services.llm_parser import LlmParser
 
 
-def _make_tool_use_response(transactions: list[dict]):
-    """Build a fake Anthropic response with a tool_use block."""
-    block = MagicMock()
-    block.type = "tool_use"
-    block.input = {"transactions": transactions}
-
-    usage = MagicMock()
-    usage.input_tokens = 100
-    usage.output_tokens = 50
-
-    response = MagicMock()
-    response.content = [block]
-    response.usage = usage
-    return response
+def _fake_extraction(transactions: list[dict]) -> dict:
+    return {"transactions": transactions}
 
 
 @pytest.mark.anyio
 async def test_parse_happy_path():
-    """Valid text → returns parsed transactions."""
+    """Valid text + provider returns data → 200 with parsed transactions."""
     fake_tx = {
-        "date": "2024-03-14", "description": "GOPAY MERCHANT",
-        "flow": "DB", "amount_idr": 85000.0,
+        "date": "2024-03-14",
+        "description": "GOPAY MERCHANT",
+        "flow": "DB",
+        "amount_idr": 85000.0,
     }
-    mock_response = _make_tool_use_response([fake_tx])
+    mock_provider = AsyncMock()
+    mock_provider.extract_structured = AsyncMock(return_value=_fake_extraction([fake_tx]))
+    app.state.parser = LlmParser(provider=mock_provider)
 
-    with patch("app.services.llm_parser.AsyncAnthropic") as MockClient:
-        MockClient.return_value.messages.create = AsyncMock(return_value=mock_response)
-        app.state.parser = None  # reset so lifespan re-creates with mock
-
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/parse", json={"text": "some bank text"})
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/parse", json={"text": "some bank text"})
 
     assert response.status_code == 200
     data = response.json()
@@ -685,72 +814,71 @@ async def test_parse_happy_path():
 
 @pytest.mark.anyio
 async def test_parse_empty_text_returns_422():
-    """Empty text fails Pydantic validation before reaching LLM."""
+    """Empty text fails Pydantic min_length=1 before reaching the provider."""
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post("/parse", json={"text": ""})
     assert response.status_code == 422
 
 
 @pytest.mark.anyio
-async def test_parse_llm_error_returns_502():
-    """Anthropic API failure → 502 Bad Gateway."""
-    with patch("app.services.llm_parser.AsyncAnthropic") as MockClient:
-        MockClient.return_value.messages.create = AsyncMock(side_effect=Exception("API down"))
-        app.state.parser = None
+async def test_parse_provider_error_returns_502():
+    """Provider raises an exception → 502 Bad Gateway."""
+    mock_provider = AsyncMock()
+    mock_provider.extract_structured = AsyncMock(side_effect=Exception("provider down"))
+    app.state.parser = LlmParser(provider=mock_provider)
 
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/parse", json={"text": "some bank text"})
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/parse", json={"text": "some bank text"})
 
     assert response.status_code == 502
 
 
 @pytest.mark.anyio
-async def test_parse_no_tool_block_returns_502():
-    """Claude returns no tool_use block → 502."""
-    response_no_tool = MagicMock()
-    response_no_tool.content = []  # no tool_use block
-    response_no_tool.usage = MagicMock(input_tokens=10, output_tokens=5)
+async def test_parse_skips_invalid_rows():
+    """Provider returns a malformed row → skipped_rows=1, valid rows returned."""
+    valid_tx = {"date": "2024-03-14", "description": "VALID", "flow": "DB", "amount_idr": 1000.0}
+    invalid_tx = {"date": "bad-date", "flow": "UNKNOWN", "amount_idr": "not-a-number"}
+    mock_provider = AsyncMock()
+    mock_provider.extract_structured = AsyncMock(
+        return_value=_fake_extraction([valid_tx, invalid_tx])
+    )
+    app.state.parser = LlmParser(provider=mock_provider)
 
-    with patch("app.services.llm_parser.AsyncAnthropic") as MockClient:
-        MockClient.return_value.messages.create = AsyncMock(return_value=response_no_tool)
-        app.state.parser = None
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/parse", json={"text": "some bank text"})
 
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/parse", json={"text": "some bank text"})
-
-    assert response.status_code == 502
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_parsed"] == 1
+    assert data["skipped_rows"] == 1
 ```
 
-> **Why mock `AsyncAnthropic` at the class level (not instance)?**
-> We patch where the class is imported (`app.services.llm_parser.AsyncAnthropic`), not where it's defined. This is the Python mock equivalent of replacing an interface registration in `IServiceCollection` for test isolation — we never hit the real Anthropic API in tests.
+> **Why mock at `LlmProvider` level (not `AsyncAnthropic` or `genai.Client`)?**
+> These tests verify the HTTP + parsing orchestration layer — not the Gemini or Anthropic SDKs. Mocking at the protocol boundary is simpler (one mock for all providers), faster (no SDK internals), and provider-agnostic. If you switch from Gemini to Anthropic, the tests don't change.
 
 ---
 
-### STEP 15 — Run the tests
+### STEP 18 — Run the tests
 
 ```bash
 cd services/ai-service
 pytest tests/ -v
 ```
 
-**Expected output:**
+**Expected:**
 ```
 tests/test_health.py::test_health_returns_200 PASSED
 tests/test_parse.py::test_parse_happy_path PASSED
 tests/test_parse.py::test_parse_empty_text_returns_422 PASSED
-tests/test_parse.py::test_parse_llm_error_returns_502 PASSED
-tests/test_parse.py::test_parse_no_tool_block_returns_502 PASSED
+tests/test_parse.py::test_parse_provider_error_returns_502 PASSED
+tests/test_parse.py::test_parse_skips_invalid_rows PASSED
 
 5 passed in X.XXs
 ```
 
-> If tests fail, check the error message. Common issues:
-> - `anyio_mode` not set in pyproject.toml → `asyncio_mode = "auto"` needed
-> - `ASGITransport` import error → update `httpx` version
-
 ---
 
-### STEP 16 — Create `README.md`
+### STEP 19 — Create `README.md`
 
 Create `services/ai-service/README.md`:
 
@@ -767,8 +895,17 @@ python -m venv .venv
 source .venv/Scripts/activate   # Windows
 pip install -e ".[dev]"
 cp .env.example .env
-# Edit .env — add your ANTHROPIC_API_KEY
+# Edit .env — set AI_PROVIDER and the matching API key
 ```
+
+## Providers
+
+| AI_PROVIDER | Key needed | Default model |
+|-------------|-----------|---------------|
+| `gemini` (default) | `GEMINI_API_KEY` | `gemini-2.5-flash` |
+| `anthropic` | `ANTHROPIC_API_KEY` | `claude-sonnet-4-6` |
+
+Switch provider: change `AI_PROVIDER` in `.env`. No code changes needed.
 
 ## Run locally
 
@@ -784,20 +921,13 @@ uvicorn app.main:app --reload --port 8000
 ```bash
 pytest tests/ -v
 ```
-
-## Run via Docker Compose (full stack)
-
-```bash
-docker compose up --build ai-service
-```
 ```
 
 ---
 
-### STEP 17 — Commit
+### STEP 20 — Commit
 
 ```bash
-# From repo root
 git add services/ai-service/pyproject.toml
 git add services/ai-service/app/
 git add services/ai-service/tests/
@@ -807,19 +937,18 @@ git add services/ai-service/README.md
 git add docker-compose.yml
 git add .gitignore
 git status  # verify .env is NOT listed
-git commit -m "PF-011: FastAPI AI service scaffold with /health and /parse endpoints"
+git commit -m "PF-011: FastAPI AI service scaffold with switchable LLM provider (Gemini/Anthropic)"
 ```
 
 ---
 
 ## Notes
 
-- `TransactionResult` fields use .NET naming (`flow: DB/CR`, `wallet`, `amount_idr`) — changing these names breaks .NET deserialization
-- 502 (Bad Gateway) for LLM failures — Anthropic is an upstream dependency, not our server's fault
-- Row-level skip on Pydantic validation failure — don't fail the full request for one bad row
-- `category` defaults to `"Untracked Expense"` — .NET `ICategoryRuleService` re-categorizes using 106 keyword rules
-- `lifespan` context manager is the modern FastAPI pattern — `on_event` deprecated since FastAPI 0.99
-- `AsyncAnthropic` required (not sync `Anthropic`) — FastAPI runs async; sync client blocks the event loop
-- `temperature=0.0` always for extraction — deterministic output for financial data
-- Always log `input_tokens`/`output_tokens` — builds cost visibility from day one
-- SEC-04: root `.gitignore` was missing `.env` — fixed in STEP 8
+- `TransactionResult` fields use .NET naming (`flow: DB/CR`, `wallet`, `amount_idr`) — changing these breaks .NET deserialization (THINK-05)
+- 502 for LLM failures — the provider is an upstream dependency, not our server's fault
+- Row-level skip on Pydantic validation failure — partial success beats full failure for batch extraction
+- `category` defaults to `"Untracked Expense"` — .NET `ICategoryRuleService` re-categorizes
+- `EXTRACT_SCHEMA` lives in `llm_parser.py` — it's a product concern, not a transport concern
+- Tests mock at `LlmProvider` protocol level — provider-agnostic, no SDK mocking needed
+- PF-012 (PDF extraction) builds directly on top of this: `PdfExtractor` → text → `LlmParser.parse()` unchanged
+- Adding OpenAI: implement `OpenAIProvider` in `providers/openai.py`, add `"openai"` branch to `ProviderFactory`, add `openai_api_key` to `Settings`
