@@ -1,7 +1,7 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
@@ -57,8 +57,8 @@ async def parse_transactions(request: ParseRequest) -> ParseResponse:
 @app.post("/parse-pdf", response_model=PdfParseResponse)
 async def parse_pdf(
     file: UploadFile = File(...),
-    bank_hint: str | None = None,
-    password: str | None = None,
+    bank_hint: str | None = Form(default=None),
+    password: str | None = Form(default=None),
 ) -> PdfParseResponse:
     if file.content_type != "application/pdf":
         raise HTTPException(
