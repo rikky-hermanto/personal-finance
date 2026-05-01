@@ -22,19 +22,19 @@ const OverviewTab = () => {
         <MonthlyFlowChart transactions={transactions} />
 
         {/* Quick actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => navigate('/cashflow/upload')}
-            className="flex items-center gap-2 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-md hover:bg-foreground/90 transition-colors"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-3.5 h-3.5" strokeWidth={1.5} />
             Upload statement
           </button>
           <button
             onClick={() => navigate('/cashflow/transactions')}
-            className="flex items-center gap-2 px-4 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors text-foreground"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
           >
-            <List className="w-4 h-4" />
+            <List className="w-3.5 h-3.5" strokeWidth={1.5} />
             View all transactions
           </button>
         </div>
