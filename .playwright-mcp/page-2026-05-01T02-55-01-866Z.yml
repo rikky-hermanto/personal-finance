@@ -1,0 +1,118 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - img [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: Finance
+              - generic [ref=e12]: Personal tracker
+          - button [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - button "New upload" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e20]: New upload
+        - navigation [ref=e21]:
+          - list [ref=e22]:
+            - listitem [ref=e23]:
+              - button "Dashboard" [ref=e24] [cursor=pointer]:
+                - img [ref=e25]
+                - generic [ref=e27]: Dashboard
+            - listitem [ref=e28]:
+              - button "Cashflow" [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+                - generic [ref=e33]: Cashflow
+            - listitem [ref=e34]:
+              - button "Settings" [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - generic [ref=e39]: Settings
+      - main [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]:
+            - heading "Cashflow" [level=1] [ref=e44]
+            - tablist [ref=e46]:
+              - tab "Overview" [ref=e47] [cursor=pointer]
+              - tab "Transactions" [ref=e48] [cursor=pointer]
+              - tab "Upload" [selected] [ref=e49] [cursor=pointer]
+          - generic [ref=e216]:
+            - generic [ref=e217]:
+              - heading "Upload Transactions" [level=1] [ref=e218]
+              - paragraph [ref=e219]: Import your bank statements and transaction files
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - generic [ref=e224]:
+                  - generic [ref=e226]: "1"
+                  - generic [ref=e227]: Upload
+                - generic [ref=e230]:
+                  - generic [ref=e232]: "2"
+                  - generic [ref=e233]: Review
+                - generic [ref=e236]:
+                  - generic [ref=e238]: "3"
+                  - generic [ref=e239]: Preview
+                - generic [ref=e242]:
+                  - generic [ref=e244]: "4"
+                  - generic [ref=e245]: Submit
+              - generic [ref=e246]:
+                - heading "Upload bank statements" [level=2] [ref=e247]
+                - paragraph [ref=e248]: CSV or PDF from BCA, NeoBank, Superbank, or Wise
+              - generic [ref=e249] [cursor=pointer]:
+                - img [ref=e250]
+                - paragraph [ref=e253]: Drop files here or click to browse
+                - paragraph [ref=e254]: CSV · PDF · max 10 MB
+              - generic [ref=e255]:
+                - generic [ref=e256]: "Supported:"
+                - generic [ref=e257]: BCA
+                - generic [ref=e258]: NeoBank
+                - generic [ref=e259]: Superbank
+                - generic [ref=e260]: Wise
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e136]: Recent
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - generic [ref=e139]:
+                - generic [ref=e142]: TRANSFER IN SYAFTRACO 702319…
+                - generic [ref=e143]: +10.125.304
+              - generic [ref=e144]: Neo Savings
+            - generic [ref=e145]:
+              - generic [ref=e146]:
+                - generic [ref=e149]: TRANSFER OUT RIKKI H HASIBUA…
+                - generic [ref=e150]: −800.000
+              - generic [ref=e151]: Neo Savings
+            - generic [ref=e152]:
+              - generic [ref=e153]:
+                - generic [ref=e156]: Opening Balance
+                - generic [ref=e157]: +2.828.700,84
+              - generic [ref=e158]: Neo Savings
+            - generic [ref=e159]:
+              - generic [ref=e160]:
+                - generic [ref=e163]: SAVING INTEREST
+                - generic [ref=e164]: +329,36
+              - generic [ref=e165]: Neo Savings
+            - generic [ref=e166]:
+              - generic [ref=e167]:
+                - generic [ref=e170]: TRANSFER OUT YAYASAN BALI RE…
+                - generic [ref=e171]: −1.000.000
+              - generic [ref=e172]: Neo Savings
+            - generic [ref=e173]:
+              - generic [ref=e174]:
+                - generic [ref=e177]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e178]: −55.440
+              - generic [ref=e179]: Superbank
+            - generic [ref=e180]:
+              - generic [ref=e181]:
+                - generic [ref=e184]: TRSF E-BANKING DB 0602/FTSCY…
+                - generic [ref=e185]: −24.000
+              - generic [ref=e186]: Superbank
+            - generic [ref=e187]:
+              - generic [ref=e188]:
+                - generic [ref=e191]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e192]: −31.000
+              - generic [ref=e193]: Superbank
+        - generic [ref=e194]:
+          - text: Processing
+          - paragraph [ref=e195]: No active uploads
+  - generic [ref=e196]: "0"

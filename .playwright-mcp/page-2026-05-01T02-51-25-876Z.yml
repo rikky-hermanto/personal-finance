@@ -1,0 +1,143 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - region "Notifications (F8)":
+      - list
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - img [ref=e8]
+            - generic [ref=e10]:
+              - generic [ref=e11]: Finance
+              - generic [ref=e12]: Personal tracker
+          - button [ref=e13] [cursor=pointer]:
+            - img [ref=e14]
+        - button "New upload" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e20]: New upload
+        - navigation [ref=e21]:
+          - list [ref=e22]:
+            - listitem [ref=e23]:
+              - button "Dashboard" [ref=e24] [cursor=pointer]:
+                - img [ref=e25]
+                - generic [ref=e27]: Dashboard
+            - listitem [ref=e28]:
+              - button "Cashflow" [ref=e29] [cursor=pointer]:
+                - img [ref=e30]
+                - generic [ref=e33]: Cashflow
+            - listitem [ref=e34]:
+              - button "Settings" [ref=e35] [cursor=pointer]:
+                - img [ref=e36]
+                - generic [ref=e39]: Settings
+      - main [ref=e40]:
+        - generic [ref=e42]:
+          - generic [ref=e43]:
+            - heading "Cashflow" [level=2] [ref=e44]
+            - generic [ref=e45]:
+              - generic [ref=e46]:
+                - generic [ref=e47]:
+                  - generic [ref=e48]:
+                    - heading "Net Cashflow" [level=3] [ref=e49]
+                    - generic [ref=e50]: April 2025
+                  - generic [ref=e51]:
+                    - generic [ref=e52]:
+                      - img [ref=e53]
+                      - generic [ref=e56]: +Rp 11.154.334,2
+                    - generic [ref=e57]:
+                      - generic [ref=e58]:
+                        - paragraph [ref=e59]: Income
+                        - paragraph [ref=e60]: +Rp 12.954.334,2
+                      - generic [ref=e61]:
+                        - paragraph [ref=e62]: Expenses
+                        - paragraph [ref=e63]: "-Rp 1.800.000"
+                - generic [ref=e64]:
+                  - generic [ref=e65]:
+                    - heading "Top Categories" [level=3] [ref=e66]
+                    - generic [ref=e67]: April 2025
+                  - generic [ref=e68]:
+                    - button "Charity Rp 1.000.000 55.6%" [ref=e69]:
+                      - generic [ref=e72]: Charity
+                      - generic [ref=e73]:
+                        - generic [ref=e74]: Rp 1.000.000
+                        - generic [ref=e75]: 55.6%
+                    - button "Transfer Out Rp 800.000 44.4%" [ref=e76]:
+                      - generic [ref=e79]: Transfer Out
+                      - generic [ref=e80]:
+                        - generic [ref=e81]: Rp 800.000
+                        - generic [ref=e82]: 44.4%
+              - generic [ref=e83]:
+                - generic [ref=e84]:
+                  - heading "Cash Flow" [level=3] [ref=e85]
+                  - generic [ref=e86]: Last 6 months
+                - generic [ref=e87]:
+                  - generic [ref=e88]:
+                    - generic [ref=e89]: Income
+                    - generic [ref=e91]: Expenses
+                    - generic [ref=e93]:
+                      - img [ref=e94]
+                      - text: Net
+                  - img [ref=e97]:
+                    - generic [ref=e99]:
+                      - generic [ref=e101]: Jan 25
+                      - generic [ref=e103]: Feb 25
+                      - generic [ref=e105]: Apr 25
+                    - generic [ref=e107]:
+                      - generic [ref=e109]: "0"
+                      - generic [ref=e111]: 4.0M
+                      - generic [ref=e113]: 8.0M
+                      - generic [ref=e115]: 12.0M
+                      - generic [ref=e117]: 16.0M
+          - generic [ref=e120]:
+            - heading "Portfolio" [level=2] [ref=e121]
+            - paragraph [ref=e123]: Portfolio module coming soon
+          - generic [ref=e124]:
+            - heading "Debts" [level=2] [ref=e125]
+            - paragraph [ref=e127]: Debts module coming soon
+      - generic [ref=e128]:
+        - generic [ref=e129]:
+          - generic [ref=e130]: Recent
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - generic [ref=e133]:
+                - generic [ref=e136]: TRANSFER IN SYAFTRACO 702319…
+                - generic [ref=e137]: +10.125.304
+              - generic [ref=e138]: Neo Savings
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - generic [ref=e143]: TRANSFER OUT RIKKI H HASIBUA…
+                - generic [ref=e144]: −800.000
+              - generic [ref=e145]: Neo Savings
+            - generic [ref=e146]:
+              - generic [ref=e147]:
+                - generic [ref=e150]: Opening Balance
+                - generic [ref=e151]: +2.828.700,84
+              - generic [ref=e152]: Neo Savings
+            - generic [ref=e153]:
+              - generic [ref=e154]:
+                - generic [ref=e157]: SAVING INTEREST
+                - generic [ref=e158]: +329,36
+              - generic [ref=e159]: Neo Savings
+            - generic [ref=e160]:
+              - generic [ref=e161]:
+                - generic [ref=e164]: TRANSFER OUT YAYASAN BALI RE…
+                - generic [ref=e165]: −1.000.000
+              - generic [ref=e166]: Neo Savings
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - generic [ref=e171]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e172]: −55.440
+              - generic [ref=e173]: Superbank
+            - generic [ref=e174]:
+              - generic [ref=e175]:
+                - generic [ref=e178]: TRSF E-BANKING DB 0602/FTSCY…
+                - generic [ref=e179]: −24.000
+              - generic [ref=e180]: Superbank
+            - generic [ref=e181]:
+              - generic [ref=e182]:
+                - generic [ref=e185]: "TRANSAKSI DEBIT TGL: 05/02 Q…"
+                - generic [ref=e186]: −31.000
+              - generic [ref=e187]: Superbank
+        - generic [ref=e188]:
+          - text: Processing
+          - paragraph [ref=e189]: No active uploads
+  - generic [ref=e190]: "0"
