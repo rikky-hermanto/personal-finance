@@ -1,5 +1,6 @@
 using PersonalFinance.Api.Extensions;
 using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Infrastructure.External;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Infrastructure.Supabase;
 using FluentValidation;
@@ -20,17 +21,25 @@ namespace PersonalFinance.Api
             builder.Services.AddOpenApi();
 
             builder.Services.AddSupabase(builder.Configuration);
+            builder.Services.AddHttpClient<ILlmExtractionClient, LlmExtractionClient>(client =>
+            {
+                client.BaseAddress = new Uri(
+                    builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+                client.Timeout = TimeSpan.FromMinutes(2);
+            });
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<BcaCsvParser>();
             builder.Services.AddScoped<NeoBankPdfParser>();
             builder.Services.AddScoped<DefaultCsvParser>();
+            builder.Services.AddScoped<LlmPdfParser>();
             builder.Services.AddScoped<IStatementImportService>(serviceProvider =>
             {
                 var parsers = new Dictionary<string, IBankStatementParser>
                 {
                     { "BCA", serviceProvider.GetRequiredService<BcaCsvParser>() },
                     { "NEOBANK", serviceProvider.GetRequiredService<NeoBankPdfParser>() },
-                    { "STANDARD", serviceProvider.GetRequiredService<DefaultCsvParser>() }
+                    { "STANDARD", serviceProvider.GetRequiredService<DefaultCsvParser>() },
+                    { "LLM_PDF", serviceProvider.GetRequiredService<LlmPdfParser>() },
                 };
                 return new StatementImportService(parsers, serviceProvider.GetRequiredService<ILogger<StatementImportService>>());
             });

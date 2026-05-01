@@ -52,11 +52,11 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> UploadPreview(IFormFile file, [FromForm] string? pdfPassword = null)
     {
         if (file == null || file.Length == 0)
-            return BadRequest("File is empty");
+            return BadRequest(new { Message = "File is empty." });
 
         var allowedContentTypes = new[] { "text/csv", "application/pdf" };
         if (!allowedContentTypes.Contains(file.ContentType))
-            return BadRequest("Unsupported file type");
+            return BadRequest(new { Message = "Unsupported file type. Upload a CSV or PDF." });
 
         using var mainStream = new MemoryStream();
         await file.CopyToAsync(mainStream);
@@ -64,7 +64,7 @@ public class TransactionsController : ControllerBase
 
         var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
         if (bank == null)
-            return BadRequest("Bank format not recognized or not supported.");
+            return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
 
         mainStream.Position = 0;
 
@@ -95,11 +95,20 @@ public class TransactionsController : ControllerBase
         }
         catch (NotSupportedException ex)
         {
-            return BadRequest(ex.Message);
+            return BadRequest(new { Message = ex.Message });
+        }
+        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex) when (ex.IsTransient)
+        {
+            Response.Headers.Append("Retry-After", "30");
+            return StatusCode(503, new { Message = ex.Message });
+        }
+        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex)
+        {
+            return StatusCode(422, new { Message = "The AI service could not read this PDF.", Detail = ex.Message });
         }
         catch (Exception)
         {
-            return StatusCode(500, new { Message = "File processing failed." });
+            return StatusCode(500, new { Message = "File processing failed. Check the file is a valid bank statement and try again." });
         }
     }
 
