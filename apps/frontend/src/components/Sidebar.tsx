@@ -1,14 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Upload, List, PieChart, Settings, Menu, X, Plus } from 'lucide-react';
+import { BarChart3, TrendingUp, Settings, Menu, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
-  { id: 'upload', label: 'Upload', icon: Upload, path: '/upload' },
-  { id: 'transactions', label: 'Transactions', icon: List, path: '/transactions' },
-  { id: 'categories', label: 'Categories', icon: PieChart, path: '/categories' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard', matchPrefix: '/dashboard' },
+  { id: 'cashflow', label: 'Cashflow', icon: TrendingUp, path: '/cashflow', matchPrefix: '/cashflow' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', matchPrefix: '/settings' },
 ];
 
 const Sidebar = () => {
@@ -49,7 +47,7 @@ const Sidebar = () => {
       {/* New upload CTA */}
       <div className={cn('px-3 pt-4 pb-2', collapsed && 'flex justify-center')}>
         <button
-          onClick={() => navigate('/upload')}
+          onClick={() => navigate('/cashflow/upload')}
           className={cn(
             'flex items-center gap-2 rounded-md transition-colors bg-foreground/8 hover:bg-foreground/12 text-sidebar-primary border border-sidebar-border',
             collapsed
@@ -68,7 +66,7 @@ const Sidebar = () => {
         <ul className="space-y-0.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname.startsWith(item.matchPrefix);
             return (
               <li key={item.id}>
                 <button
