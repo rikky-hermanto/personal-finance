@@ -97,6 +97,26 @@ public class CategoryRuleService : ICategoryRuleService
         return await _mediator.Send(new DeleteCategoryRuleCommand(id));
     }
 
+    public async Task EnsureCategoryRulesAsync(List<TransactionDto> transactions)
+    {
+        var existingRules = await GetAllAsync();
+
+        foreach (var dto in transactions)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Category)) continue;
+
+            var alreadyExists = existingRules.Any(r =>
+                r.Category == dto.Category &&
+                r.Type == dto.Type);
+
+            if (!alreadyExists && dto.CategoryRuleDto is not null)
+            {
+                var created = await AddAsync(dto.CategoryRuleDto);
+                existingRules.Add(created);
+            }
+        }
+    }
+
     private static CategoryRuleDto MapToDto(CategoryRule entity) => new()
     {
         Id = entity.Id,
