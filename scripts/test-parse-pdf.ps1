@@ -166,12 +166,34 @@ foreach ($pdf in $Pdfs) {
         $pass = $Password
         $r    = Send-Pdf -Pdf $pdf -Hint $BankHint -Pass $pass
 
-        # If password-protected and no password supplied yet, prompt and retry once
+        # If password-protected, prompt up to 3 times
         if ($r.StatusCode -eq 422 -and ($r.Body | ConvertFrom-Json).detail -like "*password-protected*") {
             Write-Host "  This PDF is password-protected." -ForegroundColor Yellow
-            $pass = Read-Host "  Enter password"
-            Write-Host "  Retrying..." -ForegroundColor Gray
-            $r = Send-Pdf -Pdf $pdf -Hint $BankHint -Pass $pass
+
+            $maxAttempts = 3
+            $attempt     = 0
+
+            while ($attempt -lt $maxAttempts) {
+                $attempt++
+                $pass = Read-Host "  Enter password (attempt $attempt of $maxAttempts)"
+                Write-Host "  Retrying..." -ForegroundColor Gray
+                $r = Send-Pdf -Pdf $pdf -Hint $BankHint -Pass $pass
+
+                if ($r.StatusCode -eq 200) { break }
+
+                $detail = try { ($r.Body | ConvertFrom-Json).detail } catch { $r.Body }
+
+                if ($r.StatusCode -eq 422 -and $detail -like "*password*") {
+                    if ($attempt -lt $maxAttempts) {
+                        Write-Host "  Wrong password — please try again." -ForegroundColor Red
+                    } else {
+                        Write-Host "  Wrong password — 3 attempts exhausted." -ForegroundColor Red
+                    }
+                } else {
+                    # Different error (not a password error) — stop retrying
+                    break
+                }
+            }
         }
     } catch {
         Write-Host "  FAIL: $_" -ForegroundColor Red
