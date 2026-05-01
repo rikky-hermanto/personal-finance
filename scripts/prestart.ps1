@@ -39,13 +39,14 @@ if (Test-Path $launchSettingsPath) {
     Write-Host "Could not find launchSettings.json, falling back to port $port" -ForegroundColor Yellow
 }
 
-# 3. Stop conflicting processes on the API port (e.g., leftover API processes)
-$process = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
-if ($process) {
-    foreach ($p in $process) {
-        if ($p.OwningProcess) {
-            Write-Host "Stopping conflicting process on port $port (PID: $($p.OwningProcess))" -ForegroundColor Yellow
-            Stop-Process -Id $p.OwningProcess -Force -ErrorAction SilentlyContinue
+# 3. Stop conflicting processes on known service ports
+$portsToFree = @($port, 8080, 8000)
+foreach ($p in $portsToFree) {
+    $connections = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue
+    foreach ($conn in $connections) {
+        if ($conn.OwningProcess) {
+            Write-Host "Stopping conflicting process on port $p (PID: $($conn.OwningProcess))" -ForegroundColor Yellow
+            Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
         }
     }
 }
