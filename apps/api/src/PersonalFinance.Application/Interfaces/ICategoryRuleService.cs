@@ -12,4 +12,5 @@ public interface ICategoryRuleService
     Task<CategoryRuleDto> AddAsync(CategoryRuleDto rule);
     Task<CategoryRuleDto?> UpdateAsync(int id, CategoryRuleDto rule);
     Task<bool> DeleteAsync(int id);
+    Task EnsureCategoryRulesAsync(List<TransactionDto> transactions);
 }
