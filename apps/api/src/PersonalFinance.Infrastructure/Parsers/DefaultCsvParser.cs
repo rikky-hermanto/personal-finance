@@ -72,14 +72,10 @@ public class DefaultCsvParser : IBankStatementParser
                 Balance = ParseDecimal(GetFieldValue(normalizedDict, "Balance"))
             };
 
-            // Apply category rules if category is still default
-            if (transaction.Category == "Untracked Expense")
-            {
-                transaction.Category = await _categoryRuleService.CategorizeAsync(transaction.Description, transaction.Type);
-            }
-
             transactions.Add(transaction);
         }
+
+        await _categoryRuleService.CategorizeBatchAsync(transactions);
 
         _logger.LogInformation("Default CSV parsing complete. Parsed {Count} transactions.", transactions.Count);
         return transactions;
