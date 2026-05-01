@@ -4,9 +4,8 @@ const UNIQUE_KEYWORD = `e2e-test-${Date.now()}`;
 
 test.describe('Category rules CRUD', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: /Categories/i }).click();
-    await expect(page.getByText('Category Management')).toBeVisible();
+    await page.goto('/settings/categories');
+    await expect(page.getByText('Category Rules')).toBeVisible();
   });
 
   test('shows the rules table', async ({ page }) => {
@@ -16,33 +15,29 @@ test.describe('Category rules CRUD', () => {
   });
 
   test('creates a new category rule and it appears in the list', async ({ page }) => {
-    // Click "Add Rule"
     await page.getByRole('button', { name: /Add Rule/i }).click();
 
-    // Fill keyword input (placeholder: "Enter keyword...")
-    await page.getByPlaceholder('Enter keyword...').fill(UNIQUE_KEYWORD);
+    await page.getByPlaceholder('KEYWORD').fill(UNIQUE_KEYWORD);
 
-    // Select category from the dropdown (first select in the new row)
-    const newRow = page.locator('tr.bg-gray-50');
-    await newRow.locator('select').first().selectOption('Food & Dining');
+    const newRow = page.locator('tr.bg-muted');
+    // Select category (second select: type is first, category is second)
+    await newRow.locator('select').nth(1).selectOption('Food & Dining');
 
-    // Click the save icon button (green button in the new row)
-    await newRow.locator('button.text-green-600').click();
+    // Save button uses text-success class
+    await newRow.locator('button.text-success').click();
 
-    // The new keyword should appear in the table
     await expect(page.getByText(UNIQUE_KEYWORD)).toBeVisible({ timeout: 10000 });
   });
 
   test('deletes a category rule', async ({ page }) => {
-    // Find the row with our test keyword created above
     const row = page.locator('tr', { hasText: UNIQUE_KEYWORD });
     if (await row.count() === 0) {
       test.skip();
       return;
     }
 
-    // Click the red trash icon button in that row
-    await row.locator('button.text-red-600').click();
+    // Delete button is the second icon button in the actions cell
+    await row.locator('button').nth(1).click();
     await expect(page.getByText(UNIQUE_KEYWORD)).not.toBeVisible({ timeout: 5000 });
   });
 });
