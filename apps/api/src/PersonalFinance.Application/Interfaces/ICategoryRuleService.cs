@@ -5,6 +5,7 @@ namespace PersonalFinance.Application.Interfaces;
 public interface ICategoryRuleService
 {
     Task<string> CategorizeAsync(string description, string type);
+    Task<List<TransactionDto>> CategorizeBatchAsync(List<TransactionDto> transactions);
 
     Task<List<CategoryRuleDto>> GetAllAsync();
     Task<CategoryRuleDto?> GetByIdAsync(int id);
