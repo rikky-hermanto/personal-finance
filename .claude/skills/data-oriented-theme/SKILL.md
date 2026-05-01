@@ -188,6 +188,20 @@ Labeled region via borders, not a wrapped box:
 - Ghost / tertiary: no border, no bg, `color: var(--tx-3)` — low-priority actions
 - Destructive: ghost by default, red only on hover/confirm
 
+**Tailwind reference (this project's standard):**
+
+| Role | Tailwind classes | When to use |
+|------|-----------------|-------------|
+| Primary | `flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-md hover:bg-foreground/90 transition-colors` | One per page context — initiates the main action |
+| Secondary / outline | `flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors` | Supporting navigation or secondary actions (reference: "Add Rule" button in CategoryManager) |
+| Ghost | `flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors` | Tertiary / low-priority |
+| Icon inside button | `w-3.5 h-3.5` with `strokeWidth={1.5}` | Standard icon sizing for all button roles |
+
+**Rules:**
+- Max 2 action buttons per section — if you need more, use a menu
+- Never use `bg-primary` (shadcn blue) for primary actions — use `bg-foreground` (near-black) per this theme
+- Buttons should feel compact and borderless-when-not-needed: prefer the outline (secondary) style for most actions, reserving the filled primary for the single most important CTA
+
 ### Tags / Badges (inline only)
 ```css
 .tag {
