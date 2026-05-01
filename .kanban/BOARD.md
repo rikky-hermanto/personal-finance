@@ -35,6 +35,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-S07 | [#70](https://github.com/rikky-hermanto/personal-finance/issues/70) | Delete PersonalFinance.Persistence project — eliminate EF Core |
 | PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
 | PF-031 | [#39](https://github.com/rikky-hermanto/personal-finance/issues/39) | Extract dashboard aggregation from controller to service |
+| PF-046 | [#55](https://github.com/rikky-hermanto/personal-finance/issues/55) | LLM Extraction Client — .NET → Python HTTP Bridge |
 | PF-055 | [#78](https://github.com/rikky-hermanto/personal-finance/issues/78) | URL routing migration — replace activeView state with react-router routes |
 | PF-056 | [#79](https://github.com/rikky-hermanto/personal-finance/issues/79) | Cashflow workspace shell — tabs layout + sidebar IA update |
 | PF-057 | [#80](https://github.com/rikky-hermanto/personal-finance/issues/80) | Cashflow Overview tab — slim cashflow-focused widgets |
@@ -92,7 +93,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Auth0 Integration + Security Hardening ⚠️ superseded by PF-S08/S09 | S4 |
 | PF-043 | [#52](https://github.com/rikky-hermanto/personal-finance/issues/52) | Wise CSV Parser + FX Rate Conversion | S1 |
 | PF-045 | [#54](https://github.com/rikky-hermanto/personal-finance/issues/54) | Bank Profile Config System — YAML Loader | S1 |
-| PF-046 | [#55](https://github.com/rikky-hermanto/personal-finance/issues/55) | LLM Extraction Client — .NET → Python HTTP Bridge | S1 |
 | PF-050 | [#59](https://github.com/rikky-hermanto/personal-finance/issues/59) | Docker Compose — Add ai-service Container | S1 |
 
 ---
@@ -135,11 +135,11 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 Setup:      ████████████████████ 100% (8/8)
 Cleanup:    ███████░░░░░░░░░░░░░  33% (6/18 — 8 issues now obsolete)
 Ramp-Up:    ███░░░░░░░░░░░░░░░░░  16% (1/6)
-Sprint 1:   ░░░░░░░░░░░░░░░░░░░░   0% (0/8 active)
+Sprint 1:   ███░░░░░░░░░░░░░░░░░  14% (1/7 active — PF-046 done)
 Supabase:   ███████░░░░░░░░░░░░░  54% (7/13)
 Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 ──────────────────────────────────
-Overall:    ████░░░░░░░░░░░░░░░░  32% (23/56 active, 8 obsolete)
+Overall:    ████░░░░░░░░░░░░░░░░  33% (24/56 active, 8 obsolete)
 ```
 
 > Next task ID: **PF-058** (PF-S series: PF-S14 if more Supabase tasks needed)

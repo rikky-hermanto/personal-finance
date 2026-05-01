@@ -64,10 +64,13 @@ public class BankIdentifier : IBankIdentifier
             catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException ex)
             {
                 _logger.LogWarning(ex, "PDF Document is encrypted and requires a password.");
-                // Handle encrypted PDF without password
                 return null;
             }
+
+            // Fallback: route any unrecognized PDF to the LLM extractor
             stream.Position = 0;
+            _logger.LogDebug("PDF bank unrecognized — routing to LLM extractor.");
+            return "LLM_PDF";
         }
         _logger.LogDebug("Bank could not be identified.");
         return null;

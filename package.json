@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "prestart": "powershell -ExecutionPolicy Bypass -File ./scripts/prestart.ps1",
-    "start": "(docker start personalfinance-db || docker compose up -d db) && concurrently --kill-others-on-fail --names \"api,ui\" --prefix-colors \"yellow,cyan\" \"cd apps/api && dotnet run --project src/PersonalFinance.Api\" \"cd apps/frontend && npm run dev\"",
+    "start": "(docker start personalfinance-db || docker compose up -d db) && concurrently --kill-others-on-fail --names \"api,ui,ai\" --prefix-colors \"yellow,cyan,magenta\" \"cd apps/api && dotnet run --project src/PersonalFinance.Api\" \"cd apps/frontend && npm run dev\" \"powershell -ExecutionPolicy Bypass -NoProfile -Command \\\"cd services/ai-service; .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000\\\"\"",
     "dev": "cd apps/frontend && npm run dev",
     "build": "cd apps/frontend && npm run build",
     "lint": "cd apps/frontend && npm run lint",
