@@ -109,8 +109,6 @@ public class NeoBankPdfParser : IBankStatementParser
                     ExchangeRate = null
                 };
 
-                transaction.Category = await _categoryRuleService.CategorizeAsync(transaction.Description, transaction.Type);
-
                 transactions.Add(transaction);
             }
             catch (Exception ex)
@@ -118,6 +116,8 @@ public class NeoBankPdfParser : IBankStatementParser
                 _logger.LogWarning(ex, "Skipped entry due to exception. Raw: {RawEntry}", entry.Substring(0, Math.Min(100, entry.Length)));
             }
         }
+
+        await _categoryRuleService.CategorizeBatchAsync(transactions);
 
         _logger.LogInformation("NeoBank PDF parsing complete. Parsed {Count} transactions.", transactions.Count);
         return transactions;

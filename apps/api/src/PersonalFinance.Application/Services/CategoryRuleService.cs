@@ -36,6 +36,32 @@ public class CategoryRuleService : ICategoryRuleService
         return "Untracked Category";
     }
 
+    public async Task<List<TransactionDto>> CategorizeBatchAsync(List<TransactionDto> transactions)
+    {
+        _logger.LogDebug("Batch categorizing {Count} transactions.", transactions.Count);
+
+        var result = await _supabase.From<CategoryRule>()
+            .Order("keyword_length", Ordering.Descending)
+            .Get();
+
+        var rules = result.Models;
+
+        foreach (var tx in transactions)
+        {
+            var typeRules = rules.Where(r => r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
+            foreach (var rule in typeRules)
+            {
+                if (tx.Description.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    tx.Category = rule.Category;
+                    break;
+                }
+            }
+        }
+
+        return transactions;
+    }
+
     public async Task<List<CategoryRuleDto>> GetAllAsync()
     {
         var result = await _supabase.From<CategoryRule>()
