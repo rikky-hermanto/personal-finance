@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-04-28 (PF-S07 complete — Persistence project deleted, EF Core gone, ARCH-01 resolved)
+> **Last synced:** 2026-05-01 (PF-055 complete — URL routing migration, activeView state replaced with react-router)
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -34,6 +34,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-S06 | [#69](https://github.com/rikky-hermanto/personal-finance/issues/69) | Rewrite CQRS handlers + services — DbContext → supabase-csharp |
 | PF-S07 | [#70](https://github.com/rikky-hermanto/personal-finance/issues/70) | Delete PersonalFinance.Persistence project — eliminate EF Core |
 | PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
+| PF-055 | [#78](https://github.com/rikky-hermanto/personal-finance/issues/78) | URL routing migration — replace activeView state with react-router routes |
 
 ---
 
@@ -41,6 +42,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-056 | [#79](https://github.com/rikky-hermanto/personal-finance/issues/79) | Cashflow workspace shell — tabs layout + sidebar IA update |
 | PF-010 | [#18](https://github.com/rikky-hermanto/personal-finance/issues/18) | Structured Output — Text → JSON via LLM |
 | PF-011 | [#19](https://github.com/rikky-hermanto/personal-finance/issues/19) | FastAPI AI Microservice Scaffold |
 | PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
@@ -135,7 +137,7 @@ Sprint 1:   ░░░░░░░░░░░░░░░░░░░░   0% (0
 Supabase:   ███████░░░░░░░░░░░░░  54% (7/13)
 Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 ──────────────────────────────────
-Overall:    ████░░░░░░░░░░░░░░░░  30% (21/55 active, 8 obsolete)
+Overall:    ████░░░░░░░░░░░░░░░░  31% (22/56 active, 8 obsolete)
 ```
 
-> Next task ID: **PF-055** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-057** (PF-S series: PF-S14 if more Supabase tasks needed)
