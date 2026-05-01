@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-05-01 (PF-056 complete — Cashflow workspace shell, tabs layout + sidebar IA update)
+> **Last synced:** 2026-05-01 (PF-057 complete — Cashflow Overview tab: NetCashflowCard, TopCategoriesCard, MonthlyFlowChart widgets + DashboardPage cross-module layout)
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -36,6 +36,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-028 | [#36](https://github.com/rikky-hermanto/personal-finance/issues/36) | Fix exception detail leaking to API clients |
 | PF-055 | [#78](https://github.com/rikky-hermanto/personal-finance/issues/78) | URL routing migration — replace activeView state with react-router routes |
 | PF-056 | [#79](https://github.com/rikky-hermanto/personal-finance/issues/79) | Cashflow workspace shell — tabs layout + sidebar IA update |
+| PF-057 | [#80](https://github.com/rikky-hermanto/personal-finance/issues/80) | Cashflow Overview tab — slim cashflow-focused widgets |
 
 ---
 
@@ -43,6 +44,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-058 | [#81](https://github.com/rikky-hermanto/personal-finance/issues/81) | Settings page + Categories nesting under Settings |
 | PF-010 | [#18](https://github.com/rikky-hermanto/personal-finance/issues/18) | Structured Output — Text → JSON via LLM |
 | PF-011 | [#19](https://github.com/rikky-hermanto/personal-finance/issues/19) | FastAPI AI Microservice Scaffold |
 | PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
@@ -140,4 +142,4 @@ Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0
 Overall:    ████░░░░░░░░░░░░░░░░  32% (23/56 active, 8 obsolete)
 ```
 
-> Next task ID: **PF-057** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-058** (PF-S series: PF-S14 if more Supabase tasks needed)
