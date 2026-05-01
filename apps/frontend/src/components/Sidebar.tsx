@@ -1,23 +1,20 @@
-
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BarChart3, Upload, List, PieChart, Settings, Menu, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface SidebarProps {
-  activeView: string;
-  onViewChange: (view: string) => void;
-}
-
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-  { id: 'upload', label: 'Upload', icon: Upload },
-  { id: 'transactions', label: 'Transactions', icon: List },
-  { id: 'categories', label: 'Categories', icon: PieChart },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard' },
+  { id: 'upload', label: 'Upload', icon: Upload, path: '/upload' },
+  { id: 'transactions', label: 'Transactions', icon: List, path: '/transactions' },
+  { id: 'categories', label: 'Categories', icon: PieChart, path: '/categories' },
+  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' },
 ];
 
-const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
+const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <div
@@ -52,7 +49,7 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
       {/* New upload CTA */}
       <div className={cn('px-3 pt-4 pb-2', collapsed && 'flex justify-center')}>
         <button
-          onClick={() => onViewChange('upload')}
+          onClick={() => navigate('/upload')}
           className={cn(
             'flex items-center gap-2 rounded-md transition-colors bg-foreground/8 hover:bg-foreground/12 text-sidebar-primary border border-sidebar-border',
             collapsed
@@ -71,11 +68,11 @@ const Sidebar = ({ activeView, onViewChange }: SidebarProps) => {
         <ul className="space-y-0.5">
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeView === item.id;
+            const isActive = location.pathname === item.path;
             return (
               <li key={item.id}>
                 <button
-                  onClick={() => onViewChange(item.id)}
+                  onClick={() => navigate(item.path)}
                   title={collapsed ? item.label : undefined}
                   className={cn(
                     'w-full flex items-center rounded-md transition-colors',

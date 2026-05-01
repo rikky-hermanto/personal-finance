@@ -1,23 +1,16 @@
-import { ReactNode } from 'react';
+import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import ActivityPanel from '@/components/dashboard/ActivityPanel';
-import { Transaction } from '@/types/Transaction';
+import { mockTransactions } from '@/data/mockTransactions';
 
-interface AppShellProps {
-  activeView: string;
-  onViewChange: (view: string) => void;
-  transactions: Transaction[];
-  children: ReactNode;
-}
-
-const AppShell = ({ activeView, onViewChange, transactions, children }: AppShellProps) => {
+const AppShell = () => {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      <Sidebar activeView={activeView} onViewChange={onViewChange} />
+      <Sidebar />
       <main className="flex-1 overflow-auto min-w-0">
-        {children}
+        <Outlet />
       </main>
-      <ActivityPanel transactions={transactions} />
+      <ActivityPanel transactions={mockTransactions} />
     </div>
   );
 };
