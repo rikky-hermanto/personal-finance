@@ -40,6 +40,10 @@ __pycache__/
 # Local .NET dev settings — copy from appsettings.Development.example.json
 appsettings.Development.json
 
+# Playwright test artifacts
+**/test-results/
+**/playwright-report/
+
 # Claude Code worktrees (stale branches from past sessions)
 .claude/worktrees/
 services/ai-service/.env
