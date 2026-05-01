@@ -38,6 +38,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-056 | [#79](https://github.com/rikky-hermanto/personal-finance/issues/79) | Cashflow workspace shell — tabs layout + sidebar IA update |
 | PF-057 | [#80](https://github.com/rikky-hermanto/personal-finance/issues/80) | Cashflow Overview tab — slim cashflow-focused widgets |
 | PF-058 | [#81](https://github.com/rikky-hermanto/personal-finance/issues/81) | Settings page + Categories nesting under Settings |
+| PF-012 | [#20](https://github.com/rikky-hermanto/personal-finance/issues/20) | PDF Text Extraction with PyMuPDF |
 
 ---
 
@@ -78,7 +79,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title | Sprint |
 |----|-------|-------|--------|
-| PF-012 | [#20](https://github.com/rikky-hermanto/personal-finance/issues/20) | PDF Text Extraction with PyMuPDF | ramp-up |
 | PF-013 | [#21](https://github.com/rikky-hermanto/personal-finance/issues/21) | End-to-End: .NET → Python → LLM Pipeline | ramp-up |
 | PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Persist AI-Parsed Transactions to DB | ramp-up |
 | PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | LLM Provider Abstraction Layer | S1 |
