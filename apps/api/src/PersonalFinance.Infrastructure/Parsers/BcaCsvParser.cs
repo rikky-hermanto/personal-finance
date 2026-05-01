@@ -83,9 +83,10 @@ public class BcaCsvParser : IBankStatementParser
                 ExchangeRate = null
             };
 
-            transaction.Category = await _categoryRuleService.CategorizeAsync(transaction.Description, transaction.Type);
             transactions.Add(transaction);
         }
+
+        await _categoryRuleService.CategorizeBatchAsync(transactions);
 
         _logger.LogInformation("BCA CSV parsing complete. Parsed {Count} transactions.", transactions.Count);
         return transactions;
