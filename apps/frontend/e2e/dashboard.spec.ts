@@ -22,17 +22,14 @@ test.describe('Dashboard', () => {
   test('navigates between sidebar views', async ({ page }) => {
     await page.goto('/');
 
-    // Navigate to Upload
-    await page.getByRole('button', { name: /Upload/i }).click();
-    await expect(page.getByRole('heading', { name: 'Upload Transactions', level: 1 })).toBeVisible();
+    // Navigate to Cashflow workspace
+    await page.getByRole('button', { name: /Cashflow/i }).click();
+    await expect(page.getByRole('heading', { name: 'Cashflow', level: 1 })).toBeVisible();
 
-    // Navigate to Transactions
-    await page.getByRole('button', { name: /Transactions/i }).click();
-    await expect(page.getByRole('heading', { name: 'Transactions', level: 1 })).toBeVisible();
-
-    // Navigate to Categories
-    await page.getByRole('button', { name: /Categories/i }).click();
-    await expect(page.getByText('Category Management')).toBeVisible();
+    // Navigate to Settings → lands on Categories sub-page
+    await page.getByRole('button', { name: /Settings/i }).click();
+    await expect(page.getByRole('heading', { name: 'Settings', level: 1 })).toBeVisible();
+    await expect(page.getByText('Category Rules')).toBeVisible();
 
     // Navigate back to Dashboard
     await page.getByRole('button', { name: /Dashboard/i }).click();
