@@ -91,8 +91,15 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     } catch (error: any) {
       let message = 'Error processing files.';
       try {
-        const data = await error.response?.json?.();
-        if (data?.Message) message = data.Message + (data.Detail ? `: ${data.Detail}` : '');
+        const res: Response | undefined = error.response;
+        const data = await res?.json?.();
+        const msg = data?.message ?? data?.Message;
+        if (msg) {
+          message = msg;
+          const detail = data?.detail ?? data?.Detail;
+          if (detail) message += `: ${detail}`;
+          if (res?.status === 503) message += ' You can try again in a moment.';
+        }
       } catch {
         if (error instanceof Error && error.message) message = error.message;
       }
