@@ -75,7 +75,11 @@ export async function uploadPreview(
     body: formData,
   });
 
-  if (!res.ok) throw new Error("Failed to upload and preview file");
+  if (!res.ok) {
+    const error: any = new Error("API Error");
+    error.response = res;
+    throw error;
+  }
   return res.json();
 }
 
