@@ -62,12 +62,16 @@ export async function deleteTransaction(id: number): Promise<void> {
  */
 export async function uploadPreview(
   file: File,
-  pdfPassword?: string
+  pdfPassword?: string,
+  bankHint?: string
 ): Promise<TransactionDto[]> {
   const formData = new FormData();
   formData.append("file", file);
   if (pdfPassword) {
     formData.append("pdfPassword", pdfPassword);
+  }
+  if (bankHint) {
+    formData.append("bankHint", bankHint);
   }
 
   const res = await fetch(`${BASE_URL}/upload-preview`, {

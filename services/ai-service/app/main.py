@@ -5,10 +5,13 @@ from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.models import HealthResponse, ParseRequest, ParseResponse, PdfParseResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse
 from app.providers.factory import ProviderFactory
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
+
+_ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
+_MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
@@ -82,3 +85,36 @@ async def parse_pdf(
         raise HTTPException(status_code=502, detail=str(e))
 
     return PdfParseResponse(**parse_result.model_dump(), pages_processed=page_count)
+
+
+@app.post("/parse-image", response_model=ParseResponse)
+async def parse_image(
+    file: UploadFile = File(...),
+    bank_hint: str | None = Form(default=None),
+) -> ParseResponse:
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unsupported image type '{file.content_type}'. Accepted: {sorted(_ALLOWED_IMAGE_TYPES)}",
+        )
+
+    img_bytes = await file.read()
+    if len(img_bytes) > _MAX_IMAGE_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Image exceeds 10 MB limit ({len(img_bytes)} bytes received)",
+        )
+
+    logger.info(
+        "Image upload received | filename=%s | content_type=%s | size=%d bytes",
+        file.filename, file.content_type, len(img_bytes),
+    )
+
+    try:
+        return await app.state.parser.parse_image(
+            image_bytes=img_bytes,
+            media_type=file.content_type,
+            request=ParseImageRequest(bank_hint=bank_hint),
+        )
+    except LlmParseError as e:
+        raise HTTPException(status_code=502, detail=str(e))

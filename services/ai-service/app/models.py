@@ -37,6 +37,10 @@ class PdfParseResponse(ParseResponse):
     pages_processed: int
 
 
+class ParseImageRequest(BaseModel):
+    bank_hint: str | None = None   # e.g. "jago", "superbank"
+
+
 class HealthResponse(BaseModel):
     status: str
     version: str

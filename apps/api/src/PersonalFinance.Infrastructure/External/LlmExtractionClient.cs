@@ -48,17 +48,7 @@ public class LlmExtractionClient : ILlmExtractionClient
         {
             var body = await response.Content.ReadAsStringAsync(ct);
             _logger.LogError("AI service returned {StatusCode}: {Body}", (int)response.StatusCode, body);
-
-            string detail;
-            try
-            {
-                using var doc = JsonDocument.Parse(body);
-                detail = doc.RootElement.TryGetProperty("detail", out var d) ? d.GetString() ?? body : body;
-            }
-            catch
-            {
-                detail = body;
-            }
+            var detail = ExtractDetail(body);
 
             if (detail.Contains("UNAVAILABLE", StringComparison.OrdinalIgnoreCase) ||
                 detail.Contains("high demand", StringComparison.OrdinalIgnoreCase) ||
@@ -81,6 +71,55 @@ public class LlmExtractionClient : ILlmExtractionClient
         return parsed.Transactions.Select(MapToDto).ToList();
     }
 
+    public async Task<List<TransactionDto>> ParseImageAsync(
+        Stream image, string fileName, string contentType, string? bankHint,
+        CancellationToken ct = default)
+    {
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(image);
+        fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+        content.Add(fileContent, "file", fileName);
+        if (bankHint is not null)
+            content.Add(new StringContent(bankHint), "bank_hint");
+
+        _logger.LogInformation("Forwarding image to AI service | file={FileName} | contentType={ContentType} | bankHint={BankHint}",
+            fileName, contentType, bankHint ?? "null");
+
+        var response = await _http.PostAsync("/parse-image", content, ct);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.UnprocessableEntity ||
+            response.StatusCode == System.Net.HttpStatusCode.RequestEntityTooLarge)
+        {
+            var errBody = await response.Content.ReadAsStringAsync(ct);
+            throw new NotSupportedException($"AI service rejected image: {ExtractDetail(errBody)}");
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            _logger.LogError("AI service returned {StatusCode}: {Body}", (int)response.StatusCode, body);
+            throw new LlmExtractionException($"AI service error: {ExtractDetail(body)}");
+        }
+
+        var parsed = await response.Content.ReadFromJsonAsync<ImageParseResponse>(JsonOptions, ct)
+            ?? throw new LlmExtractionException("AI service returned an empty response.");
+
+        _logger.LogInformation("AI service parsed {Count} image transactions, skipped {Skipped}",
+            parsed.TotalParsed, parsed.SkippedRows);
+
+        return parsed.Transactions.Select(MapToDto).ToList();
+    }
+
+    private static string ExtractDetail(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return doc.RootElement.TryGetProperty("detail", out var d) ? d.GetString() ?? body : body;
+        }
+        catch { return body; }
+    }
+
     private static TransactionDto MapToDto(TransactionResult r) => new()
     {
         Date = DateTime.Parse(r.Date, null,
@@ -98,7 +137,14 @@ public class LlmExtractionClient : ILlmExtractionClient
         Balance = 0,
     };
 
-    // ── Response models (mirror Python PdfParseResponse) ────────────────────
+    // ── Response models (mirror Python ParseResponse / PdfParseResponse) ─────
+
+    private sealed class ImageParseResponse
+    {
+        public List<TransactionResult> Transactions { get; set; } = [];
+        public int TotalParsed { get; set; }
+        public int SkippedRows { get; set; }
+    }
 
     private sealed class PdfParseResponse
     {
