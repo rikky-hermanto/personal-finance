@@ -1,7 +1,7 @@
 import logging
 
 from app.providers.base import LlmProvider
-from app.models import ParseRequest, ParseResponse, TransactionResult
+from app.models import ParseImageRequest, ParseRequest, ParseResponse, TransactionResult
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,37 @@ class LlmParser:
                 skipped += 1
 
         logger.info("Parse complete | parsed=%d | skipped=%d", len(parsed), skipped)
+        return ParseResponse(
+            transactions=parsed,
+            total_parsed=len(parsed),
+            skipped_rows=skipped,
+        )
+
+    async def parse_image(self, image_bytes: bytes, media_type: str, request: ParseImageRequest) -> ParseResponse:
+        system = SYSTEM_PROMPT + f"Bank context: {request.bank_hint or 'unknown'}."
+        user_text = "Extract all transactions from this bank statement screenshot."
+
+        try:
+            result = await self._provider.extract_structured(
+                system_prompt=system,
+                user_text=user_text,
+                schema=EXTRACT_SCHEMA,
+                image=(image_bytes, media_type),
+            )
+        except Exception as e:
+            logger.error("LLM image extraction failed: %s", e)
+            raise LlmParseError(f"LLM extraction error: {e}") from e
+
+        raw_rows = result.get("transactions", [])
+        parsed, skipped = [], 0
+        for row in raw_rows:
+            try:
+                parsed.append(TransactionResult(**row))
+            except Exception as e:
+                logger.warning("Skipping invalid row | row=%s | error=%s", row, e)
+                skipped += 1
+
+        logger.info("Image parse complete | parsed=%d | skipped=%d", len(parsed), skipped)
         return ParseResponse(
             transactions=parsed,
             total_parsed=len(parsed),
