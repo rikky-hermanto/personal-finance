@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 
 const TABS = [
   { value: 'categories', label: 'Categories', path: '/settings/categories', disabled: false },
+  { value: 'data', label: 'Data', path: '/settings/data', disabled: false },
   { value: 'banks', label: 'Banks & Accounts', path: '/settings/banks', disabled: true },
   { value: 'rules', label: 'Rules', path: '/settings/rules', disabled: true },
   { value: 'profile', label: 'Profile', path: '/settings/profile', disabled: true },
