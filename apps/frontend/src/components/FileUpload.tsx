@@ -27,7 +27,11 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [parsedTransactions, setParsedTransactions] = useState<Transaction[]>([]);
   const [isProcessing, setIsProcessing]       = useState(false);
   const [pdfPassword, setPdfPassword]         = useState('');
+  const [bankHint, setBankHint]               = useState('');
   const [apiError, setApiError]               = useState<string | null>(null);
+
+  const isImageFile = (f: File) =>
+    f.type === 'image/png' || f.type === 'image/jpeg' || f.type === 'image/webp';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -44,6 +48,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     setIsDragging(false);
     const validFiles = Array.from(e.dataTransfer.files).filter(f =>
       f.type === 'text/csv' || f.type === 'application/pdf' ||
+      f.type === 'image/png' || f.type === 'image/jpeg' || f.type === 'image/webp' ||
       f.name.endsWith('.csv') || f.name.endsWith('.pdf')
     );
     if (validFiles.length > 0) {
@@ -74,7 +79,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     try {
       const file = uploadedFiles[0];
       if (!file) return;
-      const apiTransactions = await transactionsApi.uploadPreview(file, pdfPassword);
+      const apiTransactions = await transactionsApi.uploadPreview(file, pdfPassword, bankHint || undefined);
       const transactions: Transaction[] = apiTransactions.map((t: transactionsApi.TransactionDto) => ({
         id:          t.id.toString(),
         date:        t.date,
@@ -250,6 +255,18 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           </div>
         )}
 
+        {uploadedFiles.some(isImageFile) && (
+          <div className="mb-5">
+            <input
+              type="text"
+              placeholder="Bank name hint, e.g. jago, superbank (optional)"
+              value={bankHint}
+              onChange={e => setBankHint(e.target.value)}
+              className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
+        )}
+
         <div className="flex items-center justify-end gap-4 pt-1">
           <button
             onClick={() => setCurrentStep('upload')}
@@ -279,14 +296,14 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       <div className="mb-5 text-center">
         <h2 className="text-base font-semibold text-foreground mb-1">Upload bank statements</h2>
         <p className="text-xs text-muted-foreground">
-          CSV or PDF from BCA, NeoBank, Superbank, or Wise
+          CSV, PDF, or screenshot from BCA, NeoBank, Superbank, Wise, or Bank Jago
         </p>
       </div>
 
       <input
         type="file"
         multiple
-        accept=".csv,.pdf"
+        accept=".csv,.pdf,image/png,image/jpeg,image/webp"
         onChange={handleFileSelect}
         className="hidden"
         id="file-upload"
@@ -309,13 +326,13 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           <span className="text-foreground font-medium">click to browse</span>
         </p>
         <p className="text-[11px] text-muted-foreground/50 tracking-wide">
-          CSV · PDF &nbsp;·&nbsp; max 10 MB
+          CSV · PDF · Screenshot &nbsp;·&nbsp; max 10 MB
         </p>
       </label>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
         <span className="text-[11px] text-muted-foreground/60">Supported:</span>
-        {(['BCA', 'NeoBank', 'Superbank', 'Wise'] as const).map(bank => (
+        {(['BCA', 'NeoBank', 'Superbank', 'Wise', 'Bank Jago'] as const).map(bank => (
           <span
             key={bank}
             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-[11px] text-muted-foreground"

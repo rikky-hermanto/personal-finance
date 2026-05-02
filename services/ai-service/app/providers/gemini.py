@@ -17,6 +17,7 @@ class GeminiProvider:
         system_prompt: str,
         user_text: str,
         schema: dict,
+        image: tuple[bytes, str] | None = None,
     ) -> dict:
         config = types.GenerateContentConfig(
             temperature=0.0,
@@ -25,9 +26,18 @@ class GeminiProvider:
             system_instruction=system_prompt,
         )
 
+        if image is not None:
+            img_bytes, media_type = image
+            contents = [
+                types.Part(inline_data=types.Blob(mime_type=media_type, data=img_bytes)),
+                types.Part(text=user_text),
+            ]
+        else:
+            contents = user_text
+
         response = await self._client.aio.models.generate_content(
             model=self._model,
-            contents=user_text,
+            contents=contents,
             config=config,
         )
 

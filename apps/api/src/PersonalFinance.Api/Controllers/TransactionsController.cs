@@ -12,11 +12,15 @@ namespace PersonalFinance.Api.Controllers;
 [Route("api/[controller]")]
 public class TransactionsController : ControllerBase
 {
+    private static readonly HashSet<string> ImageContentTypes =
+        ["image/png", "image/jpeg", "image/webp"];
+
     private readonly IStatementImportService _statementImportService;
     private readonly IBankIdentifier _bankIdentifier;
     private readonly ITransactionService _transactionService;
     private readonly ICategoryRuleService _categoryRuleService;
     private readonly IDashboardService _dashboardService;
+    private readonly ILlmExtractionClient _llmClient;
     private readonly IMediator _mediator;
 
     public TransactionsController(
@@ -25,6 +29,7 @@ public class TransactionsController : ControllerBase
         ITransactionService transactionService,
         ICategoryRuleService categoryRuleService,
         IDashboardService dashboardService,
+        ILlmExtractionClient llmClient,
         IMediator mediator)
     {
         _statementImportService = statementImportService;
@@ -32,6 +37,7 @@ public class TransactionsController : ControllerBase
         _transactionService = transactionService;
         _categoryRuleService = categoryRuleService;
         _dashboardService = dashboardService;
+        _llmClient = llmClient;
         _mediator = mediator;
     }
 
@@ -46,59 +52,55 @@ public class TransactionsController : ControllerBase
     {
         var supported = new[]
         {
-            new { Bank = "BCA", Types = new[] { "text/csv", "application/pdf" } },
-            new { Bank = "NeoBank", Types = new[] { "text/csv", "application/pdf" } },
+            new { Bank = "BCA",       Types = new[] { "text/csv", "application/pdf" } },
+            new { Bank = "NeoBank",   Types = new[] { "text/csv", "application/pdf" } },
             new { Bank = "Superbank", Types = new[] { "text/csv", "application/pdf" } },
-            new { Bank = "Wise", Types = new[] { "text/csv", "application/pdf" } },
-            new { Bank = "Standard", Types = new[] { "text/csv" } }
+            new { Bank = "Wise",      Types = new[] { "text/csv", "application/pdf" } },
+            new { Bank = "BankJago",  Types = new[] { "image/png", "image/jpeg", "image/webp" } },
+            new { Bank = "Standard",  Types = new[] { "text/csv" } }
         };
         return Ok(supported);
     }
 
     [HttpPost("upload-preview")]
-    public async Task<IActionResult> UploadPreview(IFormFile file, [FromForm] string? pdfPassword = null)
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadPreview(
+        IFormFile file,
+        [FromForm] string? pdfPassword = null,
+        [FromForm] string? bankHint = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { Message = "File is empty." });
 
-        var allowedContentTypes = new[] { "text/csv", "application/pdf" };
+        var allowedContentTypes = new[] { "text/csv", "application/pdf", "image/png", "image/jpeg", "image/webp" };
         if (!allowedContentTypes.Contains(file.ContentType))
-            return BadRequest(new { Message = "Unsupported file type. Upload a CSV or PDF." });
-
-        using var mainStream = new MemoryStream();
-        await file.CopyToAsync(mainStream);
-        using var preStream = file.OpenReadStream();
-
-        var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
-        if (bank == null)
-            return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
-
-        mainStream.Position = 0;
+            return BadRequest(new { Message = "Unsupported file type. Upload a CSV, PDF, or screenshot (PNG/JPEG/WEBP)." });
 
         try
         {
-            var transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword);
+            List<TransactionDto> transactions;
 
-            // Filter out duplicates before preview
-            var nonDuplicateTransactions = await _transactionService.FilterOutDuplicatesAsync(transactions);
-
-            // Map to DTOs for preview (no persistence)
-            var previewDtos = nonDuplicateTransactions.Select(t => new TransactionDto
+            if (ImageContentTypes.Contains(file.ContentType))
             {
-                Date = t.Date,
-                Description = t.Description,
-                Remarks = t.Remarks,
-                Flow = t.Flow,
-                Type = t.Type,
-                Category = t.Category,
-                Wallet = t.Wallet,
-                AmountIdr = t.AmountIdr,
-                Currency = t.Currency,
-                ExchangeRate = t.ExchangeRate,
-                Balance = 0 // Not calculated for preview
-            }).ToList();
+                using var imgStream = file.OpenReadStream();
+                transactions = await _llmClient.ParseImageAsync(imgStream, file.FileName, file.ContentType, bankHint);
+            }
+            else
+            {
+                using var mainStream = new MemoryStream();
+                await file.CopyToAsync(mainStream);
+                using var preStream = file.OpenReadStream();
 
-            return Ok(previewDtos);
+                var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
+                if (bank == null)
+                    return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
+
+                mainStream.Position = 0;
+                transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword);
+            }
+
+            var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(transactions);
+            return Ok(nonDuplicates);
         }
         catch (NotSupportedException ex)
         {
@@ -111,7 +113,7 @@ public class TransactionsController : ControllerBase
         }
         catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex)
         {
-            return StatusCode(422, new { Message = "The AI service could not read this PDF.", Detail = ex.Message });
+            return StatusCode(422, new { Message = "The AI service could not read this file.", Detail = ex.Message });
         }
         catch (Exception)
         {
