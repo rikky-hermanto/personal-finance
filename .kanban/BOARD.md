@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-05-01 (PF-031 complete — Dashboard aggregation extracted to DashboardService, EnsureCategoryRulesAsync added, controller actions all ≤15 lines)
+> **Last synced:** 2026-05-02 (Closed 9 stale issues: PF-S04, PF-S05, PF-029, PF-010, PF-013, PF-014, PF-015, PF-026, PF-050 — all completed or superseded in code)
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -41,16 +41,17 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-057 | [#80](https://github.com/rikky-hermanto/personal-finance/issues/80) | Cashflow Overview tab — slim cashflow-focused widgets |
 | PF-058 | [#81](https://github.com/rikky-hermanto/personal-finance/issues/81) | Settings page + Categories nesting under Settings |
 | PF-012 | [#20](https://github.com/rikky-hermanto/personal-finance/issues/20) | PDF Text Extraction with PyMuPDF |
+| PF-010 | [#18](https://github.com/rikky-hermanto/personal-finance/issues/18) | Structured Output — Text → JSON via LLM |
+| PF-011 | [#19](https://github.com/rikky-hermanto/personal-finance/issues/19) | FastAPI AI Microservice Scaffold |
+| PF-013 | [#21](https://github.com/rikky-hermanto/personal-finance/issues/21) | End-to-End: .NET → Python → LLM Pipeline |
+| PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
+| PF-050 | [#59](https://github.com/rikky-hermanto/personal-finance/issues/59) | Docker Compose — Add ai-service Container |
 
 ---
 
 ## Ready
 
-| ID | Issue | Title |
-|----|-------|-------|
-| PF-010 | [#18](https://github.com/rikky-hermanto/personal-finance/issues/18) | Structured Output — Text → JSON via LLM |
-| PF-011 | [#19](https://github.com/rikky-hermanto/personal-finance/issues/19) | FastAPI AI Microservice Scaffold |
-| PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
+> *(empty — no tasks currently Ready)*
 
 ---
 
@@ -80,9 +81,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title | Sprint |
 |----|-------|-------|--------|
-| PF-013 | [#21](https://github.com/rikky-hermanto/personal-finance/issues/21) | End-to-End: .NET → Python → LLM Pipeline | ramp-up |
-| PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Persist AI-Parsed Transactions to DB | ramp-up |
-| PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | LLM Provider Abstraction Layer | S1 |
 | PF-016 | [#24](https://github.com/rikky-hermanto/personal-finance/issues/24) | AI-Powered Auto-Categorization | S1 |
 | PF-017 | [#25](https://github.com/rikky-hermanto/personal-finance/issues/25) | Natural Language Transaction Query | S1 |
 | PF-021 | [#29](https://github.com/rikky-hermanto/personal-finance/issues/29) | Function Calling — API Endpoints as LLM Tools | S3 |
@@ -90,10 +88,8 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-023 | [#31](https://github.com/rikky-hermanto/personal-finance/issues/31) | Multi-Turn Agent Conversation | S3 |
 | PF-024 | [#32](https://github.com/rikky-hermanto/personal-finance/issues/32) | AI Observability + Cost Tracking | S4 |
 | PF-025 | [#33](https://github.com/rikky-hermanto/personal-finance/issues/33) | Semantic Caching Layer | S4 |
-| PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Auth0 Integration + Security Hardening ⚠️ superseded by PF-S08/S09 | S4 |
 | PF-043 | [#52](https://github.com/rikky-hermanto/personal-finance/issues/52) | Wise CSV Parser + FX Rate Conversion | S1 |
 | PF-045 | [#54](https://github.com/rikky-hermanto/personal-finance/issues/54) | Bank Profile Config System — YAML Loader | S1 |
-| PF-050 | [#59](https://github.com/rikky-hermanto/personal-finance/issues/59) | Docker Compose — Add ai-service Container | S1 |
 
 ---
 
@@ -126,6 +122,9 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-049 | [#58](https://github.com/rikky-hermanto/personal-finance/issues/58) | Absorbed into PF-S11 (Bank Jago — now event-driven via webhook) |
 | PF-053 | [#62](https://github.com/rikky-hermanto/personal-finance/issues/62) | Resolved by Supabase migration (CORS reconfigured as part of Platform setup) |
 | PF-054 | [#63](https://github.com/rikky-hermanto/personal-finance/issues/63) | Resolved by PF-S07 (deleting Persistence project eliminates ARCH-01) |
+| PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Absorbed into PF-S06 (supabase-csharp handler rewrite — AI results written back directly) |
+| PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | Completed — `providers/{factory,anthropic,gemini}.py` exist; provider abstraction is live |
+| PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Superseded by PF-S08/PF-S09 (Supabase GoTrue replaces Auth0) |
 
 ---
 
@@ -134,12 +133,12 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 ```
 Setup:      ████████████████████ 100% (8/8)
 Cleanup:    ███████░░░░░░░░░░░░░  33% (6/18 — 8 issues now obsolete)
-Ramp-Up:    ███░░░░░░░░░░░░░░░░░  16% (1/6)
-Sprint 1:   ███░░░░░░░░░░░░░░░░░  14% (1/7 active — PF-046 done)
+Ramp-Up:    ████████████████████ 100% (5/5 active; PF-014 obsolete)
+Sprint 1:   ████░░░░░░░░░░░░░░░░  22% (2/9 active — PF-046, PF-050 done; PF-015 obsolete)
 Supabase:   ███████░░░░░░░░░░░░░  54% (7/13)
 Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 ──────────────────────────────────
-Overall:    ████░░░░░░░░░░░░░░░░  33% (24/56 active, 8 obsolete)
+Overall:    █████░░░░░░░░░░░░░░░  ~38% (29 done / 53 active, 11 obsolete)
 ```
 
-> Next task ID: **PF-058** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-059** (PF-S series: PF-S14 if more Supabase tasks needed)
