@@ -96,6 +96,12 @@ export async function submitTransactions(transactions: TransactionDto[]): Promis
   }
 }
 
+export async function resetAllTransactions(): Promise<{ deleted: number }> {
+  const res = await fetch(`${BASE_URL}/reset`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Reset failed");
+  return res.json();
+}
+
 export async function getDashboardData(wallet?: string, year?: number, month?: number): Promise<any> {
   const params = new URLSearchParams();
   if (wallet) params.append("wallet", wallet);
