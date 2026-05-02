@@ -182,4 +182,37 @@ public class CategoryRuleServiceTests
         Assert.True(result);
         _mediatorMock.Verify(m => m.Send(It.IsAny<DeleteCategoryRuleCommand>(), default), Times.Once);
     }
+
+    [Fact]
+    public async Task CategorizeBatchAsync_WhenSourceCategoryIsSet_PreservesIt()
+    {
+        // Arrange — all transactions have explicit categories; Supabase should never be called
+        var transactions = new List<TransactionDto>
+        {
+            new() { Description = "Kopi Kenangan", Type = "Expense", Category = "Food & Drinks" },
+            new() { Description = "Gaji Bulan Ini", Type = "Income",  Category = "Salary" },
+        };
+
+        // Act — Supabase client is null; if the guard fails it will throw NullReferenceException
+        var result = await _service.CategorizeBatchAsync(transactions);
+
+        // Assert
+        Assert.Equal("Food & Drinks", result[0].Category);
+        Assert.Equal("Salary",        result[1].Category);
+    }
+
+    [Fact]
+    public async Task CategorizeBatchAsync_WhenCategoryIsUntrackedExpense_StillNeedsCategorization()
+    {
+        // Arrange — "Untracked Expense" is the default placeholder; it should NOT be preserved
+        var transactions = new List<TransactionDto>
+        {
+            new() { Description = "Some Merchant", Type = "Expense", Category = "Untracked Expense" },
+        };
+
+        // Act — Supabase is null so the call will throw, confirming we DID attempt categorization
+        // (i.e., the guard correctly let this row through)
+        var ex = await Record.ExceptionAsync(() => _service.CategorizeBatchAsync(transactions));
+        Assert.NotNull(ex);
+    }
 }
