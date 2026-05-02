@@ -40,13 +40,23 @@ public class CategoryRuleService : ICategoryRuleService
     {
         _logger.LogDebug("Batch categorizing {Count} transactions.", transactions.Count);
 
+        // Preserve source-supplied categories (e.g. from CSV re-import of master spreadsheet).
+        // Only re-categorize rows that are blank or still at the default placeholder.
+        var needsCategorization = transactions
+            .Where(tx => string.IsNullOrWhiteSpace(tx.Category)
+                || tx.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (needsCategorization.Count == 0)
+            return transactions;
+
         var result = await _supabase.From<CategoryRule>()
             .Order("keyword_length", Ordering.Descending)
             .Get();
 
         var rules = result.Models;
 
-        foreach (var tx in transactions)
+        foreach (var tx in needsCategorization)
         {
             var typeRules = rules.Where(r => r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
             foreach (var rule in typeRules)

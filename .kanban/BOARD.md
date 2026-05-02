@@ -46,12 +46,14 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-013 | [#21](https://github.com/rikky-hermanto/personal-finance/issues/21) | End-to-End: .NET → Python → LLM Pipeline |
 | PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
 | PF-050 | [#59](https://github.com/rikky-hermanto/personal-finance/issues/59) | Docker Compose — Add ai-service Container |
+| PF-059 | [#82](https://github.com/rikky-hermanto/personal-finance/issues/82) | Bidirectional CSV Import/Export — Master Cashflow Roundtrip |
 
 ---
 
 ## Ready
 
-> *(empty — no tasks currently Ready)*
+| ID | Issue | Title |
+|----|-------|-------|
 
 ---
 
@@ -134,11 +136,11 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 Setup:      ████████████████████ 100% (8/8)
 Cleanup:    ███████░░░░░░░░░░░░░  33% (6/18 — 8 issues now obsolete)
 Ramp-Up:    ████████████████████ 100% (5/5 active; PF-014 obsolete)
-Sprint 1:   ████░░░░░░░░░░░░░░░░  22% (2/9 active — PF-046, PF-050 done; PF-015 obsolete)
+Sprint 1:   █████░░░░░░░░░░░░░░░  33% (3/9 active — PF-046, PF-050, PF-059 done; PF-015 obsolete)
 Supabase:   ███████░░░░░░░░░░░░░  54% (7/13)
 Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
 ──────────────────────────────────
-Overall:    █████░░░░░░░░░░░░░░░  ~38% (29 done / 53 active, 11 obsolete)
+Overall:    █████░░░░░░░░░░░░░░░  ~40% (30 done / 53 active, 11 obsolete)
 ```
 
-> Next task ID: **PF-059** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-060** (PF-S series: PF-S14 if more Supabase tasks needed)
