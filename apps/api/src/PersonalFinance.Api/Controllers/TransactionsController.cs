@@ -1,4 +1,6 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using PersonalFinance.Application.Commands;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 
@@ -13,19 +15,22 @@ public class TransactionsController : ControllerBase
     private readonly ITransactionService _transactionService;
     private readonly ICategoryRuleService _categoryRuleService;
     private readonly IDashboardService _dashboardService;
+    private readonly IMediator _mediator;
 
     public TransactionsController(
         IStatementImportService statementImportService,
         IBankIdentifier bankIdentifier,
         ITransactionService transactionService,
         ICategoryRuleService categoryRuleService,
-        IDashboardService dashboardService)
+        IDashboardService dashboardService,
+        IMediator mediator)
     {
         _statementImportService = statementImportService;
         _bankIdentifier = bankIdentifier;
         _transactionService = transactionService;
         _categoryRuleService = categoryRuleService;
         _dashboardService = dashboardService;
+        _mediator = mediator;
     }
 
     [HttpGet("health")]
@@ -164,5 +169,13 @@ public class TransactionsController : ControllerBase
     {
         var data = await _dashboardService.GetDashboardDataAsync(wallet, year, month);
         return Ok(data);
+    }
+
+    [HttpDelete("reset")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResetAllTransactions()
+    {
+        var deleted = await _mediator.Send(new DeleteAllTransactionsCommand());
+        return Ok(new { deleted });
     }
 }
