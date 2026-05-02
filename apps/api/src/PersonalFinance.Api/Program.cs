@@ -46,6 +46,7 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<ICategoryRuleService, CategoryRuleService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
+            builder.Services.AddScoped<ITransactionPipelineService, PersonalFinance.Application.Services.TransactionPipelineService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
             builder.Services.AddMediatR(cfg =>
             {
