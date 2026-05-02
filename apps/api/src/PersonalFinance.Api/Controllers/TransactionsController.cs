@@ -22,6 +22,8 @@ public class TransactionsController : ControllerBase
     private readonly IDashboardService _dashboardService;
     private readonly ILlmExtractionClient _llmClient;
     private readonly IMediator _mediator;
+    private readonly IFileStorageService _fileStorageService;
+    private readonly ITransactionPipelineService _pipelineService;
 
     public TransactionsController(
         IStatementImportService statementImportService,
@@ -30,7 +32,9 @@ public class TransactionsController : ControllerBase
         ICategoryRuleService categoryRuleService,
         IDashboardService dashboardService,
         ILlmExtractionClient llmClient,
-        IMediator mediator)
+        IMediator mediator,
+        IFileStorageService fileStorageService,
+        ITransactionPipelineService pipelineService)
     {
         _statementImportService = statementImportService;
         _bankIdentifier = bankIdentifier;
@@ -39,6 +43,8 @@ public class TransactionsController : ControllerBase
         _dashboardService = dashboardService;
         _llmClient = llmClient;
         _mediator = mediator;
+        _fileStorageService = fileStorageService;
+        _pipelineService = pipelineService;
     }
 
     [HttpGet("health")]
@@ -78,29 +84,48 @@ public class TransactionsController : ControllerBase
 
         try
         {
-            List<TransactionDto> transactions;
+            var isImageOrPdf = ImageContentTypes.Contains(file.ContentType) || file.ContentType == "application/pdf";
+            
+            using var fileStream = new MemoryStream();
+            await file.CopyToAsync(fileStream);
+            fileStream.Position = 0;
 
-            if (ImageContentTypes.Contains(file.ContentType))
+            string bank = "UNKNOWN";
+            if (!isImageOrPdf)
             {
-                using var imgStream = file.OpenReadStream();
-                transactions = await _llmClient.ParseImageAsync(imgStream, file.FileName, file.ContentType, bankHint);
+                var idBank = await _bankIdentifier.IdentifyAsync(fileStream, file.ContentType, pdfPassword);
+                if (idBank == null)
+                    return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
+                bank = idBank;
+                fileStream.Position = 0;
             }
             else
             {
-                using var mainStream = new MemoryStream();
-                await file.CopyToAsync(mainStream);
-                using var preStream = file.OpenReadStream();
-
-                var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
-                if (bank == null)
-                    return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
-
-                mainStream.Position = 0;
-                transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword);
+                bank = bankHint ?? "UNKNOWN";
             }
 
-            var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(transactions);
-            return Ok(nonDuplicates);
+            // 1. Upload to Supabase Storage FIRST
+            var filename = $"{Guid.NewGuid()}_{file.FileName}";
+            var userId = "default-user"; // Will be replaced by real auth UID later
+            var storagePath = await _fileStorageService.UploadAsync(userId, bank, filename, fileStream, file.ContentType);
+
+            if (isImageOrPdf)
+            {
+                // PDF/image path: upload -> store -> return { processing_id } immediately
+                return Accepted(new { processing_id = storagePath, message = "File uploaded and is processing asynchronously." });
+            }
+
+            // CSV path: download from storage -> parse -> validate -> return preview
+            var downloadedStream = await _fileStorageService.DownloadAsync(storagePath);
+            if (downloadedStream == null)
+                return StatusCode(500, new { Message = "Failed to retrieve file from storage." });
+
+            var transactions = await _statementImportService.ImportAsync(downloadedStream, bank, pdfPassword);
+            
+            // Validation Pipeline
+            var processedTransactions = await _pipelineService.ProcessAsync(transactions);
+
+            return Ok(processedTransactions);
         }
         catch (NotSupportedException ex)
         {

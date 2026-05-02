@@ -24,6 +24,8 @@ public static class DependencyInjection
             return client;
         });
 
+        services.AddScoped<PersonalFinance.Application.Interfaces.IFileStorageService, StorageService>();
+
         return services;
     }
 }
