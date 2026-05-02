@@ -26,7 +26,9 @@ public class DefaultCsvParser : IBankStatementParser
         {
             HeaderValidated = null,
             MissingFieldFound = null,
-            HasHeaderRecord = true
+            HasHeaderRecord = true,
+            DetectDelimiter = true,
+            DetectDelimiterValues = [",", ";", "\t"],
         });
 
         var records = csv.GetRecords<dynamic>().ToList();
@@ -37,6 +39,10 @@ public class DefaultCsvParser : IBankStatementParser
 
             // Create a normalized header dictionary for easier lookup
             var normalizedDict = CreateNormalizedHeaderDict(recordDict);
+
+            // Skip blank rows, disclaimer rows, and summary rows — any row without a date
+            if (string.IsNullOrWhiteSpace(GetFieldValue(normalizedDict, "Date")))
+                continue;
 
             // Get the main description - prefer Item (merchant name) over Remarks (transaction details)
             var itemValue = GetFieldValue(normalizedDict, "Item");
@@ -131,6 +137,8 @@ public class DefaultCsvParser : IBankStatementParser
 
         var formats = new[]
         {
+            "M/d/yy h:mm tt", "M/d/yyyy h:mm tt",
+            "M/d/yy h:mm:ss tt", "M/d/yyyy h:mm:ss tt",
             "M/d/yy H:mm", "M/d/yyyy H:mm", "M/d/yy", "M/d/yyyy",
             "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy",
             "dd/MM/yy", "MM/dd/yy", "yy-MM-dd", "dd-MM-yy",
@@ -193,11 +201,11 @@ public class DefaultCsvParser : IBankStatementParser
         {
             // Could be thousands separator or decimal separator
             var commaIndex = cleaned.LastIndexOf(',');
-            if (cleaned.Length - commaIndex == 3) // Likely thousands separator
+            if (cleaned.Length - commaIndex == 4) // Exactly 3 digits after comma → thousands separator (e.g. "1,000")
             {
                 cleaned = cleaned.Replace(",", "");
             }
-            else // Likely decimal separator
+            else // 2 or fewer digits after comma → decimal separator (e.g. "931,51" or "20101059,26")
             {
                 cleaned = cleaned.Replace(",", ".");
             }

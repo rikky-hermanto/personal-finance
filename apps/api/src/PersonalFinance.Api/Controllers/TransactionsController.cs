@@ -1,3 +1,5 @@
+using System.Globalization;
+using CsvHelper;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Application.Commands;
@@ -169,6 +171,48 @@ public class TransactionsController : ControllerBase
     {
         var data = await _dashboardService.GetDashboardDataAsync(wallet, year, month);
         return Ok(data);
+    }
+
+    [HttpGet("export")]
+    public async Task<IActionResult> ExportCsv(
+        [FromQuery] string? wallet,
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to)
+    {
+        var transactions = await _transactionService.GetTransactionsWithBalanceAsync(wallet);
+
+        if (from.HasValue)
+            transactions = transactions.Where(t => t.Date >= from.Value).ToList();
+        if (to.HasValue)
+            transactions = transactions.Where(t => t.Date <= to.Value).ToList();
+
+        var stream = new MemoryStream();
+        using (var writer = new StreamWriter(stream, leaveOpen: true))
+        using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
+        {
+            foreach (var header in new[] { "Date", "Item", "Remarks", "Flow", "Type", "Category", "Wallet", "Amount", "Exc. Rate", "Amount (IDR)", "Currency" })
+                csv.WriteField(header);
+            await csv.NextRecordAsync();
+
+            foreach (var t in transactions)
+            {
+                csv.WriteField(t.Date.ToString("M/d/yy H:mm", CultureInfo.InvariantCulture));
+                csv.WriteField(t.Description);
+                csv.WriteField(t.Remarks);
+                csv.WriteField(t.Flow);
+                csv.WriteField(t.Type);
+                csv.WriteField(t.Category);
+                csv.WriteField(t.Wallet);
+                csv.WriteField(t.AmountIdr);
+                csv.WriteField(t.ExchangeRate?.ToString(CultureInfo.InvariantCulture) ?? "");
+                csv.WriteField(t.AmountIdr);
+                csv.WriteField(t.Currency);
+                await csv.NextRecordAsync();
+            }
+        }
+
+        stream.Position = 0;
+        return File(stream, "text/csv", $"transactions-{DateTime.UtcNow:yyyy-MM-dd}.csv");
     }
 
     [HttpDelete("reset")]

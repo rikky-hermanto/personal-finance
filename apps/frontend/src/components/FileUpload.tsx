@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileText, CheckCircle, Eye, X, ArrowRight } from 'lucide-react';
+import { Upload, FileText, CheckCircle, Eye, X, FileDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Transaction } from '@/types/Transaction';
 import TransactionPreview from './TransactionPreview';
@@ -323,6 +323,16 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             {bank}
           </span>
         ))}
+      </div>
+
+      <div className="mt-4 flex justify-center">
+        <button
+          onClick={transactionsApi.downloadTransactionTemplate}
+          className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        >
+          <FileDown className="w-3 h-3" strokeWidth={1.5} />
+          Download Template
+        </button>
       </div>
     </div>
   );

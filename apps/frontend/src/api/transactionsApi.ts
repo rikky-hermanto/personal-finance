@@ -112,3 +112,37 @@ export async function getDashboardData(wallet?: string, year?: number, month?: n
   if (!res.ok) throw new Error("Failed to fetch dashboard data");
   return res.json();
 }
+
+export const exportTransactionsCsv = (wallet?: string, from?: string, to?: string): void => {
+  const params = new URLSearchParams();
+  if (wallet) params.set("wallet", wallet);
+  if (from) params.set("from", from);
+  if (to) params.set("to", to);
+  const query = params.toString();
+  window.location.href = `${BASE_URL}/export${query ? `?${query}` : ""}`;
+};
+
+const TEMPLATE_HEADERS = [
+  "Date", "Item", "Remarks", "Flow", "Type",
+  "Category", "Wallet", "Amount", "Exc. Rate", "Amount (IDR)", "Currency",
+];
+
+const TEMPLATE_ROWS = [
+  ["1/1/24 9:00 AM", "Kopi Kenangan", "DEBIT TRANSFER 01/01 5307952056461149", "DB", "Expense", "Food & Drinks", "BCA", "45000", "", "45000", "IDR"],
+  ["1/2/24 0:01 AM", "Saving Interest", "SAVING INTEREST JAN 2024", "CR", "Income", "Saving Interest", "NeoBank", "931", "", "931", "IDR"],
+  ["1/5/24 10:30 AM", "Freelance Payment", "Transfer from Wise USD account", "CR", "Income", "Bank Transfer", "Wise", "50", "15800", "790000", "USD"],
+];
+
+export const downloadTransactionTemplate = (): void => {
+  const csvContent = [TEMPLATE_HEADERS, ...TEMPLATE_ROWS]
+    .map(row => row.map(cell => (cell.includes(",") ? `"${cell}"` : cell)).join(","))
+    .join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "transaction-template.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+};
