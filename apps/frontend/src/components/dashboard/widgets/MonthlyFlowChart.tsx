@@ -12,7 +12,7 @@ const MonthlyFlowChart = ({ data, isLoading, rangeLabel }: MonthlyFlowChartProps
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-sm font-medium text-foreground">Cash Flow</h3>
       <span className="text-xs text-muted-foreground">
-        {rangeLabel === 'YTD' ? 'Year To Date' : (rangeLabel ? `Last ${rangeLabel}` : 'Last 6 months')}
+        {rangeLabel === 'YTD' ? 'Year To Date' : (rangeLabel?.includes('Last') ? rangeLabel : `Last ${rangeLabel || '6 months'}`)}
       </span>
     </div>
     <FinancialChart data={data} type="composed" height={200} isLoading={isLoading} />
