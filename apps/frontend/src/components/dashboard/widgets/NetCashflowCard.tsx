@@ -1,33 +1,29 @@
-import { useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { Transaction } from '@/types/Transaction';
+import { DashboardCurrentMonth } from '@/types/Dashboard';
 import { formatCurrency, formatMonth } from '@/lib/format';
 
 interface NetCashflowCardProps {
-  transactions: Transaction[];
+  data: DashboardCurrentMonth | null;
+  isLoading?: boolean;
 }
 
-const NetCashflowCard = ({ transactions }: NetCashflowCardProps) => {
-  const { income, expenses, net, month } = useMemo(() => {
-    const map = new Map<string, { income: number; expenses: number }>();
-    transactions.forEach((tx) => {
-      const d = new Date(tx.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (!map.has(key)) map.set(key, { income: 0, expenses: 0 });
-      const m = map.get(key)!;
-      if (tx.type === 'income') m.income += Math.abs(tx.amount);
-      else m.expenses += Math.abs(tx.amount);
-    });
-    const sorted = Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-    if (!sorted.length) return { income: 0, expenses: 0, net: 0, month: '' };
-    const [monthKey, data] = sorted[0];
-    return {
-      income: data.income,
-      expenses: data.expenses,
-      net: data.income - data.expenses,
-      month: monthKey,
-    };
-  }, [transactions]);
+const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
+  if (isLoading || !data) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-5 animate-pulse">
+        <div className="h-4 w-24 bg-muted rounded mb-4" />
+        <div className="space-y-3">
+          <div className="h-8 w-48 bg-muted rounded" />
+          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
+            <div className="h-10 bg-muted rounded" />
+            <div className="h-10 bg-muted rounded" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { income, expenses, net, month } = data;
 
   const isPositive = net >= 0;
 
