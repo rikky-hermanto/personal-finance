@@ -44,7 +44,7 @@ public static class CashflowSectionMapping
         { "Gold", CashflowSection.Investing },
         { "Property", CashflowSection.Investing },
         { "Mutual Fund", CashflowSection.Investing },
-        { "Dividen", CashflowSection.Investing },
+        { "Dividend", CashflowSection.Investing },
         { "Bond", CashflowSection.Investing },
         { "P2P Lending", CashflowSection.Investing },
 
