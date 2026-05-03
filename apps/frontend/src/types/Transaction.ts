@@ -5,7 +5,7 @@ export interface Transaction {
   description: string;
   amount: number;
   flow?: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'transfer';
   category: string;
   bank: string;
   balance?: number;
@@ -16,7 +16,7 @@ export interface CategoryRule {
   id: number | string;
   keyword: string;
   category: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'transfer';
   keywordLength?: number;
 }
 

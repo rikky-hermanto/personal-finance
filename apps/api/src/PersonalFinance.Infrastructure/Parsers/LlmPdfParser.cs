@@ -18,7 +18,7 @@ public class LlmPdfParser : IBankStatementParser
         _logger = logger;
     }
 
-    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null, string? dateFormat = null)
     {
         _logger.LogInformation("Starting LLM PDF extraction.");
         var transactions = await _client.ParsePdfAsync(fileStream, "upload.pdf", bankHint: null, password);

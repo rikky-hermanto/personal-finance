@@ -16,7 +16,7 @@ public class DefaultCsvParser : IBankStatementParser
         _logger = logger;
     }
 
-    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null, string? dateFormat = null)
     {
         _logger.LogInformation("Starting default CSV parsing.");
         var transactions = new List<TransactionDto>();
@@ -65,7 +65,7 @@ public class DefaultCsvParser : IBankStatementParser
             string? wallet = GetFieldValue(normalizedDict, "Wallet", "Bank", "Account");
             var transaction = new TransactionDto
             {
-                Date = ParseDate(GetFieldValue(normalizedDict, "Date")),
+                Date = ParseDate(GetFieldValue(normalizedDict, "Date"), dateFormat),
                 Description = description,
                 Remarks = remarks,
                 Flow = GetFieldValue(normalizedDict, "Flow") ?? "DB",
@@ -130,12 +130,30 @@ public class DefaultCsvParser : IBankStatementParser
         return null;
     }
 
-    private static DateTime ParseDate(string? dateString)
+    private static DateTime ParseDate(string? dateString, string? preferredFormat = null)
     {
         if (string.IsNullOrWhiteSpace(dateString))
             return DateTime.UtcNow;
 
-        var formats = new[]
+        var formats = new List<string>();
+
+        // If user provided a preferred format, try it first
+        if (!string.IsNullOrEmpty(preferredFormat))
+        {
+            // Normalize common frontend formats to .NET formats
+            var dotnetFormat = preferredFormat
+                .Replace("DD", "dd")
+                .Replace("YYYY", "yyyy");
+
+            formats.Add(dotnetFormat);
+            // Also try with time if the input might have it
+            formats.Add($"{dotnetFormat} H:mm");
+            formats.Add($"{dotnetFormat} h:mm tt");
+            formats.Add($"{dotnetFormat} H:mm:ss");
+            formats.Add($"{dotnetFormat} h:mm:ss tt");
+        }
+
+        formats.AddRange(new[]
         {
             "M/d/yy h:mm tt", "M/d/yyyy h:mm tt",
             "M/d/yy h:mm:ss tt", "M/d/yyyy h:mm:ss tt",
@@ -144,7 +162,7 @@ public class DefaultCsvParser : IBankStatementParser
             "dd/MM/yy", "MM/dd/yy", "yy-MM-dd", "dd-MM-yy",
             "dd MMM yyyy", "MMM dd yyyy", "yyyy MMM dd",
             "dd/MM/yyyy HH:mm", "dd/MM/yy HH:mm"
-        };
+        });
 
         foreach (var format in formats)
         {

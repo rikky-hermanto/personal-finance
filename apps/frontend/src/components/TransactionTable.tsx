@@ -16,14 +16,20 @@ const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => 
   description: t.description,
   flow: t.flow,
   amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-  type: t.type.toLowerCase() as 'income' | 'expense',
+  type: (t.type.toLowerCase() === 'income' ? 'income' : 
+         t.type.toLowerCase().includes('transfer') || t.type.toLowerCase().includes('trar') ? 'transfer' : 'expense') as 'income' | 'expense' | 'transfer',
   category: t.category,
   bank: t.wallet,
   balance: t.balance,
 });
 
-const formatDate = (ds: string) =>
-  new Date(ds).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+const formatDate = (ds: string) => {
+  const format = localStorage.getItem('pf_date_format') || 'DD/MM/YYYY';
+  const d = new Date(ds);
+  if (format === 'MM/DD/YYYY') return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+  if (format === 'YYYY-MM-DD') return d.toISOString().split('T')[0];
+  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 
 type ColKey = 'date' | 'description' | 'category' | 'wallet' | 'amount' | 'balance' | 'actions';
 

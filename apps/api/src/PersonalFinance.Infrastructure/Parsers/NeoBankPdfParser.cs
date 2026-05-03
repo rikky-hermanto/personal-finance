@@ -21,7 +21,7 @@ public class NeoBankPdfParser : IBankStatementParser
         _logger = logger;
     }
 
-    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null, string? dateFormat = null)
     {
         _logger.LogInformation("Starting PDF parse for NeoBank.");
         var transactions = new List<TransactionDto>();
