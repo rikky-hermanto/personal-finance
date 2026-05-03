@@ -17,10 +17,21 @@ public class DashboardService : IDashboardService
     {
         _logger.LogDebug("Building dashboard data for wallet={Wallet} year={Year} month={Month}", wallet, year, month);
 
-        var currentYear = year ?? DateTime.Now.Year;
-        var currentMonth = month ?? DateTime.Now.Month;
-
         var allTransactions = await _transactionService.GetTransactionsWithBalanceAsync(wallet);
+        
+        DateTime baselineDate = DateTime.Now;
+        if (!year.HasValue && !month.HasValue && allTransactions.Any())
+        {
+            baselineDate = allTransactions.Max(t => t.Date);
+        }
+        else if (year.HasValue)
+        {
+            baselineDate = new DateTime(year.Value, month ?? 1, 1);
+        }
+
+        var currentYear = baselineDate.Year;
+        var currentMonth = baselineDate.Month;
+
         var yearTransactions = allTransactions.Where(t => t.Date.Year == currentYear).ToList();
         var monthTransactions = yearTransactions.Where(t => t.Date.Month == currentMonth).ToList();
 
@@ -48,13 +59,13 @@ public class DashboardService : IDashboardService
             .Select(g => new DashboardTopCategoryDto(
                 g.Key,
                 g.Sum(t => t.AmountIdr),
-                totalExpenses != 0 ? Math.Round(g.Sum(t => t.AmountIdr) / totalExpenses * 100, 1) : 0))
+                monthExpenses != 0 ? Math.Round(g.Sum(t => t.AmountIdr) / monthExpenses * 100, 1) : 0))
             .OrderByDescending(x => x.Amount)
             .Take(5)
             .ToList();
 
         var cashFlow = Enumerable.Range(0, 6)
-            .Select(i => DateTime.Now.AddMonths(-i))
+            .Select(i => baselineDate.AddMonths(-i))
             .OrderBy(d => d)
             .Select(targetDate =>
             {
@@ -68,7 +79,7 @@ public class DashboardService : IDashboardService
         return new DashboardDto(
             new DashboardSummaryDto(totalIncome, totalExpenses, totalIncome - totalExpenses, yearTransactions.Count),
             new DashboardCurrentMonthDto(
-                DateTime.Now.ToString("MMMM yyyy"),
+                baselineDate.ToString("yyyy-MM"),
                 monthIncome, monthExpenses, monthNet,
                 Math.Round(incomeChange, 1), Math.Round(expenseChange, 1), Math.Round(netChange, 1)),
             topCategories,
