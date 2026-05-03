@@ -13,7 +13,9 @@ const CashflowLayout = () => {
   const navigate = useNavigate();
 
   const activeTab =
-    TABS.find((t) => location.pathname.startsWith(t.path))?.value ?? 'overview';
+    location.pathname.startsWith('/cashflow/upload') 
+      ? 'transactions' 
+      : TABS.find((t) => location.pathname.startsWith(t.path))?.value ?? 'overview';
 
   return (
     <div className="flex flex-col h-full bg-background">
