@@ -13,7 +13,7 @@ public class StatementImportService : IStatementImportService
         _logger = logger;
     }
 
-    public async Task<List<TransactionDto>> ImportAsync(Stream stream, string bankCode, string? password = null)
+    public async Task<List<TransactionDto>> ImportAsync(Stream stream, string bankCode, string? password = null, string? dateFormat = null)
     {
         _logger.LogInformation("Importing statement for bank code: {BankCode}", bankCode);
         if (!_parsers.TryGetValue(bankCode, out var parser))
@@ -22,6 +22,6 @@ public class StatementImportService : IStatementImportService
             throw new NotSupportedException($"Bank '{bankCode}' is not supported.");
         }
 
-        return await parser.ParseAsync(stream, password);
+        return await parser.ParseAsync(stream, password, dateFormat);
     }
 }

@@ -89,7 +89,8 @@ export async function deleteTransaction(id: number): Promise<void> {
 export async function uploadPreview(
   file: File,
   pdfPassword?: string,
-  bankHint?: string
+  bankHint?: string,
+  dateFormat?: string
 ): Promise<TransactionDto[]> {
   const formData = new FormData();
   formData.append("file", file);
@@ -98,6 +99,9 @@ export async function uploadPreview(
   }
   if (bankHint) {
     formData.append("bankHint", bankHint);
+  }
+  if (dateFormat) {
+    formData.append("dateFormat", dateFormat);
   }
 
   const res = await fetch(`${BASE_URL}/upload-preview`, {
