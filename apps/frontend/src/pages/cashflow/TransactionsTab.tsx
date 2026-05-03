@@ -1,18 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Download } from 'lucide-react';
 import TransactionTable from '@/components/TransactionTable';
 import { Button } from '@/components/ui/button';
-import { mockTransactions } from '@/data/mockTransactions';
 import { Transaction } from '@/types/Transaction';
 import { exportTransactionsCsv } from '@/api/transactionsApi';
 
 const TransactionsTab = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
-
-  const handleTransactionUpdate = useCallback((id: string, updates: Partial<Transaction>) => {
-    setTransactions((prev) =>
-      prev.map((tx) => (tx.id === id ? { ...tx, ...updates } : tx))
-    );
+  const handleTransactionUpdate = useCallback((_id: string, _updates: Partial<Transaction>) => {
+    // category edits — TransactionTable manages its own rows server-side
   }, []);
 
   return (

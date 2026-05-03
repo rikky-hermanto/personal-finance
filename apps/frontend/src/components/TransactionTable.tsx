@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Transaction } from '@/types/Transaction';
-import { Search, Edit2 } from 'lucide-react';
+import { Search, Edit2, Loader2 } from 'lucide-react';
 import * as transactionsApi from '@/api/transactionsApi';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ interface TransactionTableProps {
   onTransactionUpdate: (id: string, updates: Partial<Transaction>) => void;
 }
 
-const mapApiTransactionToTransaction = (t: transactionsApi.TransactionDto): Transaction => ({
+const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => ({
   id: t.id.toString(),
   date: t.date,
   description: t.description,
@@ -32,49 +32,104 @@ const COLUMNS: DataTableColumn<Transaction, ColKey>[] = [
   { key: 'description', label: 'Description', sortable: false },
   { key: 'category',    label: 'Category',    sortable: false, getValue: (tx) => tx.category },
   { key: 'wallet',      label: 'Wallet',      sortable: false, getValue: (tx) => tx.bank },
-  { key: 'amount',      label: 'Amount',      sortable: true  },
+  { key: 'amount',      label: 'Amount',      sortable: false },
   { key: 'balance',     label: 'Balance',     sortable: false },
   { key: 'actions',     label: '',            sortable: false },
 ];
 
+const PAGE_SIZE = 50;
+
 const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
+  // ── Server-side state ──────────────────────────────────────────────────────
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [total, setTotal]               = useState(0);
+  const [currentPage, setCurrentPage]   = useState(1);
+  const [isLoading, setIsLoading]       = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [hasMore, setHasMore]           = useState(true);
+
+  // ── Filter / sort state (changing these resets to page 1) ─────────────────
+  const [searchTerm, setSearchTerm]     = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [sort, setSort] = useState<SortState<ColKey>>({ key: 'date', order: 'desc' });
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter]     = useState('all');
+  const [sort, setSort]                 = useState<SortState<ColKey>>({ key: 'date', order: 'desc' });
 
+  // ── Inline edit ───────────────────────────────────────────────────────────
+  const [editingId, setEditingId]       = useState<string | null>(null);
+
+  // ── Sentinel for server-side infinite scroll ──────────────────────────────
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Derive API query params from current filter/sort state
+  const query = useMemo<transactionsApi.TransactionQuery>(() => ({
+    pageSize:  PAGE_SIZE,
+    search:    searchTerm || undefined,
+    category:  categoryFilter !== 'all' ? categoryFilter : undefined,
+    type:      typeFilter    !== 'all' ? typeFilter    : undefined,
+    sortOrder: sort.order,
+  }), [searchTerm, categoryFilter, typeFilter, sort.order]);
+
+  // ── Fetch page 1 whenever filters/sort change ─────────────────────────────
   useEffect(() => {
-    transactionsApi.getTransactions()
-      .then((data) => setTransactions(data.map(mapApiTransactionToTransaction)))
-      .catch(console.error);
-  }, []);
+    let cancelled = false;
+    setIsLoading(true);
+    setCurrentPage(1);
+    setHasMore(true);
 
+    transactionsApi.getTransactionPage({ ...query, page: 1 })
+      .then((data) => {
+        if (cancelled) return;
+        setTransactions(data.items.map(mapApiToTransaction));
+        setTotal(data.total);
+        setHasMore(data.items.length === PAGE_SIZE && data.total > PAGE_SIZE);
+        setCurrentPage(1);
+      })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [query]);
+
+  // ── Fetch next page ───────────────────────────────────────────────────────
+  const fetchNextPage = useCallback(() => {
+    if (isFetchingMore || !hasMore || isLoading) return;
+
+    const nextPage = currentPage + 1;
+    setIsFetchingMore(true);
+
+    transactionsApi.getTransactionPage({ ...query, page: nextPage })
+      .then((data) => {
+        setTransactions((prev) => {
+          const merged = [...prev, ...data.items.map(mapApiToTransaction)];
+          setHasMore(merged.length < data.total);
+          return merged;
+        });
+        setTotal(data.total);
+        setCurrentPage(nextPage);
+      })
+      .catch(console.error)
+      .finally(() => setIsFetchingMore(false));
+  }, [isFetchingMore, hasMore, isLoading, currentPage, query]);
+
+  // ── Intersection observer on sentinel ─────────────────────────────────────
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) fetchNextPage(); },
+      { threshold: 0.1 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [fetchNextPage]);
+
+  // ── Derive category list from loaded rows (good enough for dropdown) ──────
   const categories = useMemo(() =>
     Array.from(new Set(transactions.map((t) => t.category))).sort()
   , [transactions]);
 
-  const filtered = useMemo(() => {
-    const rows = transactions.filter((tx) => {
-      const matchesSearch =
-        tx.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        tx.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === 'all' || tx.category === categoryFilter;
-      const matchesType = typeFilter === 'all' || tx.type === typeFilter;
-      return matchesSearch && matchesCategory && matchesType;
-    });
-
-    return rows.sort((a, b) => {
-      const cmp =
-        sort.key === 'date'
-          ? new Date(a.date).getTime() - new Date(b.date).getTime()
-          : Math.abs(a.amount) - Math.abs(b.amount);
-      return sort.order === 'asc' ? cmp : -cmp;
-    });
-  }, [transactions, searchTerm, categoryFilter, typeFilter, sort]);
-
   const handleSortChange = (key: ColKey) => {
+    if (key !== 'date') return; // only date is server-sortable
     setSort((prev) =>
       prev.key === key
         ? { key, order: prev.order === 'asc' ? 'desc' : 'asc' }
@@ -116,65 +171,96 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
     </>
   );
 
-  return (
-    <DataTable
-      columns={COLUMNS}
-      rows={filtered}
-      sort={sort}
-      onSortChange={handleSortChange}
-      toolbar={toolbar}
-      emptyMessage="No transactions found matching your criteria."
-      renderRow={(tx) => (
-        <tr key={tx.id} className="hover:bg-accent transition-colors">
-          <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
-            {formatDate(tx.date)}
-          </td>
-          <td className="px-5 py-3 text-sm text-foreground max-w-xs truncate">
-            {tx.description}
-          </td>
-          <td className="px-5 py-3 whitespace-nowrap">
-            {editingId === tx.id ? (
-              <select
-                value={tx.category}
-                autoFocus
-                onBlur={() => setEditingId(null)}
-                onChange={(e) => {
-                  onTransactionUpdate(tx.id, { category: e.target.value });
-                  setEditingId(null);
-                }}
-                className={inputCls}
-              >
-                {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            ) : (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
-                {tx.category}
-              </span>
-            )}
-          </td>
-          <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
-            {tx.bank}
-          </td>
-          <td className={cn(
-            'px-5 py-3 whitespace-nowrap font-mono text-sm tabular-nums',
-            tx.flow === 'CR' ? 'text-success' : 'text-destructive'
-          )}>
-            {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
-          </td>
-          <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
-            {tx.balance != null ? formatCurrency(tx.balance) : '—'}
-          </td>
-          <td className="px-5 py-3 whitespace-nowrap">
-            <button
-              onClick={() => setEditingId(tx.id)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </button>
-          </td>
-        </tr>
+  // Footer shown below DataTable (outside DataTable's own footer slot)
+  const footer = (
+    <div className="flex items-center justify-center min-h-[40px]">
+      {isLoading && (
+        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Loading…
+        </div>
       )}
-    />
+      {isFetchingMore && !isLoading && (
+        <div className="flex items-center gap-2 text-muted-foreground text-xs">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          Loading more…
+        </div>
+      )}
+      {!isLoading && !isFetchingMore && !hasMore && transactions.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Showing {transactions.length} of {total} transaction{total !== 1 ? 's' : ''}
+        </p>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col">
+      <DataTable
+        columns={COLUMNS}
+        rows={transactions}
+        sort={sort}
+        onSortChange={handleSortChange}
+        toolbar={toolbar}
+        emptyMessage={isLoading ? 'Loading transactions…' : 'No transactions found matching your criteria.'}
+        renderRow={(tx) => (
+          <tr key={tx.id} className="hover:bg-accent transition-colors">
+            <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
+              {formatDate(tx.date)}
+            </td>
+            <td className="px-5 py-3 text-sm text-foreground max-w-xs truncate">
+              {tx.description}
+            </td>
+            <td className="px-5 py-3 whitespace-nowrap">
+              {editingId === tx.id ? (
+                <select
+                  value={tx.category}
+                  autoFocus
+                  onBlur={() => setEditingId(null)}
+                  onChange={(e) => {
+                    onTransactionUpdate(tx.id, { category: e.target.value });
+                    setEditingId(null);
+                  }}
+                  className={inputCls}
+                >
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
+                  {tx.category}
+                </span>
+              )}
+            </td>
+            <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
+              {tx.bank}
+            </td>
+            <td className={cn(
+              'px-5 py-3 whitespace-nowrap font-mono text-sm tabular-nums',
+              tx.flow === 'CR' ? 'text-success' : 'text-destructive'
+            )}>
+              {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
+            </td>
+            <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
+              {tx.balance != null ? formatCurrency(tx.balance) : '—'}
+            </td>
+            <td className="px-5 py-3 whitespace-nowrap">
+              <button
+                onClick={() => setEditingId(tx.id)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            </td>
+          </tr>
+        )}
+      />
+      {/* Sentinel div — triggers next page fetch when it enters the viewport */}
+      <div ref={sentinelRef} className="h-1" />
+      {/* Status footer */}
+      <div className="px-5 py-3 border-t border-border bg-card rounded-b-lg">
+        {footer}
+      </div>
+    </div>
   );
 };
 

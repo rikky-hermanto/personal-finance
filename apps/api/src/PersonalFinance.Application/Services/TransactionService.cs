@@ -38,6 +38,7 @@ public class TransactionService : ITransactionService
 
         var result = await _supabase.From<Transaction>()
             .Filter("wallet", Operator.In, wallets)
+            .Range(0, 100_000) // Override Supabase's default 1,000-row PostgREST cap
             .Get();
 
         var existingKeySet = new HashSet<string>(
@@ -56,7 +57,8 @@ public class TransactionService : ITransactionService
     {
         var query = _supabase.From<Transaction>()
             .Order("date", Ordering.Ascending)
-            .Order("id", Ordering.Ascending);
+            .Order("id", Ordering.Ascending)
+            .Range(0, 100_000); // Override Supabase's default 1,000-row PostgREST cap
 
         if (!string.IsNullOrEmpty(wallet))
             query = query.Filter("wallet", Operator.Equals, wallet);
@@ -79,6 +81,54 @@ public class TransactionService : ITransactionService
             .Filter("id", Operator.Equals, id.ToString())
             .Single();
         return entity == null ? null : MapToDto(entity);
+    }
+
+    public async Task<PagedResult<TransactionDto>> GetTransactionPageAsync(
+        int page,
+        int pageSize,
+        string? wallet = null,
+        string? search = null,
+        string? category = null,
+        string? type = null,
+        string sortOrder = "desc")
+    {
+        var order = sortOrder == "asc" ? Ordering.Ascending : Ordering.Descending;
+        var offset = (page - 1) * pageSize;
+
+        // ── Count query ───────────────────────────────────────────────────────
+        // Start with .Order() so the variable is typed as ISupabaseTable (not
+        // IPostgrestTable), which is required to chain .Filter() back into the
+        // same variable — matching the pattern used in GetTransactionsWithBalanceAsync.
+        var countQuery = _supabase.From<Transaction>().Order("id", Ordering.Ascending);
+        if (!string.IsNullOrEmpty(wallet))   countQuery = countQuery.Filter("wallet",      Operator.Equals,  wallet!);
+        if (!string.IsNullOrEmpty(category)) countQuery = countQuery.Filter("category",    Operator.Equals,  category!);
+        if (!string.IsNullOrEmpty(type))     countQuery = countQuery.Filter("type",        Operator.Equals,  type!);
+        if (!string.IsNullOrEmpty(search))   countQuery = countQuery.Filter("description", Operator.ILike,   $"%{search}%");
+        var countResult = await countQuery.Count(Supabase.Postgrest.Constants.CountType.Exact);
+
+        // ── Data query ────────────────────────────────────────────────────────
+        var dataQuery = _supabase.From<Transaction>()
+            .Order("date", order)
+            .Order("id",   order)
+            .Range(offset, offset + pageSize - 1);
+        if (!string.IsNullOrEmpty(wallet))   dataQuery = dataQuery.Filter("wallet",      Operator.Equals, wallet!);
+        if (!string.IsNullOrEmpty(category)) dataQuery = dataQuery.Filter("category",    Operator.Equals, category!);
+        if (!string.IsNullOrEmpty(type))     dataQuery = dataQuery.Filter("type",        Operator.Equals, type!);
+        if (!string.IsNullOrEmpty(search))   dataQuery = dataQuery.Filter("description", Operator.ILike,  $"%{search}%");
+
+        var result = await dataQuery.Get();
+
+        _logger.LogDebug(
+            "GetTransactionPageAsync page={Page} size={Size} total={Total}",
+            page, pageSize, countResult);
+
+        return new PagedResult<TransactionDto>
+        {
+            Items    = result.Models.Select(MapToDto).ToList(),
+            Total    = countResult,
+            Page     = page,
+            PageSize = pageSize,
+        };
     }
 
     private static Transaction MapToEntity(TransactionDto dto) => new()
