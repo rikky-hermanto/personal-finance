@@ -22,4 +22,16 @@ public interface ITransactionService
     /// Retrieves a transaction by its unique identifier.
     /// </summary>
     Task<TransactionDto?> GetTransactionByIdAsync(int id);
+
+    /// <summary>
+    /// Returns a paginated page of transactions (newest first) with optional filters.
+    /// </summary>
+    Task<PagedResult<TransactionDto>> GetTransactionPageAsync(
+        int page,
+        int pageSize,
+        string? wallet = null,
+        string? search = null,
+        string? category = null,
+        string? type = null,
+        string sortOrder = "desc");
 }
