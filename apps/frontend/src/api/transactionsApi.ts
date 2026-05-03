@@ -1,4 +1,5 @@
 import { DashboardData } from '@/types/Dashboard';
+import { CashflowStatement } from '@/types/CashflowStatement';
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:7209";
 const BASE_URL = `${API_BASE_URL}/api/transactions`;
 
@@ -147,6 +148,17 @@ export async function getDashboardData(wallet?: string, year?: number, month?: n
 
   const res = await fetch(`${BASE_URL}/aggregated?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch dashboard data");
+  return res.json();
+}
+
+export async function getCashflowStatement(months = 6, wallet?: string, groupBy = 'quarterly'): Promise<CashflowStatement> {
+  const params = new URLSearchParams();
+  params.append("months", months.toString());
+  if (wallet) params.append("wallet", wallet);
+  params.append("groupBy", groupBy);
+
+  const res = await fetch(`${BASE_URL}/statement?${params.toString()}`);
+  if (!res.ok) throw new Error("Failed to fetch cashflow statement");
   return res.json();
 }
 
