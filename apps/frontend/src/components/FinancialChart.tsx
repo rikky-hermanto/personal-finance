@@ -1,17 +1,17 @@
 
-import { useMemo } from 'react';
 import {
   LineChart, Line, AreaChart, Area,
   ComposedChart, Bar, ReferenceLine,
   XAxis, YAxis, ResponsiveContainer, Tooltip,
 } from 'recharts';
-import { Transaction } from '@/types/Transaction';
 import { formatCurrency, formatCompact } from '@/lib/format';
+import { DashboardCashFlow } from '@/types/Dashboard';
 
 interface FinancialChartProps {
-  transactions: Transaction[];
+  data: DashboardCashFlow[] | null;
   type?: 'line' | 'area' | 'composed';
   height?: number;
+  isLoading?: boolean;
 }
 
 interface TooltipEntry {
@@ -80,30 +80,19 @@ const LEGEND_ITEMS = [
   { key: 'net', label: 'Net', color: 'hsl(220 8% 60%)', dashed: true },
 ];
 
-const buildChartData = (transactions: Transaction[]) => {
-  const monthlyMap = new Map<string, { key: string; month: string; income: number; expenses: number; net: number }>();
-  transactions.forEach((tx) => {
-    const date = new Date(tx.date);
-    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-    const label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-    if (!monthlyMap.has(key)) {
-      monthlyMap.set(key, { key, month: label, income: 0, expenses: 0, net: 0 });
-    }
-    const d = monthlyMap.get(key)!;
-    if (tx.type === 'income') d.income += Math.abs(tx.amount);
-    else d.expenses += Math.abs(tx.amount);
-    d.net = d.income - d.expenses;
-  });
-  return Array.from(monthlyMap.values())
-    .sort((a, b) => a.key.localeCompare(b.key))
-    .slice(-6);
-};
-
-const FinancialChart = ({ transactions, type = 'composed', height = 200 }: FinancialChartProps) => {
-  const chartData = useMemo(() => buildChartData(transactions), [transactions]);
+const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: FinancialChartProps) => {
+  const chartData = data || [];
 
   const tickStyle = { fontSize: 10, fill: 'hsl(220 8% 46%)', fontFamily: "'JetBrains Mono', monospace" };
   const yTickFormatter = (v: number) => formatCompact(v);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center bg-card/50 border border-border rounded-lg animate-pulse" style={{ height }}>
+        <div className="h-4 w-32 bg-muted rounded" />
+      </div>
+    );
+  }
 
   if (type === 'composed') {
     return (
