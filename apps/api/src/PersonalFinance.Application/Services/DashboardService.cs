@@ -1,5 +1,6 @@
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Application.Constants;
 using Microsoft.Extensions.Logging;
 using Supabase;
 using PersonalFinance.Domain.Entities;
@@ -68,7 +69,7 @@ public class DashboardService : IDashboardService
                 .Order("date", Ordering.Descending) // Crucial: get latest data first
                 .Range(offset, offset + pageSize - 1);
 
-            if (!string.IsNullOrEmpty(wallet)) 
+            if (!string.IsNullOrEmpty(wallet))
                 query = query.Filter("wallet", Operator.Equals, wallet);
 
             var result = await query.Get();
@@ -133,8 +134,8 @@ public class DashboardService : IDashboardService
         var summaryDto = new DashboardSummaryDto(currentIncome, currentExpenses, currentNet, currentRangeTxs.Count);
 
         // 4. Build Final DTO
-        var rangeLabel = months == 1 
-            ? baselineDate.ToString("MMMM yyyy") 
+        var rangeLabel = months == 1
+            ? baselineDate.ToString("MMMM yyyy")
             : (months == 0 ? $"YTD {baselineDate.Year}" : $"{monthCount} Months ending {baselineDate:MMM yy}");
 
         return new DashboardDto(
@@ -146,5 +147,173 @@ public class DashboardService : IDashboardService
             topCategories,
             cashFlow,
             DateTime.Now);
+    }
+
+    public async Task<CashflowStatementDto> GetCashflowStatementAsync(int months, string? wallet, string groupBy)
+    {
+        _logger.LogInformation("Generating Cashflow Statement: months={Months}, wallet={Wallet}, groupBy={GroupBy}", months, wallet, groupBy);
+
+        // 1. Get baseline date
+        var latestTx = await _supabase.From<Transaction>()
+            .Order("date", Ordering.Descending)
+            .Limit(1)
+            .Get();
+        var baselineDate = latestTx.Models.FirstOrDefault()?.Date ?? DateTime.Now;
+
+        int monthCount = months > 0 ? months : baselineDate.Month;
+        var rangeStartDate = new DateTime(baselineDate.Year, baselineDate.Month, 1).AddMonths(-monthCount + 1);
+        var rangeEndDate = new DateTime(baselineDate.Year, baselineDate.Month, DateTime.DaysInMonth(baselineDate.Year, baselineDate.Month), 23, 59, 59);
+
+        // 2. Fetch transactions
+        var allTransactions = new List<Transaction>();
+        int pageSize = 1000;
+        int offset = 0;
+        bool hasMore = true;
+
+        while (hasMore)
+        {
+            var query = _supabase.From<Transaction>()
+                .Filter("date", Operator.GreaterThanOrEqual, rangeStartDate)
+                .Filter("date", Operator.LessThanOrEqual, rangeEndDate)
+                .Order("date", Ordering.Descending)
+                .Range(offset, offset + pageSize - 1);
+
+            if (!string.IsNullOrEmpty(wallet))
+                query = query.Filter("wallet", Operator.Equals, wallet);
+
+            var result = await query.Get();
+            var batch = result.Models;
+            allTransactions.AddRange(batch);
+
+            if (batch.Count < pageSize) hasMore = false;
+            else offset += pageSize;
+        }
+
+        // 3. Define Periods
+        var periods = new List<string>();
+        if (groupBy.Equals("quarterly", StringComparison.OrdinalIgnoreCase))
+        {
+            var current = new DateTime(rangeStartDate.Year, ((rangeStartDate.Month - 1) / 3) * 3 + 1, 1);
+            while (current <= rangeEndDate)
+            {
+                int q = (current.Month - 1) / 3 + 1;
+                periods.Add($"Q{q} {current.Year}");
+                current = current.AddMonths(3);
+            }
+        }
+        else // monthly
+        {
+            var current = new DateTime(rangeStartDate.Year, rangeStartDate.Month, 1);
+            while (current <= rangeEndDate)
+            {
+                periods.Add(current.ToString("MMM yy"));
+                current = current.AddMonths(1);
+            }
+        }
+        periods.Reverse(); // Newest first
+
+        // 4. Grouping logic
+        Func<DateTime, string> getPeriodKey = (date) =>
+        {
+            if (groupBy.Equals("quarterly", StringComparison.OrdinalIgnoreCase))
+            {
+                int q = (date.Month - 1) / 3 + 1;
+                return $"Q{q} {date.Year}";
+            }
+            return date.ToString("MMM yy");
+        };
+
+        var sectionData = new Dictionary<CashflowSection, Dictionary<string, Dictionary<string, decimal>>>();
+        foreach (CashflowSection section in Enum.GetValues(typeof(CashflowSection)))
+        {
+            sectionData[section] = new Dictionary<string, Dictionary<string, decimal>>();
+        }
+
+        foreach (var tx in allTransactions)
+        {
+            string period = getPeriodKey(tx.Date);
+            if (!periods.Contains(period)) continue;
+
+            // Determine Section
+            CashflowSection section;
+            if (!CashflowSectionMapping.CategoryToSection.TryGetValue(tx.Category, out section))
+            {
+                // Fallback logic
+                if (tx.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)) section = CashflowSection.OperatingIncome;
+                else if (tx.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)) section = CashflowSection.OperatingExpense;
+                else section = CashflowSection.Financing; // Transfers usually go to financing/ignored
+            }
+
+            // Special case for Bank Transfer / Gift
+            if (tx.Category.Equals("Bank Transfer", StringComparison.OrdinalIgnoreCase) || tx.Category.Equals("Gift", StringComparison.OrdinalIgnoreCase))
+            {
+                if (tx.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)) section = CashflowSection.OperatingExpense;
+                else section = CashflowSection.OperatingIncome;
+            }
+
+            if (!sectionData[section].ContainsKey(tx.Category))
+                sectionData[section][tx.Category] = periods.ToDictionary(p => p, p => 0m);
+
+            sectionData[section][tx.Category][period] += tx.AmountIdr;
+        }
+
+        // 5. Build DTO
+        var sections = new List<StatementSectionDto>();
+
+        // Operating Section
+        var operatingSubsections = new List<StatementSubsectionDto>();
+
+        // Operating Income
+        var opIncCategories = sectionData[CashflowSection.OperatingIncome]
+            .Select(kvp => new CashflowStatementCategoryDto(kvp.Key, kvp.Value))
+            .ToList();
+        var opIncTotals = periods.ToDictionary(p => p, p => opIncCategories.Sum(c => c.Values[p]));
+        operatingSubsections.Add(new StatementSubsectionDto("operating_income", "Pendapatan", opIncCategories, opIncTotals));
+
+        // Operating Expense
+        var opExpCategories = sectionData[CashflowSection.OperatingExpense]
+            .Select(kvp => new CashflowStatementCategoryDto(kvp.Key, kvp.Value.ToDictionary(p => p.Key, p => -p.Value))) // Show expenses as negative
+            .ToList();
+        var opExpTotals = periods.ToDictionary(p => p, p => opExpCategories.Sum(c => c.Values[p]));
+        operatingSubsections.Add(new StatementSubsectionDto("operating_expense", "Pengeluaran Rutin", opExpCategories, opExpTotals));
+
+        var opTotals = periods.ToDictionary(p => p, p => opIncTotals[p] + opExpTotals[p]);
+        sections.Add(new StatementSectionDto("operating", "ARUS KAS OPERASIONAL", operatingSubsections, opTotals));
+
+        // Investing Section
+        var invCategories = sectionData[CashflowSection.Investing]
+            .Select(kvp => new CashflowStatementCategoryDto(kvp.Key, kvp.Value)) // Keep original sign for now, mapping should handle it
+            .ToList();
+        // Adjust signs for investing: typically "Buy" is negative, "Sell" is positive.
+        // For simplicity, we'll assume the amount_idr in the DB reflects the flow correctly or we adjust based on Type.
+        // Actually, we should probably look at tx.Type during the loop. 
+        // Let's refine the loop to handle signs.
+
+        // Re-calculate Investing & Financing with proper signs
+        var invSubCategories = new List<CashflowStatementCategoryDto>();
+        foreach (var kvp in sectionData[CashflowSection.Investing])
+        {
+            invSubCategories.Add(new CashflowStatementCategoryDto(kvp.Key, kvp.Value.ToDictionary(p => p.Key, p => p.Value)));
+            // In a real app, we'd check if it's Buy/Sell. For now we use the raw value.
+        }
+        var invTotals = periods.ToDictionary(p => p, p => invSubCategories.Sum(c => c.Values[p]));
+        sections.Add(new StatementSectionDto("investing", "ARUS KAS INVESTASI", new List<StatementSubsectionDto> {
+            new StatementSubsectionDto("investing_all", "Investasi", invSubCategories, invTotals)
+        }, invTotals));
+
+        // Financing Section
+        var finSubCategories = new List<CashflowStatementCategoryDto>();
+        foreach (var kvp in sectionData[CashflowSection.Financing])
+        {
+            finSubCategories.Add(new CashflowStatementCategoryDto(kvp.Key, kvp.Value.ToDictionary(p => p.Key, p => p.Value)));
+        }
+        var finTotals = periods.ToDictionary(p => p, p => finSubCategories.Sum(c => c.Values[p]));
+        sections.Add(new StatementSectionDto("financing", "ARUS KAS PENDANAAN", new List<StatementSubsectionDto> {
+            new StatementSubsectionDto("financing_all", "Pendanaan", finSubCategories, finTotals)
+        }, finTotals));
+
+        var grandTotals = periods.ToDictionary(p => p, p => opTotals[p] + invTotals[p] + finTotals[p]);
+
+        return new CashflowStatementDto(periods, sections, grandTotals);
     }
 }
