@@ -114,7 +114,7 @@ const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: Fi
         </div>
 
         <ResponsiveContainer width="100%" height={height}>
-          <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }} barGap={2}>
+          <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barGap={0} barCategoryGap="25%">
             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={tickStyle} />
             <YAxis
               axisLine={false}
@@ -123,19 +123,19 @@ const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: Fi
               tickFormatter={yTickFormatter}
               width={40}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(220 8% 15%)' }} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(220 8% 15%)', radius: 4 }} />
             <ReferenceLine y={0} stroke="hsl(220 8% 25%)" strokeWidth={1} />
-            <Bar dataKey="income" name="Income" fill="hsl(152 40% 42%)" fillOpacity={0.7} radius={[2, 2, 0, 0]} maxBarSize={24} />
-            <Bar dataKey="expenses" name="Expenses" fill="hsl(4 52% 48%)" fillOpacity={0.7} radius={[2, 2, 0, 0]} maxBarSize={24} />
+            <Bar dataKey="income" name="Income" fill="hsl(152 40% 42%)" fillOpacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={48} />
+            <Bar dataKey="expenses" name="Expenses" fill="hsl(4 52% 48%)" fillOpacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={48} />
             <Line
               type="monotone"
               dataKey="net"
               name="Net"
               stroke="hsl(220 8% 65%)"
-              strokeWidth={1.5}
-              strokeDasharray="4 2"
+              strokeWidth={2}
+              strokeDasharray="4 4"
               dot={false}
-              activeDot={{ r: 3, fill: 'hsl(220 8% 65%)', strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: 'hsl(220 8% 65%)', strokeWidth: 0 }}
             />
           </ComposedChart>
         </ResponsiveContainer>

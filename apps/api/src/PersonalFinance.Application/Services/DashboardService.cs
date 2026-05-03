@@ -13,9 +13,9 @@ public class DashboardService : IDashboardService
         _logger = logger;
     }
 
-    public async Task<DashboardDto> GetDashboardDataAsync(string? wallet, int? year, int? month)
+    public async Task<DashboardDto> GetDashboardDataAsync(string? wallet, int? year, int? month, int months = 6)
     {
-        _logger.LogDebug("Building dashboard data for wallet={Wallet} year={Year} month={Month}", wallet, year, month);
+        _logger.LogDebug("Building dashboard data for wallet={Wallet} year={Year} month={Month} months={Months}", wallet, year, month, months);
 
         var allTransactions = await _transactionService.GetTransactionsWithBalanceAsync(wallet);
         
@@ -64,7 +64,10 @@ public class DashboardService : IDashboardService
             .Take(5)
             .ToList();
 
-        var cashFlow = Enumerable.Range(0, 6)
+        // If months is 0, we treat it as YTD (from Jan of current baseline year)
+        int monthCount = months > 0 ? months : baselineDate.Month;
+
+        var cashFlow = Enumerable.Range(0, monthCount)
             .Select(i => baselineDate.AddMonths(-i))
             .OrderBy(d => d)
             .Select(targetDate =>
