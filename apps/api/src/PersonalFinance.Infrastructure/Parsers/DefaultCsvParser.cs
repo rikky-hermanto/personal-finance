@@ -142,7 +142,8 @@ public class DefaultCsvParser : IBankStatementParser
             "M/d/yy H:mm", "M/d/yyyy H:mm", "M/d/yy", "M/d/yyyy",
             "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy",
             "dd/MM/yy", "MM/dd/yy", "yy-MM-dd", "dd-MM-yy",
-            "dd MMM yyyy", "MMM dd yyyy", "yyyy MMM dd"
+            "dd MMM yyyy", "MMM dd yyyy", "yyyy MMM dd",
+            "dd/MM/yyyy HH:mm", "dd/MM/yy HH:mm"
         };
 
         foreach (var format in formats)
