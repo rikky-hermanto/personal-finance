@@ -17,9 +17,35 @@ export interface TransactionDto {
   categoryRuleDto: any;
 }
 
-export async function getTransactions(): Promise<TransactionDto[]> {
-  const res = await fetch(BASE_URL);
-  if (!res.ok) throw new Error("Failed to fetch transactions");
+export interface PagedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface TransactionQuery {
+  page?: number;
+  pageSize?: number;
+  wallet?: string;
+  search?: string;
+  category?: string;
+  type?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export async function getTransactionPage(q: TransactionQuery = {}): Promise<PagedResult<TransactionDto>> {
+  const params = new URLSearchParams();
+  if (q.page)      params.set('page',      String(q.page));
+  if (q.pageSize)  params.set('pageSize',  String(q.pageSize));
+  if (q.wallet)    params.set('wallet',    q.wallet);
+  if (q.search)    params.set('search',    q.search);
+  if (q.category)  params.set('category',  q.category);
+  if (q.type)      params.set('type',      q.type);
+  if (q.sortOrder) params.set('sortOrder', q.sortOrder);
+
+  const res = await fetch(`${BASE_URL}?${params.toString()}`);
+  if (!res.ok) throw new Error('Failed to fetch transactions');
   return res.json();
 }
 
