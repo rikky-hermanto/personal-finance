@@ -35,18 +35,18 @@ public class DashboardService : IDashboardService
         var yearTransactions = allTransactions.Where(t => t.Date.Year == currentYear).ToList();
         var monthTransactions = yearTransactions.Where(t => t.Date.Month == currentMonth).ToList();
 
-        var totalIncome = yearTransactions.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
-        var totalExpenses = yearTransactions.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+        var totalIncome = yearTransactions.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
+        var totalExpenses = yearTransactions.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
 
-        var monthIncome = monthTransactions.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
-        var monthExpenses = monthTransactions.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+        var monthIncome = monthTransactions.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
+        var monthExpenses = monthTransactions.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
         var monthNet = monthIncome - monthExpenses;
 
         var prevMonth = currentMonth == 1 ? 12 : currentMonth - 1;
         var prevYear = currentMonth == 1 ? currentYear - 1 : currentYear;
         var prevMonthTransactions = allTransactions.Where(t => t.Date.Year == prevYear && t.Date.Month == prevMonth).ToList();
-        var prevMonthIncome = prevMonthTransactions.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
-        var prevMonthExpenses = prevMonthTransactions.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+        var prevMonthIncome = prevMonthTransactions.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
+        var prevMonthExpenses = prevMonthTransactions.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
         var prevMonthNet = prevMonthIncome - prevMonthExpenses;
 
         var incomeChange = prevMonthIncome != 0 ? ((monthIncome - prevMonthIncome) / prevMonthIncome) * 100 : 0;
@@ -54,7 +54,7 @@ public class DashboardService : IDashboardService
         var netChange = prevMonthNet != 0 ? ((monthNet - prevMonthNet) / Math.Abs(prevMonthNet)) * 100 : 0;
 
         var topCategories = monthTransactions
-            .Where(t => t.Type == "Expense" && !string.IsNullOrEmpty(t.Category))
+            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(t.Category))
             .GroupBy(t => t.Category)
             .Select(g => new DashboardTopCategoryDto(
                 g.Key,
@@ -70,8 +70,8 @@ public class DashboardService : IDashboardService
             .Select(targetDate =>
             {
                 var monthly = allTransactions.Where(t => t.Date.Year == targetDate.Year && t.Date.Month == targetDate.Month).ToList();
-                var inc = monthly.Where(t => t.Type == "Income").Sum(t => t.AmountIdr);
-                var exp = monthly.Where(t => t.Type == "Expense").Sum(t => t.AmountIdr);
+                var inc = monthly.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
+                var exp = monthly.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
                 return new DashboardCashFlowDto(targetDate.ToString("MMM yy"), inc, exp, inc - exp);
             })
             .ToList();
