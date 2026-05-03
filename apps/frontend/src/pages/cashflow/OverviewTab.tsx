@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const RANGES = [
+  { label: 'Last Month', value: 1 },
   { label: '3M', value: 3 },
   { label: '6M', value: 6 },
   { label: '1Y', value: 12 },
@@ -18,7 +19,7 @@ const RANGES = [
 const OverviewTab = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [range, setRange] = useState(6);
+  const [range, setRange] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {

@@ -67,7 +67,7 @@ public class TransactionService : ITransactionService
         var query = _supabase.From<Transaction>()
             .Order("date", Ordering.Descending)
             .Order("id", Ordering.Descending)
-            .Range(0, 1000); 
+            .Range(0, 100_000); 
 
         if (!string.IsNullOrEmpty(wallet))   query = query.Filter("wallet",      Operator.Equals,  wallet!);
         if (!string.IsNullOrEmpty(category)) query = query.Filter("category",    Operator.Equals,  category!);
