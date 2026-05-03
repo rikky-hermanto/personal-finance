@@ -136,7 +136,7 @@ const CashflowStatementTable = ({ data, isLoading }: CashflowStatementTableProps
                 {!collapsed[section.id] && (
                   <tr className="bg-muted/20 border-b border-border font-bold">
                     <td className="sticky left-0 bg-card/95 backdrop-blur z-10 p-3 pl-4 text-foreground">
-                      Net {section.label.toLowerCase().includes('operasional') ? 'Operasional' : section.label.split(' ').pop()}
+                      Net {section.label.split(' ')[0].charAt(0).toUpperCase() + section.label.split(' ')[0].slice(1).toLowerCase()}
                     </td>
                     {data.periods.map((p) => {
                       const val = section.totals[p] || 0;
@@ -160,7 +160,7 @@ const CashflowStatementTable = ({ data, isLoading }: CashflowStatementTableProps
             {/* Grand Total Row */}
             <tr className="bg-muted/40 border-t-2 border-foreground/30 font-bold">
               <td className="sticky left-0 bg-card/95 backdrop-blur z-10 p-4 text-foreground uppercase tracking-tight">
-                Perubahan Kas Bersih
+                Net Cash Change
               </td>
               {data.periods.map((p) => {
                 const val = data.grandTotals[p] || 0;
