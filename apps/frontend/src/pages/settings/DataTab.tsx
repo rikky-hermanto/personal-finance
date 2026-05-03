@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { getTransactions, resetAllTransactions } from '@/api/transactionsApi';
+import { getTransactionPage, resetAllTransactions } from '@/api/transactionsApi';
 
 const CONFIRM_PHRASE = 'delete all';
 
@@ -22,15 +22,17 @@ const DataTab = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: transactions = [] } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: getTransactions,
+  // Fetch only 1 row just to get the server-side total count cheaply
+  const { data: countData } = useQuery({
+    queryKey: ['transactions-count'],
+    queryFn: () => getTransactionPage({ pageSize: 1 }),
   });
+  const count = countData?.total ?? 0;
 
   const { mutate: doReset, isPending } = useMutation({
     mutationFn: resetAllTransactions,
     onSuccess: ({ deleted }) => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactions-count'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       setOpen(false);
       setPhrase('');
@@ -53,7 +55,7 @@ const DataTab = () => {
     setOpen(next);
   };
 
-  const count = transactions.length;
+
 
   return (
     <div className="p-8 bg-background min-h-full">
