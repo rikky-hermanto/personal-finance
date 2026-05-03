@@ -138,11 +138,12 @@ export async function resetAllTransactions(): Promise<{ deleted: number }> {
 }
 
 
-export async function getDashboardData(wallet?: string, year?: number, month?: number): Promise<DashboardData> {
+export async function getDashboardData(wallet?: string, year?: number, month?: number, months?: number): Promise<DashboardData> {
   const params = new URLSearchParams();
   if (wallet) params.append("wallet", wallet);
   if (year) params.append("year", year.toString());
   if (month) params.append("month", month.toString());
+  if (months !== undefined) params.append("months", months.toString());
 
   const res = await fetch(`${BASE_URL}/aggregated?${params.toString()}`);
   if (!res.ok) throw new Error("Failed to fetch dashboard data");

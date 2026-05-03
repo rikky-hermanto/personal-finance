@@ -258,9 +258,9 @@ public class TransactionsController : ControllerBase
     // Dashboard endpoint - get aggregated data for dashboard
     [HttpGet("aggregated")]
     public async Task<IActionResult> GetDashboardData(
-        [FromQuery] string? wallet = null, [FromQuery] int? year = null, [FromQuery] int? month = null)
+        [FromQuery] string? wallet = null, [FromQuery] int? year = null, [FromQuery] int? month = null, [FromQuery] int months = 6)
     {
-        var data = await _dashboardService.GetDashboardDataAsync(wallet, year, month);
+        var data = await _dashboardService.GetDashboardDataAsync(wallet, year, month, months);
         return Ok(data);
     }
 

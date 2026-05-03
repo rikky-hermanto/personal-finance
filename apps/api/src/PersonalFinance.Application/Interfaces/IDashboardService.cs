@@ -4,5 +4,5 @@ namespace PersonalFinance.Application.Interfaces;
 
 public interface IDashboardService
 {
-    Task<DashboardDto> GetDashboardDataAsync(string? wallet, int? year, int? month);
+    Task<DashboardDto> GetDashboardDataAsync(string? wallet, int? year, int? month, int months = 6);
 }
