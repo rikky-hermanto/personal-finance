@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import { Transaction } from '@/types/Transaction';
+import { DashboardTopCategory } from '@/types/Dashboard';
 import { formatCurrency, formatMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -12,39 +11,30 @@ const CATEGORY_COLORS = [
 ];
 
 interface TopCategoriesCardProps {
-  transactions: Transaction[];
+  data: DashboardTopCategory[] | null;
+  month: string;
+  isLoading?: boolean;
   onCategoryDrillDown?: (category: string, month: string) => void;
 }
 
-const TopCategoriesCard = ({ transactions, onCategoryDrillDown }: TopCategoriesCardProps) => {
-  const { topCategories, totalExpenses, month } = useMemo(() => {
-    const monthMap = new Map<string, number>();
-    transactions.forEach((tx) => {
-      const d = new Date(tx.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      monthMap.set(key, (monthMap.get(key) ?? 0) + 1);
-    });
-    const sortedMonths = Array.from(monthMap.keys()).sort((a, b) => b.localeCompare(a));
-    const currentMonth = sortedMonths[0] ?? '';
+const TopCategoriesCard = ({ data, month, isLoading, onCategoryDrillDown }: TopCategoriesCardProps) => {
+  if (isLoading || !data) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-5 animate-pulse">
+        <div className="flex justify-between mb-4">
+          <div className="h-4 w-24 bg-muted rounded" />
+          <div className="h-4 w-16 bg-muted rounded" />
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="h-10 bg-muted rounded" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-    const categoryMap = new Map<string, number>();
-    let totalExpenses = 0;
-    transactions.forEach((tx) => {
-      const d = new Date(tx.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      if (tx.type === 'expense' && key === currentMonth) {
-        categoryMap.set(tx.category, (categoryMap.get(tx.category) ?? 0) + Math.abs(tx.amount));
-        totalExpenses += Math.abs(tx.amount);
-      }
-    });
-
-    const topCategories = Array.from(categoryMap.entries())
-      .map(([category, amount]) => ({ category, amount }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
-
-    return { topCategories, totalExpenses, month: currentMonth };
-  }, [transactions]);
+  const topCategories = data;
 
   if (!topCategories.length) {
     return (
@@ -62,7 +52,7 @@ const TopCategoriesCard = ({ transactions, onCategoryDrillDown }: TopCategoriesC
       </div>
       <div className="space-y-0.5">
         {topCategories.map((cat, i) => {
-          const pct = totalExpenses > 0 ? (cat.amount / totalExpenses) * 100 : 0;
+          const pct = cat.percentage;
           return (
             <button
               key={cat.category}

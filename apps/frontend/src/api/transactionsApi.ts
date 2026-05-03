@@ -1,3 +1,4 @@
+import { DashboardData } from '@/types/Dashboard';
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:7209";
 const BASE_URL = `${API_BASE_URL}/api/transactions`;
 
@@ -136,7 +137,8 @@ export async function resetAllTransactions(): Promise<{ deleted: number }> {
   return res.json();
 }
 
-export async function getDashboardData(wallet?: string, year?: number, month?: number): Promise<any> {
+
+export async function getDashboardData(wallet?: string, year?: number, month?: number): Promise<DashboardData> {
   const params = new URLSearchParams();
   if (wallet) params.append("wallet", wallet);
   if (year) params.append("year", year.toString());
