@@ -268,17 +268,17 @@ public class DashboardService : IDashboardService
             .Select(kvp => new CashflowStatementCategoryDto(kvp.Key, kvp.Value))
             .ToList();
         var opIncTotals = periods.ToDictionary(p => p, p => opIncCategories.Sum(c => c.Values[p]));
-        operatingSubsections.Add(new StatementSubsectionDto("operating_income", "Pendapatan", opIncCategories, opIncTotals));
+        operatingSubsections.Add(new StatementSubsectionDto("operating_income", "Income", opIncCategories, opIncTotals));
 
         // Operating Expense
         var opExpCategories = sectionData[CashflowSection.OperatingExpense]
             .Select(kvp => new CashflowStatementCategoryDto(kvp.Key, kvp.Value.ToDictionary(p => p.Key, p => -p.Value))) // Show expenses as negative
             .ToList();
         var opExpTotals = periods.ToDictionary(p => p, p => opExpCategories.Sum(c => c.Values[p]));
-        operatingSubsections.Add(new StatementSubsectionDto("operating_expense", "Pengeluaran Rutin", opExpCategories, opExpTotals));
+        operatingSubsections.Add(new StatementSubsectionDto("operating_expense", "Operating Expenses", opExpCategories, opExpTotals));
 
         var opTotals = periods.ToDictionary(p => p, p => opIncTotals[p] + opExpTotals[p]);
-        sections.Add(new StatementSectionDto("operating", "ARUS KAS OPERASIONAL", operatingSubsections, opTotals));
+        sections.Add(new StatementSectionDto("operating", "OPERATING CASH FLOW", operatingSubsections, opTotals));
 
         // Investing Section
         var invCategories = sectionData[CashflowSection.Investing]
@@ -297,8 +297,8 @@ public class DashboardService : IDashboardService
             // In a real app, we'd check if it's Buy/Sell. For now we use the raw value.
         }
         var invTotals = periods.ToDictionary(p => p, p => invSubCategories.Sum(c => c.Values[p]));
-        sections.Add(new StatementSectionDto("investing", "ARUS KAS INVESTASI", new List<StatementSubsectionDto> {
-            new StatementSubsectionDto("investing_all", "Investasi", invSubCategories, invTotals)
+        sections.Add(new StatementSectionDto("investing", "INVESTING CASH FLOW", new List<StatementSubsectionDto> {
+            new StatementSubsectionDto("investing_all", "Investing Activities", invSubCategories, invTotals)
         }, invTotals));
 
         // Financing Section
@@ -308,8 +308,8 @@ public class DashboardService : IDashboardService
             finSubCategories.Add(new CashflowStatementCategoryDto(kvp.Key, kvp.Value.ToDictionary(p => p.Key, p => p.Value)));
         }
         var finTotals = periods.ToDictionary(p => p, p => finSubCategories.Sum(c => c.Values[p]));
-        sections.Add(new StatementSectionDto("financing", "ARUS KAS PENDANAAN", new List<StatementSubsectionDto> {
-            new StatementSubsectionDto("financing_all", "Pendanaan", finSubCategories, finTotals)
+        sections.Add(new StatementSectionDto("financing", "FINANCING CASH FLOW", new List<StatementSubsectionDto> {
+            new StatementSubsectionDto("financing_all", "Financing Activities", finSubCategories, finTotals)
         }, finTotals));
 
         var grandTotals = periods.ToDictionary(p => p, p => opTotals[p] + invTotals[p] + finTotals[p]);
