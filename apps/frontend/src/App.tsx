@@ -12,6 +12,7 @@ import UploadTab from "@/pages/cashflow/UploadTab";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
 import CategoriesTab from "@/pages/settings/CategoriesTab";
 import DataTab from "@/pages/settings/DataTab";
+import RegionalTab from "@/pages/settings/RegionalTab";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/settings" element={<SettingsLayout />}>
               <Route index element={<Navigate to="/settings/categories" replace />} />
               <Route path="categories" element={<CategoriesTab />} />
+              <Route path="regional" element={<RegionalTab />} />
               <Route path="data" element={<DataTab />} />
             </Route>
           </Route>
