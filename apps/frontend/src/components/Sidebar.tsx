@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, TrendingUp, Settings, Menu, X, Plus } from 'lucide-react';
+import { BarChart3, TrendingUp, Settings, Menu, X, Plus, PiggyBank } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard', matchPrefix: '/dashboard' },
-  { id: 'cashflow', label: 'Cashflow', icon: TrendingUp, path: '/cashflow', matchPrefix: '/cashflow' },
+  { id: 'cashflow', label: 'Cashflow', icon: PiggyBank, path: '/cashflow', matchPrefix: '/cashflow' },
   { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', matchPrefix: '/settings' },
 ];
 
@@ -26,7 +26,7 @@ const Sidebar = () => {
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-7 h-7 bg-foreground/10 rounded flex items-center justify-center flex-shrink-0">
-              <BarChart3 className="w-3.5 h-3.5 text-sidebar-primary" />
+              <PiggyBank className="w-3.5 h-3.5 text-sidebar-primary" />
             </div>
             <div className="min-w-0">
               <div className="text-sm font-semibold text-sidebar-primary leading-none">Finance</div>
