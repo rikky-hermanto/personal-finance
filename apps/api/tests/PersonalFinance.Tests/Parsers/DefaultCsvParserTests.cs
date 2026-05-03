@@ -25,6 +25,64 @@ public class DefaultCsvParserTests
         _parser = new DefaultCsvParser(_categoryRuleServiceMock.Object, _loggerMock.Object);
     }
 
+    [Theory]
+    [InlineData("DD/MM/YYYY", "02/01/2024", 2024, 1, 2)] // Scenario A: 2 Jan 2024
+    [InlineData("MM/DD/YYYY", "02/01/2024", 2024, 2, 1)] // Scenario B: 1 Feb 2024
+    public async Task ParseAsync_CustomDateFormat_ParsesCorrectly(string dateFormat, string dateString, int year, int month, int day)
+    {
+        // Arrange
+        using var stream = BuildCsv(dateString, "Desc", "", "DB", "Expense", "Food", "BCA", "1000", "", "1000", "IDR");
+
+        // Act
+        var result = await _parser.ParseAsync(stream, null, dateFormat);
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal(new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc), result[0].Date.Date);
+    }
+
+    [Fact]
+    public async Task ParseAsync_NullDateFormat_FallbacksToBuiltIn()
+    {
+        // Scenario C: Should parse with default fallback
+        using var stream = BuildCsv("2024-03-15", "Desc", "", "DB", "Expense", "Food", "BCA", "1000", "", "1000", "IDR");
+        var result = await _parser.ParseAsync(stream, null, null);
+        Assert.Single(result);
+        Assert.Equal(new DateTime(2024, 3, 15, 0, 0, 0, DateTimeKind.Utc), result[0].Date.Date);
+    }
+
+    [Theory]
+    [InlineData("DD/MM/YYYY HH:mm", "02/01/2024 23:15", 2024, 1, 2, 23, 15)] // 24h
+    [InlineData("MM/DD/YYYY hh:mm tt", "02/01/2024 11:15 PM", 2024, 2, 1, 23, 15)] // AM/PM
+    public async Task ParseAsync_CustomDateFormatWithTime_ParsesCorrectly(string dateFormat, string dateString, int year, int month, int day, int hour, int min)
+    {
+        using var stream = BuildCsv(dateString, "Desc", "", "DB", "Expense", "Food", "BCA", "1000", "", "1000", "IDR");
+        var result = await _parser.ParseAsync(stream, null, dateFormat);
+        Assert.Single(result);
+        var dt = result[0].Date;
+        Assert.Equal(new DateTime(year, month, day, hour, min, 0, DateTimeKind.Utc), dt);
+    }
+
+    [Fact]
+    public async Task ParseAsync_AssetTrarType_MappedCorrectly()
+    {
+        // Scenario F: Type is "Asset Trar"
+        using var stream = BuildCsv("1/1/2024", "Asset Transfer", "", "DB", "Asset Trar", "Asset", "BCA", "1000", "", "1000", "IDR");
+        var result = await _parser.ParseAsync(stream);
+        Assert.Single(result);
+        Assert.Equal("Asset Trar", result[0].Type);
+    }
+
+    [Fact]
+    public async Task ParseAsync_CRFlow_PositiveAmount()
+    {
+        // Scenario G: "CR" flow should be positive
+        using var stream = BuildCsv("1/1/2024", "Salary", "", "CR", "Income", "Income", "BCA", "1000", "", "1000", "IDR");
+        var result = await _parser.ParseAsync(stream);
+        Assert.Single(result);
+        Assert.True(result[0].AmountIdr > 0);
+    }
+
     [Fact]
     public async Task ParseAsync_AmPmDateFormat_ParsedCorrectly()
     {
