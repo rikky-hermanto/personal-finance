@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import ActivityPanel from '@/components/dashboard/ActivityPanel';
-import { mockTransactions } from '@/data/mockTransactions';
 
 const AppShell = () => {
   return (
@@ -10,9 +9,10 @@ const AppShell = () => {
       <main className="flex-1 overflow-auto min-w-0">
         <Outlet />
       </main>
-      <ActivityPanel transactions={mockTransactions} />
+      <ActivityPanel />
     </div>
   );
 };
 
 export default AppShell;
+

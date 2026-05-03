@@ -1,17 +1,33 @@
+import { useQuery } from '@tanstack/react-query';
+import * as transactionsApi from '@/api/transactionsApi';
 import { Transaction } from '@/types/Transaction';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 interface ActivityPanelProps {
-  transactions: Transaction[];
   selectedMonth?: string;
   onMonthChange?: (month: string) => void;
 }
 
-const ActivityPanel = ({ transactions, selectedMonth, onMonthChange }: ActivityPanelProps) => {
-  const recent = [...transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 8);
+const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => ({
+  id: t.id.toString(),
+  date: t.date,
+  description: t.description,
+  amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
+  type: (t.type.toLowerCase() === 'income' ? 'income' : 
+         t.type.toLowerCase().includes('transfer') || t.type.toLowerCase().includes('trar') ? 'transfer' : 'expense') as 'income' | 'expense' | 'transfer',
+  category: t.category,
+  bank: t.wallet,
+});
+
+const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => {
+  const { data: pagedResult, isLoading } = useQuery({
+    queryKey: ['recent-transactions'],
+    queryFn: () => transactionsApi.getTransactionPage({ pageSize: 8, sortOrder: 'desc' }),
+    refetchInterval: 30000, // Refetch every 30s
+  });
+
+  const recent = pagedResult?.items.map(mapApiToTransaction) || [];
 
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -34,37 +50,48 @@ const ActivityPanel = ({ transactions, selectedMonth, onMonthChange }: ActivityP
           </span>
         </div>
         <div className="divide-y divide-border">
-          {recent.map((tx) => (
-            <div key={tx.id} className="px-4 py-2.5 hover:bg-accent transition-colors">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
+          {isLoading ? (
+            <div className="px-4 py-8 flex items-center justify-center">
+              <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
+            </div>
+          ) : recent.length === 0 ? (
+            <div className="px-4 py-8 flex items-center justify-center">
+              <span className="text-xs text-muted-foreground">No recent transactions</span>
+            </div>
+          ) : (
+            recent.map((tx) => (
+              <div key={tx.id} className="px-4 py-2.5 hover:bg-accent transition-colors group">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className={cn(
+                        'mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0',
+                        tx.type === 'income' ? 'bg-success' : 
+                        tx.type === 'transfer' ? 'bg-blue-500' : 'bg-destructive'
+                      )}
+                    />
+                    <span className="text-xs text-foreground truncate leading-snug group-hover:whitespace-normal group-hover:break-words">
+                      {tx.description.length > 28
+                        ? tx.description.slice(0, 28) + '…'
+                        : tx.description}
+                    </span>
+                  </div>
                   <span
                     className={cn(
-                      'mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0',
-                      tx.type === 'income' ? 'bg-success' : 'bg-destructive'
+                      'font-mono text-xs flex-shrink-0 tabular-nums',
+                      tx.type === 'income' ? 'text-success' : 'text-muted-foreground'
                     )}
-                  />
-                  <span className="text-xs text-foreground truncate leading-snug">
-                    {tx.description.length > 28
-                      ? tx.description.slice(0, 28) + '…'
-                      : tx.description}
+                  >
+                    {tx.amount > 0 ? '+' : ''}
+                    {formatCurrency(Math.abs(tx.amount)).replace('Rp', '').trim()}
                   </span>
                 </div>
-                <span
-                  className={cn(
-                    'font-mono text-xs flex-shrink-0 tabular-nums',
-                    tx.type === 'income' ? 'text-success' : 'text-muted-foreground'
-                  )}
-                >
-                  {tx.type === 'expense' ? '−' : '+'}
-                  {formatCurrency(Math.abs(tx.amount)).replace('Rp', '').trim()}
-                </span>
+                <div className="ml-3.5 mt-0.5">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-tight">{tx.bank}</span>
+                </div>
               </div>
-              <div className="ml-3.5 mt-0.5">
-                <span className="text-[10px] text-muted-foreground">{tx.bank}</span>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -105,3 +132,4 @@ const ActivityPanel = ({ transactions, selectedMonth, onMonthChange }: ActivityP
 };
 
 export default ActivityPanel;
+
