@@ -8,9 +8,13 @@ public interface ITransactionService
     Task<List<TransactionDto>> AddTransactionsAsync(IEnumerable<TransactionDto> transactionDtos);
 
     /// <summary>
-    /// Returns transactions with running balance for a wallet.
+    /// Returns transactions with running balance for a wallet and optional filters.
     /// </summary>
-    Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(string? wallet);
+    Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(
+        string? wallet = null,
+        string? search = null,
+        string? category = null,
+        string? type = null);
 
     /// <summary>
     /// Returns only transactions that do not already exist in the database
