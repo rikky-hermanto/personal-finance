@@ -79,18 +79,37 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     try {
       const file = uploadedFiles[0];
       if (!file) return;
-      const apiTransactions = await transactionsApi.uploadPreview(file, pdfPassword, bankHint || undefined);
-      const transactions: Transaction[] = apiTransactions.map((t: transactionsApi.TransactionDto) => ({
-        id:          t.id.toString(),
-        date:        t.date,
-        description: t.description,
-        flow:        t.flow,
-        amount:      t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-        type:        (t.type.toLowerCase() === 'income' ? 'income' : 'expense') as 'income' | 'expense',
-        category:    t.category,
-        bank:        t.wallet,
-        balance:     t.balance,
-      }));
+      const dateFormat = localStorage.getItem('pf_date_format') || undefined;
+      const apiTransactions = await transactionsApi.uploadPreview(
+        file, 
+        pdfPassword, 
+        bankHint || undefined,
+        dateFormat
+      );
+      const transactions: Transaction[] = apiTransactions.map((t: transactionsApi.TransactionDto) => {
+        let mappedType: 'income' | 'expense' | 'transfer';
+        const rawType = t.type.toLowerCase();
+        
+        if (rawType === 'income') {
+          mappedType = 'income';
+        } else if (rawType.includes('transfer') || rawType.includes('trar') || rawType === 'asset transfer') {
+          mappedType = 'transfer';
+        } else {
+          mappedType = 'expense';
+        }
+
+        return {
+          id:          t.id.toString(),
+          date:        t.date,
+          description: t.description,
+          flow:        t.flow,
+          amount:      t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
+          type:        mappedType,
+          category:    t.category,
+          bank:        t.wallet,
+          balance:     t.balance,
+        };
+      });
       setParsedTransactions(transactions);
       setCurrentStep('preview');
     } catch (error: any) {

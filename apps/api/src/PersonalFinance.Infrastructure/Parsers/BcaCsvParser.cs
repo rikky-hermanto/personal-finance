@@ -14,7 +14,7 @@ public class BcaCsvParser : IBankStatementParser
         _logger = logger;
     }
 
-    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null, string? dateFormat = null)
     {
         _logger.LogInformation("Starting BCA CSV parsing.");
         var transactions = new List<TransactionDto>();

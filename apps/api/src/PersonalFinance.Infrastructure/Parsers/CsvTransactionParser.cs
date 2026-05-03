@@ -1,4 +1,4 @@
-﻿using CsvHelper;
+using CsvHelper;
 using CsvHelper.Configuration;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
@@ -8,7 +8,7 @@ namespace PersonalFinance.Infrastructure.Parsers;
 
 public class CsvTransactionParser : IBankStatementParser
 {
-    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null)
+    public async Task<List<TransactionDto>> ParseAsync(Stream fileStream, string? password = null, string? dateFormat = null)
     {
         using var reader = new StreamReader(fileStream);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)

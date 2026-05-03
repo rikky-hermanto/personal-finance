@@ -73,7 +73,8 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> UploadPreview(
     IFormFile file,
     [FromForm] string? pdfPassword = null,
-    [FromForm] string? bankHint = null)
+    [FromForm] string? bankHint = null,
+    [FromForm] string? dateFormat = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { Message = "File is empty." });
@@ -102,7 +103,7 @@ public class TransactionsController : ControllerBase
                     return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
 
                 mainStream.Position = 0;
-                transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword);
+                transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword, dateFormat);
             }
 
             var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(transactions);
@@ -132,7 +133,8 @@ public class TransactionsController : ControllerBase
     public async Task<IActionResult> UploadPreviewNEW(
         IFormFile file,
         [FromForm] string? pdfPassword = null,
-        [FromForm] string? bankHint = null)
+        [FromForm] string? bankHint = null,
+        [FromForm] string? dateFormat = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { Message = "File is empty." });
@@ -179,7 +181,7 @@ public class TransactionsController : ControllerBase
             if (downloadedStream == null)
                 return StatusCode(500, new { Message = "Failed to retrieve file from storage." });
 
-            var transactions = await _statementImportService.ImportAsync(downloadedStream, bank, pdfPassword);
+            var transactions = await _statementImportService.ImportAsync(downloadedStream, bank, pdfPassword, dateFormat);
             
             // Validation Pipeline
             var processedTransactions = await _pipelineService.ProcessAsync(transactions);
