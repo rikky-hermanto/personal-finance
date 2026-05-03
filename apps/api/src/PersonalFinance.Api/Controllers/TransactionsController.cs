@@ -264,6 +264,16 @@ public class TransactionsController : ControllerBase
         return Ok(data);
     }
 
+    [HttpGet("statement")]
+    public async Task<IActionResult> GetCashflowStatement(
+        [FromQuery] int months = 6, 
+        [FromQuery] string? wallet = null, 
+        [FromQuery] string groupBy = "quarterly")
+    {
+        var data = await _dashboardService.GetCashflowStatementAsync(months, wallet, groupBy);
+        return Ok(data);
+    }
+
     [HttpGet("export")]
     public async Task<IActionResult> ExportCsv(
         [FromQuery] string? wallet,
