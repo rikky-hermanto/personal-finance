@@ -3,6 +3,9 @@ using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using static Supabase.Postgrest.Constants;
+using Supabase.Postgrest;
+using Supabase.Postgrest.Interfaces;
+using Supabase.Postgrest.Responses;
 using Microsoft.Extensions.Logging;
 
 public class TransactionService : ITransactionService
@@ -59,10 +62,12 @@ public class TransactionService : ITransactionService
         string? category = null,
         string? type = null)
     {
+        // Simple latest-first fetch from the database. 
+        // Balance calculation is disabled to ensure pagination and sorting work correctly across large datasets.
         var query = _supabase.From<Transaction>()
-            .Order("date", Ordering.Ascending)
-            .Order("id", Ordering.Ascending)
-            .Range(0, 100_000); // PostgREST limit override
+            .Order("date", Ordering.Descending)
+            .Order("id", Ordering.Descending)
+            .Range(0, 1000); 
 
         if (!string.IsNullOrEmpty(wallet))   query = query.Filter("wallet",      Operator.Equals,  wallet!);
         if (!string.IsNullOrEmpty(category)) query = query.Filter("category",    Operator.Equals,  category!);
@@ -71,12 +76,10 @@ public class TransactionService : ITransactionService
 
         var result = await query.Get();
 
-        var runningBalance = 0m;
         return result.Models.Select(t =>
         {
-            runningBalance += t.Flow == "CR" ? t.AmountIdr : -t.AmountIdr;
             var dto = MapToDto(t);
-            dto.Balance = runningBalance;
+            dto.Balance = 0; // Calculation disabled
             return dto;
         }).ToList();
     }
@@ -98,31 +101,54 @@ public class TransactionService : ITransactionService
         string? type = null,
         string sortOrder = "desc")
     {
-        // To show a correct running balance, we must fetch all matching transactions,
-        // calculate balances from oldest to newest, then sort and page the results.
-        var allWithBalance = await GetTransactionsWithBalanceAsync(wallet, search, category, type);
-        var total = allWithBalance.Count;
+        // Build base query for count
+        IPostgrestTable<Transaction> countQuery = _supabase.From<Transaction>();
+        if (!string.IsNullOrEmpty(wallet))   countQuery = countQuery.Filter("wallet", Operator.Equals, wallet!);
+        if (!string.IsNullOrEmpty(category)) countQuery = countQuery.Filter("category", Operator.Equals, category!);
+        if (!string.IsNullOrEmpty(type))     countQuery = countQuery.Filter("type", Operator.Equals, type!);
+        if (!string.IsNullOrEmpty(search))   countQuery = countQuery.Filter("description", Operator.ILike, $"%{search}%");
 
-        // Apply sorting
-        IEnumerable<TransactionDto> sorted = sortOrder == "asc"
-            ? allWithBalance.OrderBy(t => t.Date).ThenBy(t => t.Id)
-            : allWithBalance.OrderByDescending(t => t.Date).ThenByDescending(t => t.Id);
+        // Get total count
+        var countResult = await countQuery.Get();
+        int totalCount = (int)countResult.Count;
 
-        // Apply pagination
-        var items = sorted
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToList();
+        var from = (page - 1) * pageSize;
+        var to = from + pageSize - 1;
+
+        if (from >= totalCount)
+        {
+            return new PagedResult<TransactionDto>
+            {
+                Items = new List<TransactionDto>(),
+                Total = totalCount,
+                Page = page,
+                PageSize = pageSize,
+            };
+        }
+
+        // Build paged query
+        IPostgrestTable<Transaction> query = _supabase.From<Transaction>();
+        if (sortOrder == "asc")
+            query = query.Order("date", Ordering.Ascending).Order("id", Ordering.Ascending);
+        else
+            query = query.Order("date", Ordering.Descending).Order("id", Ordering.Descending);
+
+        if (!string.IsNullOrEmpty(wallet))   query = query.Filter("wallet", Operator.Equals, wallet!);
+        if (!string.IsNullOrEmpty(category)) query = query.Filter("category", Operator.Equals, category!);
+        if (!string.IsNullOrEmpty(type))     query = query.Filter("type", Operator.Equals, type!);
+        if (!string.IsNullOrEmpty(search))   query = query.Filter("description", Operator.ILike, $"%{search}%");
+
+        var result = await query.Range(from, to).Get();
 
         _logger.LogDebug(
             "GetTransactionPageAsync page={Page} size={Size} total={Total}",
-            page, pageSize, total);
+            page, pageSize, result.Count);
 
         return new PagedResult<TransactionDto>
         {
-            Items    = items,
-            Total    = total,
-            Page     = page,
+            Items = result.Models.Select(MapToDto).ToList(),
+            Total = totalCount,
+            Page = page,
             PageSize = pageSize,
         };
     }
