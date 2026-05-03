@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7208";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:7209";
 const BASE_URL = `${API_BASE_URL}/api/categoryrules`;
 
 export interface CategoryRuleDto {

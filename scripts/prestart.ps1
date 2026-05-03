@@ -1,3 +1,4 @@
+param([switch]$SkipApiPort)
 $ErrorActionPreference = "Continue"
 
 # 1. Check if docker is running
@@ -40,7 +41,10 @@ if (Test-Path $launchSettingsPath) {
 }
 
 # 3. Stop conflicting processes on known service ports
-$portsToFree = @($port, 8080, 8000)
+$portsToFree = @(8080, 8000)
+if (-not $SkipApiPort) {
+    $portsToFree += $port
+}
 foreach ($p in $portsToFree) {
     $connections = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue
     foreach ($conn in $connections) {
