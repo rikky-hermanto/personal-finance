@@ -27,11 +27,11 @@ const formatDate = (ds: string) =>
 
 type ColKey = 'date' | 'description' | 'category' | 'wallet' | 'amount' | 'balance' | 'actions';
 
-const COLUMNS: DataTableColumn<ColKey>[] = [
-  { key: 'date',        label: 'Date',        sortable: true  },
+const COLUMNS: DataTableColumn<Transaction, ColKey>[] = [
+  { key: 'date',        label: 'Date',        sortable: true, filterType: 'date', getDate: (tx) => tx.date },
   { key: 'description', label: 'Description', sortable: false },
-  { key: 'category',    label: 'Category',    sortable: false },
-  { key: 'wallet',      label: 'Wallet',      sortable: false },
+  { key: 'category',    label: 'Category',    sortable: false, getValue: (tx) => tx.category },
+  { key: 'wallet',      label: 'Wallet',      sortable: false, getValue: (tx) => tx.bank },
   { key: 'amount',      label: 'Amount',      sortable: true  },
   { key: 'balance',     label: 'Balance',     sortable: false },
   { key: 'actions',     label: '',            sortable: false },
