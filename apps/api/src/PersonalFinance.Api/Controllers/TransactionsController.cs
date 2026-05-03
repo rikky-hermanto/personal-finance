@@ -222,21 +222,24 @@ public class TransactionsController : ControllerBase
         });
     }
 
-    // List all transactions, with optional filtering by wallet, category, or type
+    // List transactions — server-side paginated, filtered, ordered newest-first by default.
     [HttpGet]
-    public async Task<IActionResult> GetTransactions([FromQuery] string? wallet = null, [FromQuery] string? category = null, [FromQuery] string? type = null)
+    public async Task<IActionResult> GetTransactions(
+        [FromQuery] string? wallet   = null,
+        [FromQuery] string? category = null,
+        [FromQuery] string? type     = null,
+        [FromQuery] string? search   = null,
+        [FromQuery] string sortOrder = "desc",
+        [FromQuery] int    page      = 1,
+        [FromQuery] int    pageSize  = 50)
     {
-        // You may want to add a new service method for more advanced filtering/paging.
-        // For now, use GetTransactionsWithBalanceAsync if wallet is specified, otherwise return all.
-        
-        var transactions = await _transactionService.GetTransactionsWithBalanceAsync(wallet);
-        // Optionally filter by category/type
-        if (!string.IsNullOrEmpty(category))
-            transactions = transactions.Where(t => t.Category == category).ToList();
-        if (!string.IsNullOrEmpty(type))
-            transactions = transactions.Where(t => t.Type == type).ToList();
-        return Ok(transactions);
-       
+        pageSize = Math.Clamp(pageSize, 1, 200);
+        page     = Math.Max(page, 1);
+
+        var result = await _transactionService.GetTransactionPageAsync(
+            page, pageSize, wallet, search, category, type, sortOrder);
+
+        return Ok(result);
     }
 
     // Get details for a specific transaction by ID
