@@ -71,6 +71,65 @@ public class TransactionsController : ControllerBase
     [HttpPost("upload-preview")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadPreview(
+    IFormFile file,
+    [FromForm] string? pdfPassword = null,
+    [FromForm] string? bankHint = null)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest(new { Message = "File is empty." });
+
+        var allowedContentTypes = new[] { "text/csv", "application/pdf", "image/png", "image/jpeg", "image/webp" };
+        if (!allowedContentTypes.Contains(file.ContentType))
+            return BadRequest(new { Message = "Unsupported file type. Upload a CSV, PDF, or screenshot (PNG/JPEG/WEBP)." });
+
+        try
+        {
+            List<TransactionDto> transactions;
+
+            if (ImageContentTypes.Contains(file.ContentType))
+            {
+                using var imgStream = file.OpenReadStream();
+                transactions = await _llmClient.ParseImageAsync(imgStream, file.FileName, file.ContentType, bankHint);
+            }
+            else
+            {
+                using var mainStream = new MemoryStream();
+                await file.CopyToAsync(mainStream);
+                using var preStream = file.OpenReadStream();
+
+                var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
+                if (bank == null)
+                    return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
+
+                mainStream.Position = 0;
+                transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword);
+            }
+
+            var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(transactions);
+            return Ok(nonDuplicates);
+        }
+        catch (NotSupportedException ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex) when (ex.IsTransient)
+        {
+            Response.Headers.Append("Retry-After", "30");
+            return StatusCode(503, new { Message = ex.Message });
+        }
+        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex)
+        {
+            return StatusCode(422, new { Message = "The AI service could not read this file.", Detail = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = "File processing failed. Check the file is a valid bank statement and try again.", Detail = ex.Message });
+        }
+    }
+
+    [HttpPost("upload-preview-new")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<IActionResult> UploadPreviewNEW(
         IFormFile file,
         [FromForm] string? pdfPassword = null,
         [FromForm] string? bankHint = null)
