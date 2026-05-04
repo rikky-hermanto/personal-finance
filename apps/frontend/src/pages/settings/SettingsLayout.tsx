@@ -19,33 +19,32 @@ const SettingsLayout = () => {
     TABS.find((t) => location.pathname.startsWith(t.path))?.value ?? 'categories';
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <div className="flex flex-col h-full bg-transparent">
       {/* Tab bar */}
-      <div className="flex items-center px-6 pt-5 pb-0 border-b border-border gap-4">
-        <div className="flex items-baseline gap-3 mr-4">
-          <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+      <div className="flex items-center px-6 pt-6 pb-5 border-b border-border gap-6">
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
         </div>
         <Tabs value={activeTab} onValueChange={(v) => {
           const tab = TABS.find((t) => t.value === v);
           if (tab && !tab.disabled) navigate(tab.path);
         }}>
-          <TabsList className="bg-transparent h-auto p-0 gap-0 rounded-none">
+          <TabsList className="bg-transparent h-auto p-0 gap-2 rounded-none border-none">
             {TABS.map((tab) => (
               <TabsTrigger
                 key={tab.value}
                 value={tab.value}
                 disabled={tab.disabled}
                 className={cn(
-                  'bg-transparent rounded-none border-b-2 px-4 pb-3 pt-1 text-xs font-medium transition-colors',
-                  'data-[state=active]:border-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none',
-                  'data-[state=inactive]:border-transparent data-[state=inactive]:text-muted-foreground',
-                  'hover:text-foreground',
-                  tab.disabled && 'opacity-40 cursor-not-allowed hover:text-muted-foreground'
+                  'rounded-md px-4 py-1.5 text-xs font-medium transition-all duration-150',
+                  'data-[state=active]:bg-secondary data-[state=active]:text-white data-[state=active]:shadow-none',
+                  'data-[state=inactive]:text-muted-foreground hover:text-white hover:bg-white/5',
+                  tab.disabled && 'opacity-30 cursor-not-allowed hover:bg-transparent'
                 )}
               >
                 {tab.label}
                 {tab.disabled && (
-                  <span className="ml-1.5 text-[10px] text-muted-foreground/70">soon</span>
+                  <span className="ml-1.5 text-[10px] text-muted-foreground/50">soon</span>
                 )}
               </TabsTrigger>
             ))}

@@ -293,16 +293,16 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
                 <div className="flex gap-3 justify-center py-1">
                   <button
                     onClick={onBack}
-                    className="px-4 py-2 rounded text-sm font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
+                    className="px-3 py-1.5 rounded-md text-xs font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
                   >
                     Back to Files
                   </button>
                   <button
                     onClick={handleSubmit}
                     disabled={isSubmitting || newTransactions.length === 0}
-                    className="px-4 py-2 rounded text-sm font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                    className="px-3 py-1.5 rounded-md text-xs font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
                   >
-                    <Send className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    <Send className="w-3 h-3" strokeWidth={1.5} />
                     {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
                   </button>
                 </div>
