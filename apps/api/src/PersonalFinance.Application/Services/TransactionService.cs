@@ -43,10 +43,16 @@ public class TransactionService : ITransactionService
 
     public async Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos)
     {
+        var tagged = await IdentifyDuplicatesAsync(transactionDtos);
+        return tagged.Where(t => !t.IsDuplicate).ToList();
+    }
+
+    public async Task<List<TransactionDto>> IdentifyDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos)
+    {
         var dtoList = transactionDtos.ToList();
         if (!dtoList.Any()) return new List<TransactionDto>();
 
-        _logger.LogDebug("Filtering out duplicates from {Count} transactions.", dtoList.Count);
+        _logger.LogDebug("Identifying duplicates from {Count} transactions.", dtoList.Count);
 
         var wallets = dtoList.Select(t => t.Wallet).Distinct().ToList();
         var minDate = dtoList.Min(t => t.Date).AddDays(-1);
@@ -62,21 +68,21 @@ public class TransactionService : ITransactionService
 
         _logger.LogInformation("Fetched {DbCount} potential duplicates from DB for date range {Min} to {Max}", result.Models.Count, minDate, maxDate);
 
-        var finalTransactions = FilterLogic(dtoList, result.Models, _logger);
+        var taggedTransactions = TagDuplicatesLogic(dtoList, result.Models, _logger);
             
-        _logger.LogInformation("Filtered out {DuplicateCount} duplicates. Returning {FilteredCount} transactions.", dtoList.Count - finalTransactions.Count, finalTransactions.Count);
-        return finalTransactions;
+        _logger.LogInformation("Identified {DuplicateCount} duplicates out of {TotalCount} transactions.", 
+            taggedTransactions.Count(t => t.IsDuplicate), taggedTransactions.Count);
+        return taggedTransactions;
     }
 
     /// <summary>
-    /// Pure logic for filtering transactions. Extracted for unit testing.
+    /// Pure logic for tagging transactions as duplicates. Extracted for unit testing.
     /// </summary>
-    public static List<TransactionDto> FilterLogic(List<TransactionDto> incoming, List<Transaction> existing, ILogger? logger = null)
+    public static List<TransactionDto> TagDuplicatesLogic(List<TransactionDto> incoming, List<Transaction> existing, ILogger? logger = null)
     {
         // Build lookup based on the Regular Key (core attributes)
         var existingRegularLookup = existing.ToLookup(GetRegularKey);
         
-        var filtered = new List<TransactionDto>();
         var seenInBatch = new List<TransactionDto>();
 
         foreach (var t in incoming)
@@ -93,17 +99,18 @@ public class TransactionService : ITransactionService
                 isDuplicate = seenInBatch.Any(s => GetRegularKey(s) == regularKey && IsMatch(s, t));
             }
 
-            if (!isDuplicate)
+            t.IsDuplicate = isDuplicate;
+            
+            if (isDuplicate)
             {
-                filtered.Add(t);
-                seenInBatch.Add(t);
+                logger?.LogInformation("Identified duplicate: {Date:u} | {Amount} | {Desc}", t.Date, t.AmountIdr, t.Description);
             }
             else
             {
-                logger?.LogInformation("Filtered duplicate: {Date:u} | {Amount} | {Desc}", t.Date, t.AmountIdr, t.Description);
+                seenInBatch.Add(t);
             }
         }
-        return filtered;
+        return incoming;
     }
 
     private static bool IsMatch(Transaction db, TransactionDto incoming)

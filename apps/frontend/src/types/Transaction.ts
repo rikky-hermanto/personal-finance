@@ -10,6 +10,7 @@ export interface Transaction {
   bank: string;
   balance?: number;
   isRecurring?: boolean;
+  isDuplicate?: boolean;
 }
 
 export interface CategoryRule {
