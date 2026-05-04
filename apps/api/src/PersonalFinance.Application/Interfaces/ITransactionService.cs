@@ -23,6 +23,12 @@ public interface ITransactionService
     Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos);
 
     /// <summary>
+    /// Tags each transaction in the input as duplicate or not by checking against the database.
+    /// Returns the same list of transactions with IsDuplicate flag set.
+    /// </summary>
+    Task<List<TransactionDto>> IdentifyDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos);
+
+    /// <summary>
     /// Retrieves a transaction by its unique identifier.
     /// </summary>
     Task<TransactionDto?> GetTransactionByIdAsync(int id);
