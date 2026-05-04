@@ -10,6 +10,8 @@ interface TransactionPreviewProps {
   transactions: Transaction[];
   onConfirm: (transactions: Transaction[]) => void;
   onBack: () => void;
+  fileHash?: string | null;
+  fileName?: string | null;
 }
 
 const CORE_CATEGORIES = [
@@ -75,7 +77,7 @@ const AutoScalingText = ({ children, className }: { children: React.ReactNode; c
   );
 };
 
-const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPreviewProps) => {
+const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileName }: TransactionPreviewProps) => {
   const [editedTransactions, setEditedTransactions] = useState<Transaction[]>(transactions);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -125,7 +127,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack }: TransactionPrev
         balance: 0,
         categoryRuleDto: null
       }));
-      await transactionsApi.submitTransactions(payload);
+      await transactionsApi.submitTransactions(payload, fileHash || undefined, fileName || undefined);
       onConfirm(editedTransactions);
     } catch (error: any) {
       let message = "Failed to submit transactions";

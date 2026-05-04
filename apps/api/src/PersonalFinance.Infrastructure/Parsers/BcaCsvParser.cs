@@ -80,7 +80,9 @@ public class BcaCsvParser : IBankStatementParser
                 Wallet = "BCA",
                 AmountIdr = amount,
                 Currency = "IDR",
-                ExchangeRate = null
+                ExchangeRate = null,
+                BankRunningBalance = balance,
+                Balance = balance ?? 0
             };
 
             transactions.Add(transaction);
