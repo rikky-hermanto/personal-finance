@@ -15,6 +15,7 @@ public class TransactionsController : ControllerBase
     private static readonly HashSet<string> ImageContentTypes =
         ["image/png", "image/jpeg", "image/webp"];
 
+    private readonly ILogger<TransactionsController> _logger;
     private readonly IStatementImportService _statementImportService;
     private readonly IBankIdentifier _bankIdentifier;
     private readonly ITransactionService _transactionService;
@@ -26,6 +27,7 @@ public class TransactionsController : ControllerBase
     private readonly ITransactionPipelineService _pipelineService;
 
     public TransactionsController(
+        ILogger<TransactionsController> logger,
         IStatementImportService statementImportService,
         IBankIdentifier bankIdentifier,
         ITransactionService transactionService,
@@ -36,6 +38,7 @@ public class TransactionsController : ControllerBase
         IFileStorageService fileStorageService,
         ITransactionPipelineService pipelineService)
     {
+        _logger = logger;
         _statementImportService = statementImportService;
         _bankIdentifier = bankIdentifier;
         _transactionService = transactionService;
@@ -85,20 +88,19 @@ public class TransactionsController : ControllerBase
 
         try
         {
+            using var mainStream = new MemoryStream();
+            await file.CopyToAsync(mainStream);
+            mainStream.Position = 0;
+
             List<TransactionDto> transactions;
 
             if (ImageContentTypes.Contains(file.ContentType))
             {
-                using var imgStream = file.OpenReadStream();
-                transactions = await _llmClient.ParseImageAsync(imgStream, file.FileName, file.ContentType, bankHint);
+                transactions = await _llmClient.ParseImageAsync(mainStream, file.FileName, file.ContentType, bankHint);
             }
             else
             {
-                using var mainStream = new MemoryStream();
-                await file.CopyToAsync(mainStream);
-                using var preStream = file.OpenReadStream();
-
-                var bank = await _bankIdentifier.IdentifyAsync(preStream, file.ContentType, pdfPassword);
+                var bank = await _bankIdentifier.IdentifyAsync(mainStream, file.ContentType, pdfPassword);
                 if (bank == null)
                     return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
 
@@ -106,8 +108,19 @@ public class TransactionsController : ControllerBase
                 transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword, dateFormat);
             }
 
+            mainStream.Position = 0;
+            var hash = CalculateFileHash(mainStream);
+            
+            _logger.LogInformation("File uploaded: {FileName}, Hash: {Hash}", file.FileName, hash);
+
+            if (await _transactionService.IsFileProcessedAsync(hash))
+            {
+                _logger.LogWarning("File already processed: {Hash}", hash);
+                return Conflict(new { Message = "This file has already been processed.", Hash = hash });
+            }
+
             var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(transactions);
-            return Ok(nonDuplicates);
+            return Ok(new { Transactions = nonDuplicates, Hash = hash });
         }
         catch (NotSupportedException ex)
         {
@@ -208,20 +221,42 @@ public class TransactionsController : ControllerBase
     }
 
     [HttpPost("submit")]
-    public async Task<IActionResult> SubmitTransactions([FromBody] List<TransactionDto> transactions)
+    public async Task<IActionResult> SubmitTransactions([FromBody] SubmitTransactionsRequest request)
     {
-        if (transactions == null || transactions.Count == 0)
+        if (request.Transactions == null || request.Transactions.Count == 0)
             return BadRequest("No transactions to submit.");
 
-        await _categoryRuleService.EnsureCategoryRulesAsync(transactions);
+        await _categoryRuleService.EnsureCategoryRulesAsync(request.Transactions);
 
-        var addedTransactions = await _transactionService.AddTransactionsAsync(transactions);
+        var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(request.Transactions);
+        if (nonDuplicates.Count == 0)
+        {
+            return Ok(new
+            {
+                Message = "All transactions are duplicates. Nothing to import.",
+                Transactions = new List<TransactionDto>()
+            });
+        }
+
+        var addedTransactions = await _transactionService.AddTransactionsAsync(nonDuplicates);
+
+        if (!string.IsNullOrEmpty(request.FileHash))
+        {
+            await _transactionService.RegisterFileHashAsync(request.FileHash, request.FileName ?? "uploaded_file");
+        }
 
         return Ok(new
         {
             Message = $"{addedTransactions.Count} transactions imported successfully.",
             Transactions = addedTransactions
         });
+    }
+
+    public class SubmitTransactionsRequest
+    {
+        public List<TransactionDto> Transactions { get; set; } = [];
+        public string? FileHash { get; set; }
+        public string? FileName { get; set; }
     }
 
     // List transactions — server-side paginated, filtered, ordered newest-first by default.
@@ -322,5 +357,12 @@ public class TransactionsController : ControllerBase
     {
         var deleted = await _mediator.Send(new DeleteAllTransactionsCommand());
         return Ok(new { deleted });
+    }
+
+    private string CalculateFileHash(Stream stream)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        var hashBytes = sha256.ComputeHash(stream);
+        return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
     }
 }

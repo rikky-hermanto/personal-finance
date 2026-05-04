@@ -27,33 +27,144 @@ public class TransactionService : ITransactionService
         _logger.LogInformation("Adding {Count} transactions.", entities.Count);
 
         // Bulk insert — one DB round-trip (N+1 fix for PF-039)
-        var result = await _supabase.From<Transaction>().Insert(entities);
-
-        _logger.LogInformation("Supabase confirmed {ConfirmedCount} of {RequestedCount} transactions inserted.", result.Models.Count, entities.Count);
-        return result.Models.Select(MapToDto).ToList();
+        try
+        {
+            var result = await _supabase.From<Transaction>().Insert(entities);
+            _logger.LogInformation("Supabase confirmed {ConfirmedCount} of {RequestedCount} transactions inserted.", result.Models.Count, entities.Count);
+            return result.Models.Select(MapToDto).ToList();
+        }
+        catch (Exception ex) when (ex.Message.Contains("23505")) // Postgres Unique Violation code
+        {
+            _logger.LogWarning("Unique constraint violation during bulk insert. Some transactions might be duplicates.");
+            // Fallback: Fetch what was actually inserted or just return what we have (best effort)
+            return new List<TransactionDto>(); 
+        }
     }
 
     public async Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos)
     {
         var dtoList = transactionDtos.ToList();
-        _logger.LogDebug("Filtering out duplicates from {Count} transactions.", dtoList.Count);
-        var wallets = dtoList.Select(t => t.Wallet).Distinct().ToList();
+        if (!dtoList.Any()) return new List<TransactionDto>();
 
+        _logger.LogDebug("Filtering out duplicates from {Count} transactions.", dtoList.Count);
+
+        var wallets = dtoList.Select(t => t.Wallet).Distinct().ToList();
+        var minDate = dtoList.Min(t => t.Date).AddDays(-1);
+        var maxDate = dtoList.Max(t => t.Date).AddDays(1);
+
+        // Fetch only relevant transactions from DB (performance + accuracy)
         var result = await _supabase.From<Transaction>()
-            .Filter("wallet", Operator.In, wallets)
-            .Range(0, 100_000) // Override Supabase's default 1,000-row PostgREST cap
+            .Filter("date", Operator.GreaterThanOrEqual, minDate)
+            .Filter("date", Operator.LessThanOrEqual, maxDate)
+            .Order("date", Ordering.Descending) // Prioritize checking against recent data
+            .Range(0, 1000_000) // Significantly increased range
             .Get();
 
-        var existingKeySet = new HashSet<string>(
-            result.Models.Select(t => $"{t.Date:u}|{t.Description}|{t.Flow}|{t.Type}|{t.Wallet}")
-        );
+        _logger.LogInformation("Fetched {DbCount} potential duplicates from DB for date range {Min} to {Max}", result.Models.Count, minDate, maxDate);
 
-        var filtered = dtoList
-            .Where(t => !existingKeySet.Contains($"{t.Date:u}|{t.Description}|{t.Flow}|{t.Type}|{t.Wallet}"))
-            .ToList();
+        var finalTransactions = FilterLogic(dtoList, result.Models, _logger);
             
-        _logger.LogInformation("Filtered out {DuplicateCount} duplicates. Returning {FilteredCount} transactions.", dtoList.Count - filtered.Count, filtered.Count);
+        _logger.LogInformation("Filtered out {DuplicateCount} duplicates. Returning {FilteredCount} transactions.", dtoList.Count - finalTransactions.Count, finalTransactions.Count);
+        return finalTransactions;
+    }
+
+    /// <summary>
+    /// Pure logic for filtering transactions. Extracted for unit testing.
+    /// </summary>
+    public static List<TransactionDto> FilterLogic(List<TransactionDto> incoming, List<Transaction> existing, ILogger? logger = null)
+    {
+        // Build lookup based on the Regular Key (core attributes)
+        var existingRegularLookup = existing.ToLookup(GetRegularKey);
+        
+        var filtered = new List<TransactionDto>();
+        var seenInBatch = new List<TransactionDto>();
+
+        foreach (var t in incoming)
+        {
+            var regularKey = GetRegularKey(t);
+            
+            // 1. Check against Database (Tiered Logic)
+            var dbMatches = existingRegularLookup[regularKey];
+            bool isDuplicate = dbMatches.Any(m => IsMatch(m, t));
+
+            // 2. Check against current batch (Intra-batch deduplication)
+            if (!isDuplicate)
+            {
+                isDuplicate = seenInBatch.Any(s => GetRegularKey(s) == regularKey && IsMatch(s, t));
+            }
+
+            if (!isDuplicate)
+            {
+                filtered.Add(t);
+                seenInBatch.Add(t);
+            }
+            else
+            {
+                logger?.LogInformation("Filtered duplicate: {Date:u} | {Amount} | {Desc}", t.Date, t.AmountIdr, t.Description);
+            }
+        }
         return filtered;
+    }
+
+    private static bool IsMatch(Transaction db, TransactionDto incoming)
+    {
+        // Tiered logic:
+        // - If both have balances, they must match.
+        // - If either lacks a balance, we fall back to the Regular Key (which already matched if we are here).
+        if (!db.BankRunningBalance.HasValue || !incoming.BankRunningBalance.HasValue)
+            return true;
+
+        return Math.Abs(db.BankRunningBalance.Value - incoming.BankRunningBalance.Value) < 0.01m;
+    }
+
+    private static bool IsMatch(TransactionDto seen, TransactionDto incoming)
+    {
+        if (!seen.BankRunningBalance.HasValue || !incoming.BankRunningBalance.HasValue)
+            return true;
+
+        return Math.Abs(seen.BankRunningBalance.Value - incoming.BankRunningBalance.Value) < 0.01m;
+    }
+
+    private static string GetRegularKey(TransactionDto t)
+    {
+        var date = StandardizeDate(t.Date);
+        var amountStr = Math.Round(t.AmountIdr, 2).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        var desc = AggressiveNormalize(t.Description);
+        var wallet = (string.IsNullOrWhiteSpace(t.Wallet) || t.Wallet == "-") ? "unknown" : t.Wallet.Trim().ToLower();
+        
+        return $"{date:yyyy-MM-dd HH:mm:ss}|{amountStr}|{desc}|{wallet}|{t.Flow}";
+    }
+
+    private static string GetRegularKey(Transaction t)
+    {
+        var date = StandardizeDate(t.Date);
+        var amountStr = Math.Round(t.AmountIdr, 2).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+        var desc = AggressiveNormalize(t.Description);
+        var wallet = (string.IsNullOrWhiteSpace(t.Wallet) || t.Wallet == "-") ? "unknown" : t.Wallet.Trim().ToLower();
+
+        return $"{date:yyyy-MM-dd HH:mm:ss}|{amountStr}|{desc}|{wallet}|{t.Flow}";
+    }
+
+    private static string AggressiveNormalize(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+        
+        // Remove all multiple spaces, tabs, and newlines inside the string
+        // "Initial  Balance" -> "initial balance"
+        var normalized = System.Text.RegularExpressions.Regex.Replace(input.Trim().ToLower(), @"\s+", " ");
+        return normalized;
+    }
+
+    private static DateTime StandardizeDate(DateTime date)
+    {
+        if (date.Kind == DateTimeKind.Utc) return date;
+        
+        // If it's Local or Unspecified (common from DB drivers), convert to UTC
+        var localDate = date.Kind == DateTimeKind.Unspecified 
+            ? DateTime.SpecifyKind(date, DateTimeKind.Local) 
+            : date;
+            
+        return localDate.ToUniversalTime();
     }
 
     public async Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(
@@ -153,6 +264,20 @@ public class TransactionService : ITransactionService
         };
     }
 
+    public async Task<bool> IsFileProcessedAsync(string fileHash)
+    {
+        var result = await _supabase.From<UploadedFile>()
+            .Filter("file_hash", Operator.Equals, fileHash)
+            .Get();
+        return result.Models.Any();
+    }
+
+    public async Task RegisterFileHashAsync(string fileHash, string fileName)
+    {
+        var entry = new UploadedFile { FileHash = fileHash, FileName = fileName };
+        await _supabase.From<UploadedFile>().Insert(entry);
+    }
+
     private static Transaction MapToEntity(TransactionDto dto) => new()
     {
         Date = dto.Date,
@@ -164,7 +289,8 @@ public class TransactionService : ITransactionService
         Wallet = dto.Wallet,
         AmountIdr = dto.AmountIdr,
         Currency = dto.Currency,
-        ExchangeRate = dto.ExchangeRate
+        ExchangeRate = dto.ExchangeRate,
+        BankRunningBalance = dto.BankRunningBalance
     };
 
     private static TransactionDto MapToDto(Transaction t) => new()
@@ -179,6 +305,7 @@ public class TransactionService : ITransactionService
         Wallet = t.Wallet,
         AmountIdr = t.AmountIdr,
         Currency = t.Currency,
-        ExchangeRate = t.ExchangeRate
+        ExchangeRate = t.ExchangeRate,
+        BankRunningBalance = t.BankRunningBalance
     };
 }

@@ -93,7 +93,7 @@ export async function uploadPreview(
   pdfPassword?: string,
   bankHint?: string,
   dateFormat?: string
-): Promise<TransactionDto[]> {
+): Promise<{ transactions: TransactionDto[], hash: string }> {
   const formData = new FormData();
   formData.append("file", file);
   if (pdfPassword) {
@@ -119,11 +119,11 @@ export async function uploadPreview(
   return res.json();
 }
 
-export async function submitTransactions(transactions: TransactionDto[]): Promise<void> {
+export async function submitTransactions(transactions: TransactionDto[], fileHash?: string, fileName?: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(transactions),
+    body: JSON.stringify({ transactions, fileHash, fileName }),
   });
   if (!res.ok) {
     const error: any = new Error("API Error");

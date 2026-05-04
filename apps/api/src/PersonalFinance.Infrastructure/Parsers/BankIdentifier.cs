@@ -17,7 +17,7 @@ public class BankIdentifier : IBankIdentifier
         if (contentType == "text/csv")
         {
             stream.Position = 0;
-            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024);
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
             for (int i = 0; i < 5; i++)
             {
                 var line = await reader.ReadLineAsync();
