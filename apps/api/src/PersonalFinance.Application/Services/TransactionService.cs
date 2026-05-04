@@ -113,6 +113,15 @@ public class TransactionService : ITransactionService
         return incoming;
     }
 
+    /// <summary>
+    /// Pure logic for filtering out duplicates. Extracted for unit testing.
+    /// </summary>
+    public static List<TransactionDto> FilterLogic(List<TransactionDto> incoming, List<Transaction> existing)
+    {
+        var tagged = TagDuplicatesLogic(incoming, existing);
+        return tagged.Where(t => !t.IsDuplicate).ToList();
+    }
+
     private static bool IsMatch(Transaction db, TransactionDto incoming)
     {
         // Tiered logic:

@@ -10,6 +10,18 @@ from app.providers.factory import ProviderFactory
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
 
+from opentelemetry import trace, metrics
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.metrics import MeterProvider
+from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.logging import LoggingInstrumentor
+
+
 _ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
 
@@ -30,11 +42,38 @@ async def lifespan(app: FastAPI):
     logger.info("AI service shutting down")
 
 
+# OpenTelemetry Initialization
+resource = Resource(attributes={
+    SERVICE_NAME: settings.otel_service_name
+})
+
+# Tracing
+provider = TracerProvider(resource=resource)
+# Note: insecure=True is required since we're talking to Alloy over local network without TLS
+span_exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint, insecure=True)
+processor = BatchSpanProcessor(span_exporter)
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
+# Metrics
+metric_exporter = OTLPMetricExporter(endpoint=settings.otel_exporter_otlp_endpoint, insecure=True)
+reader = PeriodicExportingMetricReader(metric_exporter)
+meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+metrics.set_meter_provider(meter_provider)
+
+# Logging
+LoggingInstrumentor().instrument(set_logging_format=True)
+
+
 app = FastAPI(
     title="Personal Finance AI Service",
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Instrument FastAPI
+FastAPIInstrumentor.instrument_app(app)
+
 
 app.add_middleware(
     CORSMiddleware,
