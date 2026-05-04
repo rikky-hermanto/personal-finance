@@ -30,10 +30,10 @@ const RegionalTab = () => {
   };
 
   return (
-    <div className="p-8 bg-background min-h-full">
+    <div className="p-8 bg-transparent min-h-full">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-base font-semibold text-foreground">Regional Settings</h2>
+          <h2 className="text-2xl font-bold text-white tracking-tight">Regional Settings</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Configure how dates and numbers are displayed and parsed.
           </p>
