@@ -16,12 +16,16 @@ class Settings(BaseSettings):
 
     log_level: str = "INFO"
     cors_origins: list[str] = ["http://localhost:7208"]
+    otel_exporter_otlp_endpoint: str = "http://localhost:4317"
+    otel_service_name: str = "ai-service"
+
 
     def validate_provider_key(self) -> None:
         if self.ai_provider == "gemini" and not self.gemini_api_key:
-            raise ValueError("GEMINI_API_KEY is required when AI_PROVIDER=gemini")
+            print("WARNING: GEMINI_API_KEY is not set. AI features will fail.")
         if self.ai_provider == "anthropic" and not self.anthropic_api_key:
-            raise ValueError("ANTHROPIC_API_KEY is required when AI_PROVIDER=anthropic")
+            print("WARNING: ANTHROPIC_API_KEY is not set. AI features will fail.")
+
 
 
 settings = Settings()
