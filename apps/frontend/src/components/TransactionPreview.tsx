@@ -273,71 +273,91 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       </div>
 
       {/* Transactions Tables */}
-      <div className="flex-1 min-h-0 mb-6 overflow-y-auto space-y-8 pr-2 custom-scrollbar">
-        {/* New Transactions */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success"></span>
-              Ready to Save ({newTransactions.length})
-            </h3>
-          </div>
-          <div className="border border-border rounded-lg overflow-hidden bg-card/50">
-            <DataTable
-              columns={columns}
-              rows={newTransactions}
-              height="auto"
-              emptyMessage="No new transactions found."
-              renderRow={renderRow}
-            />
-          </div>
-        </div>
-
-        {/* Duplicate Transactions */}
-        {duplicateTransactions.length > 0 && (
+      <div className="flex-1 min-h-0 mb-6 overflow-y-auto space-y-12 pr-2 custom-scrollbar">
+        {/* Group 1: New Data & Actions */}
+        <div className="space-y-6">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-muted-foreground/30"></span>
-                Duplicates (Already in DB: {duplicateTransactions.length})
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-success"></span>
+                Ready to Save ({newTransactions.length})
               </h3>
             </div>
-            <div className="border border-border rounded-lg overflow-hidden bg-card/20 opacity-70">
+            <div className="border border-border rounded-lg overflow-hidden bg-card/50">
               <DataTable
-                columns={columns.filter(c => c.key !== 'actions')}
-                rows={duplicateTransactions}
+                columns={columns}
+                rows={newTransactions}
                 height="auto"
-                emptyMessage="No duplicates found."
+                emptyMessage="No new transactions found."
                 renderRow={renderRow}
               />
             </div>
           </div>
-        )}
-      </div>
 
-      {/* Error */}
-      {apiError && (
-        <div className="mb-4 p-3 rounded bg-destructive/10 border border-destructive/30 text-destructive text-sm shrink-0">
-          {apiError}
+          {/* Error */}
+          {apiError && (
+            <div className="p-3 rounded bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+              {apiError}
+            </div>
+          )}
+
+          {/* Actions - Now directly under the first table */}
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={onBack}
+              className="px-4 py-2 rounded text-sm font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
+            >
+              Back to Files
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || newTransactions.length === 0}
+              className="px-4 py-2 rounded text-sm font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+            >
+              <Send className="w-3.5 h-3.5" strokeWidth={1.5} />
+              {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
+            </button>
+          </div>
         </div>
-      )}
 
-      {/* Actions */}
-      <div className="flex gap-3 justify-center shrink-0">
-        <button
-          onClick={onBack}
-          className="px-4 py-2 rounded text-sm font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
-        >
-          Back to Files
-        </button>
-        <button
-          onClick={handleSubmit}
-          disabled={isSubmitting || newTransactions.length === 0}
-          className="px-4 py-2 rounded text-sm font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-        >
-          <Send className="w-3.5 h-3.5" strokeWidth={1.5} />
-          {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
-        </button>
+        {/* Group 2: Duplicate Transactions (Subtle Text Grid) */}
+        {duplicateTransactions.length > 0 && (
+          <div className="space-y-4 pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-[10px] font-semibold text-muted-foreground/40 flex items-center gap-2 uppercase tracking-[0.2em]">
+                Duplicates (Already in DB: {duplicateTransactions.length})
+              </h3>
+            </div>
+            
+            <div className="space-y-1.5 px-5">
+              {duplicateTransactions.map((tx) => (
+                <div 
+                  key={tx.id} 
+                  className="grid grid-cols-[8rem_1fr_12rem_8rem_8rem] gap-4 items-center opacity-60 hover:opacity-100 transition-opacity"
+                >
+                  <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
+                    {formatDate(tx.date)}
+                  </div>
+                  <div className="text-[11px] text-foreground/80 truncate">
+                    {tx.description}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/70 italic">
+                    {tx.category}
+                  </div>
+                  <div className={cn(
+                    'font-mono text-[11px] tabular-nums text-right pr-4',
+                    tx.flow === 'CR' ? 'text-success/70' : 'text-destructive/70'
+                  )}>
+                    {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/60 text-right">
+                    {tx.bank}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
