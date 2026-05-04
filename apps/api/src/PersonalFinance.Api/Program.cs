@@ -5,6 +5,13 @@ using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Infrastructure.Supabase;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using OpenTelemetry.Logs;
+using Npgsql;
+
+
 
 namespace PersonalFinance.Api
 {
@@ -19,6 +26,32 @@ namespace PersonalFinance.Api
             builder.Services.AddHealthChecks();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
+
+            // OpenTelemetry Configuration
+            var otelEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
+            var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? "api";
+
+            builder.Services.AddOpenTelemetry()
+                .ConfigureResource(resource => resource.AddService(serviceName))
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddNpgsql()
+                    .AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint)))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint)));
+
+            builder.Logging.AddOpenTelemetry(logging =>
+            {
+                logging.IncludeFormattedMessage = true;
+                logging.IncludeScopes = true;
+                logging.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
+                logging.AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint));
+            });
+
 
             builder.Services.AddSupabase(builder.Configuration);
             builder.Services.AddHttpClient<ILlmExtractionClient, LlmExtractionClient>(client =>
