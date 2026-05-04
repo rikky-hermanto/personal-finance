@@ -13,7 +13,8 @@ public class TransactionDto
     public decimal AmountIdr { get; set; }
     public string Currency { get; set; } = "IDR";
     public decimal? ExchangeRate { get; set; }
-    public decimal Balance { get; set; } // Calculated on the fly
+    public decimal? BankRunningBalance { get; set; }
+    public decimal Balance { get; set; } // Calculated on the fly (UI)
 
     // Optional: Used when user wants to create a new category rule from this transaction
     public CategoryRuleDto? CategoryRuleDto { get; set; }
