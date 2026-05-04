@@ -41,7 +41,8 @@ if (Test-Path $launchSettingsPath) {
 }
 
 # 3. Stop conflicting processes on known service ports
-$portsToFree = @(8080, 8000)
+$portsToFree = @(8080, 8000, 3000, 3100, 3200, 9090, 12345)
+
 if (-not $SkipApiPort) {
     $portsToFree += $port
 }

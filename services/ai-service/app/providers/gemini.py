@@ -9,8 +9,17 @@ logger = logging.getLogger(__name__)
 
 class GeminiProvider:
     def __init__(self, api_key: str, model: str = "gemini-2.5-flash") -> None:
-        self._client = genai.Client(api_key=api_key)
+        self._api_key = api_key
         self._model = model
+        self._client = None
+
+    def _get_client(self) -> genai.Client:
+        if self._client is None:
+            if not self._api_key:
+                raise ValueError("GEMINI_API_KEY is not set.")
+            self._client = genai.Client(api_key=self._api_key)
+        return self._client
+
 
     async def extract_structured(
         self,
@@ -35,7 +44,8 @@ class GeminiProvider:
         else:
             contents = user_text
 
-        response = await self._client.aio.models.generate_content(
+        client = self._get_client()
+        response = await client.aio.models.generate_content(
             model=self._model,
             contents=contents,
             config=config,

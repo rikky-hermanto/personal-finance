@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "scripts": {
     "prestart": "powershell -ExecutionPolicy Bypass -File ./scripts/prestart.ps1",
-    "start": "(docker start personalfinance-db || docker compose up -d db) && concurrently --kill-others-on-fail --names \"api,ui,ai\" --prefix-colors \"yellow,cyan,magenta\" \"cd apps/api && dotnet run --project src/PersonalFinance.Api\" \"cd apps/frontend && npm run dev\" \"powershell -ExecutionPolicy Bypass -NoProfile -Command \\\"cd services/ai-service; .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000\\\"\"",
+    "start": "docker compose up -d db alloy prometheus loki tempo grafana && concurrently --kill-others-on-fail --names \"api,ui,ai\" --prefix-colors \"yellow,cyan,magenta\" \"cd apps/api && dotnet run --project src/PersonalFinance.Api\" \"cd apps/frontend && npm run dev\" \"powershell -ExecutionPolicy Bypass -NoProfile -Command \\\"cd services/ai-service; .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000\\\"\"",
     "prestart:no-api": "powershell -ExecutionPolicy Bypass -File ./scripts/prestart.ps1 -SkipApiPort",
-    "start:no-api": "(docker start personalfinance-db || docker compose up -d db) && concurrently --kill-others-on-fail --names \"ui,ai\" --prefix-colors \"cyan,magenta\" \"cd apps/frontend && npm run dev\" \"powershell -ExecutionPolicy Bypass -NoProfile -Command \\\"cd services/ai-service; .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000\\\"\"",
+    "start:no-api": "docker compose up -d db alloy prometheus loki tempo grafana && concurrently --kill-others-on-fail --names \"ui,ai\" --prefix-colors \"cyan,magenta\" \"cd apps/frontend && npm run dev\" \"powershell -ExecutionPolicy Bypass -NoProfile -Command \\\"cd services/ai-service; .venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000\\\"\"",
+
     "dev": "cd apps/frontend && npm run dev",
     "build": "cd apps/frontend && npm run build",
     "lint": "cd apps/frontend && npm run lint",

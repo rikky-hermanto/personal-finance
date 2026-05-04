@@ -18,7 +18,8 @@ public class BcaCsvParser : IBankStatementParser
     {
         _logger.LogInformation("Starting BCA CSV parsing.");
         var transactions = new List<TransactionDto>();
-        using var reader = new StreamReader(fileStream);
+        using var reader = new StreamReader(fileStream, leaveOpen: true);
+
 
         // Dynamically skip lines until the header is found
         string? header = null;

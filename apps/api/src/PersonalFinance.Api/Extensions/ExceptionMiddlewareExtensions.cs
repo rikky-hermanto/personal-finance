@@ -3,6 +3,9 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using System.Diagnostics;
+using OpenTelemetry.Trace;
+
 
 namespace PersonalFinance.Api.Extensions
 {
@@ -22,6 +25,10 @@ namespace PersonalFinance.Api.Extensions
                 catch (Exception ex)
                 {
                     logger.LogError(ex, "An unhandled exception has occurred while executing the request.");
+                    
+                    Activity.Current?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                    Activity.Current?.RecordException(ex);
+
 
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     context.Response.ContentType = "application/json";
