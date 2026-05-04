@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Upload, FileText, CheckCircle, Eye, X, FileDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Transaction } from '@/types/Transaction';
@@ -28,7 +28,13 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [isProcessing, setIsProcessing]       = useState(false);
   const [pdfPassword, setPdfPassword]         = useState('');
   const [bankHint, setBankHint]               = useState('');
+  const [fileHash, setFileHash]               = useState<string | null>(null);
   const [apiError, setApiError]               = useState<string | null>(null);
+  
+  // Clear error on unmount
+  useEffect(() => {
+    return () => setApiError(null);
+  }, []);
 
   const isImageFile = (f: File) =>
     f.type === 'image/png' || f.type === 'image/jpeg' || f.type === 'image/webp';
@@ -53,6 +59,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     );
     if (validFiles.length > 0) {
       setUploadedFiles(prev => [...prev, ...validFiles]);
+      setApiError(null); // Clear previous errors on new file selection
       if (currentStep === 'upload') setCurrentStep('review');
     }
   }, [currentStep]);
@@ -61,6 +68,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       setUploadedFiles(prev => [...prev, ...files]);
+      setApiError(null); // Clear previous errors on new file selection
       if (currentStep === 'upload') setCurrentStep('review');
     }
   }, [currentStep]);
@@ -71,6 +79,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       if (next.length === 0) setCurrentStep('upload');
       return next;
     });
+    setApiError(null);
   }, []);
 
   const handleProcessFiles = useCallback(async () => {
@@ -86,7 +95,8 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         bankHint || undefined,
         dateFormat
       );
-      const transactions: Transaction[] = apiTransactions.map((t: transactionsApi.TransactionDto) => {
+      setFileHash(apiTransactions.hash);
+      const transactions: Transaction[] = apiTransactions.transactions.map((t: transactionsApi.TransactionDto) => {
         let mappedType: 'income' | 'expense' | 'transfer';
         const rawType = t.type.toLowerCase();
         
@@ -141,6 +151,8 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const handleStartOver = useCallback(() => {
     setUploadedFiles([]);
     setParsedTransactions([]);
+    setFileHash(null);
+    setApiError(null);
     setCurrentStep('upload');
   }, []);
 
@@ -195,6 +207,8 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           transactions={parsedTransactions}
           onConfirm={handleConfirmData}
           onBack={() => setCurrentStep('review')}
+          fileHash={fileHash}
+          fileName={uploadedFiles[0]?.name}
         />
       </div>
     );
