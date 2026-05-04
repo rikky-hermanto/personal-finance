@@ -274,50 +274,48 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
 
       {/* Transactions Tables */}
       <div className="flex-1 min-h-0 mb-6 overflow-y-auto space-y-12 pr-2 custom-scrollbar">
-        {/* Group 1: New Data & Actions */}
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-success"></span>
-                Ready to Save ({newTransactions.length})
-              </h3>
-            </div>
-            <div className="border border-border rounded-lg overflow-hidden bg-card/50">
-              <DataTable
-                columns={columns}
-                rows={newTransactions}
-                height="auto"
-                emptyMessage="No new transactions found."
-                renderRow={renderRow}
-              />
-            </div>
+        {/* Group 1: New Data & Actions (Frozen Header/Footer via DataTable) */}
+        <div className="space-y-3 flex flex-col h-[600px] min-h-[400px]">
+          <div className="flex items-center justify-between shrink-0">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success"></span>
+              Ready to Save ({newTransactions.length})
+            </h3>
           </div>
-
-          {/* Error */}
+          <div className="flex-1 min-h-0">
+            <DataTable
+              columns={columns}
+              rows={newTransactions}
+              height="100%"
+              emptyMessage="No new transactions found."
+              renderRow={renderRow}
+              footer={(
+                <div className="flex gap-3 justify-center py-1">
+                  <button
+                    onClick={onBack}
+                    className="px-4 py-2 rounded text-sm font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
+                  >
+                    Back to Files
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || newTransactions.length === 0}
+                    className="px-4 py-2 rounded text-sm font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <Send className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
+                  </button>
+                </div>
+              )}
+            />
+          </div>
+          
+          {/* Error - placed just outside/below the frozen footer if needed, or I could put it inside footer too */}
           {apiError && (
-            <div className="p-3 rounded bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+            <div className="p-3 rounded bg-destructive/10 border border-destructive/30 text-destructive text-sm shrink-0">
               {apiError}
             </div>
           )}
-
-          {/* Actions - Now directly under the first table */}
-          <div className="flex gap-3 justify-center">
-            <button
-              onClick={onBack}
-              className="px-4 py-2 rounded text-sm font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
-            >
-              Back to Files
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting || newTransactions.length === 0}
-              className="px-4 py-2 rounded text-sm font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-            >
-              <Send className="w-3.5 h-3.5" strokeWidth={1.5} />
-              {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
-            </button>
-          </div>
         </div>
 
         {/* Group 2: Duplicate Transactions (Subtle Text Grid) */}

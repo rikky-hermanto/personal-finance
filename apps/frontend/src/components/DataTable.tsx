@@ -69,6 +69,7 @@ export interface DataTableProps<TRow, TKey extends string = string> {
   height?: string;
   sort?: SortState<TKey>;
   onSortChange?: (key: TKey) => void;
+  footer?: ReactNode;
 }
 
 // ─── Date filter panel ────────────────────────────────────────────────────────
@@ -379,6 +380,7 @@ function DataTable<TRow, TKey extends string = string>({
   pageSize = 50,
   height = 'calc(100vh - 200px)',
   sort, onSortChange,
+  footer,
 }: DataTableProps<TRow, TKey>) {
 
   // ── Infinite scroll ───────────────────────────────────────────────────────
@@ -563,19 +565,22 @@ function DataTable<TRow, TKey extends string = string>({
       </div>
 
       {/* ── Frozen footer ── */}
-      <div className="px-5 py-3 border-t border-border shrink-0 flex items-center justify-center min-h-[44px]">
-        {isLoadingMore && (
-          <div className="flex items-center gap-2 text-muted-foreground text-xs">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            Loading more…
-          </div>
-        )}
-        {!isLoadingMore && !hasMore && filteredRows.length > 0 && (
-          <p className="text-xs text-muted-foreground">
-            Showing all {filteredRows.length} row{filteredRows.length !== 1 ? 's' : ''}
-            {activeFilterCount > 0 && ` (filtered from ${rows.length})`}
-          </p>
-        )}
+      <div className="px-5 py-3 border-t border-border shrink-0 flex flex-col items-center gap-3 bg-card">
+        <div className="flex items-center justify-center min-h-[20px] w-full">
+          {isLoadingMore && (
+            <div className="flex items-center gap-2 text-muted-foreground text-xs">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Loading more…
+            </div>
+          )}
+          {!isLoadingMore && !hasMore && filteredRows.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Showing all {filteredRows.length} row{filteredRows.length !== 1 ? 's' : ''}
+              {activeFilterCount > 0 && ` (filtered from ${rows.length})`}
+            </p>
+          )}
+        </div>
+        {footer && <div className="w-full">{footer}</div>}
       </div>
 
       {/* ── Column menu portal ── */}
