@@ -38,4 +38,14 @@ public interface ITransactionService
         string? category = null,
         string? type = null,
         string sortOrder = "desc");
+
+    /// <summary>
+    /// Checks if a file hash already exists in the database.
+    /// </summary>
+    Task<bool> IsFileProcessedAsync(string fileHash);
+
+    /// <summary>
+    /// Records a file hash in the database.
+    /// </summary>
+    Task RegisterFileHashAsync(string fileHash, string fileName);
 }

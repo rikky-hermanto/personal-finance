@@ -21,7 +21,7 @@ public class DefaultCsvParser : IBankStatementParser
         _logger.LogInformation("Starting default CSV parsing.");
         var transactions = new List<TransactionDto>();
 
-        using var reader = new StreamReader(fileStream);
+        using var reader = new StreamReader(fileStream, leaveOpen: true);
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HeaderValidated = null,

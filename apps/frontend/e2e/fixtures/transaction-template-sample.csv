@@ -1,0 +1,10 @@
+Date;Item;Remarks;Flow;Type;Category;Wallet;Amount;Exc. Rate;Amount (IDR);Balance;Month Tracker
+01/01/2024 00:30;Initial Balance;Initial Balance;CR;;;;;;169338655,95;;
+01/01/2024 00:30;Initial Balance;Initial Balance;CR;;;;;;169338655,95;169338655,95;Jan-24
+01/01/2024 01:00;;BI-FAST CR TRANSFER   DR 535 RIKKI H HASIBUAN;CR;Asset Transfer;Bank Transfer;BCA;;;200000,00;169538655,95;Jan-24
+01/01/2024 01:00;;TARIKAN ATM 01/01 5307952056461149;DB;Expense;Withdrawing;BCA;;;200000,00;169338655,95;Jan-24
+01/01/2024 01:01;;BI-FAST DB TRANSFER   KE 535 RIKKI H HASIBUAN  M-BCA;DB;Asset Transfer;Bank Transfer;BCA;;;4500000,00;164838655,95;Jan-24
+01/01/2024 01:02;;BI-FAST DB BIAYA TXN  KE 535 RIKKI H HASIBUAN  M-BCA;DB;Expense;Transfer/Admin Fee;BCA;;;2500,00;164836155,95;Jan-24
+01/01/2024 02:00;;Rikki H Hasibuan - Transfer - From BCA;CR;Asset Transfer;Bank Transfer;SeaBank;;;4500000,00;169336155,95;Jan-24
+01/01/2024 02:00;Listrik;Rikki H Hasibuan - Top Up - eWallet;DB;Expense;Electricity;SeaBank;;;210000,00;168926155,95;Jan-24
+01/01/2024 02:00;;Mie Medan DJoe-djoe - Transfer;DB;Expense;Food;SeaBank;;;39600,00;168886555,95;Jan-24
