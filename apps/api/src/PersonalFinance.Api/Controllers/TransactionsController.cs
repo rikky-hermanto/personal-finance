@@ -119,8 +119,8 @@ public class TransactionsController : ControllerBase
                 return Conflict(new { Message = "This file has already been processed.", Hash = hash });
             }
 
-            var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(transactions);
-            return Ok(new { Transactions = nonDuplicates, Hash = hash });
+            var allTransactions = await _transactionService.IdentifyDuplicatesAsync(transactions);
+            return Ok(new { Transactions = allTransactions, Hash = hash });
         }
         catch (NotSupportedException ex)
         {
