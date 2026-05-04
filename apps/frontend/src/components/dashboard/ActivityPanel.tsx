@@ -41,53 +41,52 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
   ];
 
   return (
-    <div className="w-72 flex-shrink-0 border-l border-border flex flex-col h-full bg-sidebar overflow-hidden">
+    <div className="w-80 flex-shrink-0 flex flex-col h-full bg-sidebar overflow-hidden">
       {/* Recent transactions */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 pt-5 pb-3">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        <div className="px-5 pt-6 pb-2">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest opacity-50">
             Recent
           </span>
         </div>
-        <div className="divide-y divide-border">
+        <div className="space-y-0.5">
           {isLoading ? (
-            <div className="px-4 py-8 flex items-center justify-center">
+            <div className="px-5 py-8 flex items-center justify-center">
               <span className="text-xs text-muted-foreground animate-pulse">Loading...</span>
             </div>
           ) : recent.length === 0 ? (
-            <div className="px-4 py-8 flex items-center justify-center">
+            <div className="px-5 py-8 flex items-center justify-center">
               <span className="text-xs text-muted-foreground">No recent transactions</span>
             </div>
           ) : (
             recent.map((tx) => (
-              <div key={tx.id} className="px-4 py-2.5 hover:bg-accent transition-colors group">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span
-                      className={cn(
-                        'mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0',
-                        tx.type === 'income' ? 'bg-success' : 
-                        tx.type === 'transfer' ? 'bg-blue-500' : 'bg-destructive'
-                      )}
-                    />
-                    <span className="text-xs text-foreground truncate leading-snug group-hover:whitespace-normal group-hover:break-words">
-                      {tx.description.length > 28
-                        ? tx.description.slice(0, 28) + '…'
-                        : tx.description}
-                    </span>
+              <div key={tx.id} className="px-5 py-2 hover:bg-white/[0.03] transition-all group cursor-default">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn(
+                        "w-1 h-1 rounded-full",
+                        tx.type === 'income' ? 'bg-success' : 'bg-muted-foreground/30'
+                      )} />
+                      <span className="text-xs font-medium text-foreground truncate leading-snug">
+                        {tx.description}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 pl-2.5">
+                      <span className="text-[10px] text-muted-foreground/60 uppercase tracking-tight font-medium">
+                        {tx.bank}
+                      </span>
+                    </div>
                   </div>
                   <span
                     className={cn(
-                      'font-mono text-xs flex-shrink-0 tabular-nums',
-                      tx.type === 'income' ? 'text-success' : 'text-muted-foreground'
+                      'font-mono text-xs flex-shrink-0 tabular-nums font-semibold',
+                      tx.type === 'income' ? 'text-success' : 'text-foreground/80'
                     )}
                   >
                     {tx.amount > 0 ? '+' : ''}
                     {formatCurrency(Math.abs(tx.amount)).replace('Rp', '').trim()}
                   </span>
-                </div>
-                <div className="ml-3.5 mt-0.5">
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-tight">{tx.bank}</span>
                 </div>
               </div>
             ))
@@ -96,29 +95,29 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
       </div>
 
       {/* Processing status */}
-      <div className="border-t border-border px-4 py-4">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+      <div className="px-5 py-6 mt-4 opacity-80">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest opacity-50">
           Processing
         </span>
-        <p className="text-xs text-muted-foreground mt-2">No active uploads</p>
+        <p className="text-xs text-muted-foreground/60 mt-2 font-medium">No active uploads</p>
       </div>
 
       {/* Quick filters */}
       {onMonthChange && (
-        <div className="border-t border-border px-4 py-4">
-          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Quick filters
+        <div className="px-5 py-6">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest opacity-50">
+            Filters
           </span>
-          <div className="mt-2 flex flex-col gap-1">
+          <div className="mt-3 flex flex-col gap-0.5">
             {quickFilters.map((f) => (
               <button
                 key={f.value}
                 onClick={() => onMonthChange(f.value)}
                 className={cn(
-                  'text-xs text-left px-2 py-1.5 rounded transition-colors',
+                  'text-xs text-left px-2 py-1.5 rounded-md transition-all font-medium',
                   selectedMonth === f.value
-                    ? 'bg-accent text-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent'
+                    ? 'bg-white/10 text-white'
+                    : 'text-muted-foreground/70 hover:text-white hover:bg-white/5'
                 )}
               >
                 {f.label}

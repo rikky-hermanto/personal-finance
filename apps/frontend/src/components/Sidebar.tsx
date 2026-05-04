@@ -17,20 +17,19 @@ const Sidebar = () => {
   return (
     <div
       className={cn(
-        'bg-sidebar border-r border-sidebar-border h-screen flex flex-col flex-shrink-0 transition-all duration-200 ease-in-out',
-        collapsed ? 'w-14' : 'w-52'
+        'bg-sidebar h-full flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out',
+        collapsed ? 'w-14' : 'w-60'
       )}
     >
       {/* Header */}
-      <div className="h-14 px-3 flex items-center justify-between border-b border-sidebar-border">
+      <div className="h-14 px-4 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 bg-foreground/10 rounded flex items-center justify-center flex-shrink-0">
-              <PiggyBank className="w-3.5 h-3.5 text-sidebar-primary" />
+            <div className="w-7 h-7 bg-white/5 rounded flex items-center justify-center flex-shrink-0 border border-white/5">
+              <PiggyBank className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-sidebar-primary leading-none">Finance</div>
-              <div className="text-[10px] text-sidebar-foreground mt-0.5 leading-none">Personal tracker</div>
+              <div className="text-sm font-semibold text-white tracking-tight">Finance</div>
             </div>
           </div>
         )}
@@ -49,14 +48,14 @@ const Sidebar = () => {
         <button
           onClick={() => navigate('/cashflow/upload')}
           className={cn(
-            'flex items-center gap-2 rounded-md transition-colors bg-foreground/8 hover:bg-foreground/12 text-sidebar-primary border border-sidebar-border',
+            'flex items-center gap-2 transition-all duration-200 bg-white/5 hover:bg-white/10 text-white border border-white/5',
             collapsed
-              ? 'p-2 justify-center w-8 h-8'
-              : 'px-3 py-1.5 w-full text-xs font-medium'
+              ? 'p-2 justify-center w-9 h-9 rounded-full mx-auto'
+              : 'px-3 py-2 w-full text-xs font-medium rounded-lg'
           )}
           title={collapsed ? 'New upload' : undefined}
         >
-          <Plus className="w-3.5 h-3.5 flex-shrink-0" />
+          <Plus className="w-4 h-4 flex-shrink-0" />
           {!collapsed && <span>New upload</span>}
         </button>
       </div>
@@ -73,16 +72,16 @@ const Sidebar = () => {
                   onClick={() => navigate(item.path)}
                   title={collapsed ? item.label : undefined}
                   className={cn(
-                    'w-full flex items-center rounded-md transition-colors',
-                    collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-2.5',
+                    'w-full flex items-center rounded-lg transition-all duration-150 group',
+                    collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-3',
                     isActive
-                      ? 'bg-sidebar-accent text-sidebar-primary'
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+                      ? 'bg-secondary text-white'
+                      : 'text-sidebar-foreground hover:bg-white/5 hover:text-white'
                   )}
                 >
-                  <Icon className="w-3.5 h-3.5 flex-shrink-0" strokeWidth={1.5} />
+                  <Icon className={cn("w-4 h-4 flex-shrink-0 transition-colors", isActive ? "text-white" : "text-inherit group-hover:text-white")} strokeWidth={1.5} />
                   {!collapsed && (
-                    <span className="text-xs font-medium">{item.label}</span>
+                    <span className="text-xs font-medium tracking-wide">{item.label}</span>
                   )}
                 </button>
               </li>

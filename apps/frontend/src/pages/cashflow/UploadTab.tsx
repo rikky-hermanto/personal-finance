@@ -8,12 +8,12 @@ const UploadTab = () => {
   }, []);
 
   return (
-    <div className="p-8 bg-background min-h-full">
+    <div className="p-8 bg-transparent min-h-full">
       <div className="max-w-6xl mx-auto">
-        <PageHeader
-          title="Upload Transactions"
-          subtitle="Import your bank statements and transaction files"
-        />
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-white tracking-tight">Upload Transactions</h1>
+          <p className="text-sm text-muted-foreground mt-1">Import your bank statements and transaction files</p>
+        </div>
         <div className="mt-[15vh]">
           <FileUpload onFileUpload={handleFileUpload} />
         </div>
