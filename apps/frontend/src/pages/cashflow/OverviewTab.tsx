@@ -40,18 +40,18 @@ const OverviewTab = () => {
     <div className="p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold tracking-tight">Overview</h2>
-          <div className="flex items-center bg-muted/50 p-1 rounded-lg border border-border">
+          <h2 className="text-2xl font-bold text-white tracking-tight">Overview</h2>
+          <div className="flex items-center p-0 gap-1 rounded-none border-none">
             {RANGES.map((r) => (
               <Button
                 key={r.label}
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-3 text-xs font-medium transition-all",
+                  "h-8 px-3 text-xs font-medium transition-all rounded-md",
                   range === r.value 
-                    ? "bg-background text-foreground shadow-sm hover:bg-background" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                    ? "bg-secondary text-white shadow-none" 
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
                 )}
                 onClick={() => setRange(r.value)}
               >

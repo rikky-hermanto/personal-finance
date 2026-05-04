@@ -41,7 +41,7 @@ const StatementTab = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Cash Flow Statement</h2>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Cash Flow Statement</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Broken down by operating, investing, and financing activities.
             </p>
@@ -49,15 +49,15 @@ const StatementTab = () => {
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Period Toggle */}
-            <div className="flex items-center bg-muted/50 p-1 rounded-lg border border-border">
+            <div className="flex items-center p-0 gap-1 rounded-none border-none">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-3 text-xs font-medium transition-all gap-1.5",
+                  "h-8 px-3 text-xs font-medium transition-all gap-1.5 rounded-md",
                   groupBy === 'quarterly' 
-                    ? "bg-background text-foreground shadow-sm hover:bg-background" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                    ? "bg-secondary text-white shadow-none" 
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
                 )}
                 onClick={() => setGroupBy('quarterly')}
               >
@@ -68,10 +68,10 @@ const StatementTab = () => {
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-3 text-xs font-medium transition-all gap-1.5",
+                  "h-8 px-3 text-xs font-medium transition-all gap-1.5 rounded-md",
                   groupBy === 'monthly' 
-                    ? "bg-background text-foreground shadow-sm hover:bg-background" 
-                    : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                    ? "bg-secondary text-white shadow-none" 
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
                 )}
                 onClick={() => setGroupBy('monthly')}
               >
@@ -81,17 +81,17 @@ const StatementTab = () => {
             </div>
 
             {/* Range Selector */}
-            <div className="flex items-center bg-muted/50 p-1 rounded-lg border border-border">
+            <div className="flex items-center p-0 gap-1 rounded-none border-none">
               {RANGES.map((r) => (
                 <Button
                   key={r.label}
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-8 px-3 text-xs font-medium transition-all",
+                    "h-8 px-3 text-xs font-medium transition-all rounded-md",
                     range === r.value 
-                      ? "bg-background text-foreground shadow-sm hover:bg-background" 
-                      : "text-muted-foreground hover:text-foreground hover:bg-transparent"
+                      ? "bg-secondary text-white shadow-none" 
+                      : "text-muted-foreground hover:text-white hover:bg-white/5"
                   )}
                   onClick={() => setRange(r.value)}
                 >

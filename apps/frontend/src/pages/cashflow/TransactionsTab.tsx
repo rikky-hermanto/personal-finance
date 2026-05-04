@@ -13,11 +13,11 @@ const TransactionsTab = () => {
   }, []);
 
   return (
-    <div className="p-8 bg-background min-h-full">
+    <div className="p-8 bg-transparent min-h-full">
       <div className="max-w-6xl mx-auto">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">Transactions</h1>
+            <h1 className="text-2xl font-bold text-white tracking-tight">Transactions</h1>
             <p className="text-sm text-muted-foreground mt-1">View and manage all your transactions</p>
           </div>
           <div className="flex gap-2">
