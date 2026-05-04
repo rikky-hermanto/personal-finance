@@ -90,34 +90,41 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     setEditingId(null);
   };
 
+  const newTransactions = useMemo(() => editedTransactions.filter(t => !t.isDuplicate), [editedTransactions]);
+  const duplicateTransactions = useMemo(() => editedTransactions.filter(t => t.isDuplicate), [editedTransactions]);
+
   const summary = useMemo(() => {
-    const income = editedTransactions
+    const income = newTransactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
-    const expenses = editedTransactions
+    const expenses = newTransactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     
     // Net Balance = sum of real income + sum of real expenses.
-    // (Note: expense amounts are negative, so income + expenses = income - abs(expenses))
     return { 
       income, 
       expenses, 
       balance: income + expenses, 
-      totalTransactions: editedTransactions.length 
+      totalTransactions: newTransactions.length 
     };
-  }, [editedTransactions]);
+  }, [newTransactions]);
 
   const handleSubmit = async () => {
+    if (newTransactions.length === 0) {
+      setApiError("No new transactions to submit.");
+      return;
+    }
+
     setIsSubmitting(true);
     setApiError(null);
     try {
-      const payload: transactionsApi.TransactionDto[] = editedTransactions.map(t => ({
+      const payload: transactionsApi.TransactionDto[] = newTransactions.map(t => ({
         id: 0,
         date: t.date,
         description: t.description,
         remarks: "",
-        flow: t.flow,
+        flow: t.flow!,
         type: t.type.charAt(0).toUpperCase() + t.type.slice(1),
         category: t.category,
         wallet: t.bank,
@@ -125,10 +132,11 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         currency: "IDR",
         exchangeRate: null,
         balance: 0,
+        isDuplicate: false,
         categoryRuleDto: null
       }));
       await transactionsApi.submitTransactions(payload, fileHash || undefined, fileName || undefined);
-      onConfirm(editedTransactions);
+      onConfirm(newTransactions);
     } catch (error: any) {
       let message = "Failed to submit transactions";
       try {
@@ -162,113 +170,149 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     { key: 'actions', label: '', className: 'w-16' },
   ];
 
+  const renderRow = (tx: Transaction) => (
+    <tr key={tx.id} className="hover:bg-accent transition-colors">
+      <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
+        {formatDate(tx.date)}
+      </td>
+      <td className="px-5 py-3 text-sm text-foreground max-w-xs truncate">
+        {tx.description}
+      </td>
+      <td className="px-5 py-3 whitespace-nowrap">
+        {editingId === tx.id ? (
+          <select
+            value={tx.category}
+            autoFocus
+            onBlur={() => setEditingId(null)}
+            onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
+            className={selectCls}
+          >
+            {CORE_CATEGORIES.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
+            {tx.category}
+          </span>
+        )}
+      </td>
+      <td className={cn(
+        'px-5 py-3 whitespace-nowrap font-mono text-sm tabular-nums',
+        tx.flow === 'CR' ? 'text-success' : 'text-destructive'
+      )}>
+        {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
+      </td>
+      <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
+        {tx.bank}
+      </td>
+      <td className="px-5 py-3 whitespace-nowrap">
+        {!tx.isDuplicate && (
+          editingId === tx.id ? (
+            <div className="flex gap-1">
+              <button
+                onClick={() => setEditingId(null)}
+                className="text-success hover:text-success/80 transition-colors"
+              >
+                <Check className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+              <button
+                onClick={() => setEditingId(null)}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setEditingId(tx.id)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </button>
+          )
+        )}
+      </td>
+    </tr>
+  );
+
   return (
     <div className="max-w-6xl mx-auto p-6 flex flex-col h-[calc(100vh-140px)]">
       {/* Header */}
       <div className="mb-6 shrink-0">
         <p className="text-sm text-muted-foreground">
-          Review the parsed transactions below. Categories have been automatically assigned.
-          You can edit any category before submitting.
+          Review the parsed transactions below. <strong>{newTransactions.length}</strong> new transactions will be imported.
+          Duplicate transactions are shown for verification.
         </p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 shrink-0">
         <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Total Transactions</p>
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">New Transactions</p>
           <p className="text-2xl font-bold text-foreground">{summary.totalTransactions}</p>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-success">Income</p>
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-success">New Income</p>
           <AutoScalingText className="text-success">
             +{formatCurrency(summary.income)}
           </AutoScalingText>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-destructive">Expenses</p>
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-destructive">New Expenses</p>
           <AutoScalingText className="text-destructive">
             -{formatCurrency(Math.abs(summary.expenses))}
           </AutoScalingText>
         </div>
         <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Net Balance</p>
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Net Balance (New)</p>
           <AutoScalingText className={summary.balance >= 0 ? 'text-success' : 'text-destructive'}>
             {summary.balance >= 0 ? '+' : ''}{formatCurrency(summary.balance)}
           </AutoScalingText>
         </div>
       </div>
 
-      {/* Transactions Table */}
-      <div className="flex-1 min-h-0 mb-6">
-        <DataTable
-          columns={columns}
-          rows={editedTransactions}
-          height="100%"
-          emptyMessage="No transactions to review."
-          renderRow={(tx) => (
-            <tr key={tx.id} className="hover:bg-accent transition-colors">
-              <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
-                {formatDate(tx.date)}
-              </td>
-              <td className="px-5 py-3 text-sm text-foreground max-w-xs truncate">
-                {tx.description}
-              </td>
-              <td className="px-5 py-3 whitespace-nowrap">
-                {editingId === tx.id ? (
-                  <select
-                    value={tx.category}
-                    autoFocus
-                    onBlur={() => setEditingId(null)}
-                    onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
-                    className={selectCls}
-                  >
-                    {CORE_CATEGORIES.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
-                    {tx.category}
-                  </span>
-                )}
-              </td>
-              <td className={cn(
-                'px-5 py-3 whitespace-nowrap font-mono text-sm tabular-nums',
-                tx.flow === 'CR' ? 'text-success' : 'text-destructive'
-              )}>
-                {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
-              </td>
-              <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
-                {tx.bank}
-              </td>
-              <td className="px-5 py-3 whitespace-nowrap">
-                {editingId === tx.id ? (
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="text-success hover:text-success/80 transition-colors"
-                    >
-                      <Check className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    </button>
-                    <button
-                      onClick={() => setEditingId(null)}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setEditingId(tx.id)}
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-                  </button>
-                )}
-              </td>
-            </tr>
-          )}
-        />
+      {/* Transactions Tables */}
+      <div className="flex-1 min-h-0 mb-6 overflow-y-auto space-y-8 pr-2 custom-scrollbar">
+        {/* New Transactions */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-success"></span>
+              Ready to Save ({newTransactions.length})
+            </h3>
+          </div>
+          <div className="border border-border rounded-lg overflow-hidden bg-card/50">
+            <DataTable
+              columns={columns}
+              rows={newTransactions}
+              height="auto"
+              emptyMessage="No new transactions found."
+              renderRow={renderRow}
+            />
+          </div>
+        </div>
+
+        {/* Duplicate Transactions */}
+        {duplicateTransactions.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-muted-foreground/30"></span>
+                Duplicates (Already in DB: {duplicateTransactions.length})
+              </h3>
+            </div>
+            <div className="border border-border rounded-lg overflow-hidden bg-card/20 opacity-70">
+              <DataTable
+                columns={columns.filter(c => c.key !== 'actions')}
+                rows={duplicateTransactions}
+                height="auto"
+                emptyMessage="No duplicates found."
+                renderRow={renderRow}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Error */}
@@ -288,11 +332,11 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         </button>
         <button
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || newTransactions.length === 0}
           className="px-4 py-2 rounded text-sm font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
         >
           <Send className="w-3.5 h-3.5" strokeWidth={1.5} />
-          {isSubmitting ? 'Submitting…' : `Submit Data (${editedTransactions.length} transactions)`}
+          {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
         </button>
       </div>
     </div>

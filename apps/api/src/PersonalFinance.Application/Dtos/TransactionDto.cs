@@ -16,6 +16,9 @@ public class TransactionDto
     public decimal? BankRunningBalance { get; set; }
     public decimal Balance { get; set; } // Calculated on the fly (UI)
 
+    // Flag to indicate if this transaction is already in the database
+    public bool IsDuplicate { get; set; }
+
     // Optional: Used when user wants to create a new category rule from this transaction
     public CategoryRuleDto? CategoryRuleDto { get; set; }
 }

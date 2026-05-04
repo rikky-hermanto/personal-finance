@@ -118,6 +118,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           category:    t.category,
           bank:        t.wallet,
           balance:     t.balance,
+          isDuplicate: t.isDuplicate,
         };
       });
       setParsedTransactions(transactions);
