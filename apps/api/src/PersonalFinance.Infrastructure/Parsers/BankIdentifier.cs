@@ -47,32 +47,44 @@ public class BankIdentifier : IBankIdentifier
             stream.Position = 0;
             try
             {
+                // Create a copy to prevent the original stream from being closed by PdfDocument.Open
+                using var ms = new MemoryStream();
+                stream.Position = 0;
+                await stream.CopyToAsync(ms);
+                ms.Position = 0;
+
                 using var pdf = string.IsNullOrEmpty(pdfPassword)
-                    ? PdfDocument.Open(stream)
-                    : PdfDocument.Open(stream, new ParsingOptions() { Password = pdfPassword });
+                    ? PdfDocument.Open(ms)
+                    : PdfDocument.Open(ms, new ParsingOptions() { Password = pdfPassword });
 
                 var firstPageText = pdf.GetPages().FirstOrDefault()?.Text ?? string.Empty;
 
                 // Look for NeoBank-specific markers: NOW Savings
                 if (firstPageText.Contains("NOW Savings", StringComparison.OrdinalIgnoreCase))
                 {
-                    stream.Position = 0;
                     _logger.LogDebug("Bank identified as NEOBANK.");
+                    stream.Position = 0;
                     return "NEOBANK";
                 }
             }
             catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException ex)
             {
                 _logger.LogWarning(ex, "PDF Document is encrypted and requires a password.");
+                stream.Position = 0;
                 return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error during PDF bank identification.");
             }
 
             // Fallback: route any unrecognized PDF to the LLM extractor
-            stream.Position = 0;
             _logger.LogDebug("PDF bank unrecognized — routing to LLM extractor.");
+            stream.Position = 0;
             return "LLM_PDF";
         }
         _logger.LogDebug("Bank could not be identified.");
+        stream.Position = 0;
         return null;
     }
 }   
