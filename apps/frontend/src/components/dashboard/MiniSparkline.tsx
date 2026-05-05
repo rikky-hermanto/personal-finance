@@ -7,7 +7,7 @@ interface MiniSparklineProps {
 
 const MiniSparkline = ({ data, positive }: MiniSparklineProps) => {
   const chartData = data.map((v) => ({ v }));
-  const color = positive ? 'hsl(152 40% 42%)' : 'hsl(4 52% 48%)';
+  const color = positive ? 'hsl(var(--success))' : 'hsl(var(--destructive))';
 
   return (
     <ResponsiveContainer width={80} height={24}>
