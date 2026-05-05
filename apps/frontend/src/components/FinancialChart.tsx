@@ -38,7 +38,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
       {income && (
         <div className="flex items-center justify-between gap-4 mb-1">
           <span className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: 'hsl(152 40% 42%)' }} />
+            <span className="w-2 h-2 rounded-sm inline-block bg-success" />
             Income
           </span>
           <span className="font-mono tabular-nums text-foreground">{formatCurrency(income.value)}</span>
@@ -47,7 +47,7 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
       {expenses && (
         <div className="flex items-center justify-between gap-4 mb-1">
           <span className="flex items-center gap-1.5 text-muted-foreground">
-            <span className="w-2 h-2 rounded-sm inline-block" style={{ backgroundColor: 'hsl(4 52% 48%)' }} />
+            <span className="w-2 h-2 rounded-sm inline-block bg-destructive" />
             Expenses
           </span>
           <span className="font-mono tabular-nums text-foreground">{formatCurrency(expenses.value)}</span>
@@ -57,8 +57,10 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
         <div className="flex items-center justify-between gap-4 border-t border-border pt-1.5 mt-1.5">
           <span className="text-muted-foreground">Net</span>
           <span
-            className="font-mono tabular-nums font-medium"
-            style={{ color: net.value >= 0 ? 'hsl(152 40% 52%)' : 'hsl(4 52% 58%)' }}
+            className={cn(
+              "font-mono tabular-nums font-medium",
+              net.value >= 0 ? "text-success" : "text-destructive"
+            )}
           >
             {formatCurrency(net.value)}
           </span>
@@ -75,15 +77,15 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 };
 
 const LEGEND_ITEMS = [
-  { key: 'income', label: 'Income', color: 'hsl(152 40% 42%)' },
-  { key: 'expenses', label: 'Expenses', color: 'hsl(4 52% 48%)' },
-  { key: 'net', label: 'Net', color: 'hsl(220 8% 60%)', dashed: true },
+  { key: 'income', label: 'Income', color: 'hsl(var(--success))' },
+  { key: 'expenses', label: 'Expenses', color: 'hsl(var(--destructive))' },
+  { key: 'net', label: 'Net', color: 'hsl(var(--muted-foreground) / 0.5)', dashed: true },
 ];
 
 const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: FinancialChartProps) => {
   const chartData = data || [];
 
-  const tickStyle = { fontSize: 10, fill: 'hsl(220 8% 46%)', fontFamily: "'JetBrains Mono', monospace" };
+  const tickStyle = { fontSize: 10, fill: 'hsl(var(--muted-foreground))', fontFamily: "'JetBrains Mono', monospace" };
   const yTickFormatter = (v: number) => formatCompact(v);
 
   if (isLoading) {
@@ -123,19 +125,19 @@ const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: Fi
               tickFormatter={yTickFormatter}
               width={40}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(220 8% 15%)', radius: 4 }} />
-            <ReferenceLine y={0} stroke="hsl(220 8% 25%)" strokeWidth={1} />
-            <Bar dataKey="income" name="Income" fill="hsl(152 40% 42%)" fillOpacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={48} />
-            <Bar dataKey="expenses" name="Expenses" fill="hsl(4 52% 48%)" fillOpacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={48} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.3)', radius: 4 }} />
+            <ReferenceLine y={0} stroke="hsl(var(--border))" strokeWidth={1} />
+            <Bar dataKey="income" name="Income" fill="hsl(var(--success))" fillOpacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={48} />
+            <Bar dataKey="expenses" name="Expenses" fill="hsl(var(--destructive))" fillOpacity={0.8} radius={[4, 4, 0, 0]} maxBarSize={48} />
             <Line
               type="monotone"
               dataKey="net"
               name="Net"
-              stroke="hsl(220 8% 65%)"
+              stroke="hsl(var(--muted-foreground) / 0.6)"
               strokeWidth={2}
               strokeDasharray="4 4"
               dot={false}
-              activeDot={{ r: 4, fill: 'hsl(220 8% 65%)', strokeWidth: 0 }}
+              activeDot={{ r: 4, fill: 'hsl(var(--muted-foreground))', strokeWidth: 0 }}
             />
           </ComposedChart>
         </ResponsiveContainer>
@@ -149,8 +151,8 @@ const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: Fi
         <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 4 }}>
           <defs>
             <linearGradient id="netGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="hsl(152 40% 42%)" stopOpacity={0.12} />
-              <stop offset="95%" stopColor="hsl(152 40% 42%)" stopOpacity={0} />
+              <stop offset="5%" stopColor="hsl(var(--success))" stopOpacity={0.12} />
+              <stop offset="95%" stopColor="hsl(var(--success))" stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis dataKey="month" axisLine={false} tickLine={false} tick={tickStyle} />
@@ -160,12 +162,12 @@ const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: Fi
             type="monotone"
             dataKey="net"
             name="Net"
-            stroke="hsl(152 40% 42%)"
+            stroke="hsl(var(--success))"
             fillOpacity={1}
             fill="url(#netGradient)"
             strokeWidth={1.5}
             dot={false}
-            activeDot={{ r: 3, fill: 'hsl(152 40% 42%)', strokeWidth: 0 }}
+            activeDot={{ r: 3, fill: 'hsl(var(--success))', strokeWidth: 0 }}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -182,7 +184,7 @@ const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: Fi
           type="monotone"
           dataKey="income"
           name="Income"
-          stroke="hsl(152 40% 42%)"
+          stroke="hsl(var(--success))"
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 3 }}
@@ -191,7 +193,7 @@ const FinancialChart = ({ data, type = 'composed', height = 200, isLoading }: Fi
           type="monotone"
           dataKey="expenses"
           name="Expenses"
-          stroke="hsl(4 52% 48%)"
+          stroke="hsl(var(--destructive))"
           strokeWidth={1.5}
           dot={false}
           activeDot={{ r: 3 }}

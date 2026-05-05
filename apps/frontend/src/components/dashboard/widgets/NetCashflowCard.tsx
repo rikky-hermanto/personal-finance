@@ -1,6 +1,7 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { DashboardCurrentMonth } from '@/types/Dashboard';
 import { formatCurrency, formatMonth } from '@/lib/format';
+import { cn } from '@/lib/utils';
 
 interface NetCashflowCardProps {
   data: DashboardCurrentMonth | null;
@@ -36,13 +37,15 @@ const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
       <div className="space-y-3">
         <div className="flex items-center gap-2.5">
           {isPositive ? (
-            <TrendingUp className="w-5 h-5 flex-shrink-0" style={{ color: 'hsl(152 40% 52%)' }} />
+            <TrendingUp className="w-5 h-5 flex-shrink-0 text-success" />
           ) : (
-            <TrendingDown className="w-5 h-5 flex-shrink-0" style={{ color: 'hsl(4 52% 58%)' }} />
+            <TrendingDown className="w-5 h-5 flex-shrink-0 text-destructive" />
           )}
           <span
-            className="font-mono text-2xl font-semibold tabular-nums"
-            style={{ color: isPositive ? 'hsl(152 40% 52%)' : 'hsl(4 52% 58%)' }}
+            className={cn(
+              "font-mono text-2xl font-semibold tabular-nums",
+              isPositive ? "text-success" : "text-destructive"
+            )}
           >
             {isPositive ? '+' : ''}{formatCurrency(net)}
           </span>
@@ -50,13 +53,13 @@ const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
         <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
           <div>
             <p className="text-[11px] text-muted-foreground mb-1">Income</p>
-            <p className="font-mono text-sm tabular-nums" style={{ color: 'hsl(152 40% 52%)' }}>
+            <p className="font-mono text-sm tabular-nums text-success">
               +{formatCurrency(income)}
             </p>
           </div>
           <div>
             <p className="text-[11px] text-muted-foreground mb-1">Expenses</p>
-            <p className="font-mono text-sm tabular-nums" style={{ color: 'hsl(4 52% 58%)' }}>
+            <p className="font-mono text-sm tabular-nums text-destructive">
               -{formatCurrency(expenses)}
             </p>
           </div>
