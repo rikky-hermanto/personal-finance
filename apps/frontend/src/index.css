@@ -47,15 +47,15 @@
     --sidebar-border: 240 6% 10%;
     --sidebar-ring: 220 91% 65%;
 
-    --success: 172 66% 45%;
+    --success: 170 90% 32%; /* Professional Emerald Green #089981 */
     --warning: 35 91% 60%;
     --info: 220 91% 65%;
 
     /* Chart scale */
     --chart-1: 220 91% 65%;
-    --chart-2: 172 66% 45%;
+    --chart-2: 170 90% 32%;
     --chart-3: 280 66% 65%;
-    --chart-4: 354 91% 65%;
+    --chart-4: 355 85% 58%;
     --chart-5: 35 91% 60%;
   }
 }
