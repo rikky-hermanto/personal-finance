@@ -1,11 +1,8 @@
 using MediatR;
 using PersonalFinance.Application.Dtos;
-using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using static Supabase.Postgrest.Constants;
-using Supabase.Postgrest;
 using Supabase.Postgrest.Interfaces;
-using Supabase.Postgrest.Responses;
 using Microsoft.Extensions.Logging;
 
 public class TransactionService : ITransactionService

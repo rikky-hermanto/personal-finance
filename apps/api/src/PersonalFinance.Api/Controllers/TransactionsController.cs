@@ -92,6 +92,17 @@ public class TransactionsController : ControllerBase
             await file.CopyToAsync(mainStream);
             mainStream.Position = 0;
 
+            var hash = CalculateFileHash(mainStream);
+            mainStream.Position = 0;
+
+            _logger.LogInformation("File uploaded: {FileName}, Hash: {Hash}", file.FileName, hash);
+
+            if (await _transactionService.IsFileProcessedAsync(hash))
+            {
+                _logger.LogWarning("File already processed: {Hash}", hash);
+                return Conflict(new { Message = "This file has already been processed.", Hash = hash });
+            }
+
             List<TransactionDto> transactions;
 
             if (ImageContentTypes.Contains(file.ContentType))
@@ -106,17 +117,6 @@ public class TransactionsController : ControllerBase
 
                 mainStream.Position = 0;
                 transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword, dateFormat);
-            }
-
-            mainStream.Position = 0;
-            var hash = CalculateFileHash(mainStream);
-            
-            _logger.LogInformation("File uploaded: {FileName}, Hash: {Hash}", file.FileName, hash);
-
-            if (await _transactionService.IsFileProcessedAsync(hash))
-            {
-                _logger.LogWarning("File already processed: {Hash}", hash);
-                return Conflict(new { Message = "This file has already been processed.", Hash = hash });
             }
 
             var allTransactions = await _transactionService.IdentifyDuplicatesAsync(transactions);
