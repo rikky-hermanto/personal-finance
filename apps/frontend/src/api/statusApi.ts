@@ -37,6 +37,14 @@ export function mapHealthResponse(data: HealthResponse): ServiceStatus[] {
     message: entry.description
   }));
 
+  // Add Backend API (if we got a response, it's online)
+  services.unshift({
+    name: 'Backend API',
+    status: 'online',
+    duration: data.totalDuration,
+    message: 'System is responsive'
+  });
+
   // Add Frontend as a pseudo-service (if we're here, it's online)
   services.push({
     name: 'Frontend Application',
