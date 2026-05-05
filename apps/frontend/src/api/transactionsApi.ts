@@ -174,13 +174,13 @@ export const exportTransactionsCsv = (wallet?: string, from?: string, to?: strin
 
 const TEMPLATE_HEADERS = [
   "Date", "Item", "Remarks", "Flow", "Type",
-  "Category", "Wallet", "Amount", "Exc. Rate", "Amount (IDR)", "Currency",
+  "Category", "Wallet", "Amount", "Exc. Rate", "Amount (IDR)", "Balance",
 ];
 
 const TEMPLATE_ROWS = [
-  ["1/1/24 9:00 AM", "Kopi Kenangan", "DEBIT TRANSFER 01/01 5307952056461149", "DB", "Expense", "Food & Drinks", "BCA", "45000", "", "45000", "IDR"],
-  ["1/2/24 0:01 AM", "Saving Interest", "SAVING INTEREST JAN 2024", "CR", "Income", "Saving Interest", "NeoBank", "931", "", "931", "IDR"],
-  ["1/5/24 10:30 AM", "Freelance Payment", "Transfer from Wise USD account", "CR", "Income", "Bank Transfer", "Wise", "50", "15800", "790000", "USD"],
+  ["1/1/2026 09:00", "Sample Expense", "Coffee shop", "DB", "Expense", "Food & Drinks", "BCA", "50000", "", "50000", "1000000"],
+  ["1/2/2026 10:00", "Sample Income", "Monthly salary", "CR", "Income", "Salary", "Bank Jago", "5000000", "", "5000000", "6000000"],
+  ["1/3/2026 11:00", "Sample Transfer", "To savings", "DB", "Transfer", "Bank Transfer", "BCA", "100000", "", "100000", "5900000"],
 ];
 
 export const downloadTransactionTemplate = (): void => {

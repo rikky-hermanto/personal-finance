@@ -10,12 +10,11 @@ interface SpendingTreemapProps {
 }
 
 const CHART_COLORS = [
-  'hsl(152 38% 36%)',
-  'hsl(172 36% 33%)',
-  'hsl(213 44% 46%)',
-  'hsl(275 36% 45%)',
-  'hsl(35 50% 42%)',
-  'hsl(4 50% 40%)',
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
 ];
 
 interface TreemapContentProps {
