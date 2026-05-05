@@ -10,6 +10,8 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Logs;
 using Npgsql;
+using HealthChecks.UI.Client;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 
 
@@ -23,7 +25,16 @@ namespace PersonalFinance.Api
 
             // Add services to the container.
             builder.Services.AddControllers();
-            builder.Services.AddHealthChecks();
+
+            var connectionString = builder.Configuration.GetConnectionString("Default") ?? 
+                                 builder.Configuration["ConnectionStrings:Default"] ?? 
+                                 "Host=localhost;Database=personal_finance;Username=postgres;Password=postgres_password_here";
+
+            builder.Services.AddHealthChecks()
+                .AddNpgSql(connectionString, name: "Database")
+                .AddUrlGroup(new Uri($"{builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000"}/health"), name: "AI Service")
+                .AddUrlGroup(new Uri("http://localhost:3000/api/health"), name: "Grafana Monitoring");
+
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
@@ -98,7 +109,7 @@ namespace PersonalFinance.Api
             {
                 options.AddPolicy("AllowLocalhost8080", policy =>
                 {
-                    policy.WithOrigins("http://localhost:8080")
+                    policy.WithOrigins("http://localhost:8080", "http://localhost:8081", "http://localhost:8082")
                           .AllowAnyHeader()
                           .AllowAnyMethod();
                 });
@@ -123,7 +134,10 @@ namespace PersonalFinance.Api
             app.UseAuthorization();
 
             app.MapControllers();
-            app.MapHealthChecks("/health");
+            app.MapHealthChecks("/health", new HealthCheckOptions
+            {
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
 
             app.Run();
         }

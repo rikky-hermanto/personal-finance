@@ -15,6 +15,7 @@ import CategoriesTab from "@/pages/settings/CategoriesTab";
 import DataTab from "@/pages/settings/DataTab";
 import RegionalTab from "@/pages/settings/RegionalTab";
 import NotFound from "@/pages/NotFound";
+import StatusPage from "@/pages/StatusPage";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="data" element={<DataTab />} />
             </Route>
           </Route>
+          <Route path="/status" element={<StatusPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
