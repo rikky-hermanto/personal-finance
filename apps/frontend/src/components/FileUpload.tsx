@@ -82,6 +82,54 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     setApiError(null);
   }, []);
 
+  const handlePaste = useCallback((e: ClipboardEvent) => {
+    // Don't intercept paste if user is typing in an input/textarea
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      return;
+    }
+
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const files: File[] = [];
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') {
+        const file = items[i].getAsFile();
+        if (file) {
+          // Check if it's a valid file type (csv, pdf, or image)
+          const isValid = file.type === 'text/csv' || 
+                         file.type === 'application/pdf' ||
+                         file.type.startsWith('image/') ||
+                         file.name.endsWith('.csv') || 
+                         file.name.endsWith('.pdf');
+          
+          if (isValid) {
+            // Give pasted images a slightly better name if they are generic
+            if (file.type.startsWith('image/') && file.name === 'image.png') {
+              const now = new Date().toISOString().replace(/[:.]/g, '-');
+              const newFile = new File([file], `pasted-image-${now}.png`, { type: file.type });
+              files.push(newFile);
+            } else {
+              files.push(file);
+            }
+          }
+        }
+      }
+    }
+
+    if (files.length > 0) {
+      setUploadedFiles(prev => [...prev, ...files]);
+      setApiError(null);
+      if (currentStep === 'upload') setCurrentStep('review');
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [handlePaste]);
+
   const handleProcessFiles = useCallback(async () => {
     setIsProcessing(true);
     setApiError(null);
@@ -356,8 +404,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       >
         <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-2.5" strokeWidth={1.5} />
         <p className="text-sm text-muted-foreground mb-1">
-          Drop files here or{' '}
-          <span className="text-foreground font-medium">click to browse</span>
+          Drop files here, paste, or <span className="text-foreground font-medium">click to browse</span>
         </p>
         <p className="text-[11px] text-muted-foreground/50 tracking-wide">
           CSV · PDF · Screenshot &nbsp;·&nbsp; max 10 MB
