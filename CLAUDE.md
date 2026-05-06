@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Personal Finance is a full-stack web application built with .NET 9 and React 18, designed to help users manage their personal finances. The application features a modern, responsive user interface, a robust backend API, and AI-powered features for transaction extraction, categorization, and insights. The project is containerized using Docker Compose for easy local development and deployment.
+Personal Finance is a full-stack web application built with .NET 10 and React 18, designed to help users manage their personal finances. The application features a modern, responsive user interface, a robust backend API, and AI-powered features for transaction extraction, categorization, and insights. The project is containerized using Docker Compose for easy local development and deployment.
 
 ## Background Problem
 
@@ -13,10 +13,10 @@ The owner manages 5 Indonesian bank accounts that each produce monthly statement
 ```
 INPUT (5 sources, 3 format types)
 ├── BCA        → CSV        → column mapping          → Master Cashflow
-├── Superbank  → PDF        → GPT extract → validate  → Master Cashflow
-├── NeoBank    → PDF        → GPT extract → validate  → Master Cashflow
+├── Superbank  → PDF        → LLM extract → validate  → Master Cashflow
+├── NeoBank    → PDF        → LLM extract → validate  → Master Cashflow
 ├── Wise       → CSV        → mapping + FX conversion  → Master Cashflow
-└── Bank Jago  → Screenshot → GPT extract → validate  → Master Cashflow
+└── Bank Jago  → Screenshot → LLM extract → validate  → Master Cashflow
 ```
 
 **Pain points mapped to workflow:**
@@ -24,7 +24,7 @@ INPUT (5 sources, 3 format types)
 ```
 [Source Format Chaos]     [Manual Conversion]     [Manual Validation]     [Scale Problem]
      ▼                         ▼                        ▼                      ▼
-  CSV / PDF / Screenshot → GPT copy-paste → Check format, fix dates → Excel bloating
+  CSV / PDF / Screenshot → LLM copy-paste → Check format, fix dates → Excel bloating
      │                         │                  fix decimals, etc.        │
      │                         │                        │                   │
      └─── Repeats x5 banks ────┴──── Repeats monthly ───┴── Data grows ─────┘
@@ -97,7 +97,7 @@ All banks converge to this unified schema before persisting. Key fields: `date` 
 
 ## Architecture
 
-React 18 frontend → .NET 9 API (supabase-csharp) → Supabase (PostgreSQL 16 + pgvector, Auth, Storage, Realtime, Webhooks). PDF/image uploads are event-driven: Storage upload → Database Webhook → Python FastAPI AI service → results written back to Supabase → Realtime notifies frontend.
+React 18 frontend → .NET 10 API (supabase-csharp) → Supabase (PostgreSQL 17 + pgvector, Auth, Storage, Realtime, Webhooks). PDF/image uploads are event-driven: Storage upload → Database Webhook → Python FastAPI AI service → results written back to Supabase → Realtime notifies frontend.
 
 → Full architecture diagram and event flow: [docs/architecture-diagram.md](docs/architecture-diagram.md)
 → Supabase migration rationale and phases: [docs/supabase-migration.md](docs/supabase-migration.md)
@@ -105,16 +105,16 @@ React 18 frontend → .NET 9 API (supabase-csharp) → Supabase (PostgreSQL 16 +
 ## Tech Stack
 
 ### Backend — Primary (.NET)
-- **Runtime:** .NET 9
+- **Runtime:** .NET 10
 - **Language:** C# 13
 - **API:** ASP.NET Core Web API (REST)
 - **Patterns:** CQRS via MediatR, FluentValidation, Clean Architecture
 - **Database client:** `supabase-csharp` SDK (PostgREST) — replaces EF Core
-- **Auth:** Supabase Auth (JWT validation via `JwtBearer` middleware)
+- **Auth:** Supabase Auth (JWT validation via `JwtBearer` middleware — planned in PF-S08)
 - **Testing:** xUnit, Moq, Playwright (E2E)
 
 ### Supabase Platform
-- **Database:** PostgreSQL 16 + pgvector (vector storage for RAG)
+- **Database:** PostgreSQL 17 + pgvector (vector storage for RAG)
 - **Auth:** GoTrue (JWT tokens, OAuth providers)
 - **Storage:** File buckets for bank statement uploads (`bank-statements/`)
 - **Realtime:** WebSocket subscriptions for live AI processing status
@@ -124,7 +124,7 @@ React 18 frontend → .NET 9 API (supabase-csharp) → Supabase (PostgreSQL 16 +
 ### Backend — AI Services (Python)
 - **Runtime:** Python 3.12+
 - **Framework:** FastAPI
-- **AI SDK:** Anthropic SDK (primary), OpenAI SDK (secondary/fallback)
+- **AI SDK:** Gemini SDK (primary, `gemini-2.5-flash`), Anthropic SDK (alternate, `claude-sonnet-4-6`)
 - **Supabase client:** `supabase-py` — writes AI extraction results directly to Supabase
 - **LLM Extraction:** Claude structured output via `tool_use` (PDF/image → JSON)
 - **Document Parsing:** PyMuPDF for PDF text extraction (pre-processing before LLM)
@@ -140,7 +140,7 @@ React 18 frontend → .NET 9 API (supabase-csharp) → Supabase (PostgreSQL 16 +
 ### Infrastructure
 - **Containers:** Docker Compose (local dev), individual Dockerfiles per service
 - **CI/CD:** GitHub Actions
-- **Monitoring:** Structured logging (Serilog), OpenTelemetry-ready
+- **Monitoring:** Structured logging, OpenTelemetry → Alloy → Prometheus + Loki + Tempo → Grafana (LGTM stack)
 - **Cloud Target:** Supabase Cloud (database + platform), Azure (API + AI service hosting)
 
 For detailed docs (read on demand — not auto-imported):
@@ -183,25 +183,21 @@ apps/
         LlmExtractionClient.cs        # HTTP client to Python AI service
       BankProfiles/                    # YAML/JSON bank config files
       Validation/                      # ValidationPipeline + individual validators
-    src/PersonalFinance.Persistence/   # EF Core DbContext, migrations, DI registration (to be deleted in Supabase migration Phase 2)
     tests/PersonalFinance.Tests/       # xUnit + Moq tests
 services/
   ai-service/                 # Python FastAPI AI service
     app/
       main.py                 # FastAPI app, health check
-      routers/
-        extract.py            # POST /extract/pdf, POST /extract/image
       services/
-        llm_extractor.py      # Claude/OpenAI structured output extraction
-        pdf_text_extractor.py # PyMuPDF text extraction (pre-LLM)
-      models/
-        transaction.py        # Pydantic models matching master schema
-      prompts/
-        superbank_pdf_v1.py   # Bank-specific prompt templates
-        neobank_pdf_v1.py
-        bankjago_image_v1.py
-      config/
-        settings.py           # Environment config, API keys
+        llm_parser.py         # Gemini/Anthropic structured output extraction
+        pdf_extractor.py      # PyMuPDF text extraction (pre-LLM)
+      providers/
+        base.py               # LlmProvider interface
+        factory.py            # ProviderFactory
+        gemini.py             # GeminiProvider (primary)
+        anthropic.py          # AnthropicProvider (alternate)
+      models.py               # Pydantic models matching master schema
+      config.py               # Environment config, API keys
     tests/
     Dockerfile
     pyproject.toml
@@ -239,7 +235,7 @@ services/
 ```
 npm start
 ```
-Starts DB (Docker, detached), .NET API, and frontend in one terminal with labeled output. DB container is reused if already running — no rebuild.
+Starts Supabase (Docker), LGTM stack (Docker), .NET API, Python AI service, and frontend in one terminal with labeled output.
 
 ### Docker (full stack)
 - **Fresh start (recommended):** `docker compose down && docker compose up --build`
@@ -275,6 +271,8 @@ cd apps/frontend && npm run dev
 | Supabase Studio   | 54323 | http://localhost:54323          | `supabase start`      |
 | Supabase Inbucket | 54324 | http://localhost:54324          | `supabase start`      |
 | PostgreSQL        | 54322 | (Supabase-managed)             | `supabase start`      |
+| Grafana           | 3000  | http://localhost:3000           | `npm start` / Docker  |
+| Status Dashboard  | 8080  | http://localhost:8080/status    |                       |
 | API health check  |       | http://localhost:7208/health    |                       |
 | AI health check   |       | http://localhost:8000/health    |                       |
 
@@ -289,8 +287,9 @@ cd apps/frontend && npm run dev
 - Backend: `AiService__BaseUrl` (default: `http://localhost:8000`) — Python AI service URL
 - AI Service: `SUPABASE_URL` — Supabase project URL (for supabase-py)
 - AI Service: `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (write access for AI results)
-- AI Service: `ANTHROPIC_API_KEY` — Claude API key (required for LLM extraction)
-- AI Service: `OPENAI_API_KEY` — OpenAI API key (fallback provider, optional)
+- AI Service: `GEMINI_API_KEY` — Google Gemini API key (primary provider)
+- AI Service: `ANTHROPIC_API_KEY` — Claude API key (alternate provider)
+- AI Service: `AI_PROVIDER` — Provider selection (`gemini` or `anthropic`)
 - AI Service: `WEBHOOK_SECRET` — Shared secret to validate Supabase webhook requests
 
 ## Key Patterns
@@ -314,10 +313,10 @@ cd apps/frontend && npm run dev
 ### AI Service (Python FastAPI)
 - **Trigger**: Receives POST from Supabase Database Webhook on INSERT to `statement_uploads`. Validates request with `WEBHOOK_SECRET`.
 - **File access**: Downloads bank statement from Supabase Storage using `supabase-py`. Writes extraction results back to Supabase directly.
-- **LLM Provider Abstraction**: `ILLMProvider` interface with `AnthropicProvider` (primary) and `OpenAIProvider` (fallback). Switch via config.
-- **Structured Output**: All LLM extraction uses `tool_use` (Claude) to force output matching Pydantic models. No regex parsing of free text.
-- **Bank-Specific Prompts**: Each bank has a prompt template in `prompts/` that includes the bank's typical format, expected fields, and edge cases.
-- **Pre-processing**: PDF text extracted via PyMuPDF before LLM call (reduces token cost). Screenshots sent directly to Claude Vision API.
+- **Structured Output**: All LLM extraction uses `tool_use` (Claude) or JSON mode (Gemini) to force output matching Pydantic models. No regex parsing of free text.
+- **Provider Abstraction**: Supports Gemini (primary) and Anthropic (alternate).
+- **Observability**: OpenTelemetry instrumentation for traces and metrics.
+- **Pre-processing**: PDF text extracted via PyMuPDF before LLM call (reduces token cost). Screenshots sent directly to LLM Vision API.
 - **Pydantic Models**: Pydantic v2 throughout. Response models match the master cashflow schema and the `TransactionDto` contract (see `.claude/rules/ai-service.md`).
 - **Async**: All FastAPI endpoints and LLM calls are async.
 
@@ -369,9 +368,6 @@ cd apps/frontend && npm run dev
 - `src/types/Transaction.ts` uses `id: string` but API returns `id: number` — type mismatch
 - No frontend tests exist yet
 - No authentication — API is wide open
-- CORS is hardcoded to `http://localhost:8080` only (in `Program.cs`)
-- DB credentials are in `appsettings.Development.json` (not secret-managed)
-- Python AI service is NOT yet built — currently only .NET direct parsers work (BCA CSV, NeoBank PDF stub, Default CSV)
 
 ## File Protection
 
@@ -412,36 +408,36 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 
 ## Current Phase
 
-> **Last updated:** 2026-04-11
-
-### Status: Supabase Migration Planned → Pre-Sprint Cleanup Next
-
 - **Setup phase (PF-001–PF-008):** COMPLETE
-- **Cleanup sprint:** IN PROGRESS (5/18 done)
-  - Done: PF-027, PF-030, PF-032, PF-033, PF-041 (Playwright E2E)
+- **Cleanup sprint:** IN PROGRESS (6/18 done)
+  - Done: PF-027, PF-029, PF-030, PF-032, PF-033, PF-041 (Playwright E2E)
   - Next (pre-Supabase): PF-028 (exception leaks), PF-031 (dashboard extraction), PF-051 (ILogger)
-  - Backlog: PF-029, PF-034–PF-038, PF-042, PF-043, PF-045, PF-051, PF-052
-- **AI Ramp-Up:** PF-009 (Hello LLM) — READY, not started
-- **Supabase Migration:** PLANNED — 6 phases, tasks PF-S01–PF-S13
+  - Backlog: PF-034–PF-038, PF-042, PF-043, PF-045, PF-051, PF-052
+- **AI Ramp-Up:** COMPLETE — Python AI service live with Gemini/Anthropic
+- **Observability:** COMPLETE — LGTM stack (PF-100) and Status Page (PF-101) live
+- **Supabase Migration:** IN PROGRESS — 6 phases, tasks PF-S01–PF-S13
+  - Done: PF-S01 through PF-S07 (EF Core removal)
   - See [docs/supabase-migration.md](docs/supabase-migration.md) for full phase breakdown
 
 ### What's Working
 - Full upload-preview-submit pipeline (BCA CSV, NeoBank PDF stub, Default CSV)
+- Python FastAPI AI service with Gemini (primary) and Anthropic (alternate)
+- Robust deduplication (Tier 1 file-hash, Tier 2/3 composite UNIQUE index) (PF-090)
+- LGTM Observability stack (Alloy, Prometheus, Loki, Tempo, Grafana) (PF-100)
+- System Health Status Dashboard at `/status` (PF-101)
 - 106 seeded category rules with longest-keyword-match
 - Dashboard with aggregated stats, top categories, 6-month cash flow
 - Docker Compose full-stack orchestration
 - GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4))
-- Playwright E2E test infrastructure (`e2e/` with 4 spec files + BCA CSV fixture)
+- Playwright E2E test infrastructure (`e2e/` with 5 spec files + BCA CSV fixture)
 
 ### What's Not Built Yet
-- Supabase integration (Phases 1–6 — the main work ahead)
-- Python FastAPI AI service (to be built event-driven via Supabase Webhooks)
-- LLM extraction for PDF/image banks (Superbank, NeoBank, Bank Jago)
+- Auth (PF-S08 Supabase Auth)
+- Event-driven AI pipeline (PF-S11 Supabase Database Webhook → Python AI)
+- Realtime (PF-S12 live AI processing status)
+- RAG pipeline, embeddings, natural language querying (PF-S13)
 - Wise CSV parser (with FX rate conversion)
 - Bank profile config system (YAML-driven)
-- Validation pipeline (5-stage, replaces EF Core DeduplicateCheck)
-- Auth (Supabase Auth replaces planned Auth0)
-- RAG pipeline, embeddings, natural language querying (Sprint 2+)
 
 ### Known Tech Debt (pre-migration)
 - Application.csproj references Persistence (ARCH-01 — resolved when Persistence is deleted in Phase 2)
