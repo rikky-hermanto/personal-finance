@@ -24,7 +24,8 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
   const { data: pagedResult, isLoading } = useQuery({
     queryKey: ['recent-transactions'],
     queryFn: () => transactionsApi.getTransactionPage({ pageSize: 8, sortOrder: 'desc' }),
-    refetchInterval: 30000, // Refetch every 30s
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
   });
 
   const recent = pagedResult?.items.map(mapApiToTransaction) || [];
