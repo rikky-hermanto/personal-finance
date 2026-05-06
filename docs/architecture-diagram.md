@@ -43,6 +43,19 @@ Full-stack monorepo: React 18 + Vite frontend (`apps/frontend/`), .NET 9 Clean A
                                └────────────────────────────────┘
 ```
 
+```
+  .NET 10 API  ──┐
+                 │  OTLP (traces · metrics · logs)
+  Python AI   ───┼──► Alloy (collector)
+                 │         │
+                 │    ┌────┼────────┐
+                 │    ▼    ▼        ▼
+                 │  Prometheus    Loki     Tempo
+                 │    └────────────┬────────┘
+                 │                 ▼
+                 └──────────► Grafana :3000
+```
+
 ## Event Flow: Upload → AI → Realtime
 
 ```
