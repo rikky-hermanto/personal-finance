@@ -98,8 +98,8 @@ const CashflowStatementTable = ({ data, isLoading }: CashflowStatementTableProps
                             <td 
                               key={p} 
                               className={cn(
-                                "p-2 text-right text-xs",
-                                val < 0 ? "text-red-400/80" : "text-emerald-400/80"
+                                "p-2 text-right text-xs font-mono",
+                                val < 0 ? "text-expense/80" : "text-income/80"
                               )}
                             >
                               {formatValue(val)}
@@ -120,8 +120,8 @@ const CashflowStatementTable = ({ data, isLoading }: CashflowStatementTableProps
                           <td 
                             key={p} 
                             className={cn(
-                              "p-2 text-right text-xs border-t border-border/30",
-                              val < 0 ? "text-red-400/80" : "text-emerald-400/80"
+                              "p-2 text-right text-xs font-mono border-t border-border/30",
+                              val < 0 ? "text-expense/80" : "text-income/80"
                             )}
                           >
                             {formatValue(val)}
@@ -144,8 +144,8 @@ const CashflowStatementTable = ({ data, isLoading }: CashflowStatementTableProps
                         <td 
                           key={p} 
                           className={cn(
-                            "p-3 text-right text-sm",
-                            val < 0 ? "text-red-400" : "text-emerald-400"
+                            "p-3 text-right text-sm font-mono",
+                            val < 0 ? "text-expense" : "text-income"
                           )}
                         >
                           {formatValue(val)}
@@ -168,8 +168,8 @@ const CashflowStatementTable = ({ data, isLoading }: CashflowStatementTableProps
                   <td 
                     key={p} 
                     className={cn(
-                      "p-4 text-right text-sm",
-                      val < 0 ? "text-red-500" : "text-emerald-500 underline decoration-double underline-offset-4"
+                      "p-4 text-right text-sm font-mono",
+                      val < 0 ? "text-expense" : "text-income underline decoration-double underline-offset-4"
                     )}
                   >
                     {formatValue(val)}
