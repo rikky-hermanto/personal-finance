@@ -69,7 +69,7 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
                         "w-1 h-1 rounded-full",
                         tx.type === 'income' ? 'bg-success' : 'bg-muted-foreground/30'
                       )} />
-                      <span className="text-xs font-medium text-foreground truncate leading-snug">
+                      <span className="text-xs font-mono text-foreground/70 truncate leading-snug">
                         {tx.description}
                       </span>
                     </div>
@@ -81,12 +81,15 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
                   </div>
                   <span
                     className={cn(
-                      'font-mono text-xs flex-shrink-0 tabular-nums font-semibold',
-                      tx.type === 'income' ? 'text-success' : 'text-foreground/80'
+                      'font-mono text-xs flex-shrink-0 tabular-nums',
+                      tx.type === 'income' ? 'text-emerald-400/80' : 'text-red-400/80'
                     )}
                   >
-                    {tx.amount > 0 ? '+' : ''}
-                    {formatCurrency(Math.abs(tx.amount)).replace('Rp', '').trim()}
+                    {(() => {
+                      const absVal = Math.abs(tx.amount);
+                      const formatted = formatCurrency(absVal).replace('Rp', '').trim();
+                      return tx.amount > 0 ? `+${formatted}` : `(${formatted})`;
+                    })()}
                   </span>
                 </div>
               </div>
