@@ -39,7 +39,7 @@ INPUT (5 sources, 3 format types)
 The project uses a **hybrid parser strategy** — direct CSV parsing for structured sources, LLM extraction for unstructured sources (PDF, screenshots). This is the most efficient approach because:
 
 - **CSV banks (BCA, Wise):** Deterministic column mapping. Zero LLM cost, 100% accuracy, fast. A per-bank config file defines column positions, date format, decimal convention.
-- **PDF/image banks (Superbank, NeoBank, Bank Jago):** LLM-powered extraction using Claude/GPT structured output (JSON mode or tool_use). The LLM extracts directly to the master schema — no intermediate "formatted CSV" step.
+- **PDF/image banks (Superbank, NeoBank, Bank Jago):** LLM-powered extraction using Gemini/Anthropic structured output (JSON mode or tool_use). The LLM extracts directly to the master schema — no intermediate "formatted CSV" step.
 
 Both paths converge at a **validation pipeline** before persisting to PostgreSQL:
 
@@ -125,17 +125,16 @@ React 18 frontend → .NET 10 API (supabase-csharp) → Supabase (PostgreSQL 17 
 - **Runtime:** Python 3.12+
 - **Framework:** FastAPI
 - **AI SDK:** Gemini SDK (primary, `gemini-2.5-flash`), Anthropic SDK (alternate, `claude-sonnet-4-6`)
-- **Supabase client:** `supabase-py` — writes AI extraction results directly to Supabase
-- **LLM Extraction:** Claude structured output via `tool_use` (PDF/image → JSON)
-- **Document Parsing:** PyMuPDF for PDF text extraction (pre-processing before LLM)
-- **Vision:** Claude vision API for screenshot extraction (Bank Jago)
-- **AI Orchestration:** Sprint 2+ — RAG, embeddings, agents
+- **LLM Extraction:** Gemini JSON mode + Anthropic `tool_use` (both force structured output — no regex)
+- **Document Parsing:** PyMuPDF for PDF text extraction (pre-processing before LLM, reduces token cost)
+- **Vision:** LLM vision API for screenshot/image extraction via `POST /parse-image`
+- **AI Orchestration:** Sprint 2+ — RAG, embeddings, agents (not yet built)
 
 ### Frontend
 - **Framework:** React 18 + TypeScript
 - **Styling:** Tailwind CSS
 - **State:** React Query (TanStack Query) for server state
-- **Supabase client:** `@supabase/supabase-js` — Auth flows + Realtime subscriptions
+- **Supabase client:** `@supabase/supabase-js` — planned for PF-S09 (Auth) and PF-S12 (Realtime); not yet installed
 
 ### Infrastructure
 - **Containers:** Docker Compose (local dev), individual Dockerfiles per service
@@ -171,18 +170,22 @@ apps/
     tsconfig*.json
     tailwind.config.ts
     playwright.config.ts
-  api/                        # .NET 9 backend (Clean Architecture)
+  api/                        # .NET 10 backend (Clean Architecture)
     src/PersonalFinance.Api/           # Controllers, middleware, Program.cs
     src/PersonalFinance.Application/   # CQRS commands/handlers, services, validators, DTOs
     src/PersonalFinance.Domain/        # Entities, domain events (zero external deps)
     src/PersonalFinance.Infrastructure/# Bank parsers, validation pipeline, external services
-      BankParsers/                     # IBankStatementParser implementations
+      Parsers/                         # IBankStatementParser implementations
         BcaCsvParser.cs                # Direct CSV parser for BCA
-        WiseCsvParser.cs               # Direct CSV parser for Wise (+ FX conversion)
-        DefaultCsvParser.cs            # Fallback CSV parser
-        LlmExtractionClient.cs        # HTTP client to Python AI service
-      BankProfiles/                    # YAML/JSON bank config files
-      Validation/                      # ValidationPipeline + individual validators
+        NeoBankPdfParser.cs            # Direct PDF parser for NeoBank (PdfPig + regex)
+        DefaultCsvParser.cs            # Fallback CSV parser (auto-delimiter, Indonesian decimals)
+        LlmPdfParser.cs                # LLM-routed parser for unrecognized PDFs
+        BankIdentifier.cs              # Sniffs file content, returns bank code
+      External/
+        LlmExtractionClient.cs         # Typed HttpClient → Python AI service /parse-pdf /parse-image
+      Supabase/
+        DependencyInjection.cs         # AddSupabase() extension, registers Supabase.Client + StorageService
+        StorageService.cs              # IFileStorageService impl — bank-statements/ bucket
     tests/PersonalFinance.Tests/       # xUnit + Moq tests
 services/
   ai-service/                 # Python FastAPI AI service
@@ -224,7 +227,6 @@ services/
 - Apply migrations: `supabase db push`
 - Reset local DB: `supabase db reset`
 - Open Studio: `http://localhost:54323`
-- Generate SQL from EF (migration only): `cd apps/api && dotnet ef migrations script --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api`
 
 ### AI Service (Python)
 - Setup: `cd services/ai-service && python -m venv .venv && source .venv/bin/activate && pip install -e .`
@@ -279,22 +281,23 @@ cd apps/frontend && npm run dev
 ## Environment Variables
 
 - Frontend: `VITE_API_URL` (default: `http://localhost:7208`) — set in `.env`
-- Frontend: `VITE_SUPABASE_URL` — Supabase project URL (for `@supabase/supabase-js`)
-- Frontend: `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key
+- Frontend: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — planned for PF-S09 (Supabase Auth); not yet used
 - Backend: `Supabase__Url` — Supabase project URL
-- Backend: `Supabase__AnonKey` — Supabase anon key (for client-context operations)
-- Backend: `Supabase__ServiceRoleKey` — Supabase service role key (for server-side operations bypassing RLS)
+- Backend: `Supabase__AnonKey` — Supabase anon key (client-context operations)
+- Backend: `Supabase__ServiceRoleKey` — Supabase service role key (bypasses RLS for server ops)
 - Backend: `AiService__BaseUrl` (default: `http://localhost:8000`) — Python AI service URL
-- AI Service: `SUPABASE_URL` — Supabase project URL (for supabase-py)
-- AI Service: `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (write access for AI results)
+- Backend: `ConnectionStrings__Default` — Postgres connection string (used by HealthChecks NpgSql)
+- AI Service: `AI_PROVIDER` — `gemini` (default) or `anthropic`
 - AI Service: `GEMINI_API_KEY` — Google Gemini API key (primary provider)
+- AI Service: `AI_MODEL` — model override (default: `gemini-2.5-flash`)
 - AI Service: `ANTHROPIC_API_KEY` — Claude API key (alternate provider)
-- AI Service: `AI_PROVIDER` — Provider selection (`gemini` or `anthropic`)
-- AI Service: `WEBHOOK_SECRET` — Shared secret to validate Supabase webhook requests
+- AI Service: `LOG_LEVEL` — logging level (default: `INFO`)
+- AI Service: `OTEL_EXPORTER_OTLP_ENDPOINT` — OTLP endpoint for traces/metrics
+- AI Service: `CORS_ORIGINS` — comma-separated allowed origins
 
 ## Key Patterns
 
-### Backend (.NET 9)
+### Backend (.NET 10)
 - **Clean Architecture**: Domain (no deps) → Application → Infrastructure → Api
 - **CQRS via MediatR**: Commands as `record` types implementing `IRequest<T>`, handlers in `Application/Commands/`
 - **FluentValidation**: Validators in `Application/Validation/`, naming: `Create{Entity}CommandValidator`
@@ -303,21 +306,24 @@ cd apps/frontend && npm run dev
 - **Entity model convention**: Entities in `Domain/Entities/` inherit `BaseModel` (Supabase.Postgrest.Models) and use `[Table]`, `[PrimaryKey]`, `[Column]` attributes with snake_case names matching the DB.
 - **DI Registration**: Supabase client registered via `AddSupabase()` extension in `Infrastructure/Supabase/DependencyInjection.cs`, called from `Program.cs`
 - **Hybrid Bank Parser Strategy**:
-  - `IBankStatementParser` implementations for CSV banks (BCA, Wise) — synchronous, deterministic, zero LLM cost
-  - PDF/image banks go event-driven: file → Supabase Storage → Database Webhook → Python AI service
-  - `IBankIdentifier.IdentifyAsync()` detects bank from file content and routes to correct path
-  - Bank profiles loaded from YAML config files in `Infrastructure/BankProfiles/`
-- **Validation Pipeline**: `IValidationPipeline` chains validators: DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck (queries via supabase-csharp). Runs on ALL parsed output.
-- **Auth**: Supabase JWT validated via `JwtBearer` middleware. Service role key used for server-to-server operations (bypasses RLS). Anon key used for user-context operations (respects RLS).
+  - `IBankStatementParser` implementations for direct parsers (BCA CSV, NeoBank PDF, Default CSV) — synchronous, deterministic, zero LLM cost
+  - Unrecognized PDFs routed to `LlmPdfParser` → `ILlmExtractionClient` → Python AI service `POST /parse-pdf`
+  - Images bypass identifier, sent directly to Python AI service `POST /parse-image`
+  - `IBankIdentifier.IdentifyAsync()` detects bank from file content and returns parser key
+  - Bank profile YAML config system not yet built (PF-045)
+  - Event-driven webhook pipeline (Storage → Webhook → AI) not yet wired (PF-S11)
+- **Validation Pipeline**: `ITransactionPipelineService` chains 5 stages: DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck. Runs on all parsed output.
+- **Deduplication**: Three-tier — Tier 1 file-hash (`uploaded_files` table), Tier 2/3 composite UNIQUE index on `(date, amount_idr, description, wallet, flow, bank_running_balance)`.
+- **Auth**: Not yet wired — API is wide open. Supabase Auth + JwtBearer middleware planned in PF-S08. RLS policies on tables use permissive `USING (true)` placeholder.
 
 ### AI Service (Python FastAPI)
-- **Trigger**: Receives POST from Supabase Database Webhook on INSERT to `statement_uploads`. Validates request with `WEBHOOK_SECRET`.
-- **File access**: Downloads bank statement from Supabase Storage using `supabase-py`. Writes extraction results back to Supabase directly.
-- **Structured Output**: All LLM extraction uses `tool_use` (Claude) or JSON mode (Gemini) to force output matching Pydantic models. No regex parsing of free text.
-- **Provider Abstraction**: Supports Gemini (primary) and Anthropic (alternate).
-- **Observability**: OpenTelemetry instrumentation for traces and metrics.
-- **Pre-processing**: PDF text extracted via PyMuPDF before LLM call (reduces token cost). Screenshots sent directly to LLM Vision API.
-- **Pydantic Models**: Pydantic v2 throughout. Response models match the master cashflow schema and the `TransactionDto` contract (see `.claude/rules/ai-service.md`).
+- **Trigger**: Called directly by the .NET API via `ILlmExtractionClient` (typed HttpClient). Webhook-triggered event-driven pipeline planned in PF-S11 (not yet built).
+- **Endpoints**: `GET /health`, `POST /parse` (text), `POST /parse-pdf` (multipart, optional password), `POST /parse-image` (multipart, 10 MB cap).
+- **Structured Output**: Gemini uses JSON mode (`response_mime_type="application/json"`); Anthropic uses `tool_use` forced extraction. No regex parsing of free text.
+- **Provider Abstraction**: `ProviderFactory.create(settings)` returns `GeminiProvider` (default) or `AnthropicProvider`. No supabase-py dependency — results returned to .NET API as JSON.
+- **Observability**: OpenTelemetry tracing + metrics via OTLP; `FastAPIInstrumentor` auto-wraps all routes.
+- **Pre-processing**: PDF text extracted via PyMuPDF (`fitz`) before LLM call. Screenshots/images sent to LLM vision directly as base64.
+- **Pydantic Models**: Pydantic v2 throughout (`ConfigDict`, `str_strip_whitespace=True`). Response models match the `TransactionDto` contract (see `.claude/rules/ai-service.md`).
 - **Async**: All FastAPI endpoints and LLM calls are async.
 
 ### Frontend (React/TypeScript)
@@ -335,7 +341,7 @@ cd apps/frontend && npm run dev
 
 ### E2E — Playwright (primary functional coverage)
 - **Config:** `playwright.config.ts` — `baseURL: http://localhost:8080`, Chromium, auto-starts `npm run dev`
-- **Tests:** `e2e/` — `health.spec.ts`, `dashboard.spec.ts`, `upload.spec.ts`, `category-rules.spec.ts`
+- **Tests:** `e2e/` — `health.spec.ts`, `dashboard.spec.ts`, `upload.spec.ts`, `category-rules.spec.ts`, `deduplication.spec.ts`
 - **Fixtures:** `e2e/fixtures/bca-sample.csv` — sample BCA CSV for upload tests
 
 | Command | What |
@@ -374,7 +380,6 @@ cd apps/frontend && npm run dev
 - NEVER commit `.env` files with real credentials
 - NEVER commit API keys (ANTHROPIC_API_KEY, OPENAI_API_KEY, SUPABASE_SERVICE_ROLE_KEY) — use environment variables
 - NEVER modify files in `src/components/ui/` (managed by `npx shadcn@latest add`)
-- NEVER manually edit EF Core migration `Designer.cs` or `Snapshot.cs` files (being phased out)
 - Schema changes go in `supabase/migrations/` as numbered SQL files — apply via `supabase db push`
 - Use `docker compose` (V2 syntax), never `docker-compose` (V1)
 - NEVER use the Supabase `service_role` key on the frontend — it bypasses RLS entirely
@@ -402,7 +407,7 @@ gh issue create \
 - **Always update `.kanban/BOARD.md`** to reflect the new state
 
 ### Next task ID
-Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-054** → next is **PF-055**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13).
+Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-101** → next is **PF-102**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13).
 
 ---
 
@@ -420,13 +425,16 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
   - See [docs/supabase-migration.md](docs/supabase-migration.md) for full phase breakdown
 
 ### What's Working
-- Full upload-preview-submit pipeline (BCA CSV, NeoBank PDF stub, Default CSV)
-- Python FastAPI AI service with Gemini (primary) and Anthropic (alternate)
-- Robust deduplication (Tier 1 file-hash, Tier 2/3 composite UNIQUE index) (PF-090)
-- LGTM Observability stack (Alloy, Prometheus, Loki, Tempo, Grafana) (PF-100)
-- System Health Status Dashboard at `/status` (PF-101)
-- 106 seeded category rules with longest-keyword-match
-- Dashboard with aggregated stats, top categories, 6-month cash flow
+- Full upload-preview-submit pipeline — BCA CSV, NeoBank PDF (direct parser), Default CSV, any unrecognized PDF (LLM-routed), PNG/JPG/WebP (LLM vision)
+- 4-step upload wizard: drag-drop, file picker, clipboard paste, PDF password guard, two-table preview (Ready to Save / Duplicates), inline edit
+- Python FastAPI AI service: `/parse`, `/parse-pdf`, `/parse-image` — Gemini (primary) and Anthropic (alternate)
+- Robust three-tier deduplication: file-hash table + composite UNIQUE index + BankRunningBalance tie-break (PF-090)
+- LGTM Observability stack (Alloy, Prometheus, Loki, Tempo, Grafana) with OTel instrumentation on .NET API + Python service (PF-100)
+- System Health Status Dashboard at `/status` — polls every 30 s (PF-101)
+- 106 seeded category rules with longest-keyword-match; `CategorizeBatchAsync` preserves source categories
+- Cashflow workspace: Overview, Transactions (server-paged, Excel-style filters, CSV export), Upload, Statement (quarterly/monthly)
+- Dashboard: Net Cashflow, Top Categories, Monthly chart
+- Settings: Category CRUD, Regional (date format), Data (reset)
 - Docker Compose full-stack orchestration
 - GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4))
 - Playwright E2E test infrastructure (`e2e/` with 5 spec files + BCA CSV fixture)
@@ -439,17 +447,12 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - Wise CSV parser (with FX rate conversion)
 - Bank profile config system (YAML-driven)
 
-### Known Tech Debt (pre-migration)
-- Application.csproj references Persistence (ARCH-01 — resolved when Persistence is deleted in Phase 2)
-- N+1 in CategorizeAsync (PF-029 — rewritten in Phase 2 Supabase SDK migration)
-- N+1 in SubmitTransactions (PF-039 — absorbed into Phase 2 handler rewrite)
-- ~100 lines business logic in controller (PF-031 — cleanup before migration)
-- Exception details leaked in HTTP 500 responses (PF-028 — cleanup before migration)
-- Dashboard cash flow ignores year/month params (PF-040 — absorbed into PF-031 rewrite)
+### Known Tech Debt
 - TypeScript strict mode disabled (PF-052)
-- Zero ILogger usage (PF-051)
+- Zero ILogger usage across services, handlers, parsers (PF-051)
 - No backend handler/validator/parser/controller tests (PF-034–PF-037)
-- No frontend tests (PF-038)
+- No frontend unit tests (PF-038)
+- `src/types/Transaction.ts` uses `id: string` but API returns `id: number` — type mismatch
 
 ### Sprint Plan
 → Revised sprint plan interleaving AI + Supabase: [docs/supabase-migration.md](docs/supabase-migration.md)
