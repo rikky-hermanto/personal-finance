@@ -30,6 +30,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [bankHint, setBankHint]               = useState('');
   const [fileHash, setFileHash]               = useState<string | null>(null);
   const [apiError, setApiError]               = useState<string | null>(null);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
   
   // Clear error on unmount
   useEffect(() => {
@@ -60,6 +61,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     if (validFiles.length > 0) {
       setUploadedFiles(prev => [...prev, ...validFiles]);
       setApiError(null); // Clear previous errors on new file selection
+      setShowPasswordConfirmation(false);
       if (currentStep === 'upload') setCurrentStep('review');
     }
   }, [currentStep]);
@@ -69,6 +71,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     if (files.length > 0) {
       setUploadedFiles(prev => [...prev, ...files]);
       setApiError(null); // Clear previous errors on new file selection
+      setShowPasswordConfirmation(false);
       if (currentStep === 'upload') setCurrentStep('review');
     }
   }, [currentStep]);
@@ -80,6 +83,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       return next;
     });
     setApiError(null);
+    setShowPasswordConfirmation(false);
   }, []);
 
   const handlePaste = useCallback((e: ClipboardEvent) => {
@@ -131,6 +135,15 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   }, [handlePaste]);
 
   const handleProcessFiles = useCallback(async () => {
+    const file = uploadedFiles[0];
+    if (!file) return;
+
+    const isPdf = file.name.toLowerCase().endsWith('.pdf');
+    if (isPdf && !pdfPassword && !showPasswordConfirmation) {
+      setShowPasswordConfirmation(true);
+      return;
+    }
+
     setIsProcessing(true);
     setApiError(null);
     try {
@@ -190,7 +203,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [uploadedFiles, pdfPassword]);
+  }, [uploadedFiles, pdfPassword, showPasswordConfirmation]);
 
   const handleConfirmData = useCallback(() => {
     onFileUpload(uploadedFiles);
@@ -202,6 +215,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     setParsedTransactions([]);
     setFileHash(null);
     setApiError(null);
+    setShowPasswordConfirmation(false);
     setCurrentStep('upload');
   }, []);
 
@@ -331,9 +345,20 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
               type="password"
               placeholder="PDF password (if protected)"
               value={pdfPassword}
-              onChange={e => setPdfPassword(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              onChange={e => {
+                setPdfPassword(e.target.value);
+                if (showPasswordConfirmation) setShowPasswordConfirmation(false);
+              }}
+              className={cn(
+                "w-full px-3 py-2 text-sm bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring transition-all",
+                showPasswordConfirmation && "border-warning/50 ring-1 ring-warning/30 bg-warning/5"
+              )}
             />
+            {showPasswordConfirmation && (
+              <p className="mt-1.5 text-[10px] text-warning/80 flex items-center gap-1">
+                Confirm: This PDF does not require a password?
+              </p>
+            )}
           </div>
         )}
 
@@ -363,7 +388,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-40"
           >
             <Eye className="w-3 h-3" strokeWidth={1.5} />
-            {isProcessing ? 'Processing…' : `Process (${uploadedFiles.length})`}
+            {isProcessing ? 'Processing…' : showPasswordConfirmation ? 'No password, proceed' : `Process (${uploadedFiles.length})`}
           </button>
         </div>
       </div>
