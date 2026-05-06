@@ -1,6 +1,6 @@
 import { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import { Transaction } from '@/types/Transaction';
-import { Edit2, Check, X, Send } from 'lucide-react';
+import { Edit2, Check, X, Send, Hash, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/format';
 import * as transactionsApi from '@/api/transactionsApi';
@@ -68,7 +68,7 @@ const AutoScalingText = ({ children, className }: { children: React.ReactNode; c
     <div ref={containerRef} className={cn("w-full overflow-hidden", className)}>
       <span 
         ref={textRef} 
-        className="font-bold whitespace-nowrap transition-[font-size] duration-200"
+        className="font-bold whitespace-nowrap transition-[font-size] duration-200 tabular-nums"
         style={{ fontSize: `${fontSize}px` }}
       >
         {children}
@@ -199,7 +199,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       </td>
       <td className={cn(
         'px-5 py-3 whitespace-nowrap font-mono text-xs tabular-nums text-right',
-        tx.flow === 'CR' ? 'text-emerald-400/80' : 'text-red-400/80'
+        tx.flow === 'CR' ? 'text-income/80' : 'text-expense/80'
       )}>
         {(() => {
           const absVal = Math.abs(tx.amount);
@@ -251,28 +251,63 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 shrink-0">
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">New Transactions</p>
-          <p className="text-2xl font-bold text-foreground">{summary.totalTransactions}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 shrink-0">
+        {/* Card 1: Total Transactions */}
+        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">New Transactions</p>
+              <p className="text-2xl font-bold text-foreground tracking-tight">{summary.totalTransactions}</p>
+            </div>
+            <div className="p-2 rounded-lg bg-muted/50 border border-border/50">
+              <Hash className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
+            </div>
+          </div>
         </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-success">New Income</p>
-          <AutoScalingText className="text-success">
-            +{formatCurrency(summary.income)}
-          </AutoScalingText>
+
+        {/* Card 2: New Income */}
+        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0 pr-2">
+              <p className="text-[10px] font-semibold text-income uppercase tracking-widest mb-1.5">New Income</p>
+              <AutoScalingText className="text-income tracking-tight">
+                +{formatCurrency(summary.income)}
+              </AutoScalingText>
+            </div>
+            <div className="p-2 rounded-lg bg-income/10 border border-income/20">
+              <TrendingUp className="w-4 h-4 text-income" strokeWidth={2} />
+            </div>
+          </div>
         </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1 text-destructive">New Expenses</p>
-          <AutoScalingText className="text-destructive">
-            -{formatCurrency(Math.abs(summary.expenses))}
-          </AutoScalingText>
+
+        {/* Card 3: New Expenses */}
+        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0 pr-2">
+              <p className="text-[10px] font-semibold text-expense uppercase tracking-widest mb-1.5">New Expenses</p>
+              <AutoScalingText className="text-expense tracking-tight">
+                -{formatCurrency(Math.abs(summary.expenses))}
+              </AutoScalingText>
+            </div>
+            <div className="p-2 rounded-lg bg-expense/10 border border-expense/20">
+              <TrendingDown className="w-4 h-4 text-expense" strokeWidth={2} />
+            </div>
+          </div>
         </div>
-        <div className="bg-card border border-border rounded-lg p-4">
-          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider mb-1">Net Balance (New)</p>
-          <AutoScalingText className={summary.balance >= 0 ? 'text-success' : 'text-destructive'}>
-            {summary.balance >= 0 ? '+' : ''}{formatCurrency(summary.balance)}
-          </AutoScalingText>
+
+        {/* Card 4: Net Balance */}
+        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0 pr-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Net Balance (New)</p>
+              <AutoScalingText className={cn("tracking-tight", summary.balance >= 0 ? 'text-income' : 'text-expense')}>
+                {summary.balance >= 0 ? '+' : ''}{formatCurrency(summary.balance)}
+              </AutoScalingText>
+            </div>
+            <div className="p-2 rounded-lg bg-muted/50 border border-border/50">
+              <Wallet className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -348,7 +383,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
                   </div>
                   <div className={cn(
                     'font-mono text-[10px] tabular-nums text-right pr-4',
-                    tx.flow === 'CR' ? 'text-emerald-400/40' : 'text-red-400/40'
+                    tx.flow === 'CR' ? 'text-income/60' : 'text-expense/60'
                   )}>
                     {(() => {
                       const absVal = Math.abs(tx.amount);
