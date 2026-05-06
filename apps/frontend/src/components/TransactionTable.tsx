@@ -242,7 +242,7 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
             </td>
             <td className={cn(
               'px-5 py-3 whitespace-nowrap font-mono text-xs tabular-nums text-right',
-              tx.flow === 'CR' ? 'text-emerald-400/80' : 'text-red-400/80'
+              tx.flow === 'CR' ? 'text-income/80' : 'text-expense/80'
             )}>
               {(() => {
                 const absVal = Math.abs(tx.amount);
