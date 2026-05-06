@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-05-02 (Closed 9 stale issues: PF-S04, PF-S05, PF-029, PF-010, PF-013, PF-014, PF-015, PF-026, PF-050 — all completed or superseded in code)
+> **Last synced:** 2026-05-06 (Added PF-090, PF-100, PF-101 — committed but not GitHub-tracked)
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -47,6 +47,9 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-029 | [#37](https://github.com/rikky-hermanto/personal-finance/issues/37) | Fix N+1 query in CategorizeAsync |
 | PF-050 | [#59](https://github.com/rikky-hermanto/personal-finance/issues/59) | Docker Compose — Add ai-service Container |
 | PF-059 | [#82](https://github.com/rikky-hermanto/personal-finance/issues/82) | Bidirectional CSV Import/Export — Master Cashflow Roundtrip |
+| PF-090 | _(no issue)_ | Robust deduplication & file hashing |
+| PF-100 | _(no issue)_ | LGTM Monitoring Stack (OpenTelemetry) |
+| PF-101 | _(no issue)_ | System Health Status Dashboard |
 
 ---
 
@@ -134,13 +137,13 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 ```
 Setup:      ████████████████████ 100% (8/8)
-Cleanup:    ███████░░░░░░░░░░░░░  33% (6/18 — 8 issues now obsolete)
-Ramp-Up:    ████████████████████ 100% (5/5 active; PF-014 obsolete)
-Sprint 1:   █████░░░░░░░░░░░░░░░  33% (3/9 active — PF-046, PF-050, PF-059 done; PF-015 obsolete)
+Cleanup:    ███████░░░░░░░░░░░░░  33% (6/18)
+Ramp-Up:    ████████████████████ 100% (5/5)
+Sprint 1:   █████░░░░░░░░░░░░░░░  33% (3/9)
 Supabase:   ███████░░░░░░░░░░░░░  54% (7/13)
-Sprint 2+:  ░░░░░░░░░░░░░░░░░░░░   0% (0/6)
+Monitoring: ████████████████████ 100% (3/3)
 ──────────────────────────────────
-Overall:    █████░░░░░░░░░░░░░░░  ~40% (30 done / 53 active, 11 obsolete)
+Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
 ```
 
-> Next task ID: **PF-060** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-102** (PF-S series: PF-S14 if more Supabase tasks needed)
