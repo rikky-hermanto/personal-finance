@@ -175,7 +175,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
         {formatDate(tx.date)}
       </td>
-      <td className="px-5 py-3 text-sm text-foreground max-w-xs truncate">
+      <td className="px-5 py-3 text-xs font-mono text-foreground/70 max-w-xs truncate">
         {tx.description}
       </td>
       <td className="px-5 py-3 whitespace-nowrap">
@@ -198,10 +198,14 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         )}
       </td>
       <td className={cn(
-        'px-5 py-3 whitespace-nowrap font-mono text-sm tabular-nums',
-        tx.flow === 'CR' ? 'text-success' : 'text-destructive'
+        'px-5 py-3 whitespace-nowrap font-mono text-xs tabular-nums text-right',
+        tx.flow === 'CR' ? 'text-emerald-400/80' : 'text-red-400/80'
       )}>
-        {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
+        {(() => {
+          const absVal = Math.abs(tx.amount);
+          const formatted = formatCurrency(absVal).replace('Rp', '').trim();
+          return tx.flow === 'CR' ? formatted : `(${formatted})`;
+        })()}
       </td>
       <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
         {tx.bank}
@@ -336,17 +340,21 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
                   <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
                     {formatDate(tx.date)}
                   </div>
-                  <div className="text-[11px] text-foreground/80 truncate">
+                  <div className="font-mono text-[10px] text-foreground/50 truncate">
                     {tx.description}
                   </div>
                   <div className="text-[10px] text-muted-foreground/70 italic">
                     {tx.category}
                   </div>
                   <div className={cn(
-                    'font-mono text-[11px] tabular-nums text-right pr-4',
-                    tx.flow === 'CR' ? 'text-success/70' : 'text-destructive/70'
+                    'font-mono text-[10px] tabular-nums text-right pr-4',
+                    tx.flow === 'CR' ? 'text-emerald-400/40' : 'text-red-400/40'
                   )}>
-                    {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
+                    {(() => {
+                      const absVal = Math.abs(tx.amount);
+                      const formatted = formatCurrency(absVal).replace('Rp', '').trim();
+                      return tx.flow === 'CR' ? formatted : `(${formatted})`;
+                    })()}
                   </div>
                   <div className="text-[10px] text-muted-foreground/60 text-right">
                     {tx.bank}
