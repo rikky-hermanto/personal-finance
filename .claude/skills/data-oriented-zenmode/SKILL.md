@@ -426,12 +426,13 @@ Cards are allowed but must feel **weightless**:
 No left state bars. No shadows. No colored accents on cards. State is communicated through inline text color or small dot indicators.
 
 ### Tables in Zen Mode
-Tables shed their chrome:
-- **No zebra rows** — clean white background throughout
-- **No header background** — header distinguished by weight and border-bottom only
-- Row hover: `background: #FAF9F7`
-- Border between rows: `1px solid rgba(0, 0, 0, 0.04)` — barely there
-- Numbers: still mono, still right-aligned
+Tables shed their chrome and embrace high-fidelity data display:
+- **No zebra rows** — clean `bg-card` or white background throughout
+- **No header background** — header distinguished by weight and `border-bottom` only
+- **Row hover**: `background: #FAF9F7` or `bg-accent/40`
+- **Border between rows**: `1px solid rgba(0, 0, 0, 0.04)` or `border-border/30`
+- **Data Typography**: `font-mono text-xs` for all data cells (Dates, Descriptions, Amounts)
+- **High-fidelity**: Use parentheses for negative amounts, remove currency symbols, use `text-income` and `text-expense` colors.
 
 ### Typography in Zen Mode
 Titles (H1) should use the editorial serif font stack to provide a classic, high-craft feel.
