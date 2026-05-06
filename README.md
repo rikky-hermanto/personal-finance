@@ -45,7 +45,7 @@ Observability sidecar:
 
 ---
 
-## Feature Inventory
+## Features
 
 ### Frontend (`apps/frontend/`, port 8080)
 
