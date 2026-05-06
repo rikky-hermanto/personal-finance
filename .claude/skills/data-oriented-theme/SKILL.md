@@ -153,12 +153,14 @@ Card spec:
 - Delta: mono, `0.6875rem`, green/red only
 
 ### Data Table
-- Zebra rows: `#FFFFFF` / `#F9FAFB`
-- Header: `background: var(--elevated)`, `0.6875rem`, UPPERCASE, weight 600
-- Numbers: right-aligned, mono
-- Hover row: `background: var(--accent-s)`
-- Row height: `40px` dense / `48px` readable
-- No rounded corners — straight lines only
+- Background: `bg-card` with `border border-border`
+- Header: `sticky`, `text-[10px]`, UPPERCASE, weight 600, `text-muted-foreground`
+- Row: `hover:bg-accent transition-colors`, `divide-y divide-border`
+- Data Typography: `font-mono text-xs` for all data (Date, Description, Amount)
+- Alignment: Numbers/Amounts right-aligned, Dates/Text left-aligned
+- Row height: `44px` to `52px` (comfortable scannability)
+- No rounded corners on internal cells — straight lines only
+- Frozen regions: Toolbar (top) and Footer (bottom)
 
 ### Section Panel
 Labeled region via borders, not a wrapped box:
