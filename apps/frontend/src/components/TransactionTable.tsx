@@ -214,7 +214,7 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
             <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
               {formatDate(tx.date)}
             </td>
-            <td className="px-5 py-3 text-sm text-foreground max-w-xs truncate">
+            <td className="px-5 py-3 text-xs font-mono text-foreground/70 max-w-xs truncate">
               {tx.description}
             </td>
             <td className="px-5 py-3 whitespace-nowrap">
@@ -241,13 +241,17 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
               {tx.bank}
             </td>
             <td className={cn(
-              'px-5 py-3 whitespace-nowrap font-mono text-sm tabular-nums',
-              tx.flow === 'CR' ? 'text-success' : 'text-destructive'
+              'px-5 py-3 whitespace-nowrap font-mono text-xs tabular-nums text-right',
+              tx.flow === 'CR' ? 'text-emerald-400/80' : 'text-red-400/80'
             )}>
-              {tx.flow === 'CR' ? '+' : '−'}{formatCurrency(Math.abs(tx.amount))}
+              {(() => {
+                const absVal = Math.abs(tx.amount);
+                const formatted = formatCurrency(absVal).replace('Rp', '').trim();
+                return tx.flow === 'CR' ? formatted : `(${formatted})`;
+              })()}
             </td>
-            <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
-              {tx.balance != null ? formatCurrency(tx.balance) : '—'}
+            <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums text-right">
+              {tx.balance != null ? formatCurrency(tx.balance).replace('Rp', '').trim() : '—'}
             </td>
             <td className="px-5 py-3 whitespace-nowrap">
               <button
