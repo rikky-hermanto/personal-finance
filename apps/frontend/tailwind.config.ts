@@ -66,6 +66,8 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				success: 'hsl(var(--success))',
+				income: 'hsl(var(--income))',
+				expense: 'hsl(var(--expense))',
 				warning: 'hsl(var(--warning))',
 				info: 'hsl(var(--info))',
 			},
