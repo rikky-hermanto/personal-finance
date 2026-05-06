@@ -157,7 +157,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         dateFormat
       );
       setFileHash(apiTransactions.hash);
-      const transactions: Transaction[] = apiTransactions.transactions.map((t: transactionsApi.TransactionDto) => {
+      const transactions: Transaction[] = apiTransactions.transactions.map((t: transactionsApi.TransactionDto, idx: number) => {
         let mappedType: 'income' | 'expense' | 'transfer';
         const rawType = t.type.toLowerCase();
         
@@ -170,7 +170,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         }
 
         return {
-          id:          t.id.toString(),
+          id:          `${t.id}-${idx}`,
           date:        t.date,
           description: t.description,
           flow:        t.flow,

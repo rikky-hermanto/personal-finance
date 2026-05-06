@@ -83,11 +83,20 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const handleCategoryChange = (transactionId: string, newCategory: string) => {
+  const handleFieldChange = (transactionId: string, field: keyof Transaction, value: any) => {
     setEditedTransactions(prev =>
-      prev.map(t => t.id === transactionId ? { ...t, category: newCategory } : t)
+      prev.map(t => t.id === transactionId ? { ...t, [field]: value } : t)
     );
-    setEditingId(null);
+  };
+
+  const toISODate = (ds: string) => {
+    try {
+      const d = new Date(ds);
+      if (isNaN(d.getTime())) return "";
+      return d.toISOString().split('T')[0];
+    } catch {
+      return "";
+    }
   };
 
   const newTransactions = useMemo(() => editedTransactions.filter(t => !t.isDuplicate), [editedTransactions]);
@@ -170,75 +179,127 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     { key: 'actions', label: '', className: 'w-16' },
   ];
 
-  const renderRow = (tx: Transaction) => (
-    <tr key={tx.id} className="hover:bg-accent transition-colors">
-      <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
-        {formatDate(tx.date)}
-      </td>
-      <td className="px-5 py-3 text-xs font-mono text-foreground/70 max-w-xs truncate">
-        {tx.description}
-      </td>
-      <td className="px-5 py-3 whitespace-nowrap">
-        {editingId === tx.id ? (
-          <select
-            value={tx.category}
-            autoFocus
-            onBlur={() => setEditingId(null)}
-            onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
-            className={selectCls}
-          >
-            {CORE_CATEGORIES.map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        ) : (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
-            {tx.category}
-          </span>
-        )}
-      </td>
-      <td className={cn(
-        'px-5 py-3 whitespace-nowrap font-mono text-xs tabular-nums text-right',
-        tx.flow === 'CR' ? 'text-income/80' : 'text-expense/80'
-      )}>
-        {(() => {
-          const absVal = Math.abs(tx.amount);
-          const formatted = formatCurrency(absVal).replace('Rp', '').trim();
-          return tx.flow === 'CR' ? formatted : `(${formatted})`;
-        })()}
-      </td>
-      <td className="px-5 py-3 whitespace-nowrap text-xs text-muted-foreground">
-        {tx.bank}
-      </td>
-      <td className="px-5 py-3 whitespace-nowrap">
-        {!tx.isDuplicate && (
-          editingId === tx.id ? (
-            <div className="flex gap-1">
-              <button
-                onClick={() => setEditingId(null)}
-                className="text-success hover:text-success/80 transition-colors"
-              >
-                <Check className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </button>
-              <button
-                onClick={() => setEditingId(null)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </button>
+  const renderRow = (tx: Transaction) => {
+    const isEditing = editingId === tx.id;
+    
+    // Ensure the current category is in the options list
+    const categoryOptions = [...new Set([...CORE_CATEGORIES, tx.category])].sort();
+
+    return (
+      <tr key={tx.id} className={cn("hover:bg-accent transition-colors", isEditing && "bg-accent/40")}>
+        <td className="px-5 py-3 whitespace-nowrap">
+          {isEditing ? (
+            <input
+              type="date"
+              value={toISODate(tx.date)}
+              onChange={(e) => handleFieldChange(tx.id, 'date', e.target.value)}
+              className={cn(selectCls, "w-32")}
+              autoFocus
+            />
+          ) : (
+            <span className="font-mono text-xs text-muted-foreground tabular-nums">
+              {formatDate(tx.date)}
+            </span>
+          )}
+        </td>
+        <td className="px-5 py-3">
+          {isEditing ? (
+            <input
+              type="text"
+              value={tx.description}
+              onChange={(e) => handleFieldChange(tx.id, 'description', e.target.value)}
+              className={selectCls}
+            />
+          ) : (
+            <span className="text-xs font-mono text-foreground/70 max-w-xs truncate block">
+              {tx.description}
+            </span>
+          )}
+        </td>
+        <td className="px-5 py-3 whitespace-nowrap">
+          {isEditing ? (
+            <select
+              value={tx.category}
+              onChange={(e) => handleFieldChange(tx.id, 'category', e.target.value)}
+              className={selectCls}
+            >
+              {categoryOptions.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
+              {tx.category}
+            </span>
+          )}
+        </td>
+        <td className="px-5 py-3 whitespace-nowrap">
+          {isEditing ? (
+            <div className="flex items-center gap-1 justify-end">
+              <span className="text-[10px] text-muted-foreground">{tx.flow === 'CR' ? '+' : '-'}</span>
+              <input
+                type="number"
+                value={Math.abs(tx.amount)}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value) || 0;
+                  handleFieldChange(tx.id, 'amount', tx.flow === 'CR' ? val : -val);
+                }}
+                className={cn(selectCls, "w-24 text-right")}
+              />
             </div>
           ) : (
-            <button
-              onClick={() => setEditingId(tx.id)}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </button>
-          )
-        )}
-      </td>
-    </tr>
-  );
+            <div className={cn(
+              'font-mono text-xs tabular-nums text-right',
+              tx.flow === 'CR' ? 'text-income/80' : 'text-expense/80'
+            )}>
+              {(() => {
+                const absVal = Math.abs(tx.amount);
+                const formatted = formatCurrency(absVal).replace('Rp', '').trim();
+                return tx.flow === 'CR' ? formatted : `(${formatted})`;
+              })()}
+            </div>
+          )}
+        </td>
+        <td className="px-5 py-3 whitespace-nowrap">
+          {isEditing ? (
+            <input
+              type="text"
+              value={tx.bank}
+              onChange={(e) => handleFieldChange(tx.id, 'bank', e.target.value)}
+              className={cn(selectCls, "w-32")}
+            />
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              {tx.bank}
+            </span>
+          )}
+        </td>
+        <td className="px-5 py-3 whitespace-nowrap">
+          {!tx.isDuplicate && (
+            isEditing ? (
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setEditingId(null)}
+                  className="text-success hover:text-success/80 transition-colors p-1"
+                  title="Done"
+                >
+                  <Check className="w-4 h-4" strokeWidth={2} />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setEditingId(tx.id)}
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                title="Edit"
+              >
+                <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            )
+          )}
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="max-w-6xl mx-auto p-6 flex flex-col h-[calc(100vh-140px)]">
