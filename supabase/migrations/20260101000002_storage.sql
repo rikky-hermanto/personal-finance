@@ -4,7 +4,9 @@ VALUES ('bank-statements', 'bank-statements', false)
 ON CONFLICT (id) DO NOTHING;
 
 -- Enable RLS on storage.objects if not already enabled
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+-- Note: In local Supabase dev, storage.objects is managed by the storage-api.
+-- Attempting to ALTER it here can cause "must be owner" errors.
+-- ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Allow users to insert their own files
 CREATE POLICY "Users can upload their own bank statements" ON storage.objects

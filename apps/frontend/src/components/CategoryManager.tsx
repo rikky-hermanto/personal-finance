@@ -1,13 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CategoryRule } from '@/types/Transaction';
-import { Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, Download, RefreshCw } from 'lucide-react';
 import {
   getCategoryRules,
   addCategoryRule,
   updateCategoryRule,
   deleteCategoryRule,
+  resetAllCategoryRules,
+  importCategoryRules,
+  EXPORT_RULES_URL
 } from '@/api/categoryRulesApi';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const predefinedCategories = [
   'Food & Dining', 'Groceries', 'Shopping', 'Entertainment', 'Transportation',
@@ -23,8 +38,13 @@ const CategoryManager = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newRule, setNewRule] = useState<Omit<CategoryRule, 'id'>>({ keyword: '', category: '', type: 'expense' });
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetPhrase, setResetPhrase] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const fetchRules = () => {
     setLoading(true);
     getCategoryRules()
       .then((dtos) => {
@@ -40,7 +60,47 @@ const CategoryManager = () => {
       })
       .catch((err) => console.error('Failed to fetch category rules', err))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchRules();
   }, []);
+
+  const handleExport = () => {
+    window.open(EXPORT_RULES_URL, '_blank');
+  };
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await importCategoryRules(file);
+      toast({ title: 'Rules imported', description: `Successfully imported ${res.added} rules.` });
+      fetchRules();
+    } catch (err) {
+      toast({ title: 'Import failed', description: 'Could not import rules.', variant: 'destructive' });
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleReset = async () => {
+    setIsResetting(true);
+    try {
+      await resetAllCategoryRules();
+      setCategoryRules([]);
+      toast({ title: 'Rules deleted', description: 'All category rules have been deleted.' });
+      setResetOpen(false);
+      setResetPhrase('');
+    } catch (err) {
+      toast({ title: 'Reset failed', description: 'Could not reset rules.', variant: 'destructive' });
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const handleSaveRule = async (rule: CategoryRule) => {
     const updated = await updateCategoryRule(rule.id as number, { keyword: rule.keyword, category: rule.category, type: rule.type });
@@ -83,13 +143,38 @@ const CategoryManager = () => {
             {categoryRules.length} rules — longest-keyword match applies first
           </p>
         </div>
-        <button
-          onClick={() => setIsAddingNew(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
-        >
-          <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-          Add Rule
-        </button>
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            accept=".csv"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
+            title="Import from CSV"
+          >
+            <Upload className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Import
+          </button>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
+            title="Export as CSV template"
+          >
+            <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Export
+          </button>
+          <button
+            onClick={() => setIsAddingNew(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
+            Add Rule
+          </button>
+        </div>
       </div>
 
       {/* Table card */}
@@ -240,6 +325,78 @@ const CategoryManager = () => {
           </table>
         </div>
       </div>
+
+      <div className="pt-6">
+        <div className="rounded-lg border border-destructive/50 bg-destructive/5">
+          <div className="px-5 py-4 border-b border-destructive/20">
+            <span className="text-xs font-semibold uppercase tracking-wider text-destructive">
+              Danger Zone
+            </span>
+          </div>
+          <div className="px-5 py-5 flex items-center justify-between gap-6">
+            <div>
+              <p className="text-sm font-medium text-foreground">Reset all rules</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Permanently delete all {categoryRules.length > 0 ? `${categoryRules.length.toLocaleString()} ` : ''}category rules.
+              </p>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setResetOpen(true)}
+            >
+              Reset rules
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      <AlertDialog open={resetOpen} onOpenChange={(open) => {
+        if (!open) setResetPhrase('');
+        setResetOpen(open);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset all category rules?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  This will permanently delete{' '}
+                  <span className="font-semibold text-foreground">
+                    {categoryRules.length.toLocaleString()} rule{categoryRules.length !== 1 ? 's' : ''}
+                  </span>
+                  .{' '}
+                  <span className="font-medium text-foreground">This cannot be undone.</span>
+                </p>
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">
+                    Type <span className="font-mono font-medium text-foreground">delete all</span> to
+                    confirm:
+                  </p>
+                  <Input
+                    value={resetPhrase}
+                    onChange={(e) => setResetPhrase(e.target.value)}
+                    placeholder="delete all"
+                    autoComplete="off"
+                    spellCheck={false}
+                  />
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={resetPhrase.trim().toLowerCase() !== 'delete all' || isResetting}
+              onClick={handleReset}
+            >
+              {isResetting ? 'Deleting…' : 'I understand, delete everything'}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -187,6 +187,12 @@ public class CategoryRuleService : ICategoryRuleService
         return await _mediator.Send(new DeleteCategoryRuleCommand(id));
     }
 
+    public async Task<bool> DeleteAllAsync()
+    {
+        var count = await _mediator.Send(new DeleteAllCategoryRulesCommand());
+        return true;
+    }
+
     public async Task EnsureCategoryRulesAsync(List<TransactionDto> transactions)
     {
         var existingRules = await GetAllAsync();
