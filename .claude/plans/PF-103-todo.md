@@ -137,7 +137,7 @@ maintain, and already wired in. Skip Local ML entirely.
 
 ## TODO
 
-### [ ] STEP 1 — DB migration: add `flow` column to `category_rules`
+### [x] STEP 1 — DB migration: add `flow` column to `category_rules`
 
 Create `supabase/migrations/20260507000000_add_flow_to_category_rules.sql`:
 
@@ -183,7 +183,7 @@ SELECT id, keyword, type, category, flow FROM category_rules ORDER BY id DESC LI
 
 ---
 
-### [ ] STEP 2 — Update `CategoryRule` entity and `CategoryRuleDto`
+### [x] STEP 2 — Update `CategoryRule` entity and `CategoryRuleDto`
 
 **File:** `apps/api/src/PersonalFinance.Domain/Entities/CategoryRule.cs`
 
@@ -237,7 +237,7 @@ cd apps/api && dotnet build PersonalFinance.slnx
 
 ---
 
-### [ ] STEP 3 — Enhance `CategoryRuleService`: history cache + flow-aware matching
+### [x] STEP 3 — Enhance `CategoryRuleService`: history cache + flow-aware matching
 
 **File:** `apps/api/src/PersonalFinance.Application/Services/CategoryRuleService.cs`
 
@@ -385,7 +385,7 @@ public async Task<List<TransactionDto>> CategorizeBatchAsync(List<TransactionDto
 
 ---
 
-### [ ] STEP 4 — New `ILlmCategorizationClient` interface
+### [x] STEP 4 — New `ILlmCategorizationClient` interface
 
 **New file:** `apps/api/src/PersonalFinance.Application/Interfaces/ILlmCategorizationClient.cs`
 
@@ -418,7 +418,7 @@ public interface ILlmCategorizationClient
 
 ---
 
-### [ ] STEP 5 — New `LlmCategorizationClient` implementation
+### [x] STEP 5 — New `LlmCategorizationClient` implementation
 
 **New file:** `apps/api/src/PersonalFinance.Infrastructure/External/LlmCategorizationClient.cs`
 
@@ -514,7 +514,7 @@ public class LlmCategorizationClient : ILlmCategorizationClient
 
 ---
 
-### [ ] STEP 6 — Enhance `TransactionPipelineService` with Layer 3 + auto-seed
+### [x] STEP 6 — Enhance `TransactionPipelineService` with Layer 3 + auto-seed
 
 **File:** `apps/api/src/PersonalFinance.Application/Services/TransactionPipelineService.cs`
 
@@ -670,7 +670,7 @@ public class TransactionPipelineService : ITransactionPipelineService
 
 ---
 
-### [ ] STEP 7 — Register `LlmCategorizationClient` in `Program.cs`
+### [x] STEP 7 — Register `LlmCategorizationClient` in `Program.cs`
 
 **File:** `apps/api/src/PersonalFinance.Api/Program.cs`
 
@@ -700,7 +700,7 @@ builder.Services.AddHttpClient<ILlmCategorizationClient, LlmCategorizationClient
 
 ---
 
-### [ ] STEP 8 — Python AI service: Pydantic models for `/categorize`
+### [x] STEP 8 — Python AI service: Pydantic models for `/categorize`
 
 **File:** `services/ai-service/app/models.py`
 
@@ -729,7 +729,7 @@ class CategorizeResponse(BaseModel):
 
 ---
 
-### [ ] STEP 9 — Python AI service: `categorizer.py` service
+### [x] STEP 9 — Python AI service: `categorizer.py` service
 
 **New file:** `services/ai-service/app/services/categorizer.py`
 
@@ -860,7 +860,7 @@ async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict
 
 ---
 
-### [ ] STEP 10 — Python AI service: `POST /categorize` endpoint
+### [x] STEP 10 — Python AI service: `POST /categorize` endpoint
 
 **File:** `services/ai-service/app/main.py`
 
@@ -901,7 +901,7 @@ curl -X POST http://localhost:8000/categorize \
 
 ---
 
-### [ ] STEP 11 — Python tests for `POST /categorize`
+### [x] STEP 11 — Python tests for `POST /categorize`
 
 **New file:** `services/ai-service/tests/test_categorize.py`
 
@@ -970,7 +970,7 @@ async def test_categorize_low_confidence_still_returns_response():
 
 ---
 
-### [ ] STEP 12 — xUnit tests for categorization layers
+### [x] STEP 12 — xUnit tests for categorization layers
 
 **New file:** `apps/api/tests/PersonalFinance.Tests/Services/CategorizationLayerTests.cs`
 
@@ -1159,7 +1159,7 @@ cd apps/api && dotnet test --filter "FullyQualifiedName~CategorizationLayerTests
 
 ---
 
-### [ ] STEP 13 — End-to-end smoke test
+### [x] STEP 13 — End-to-end smoke test
 
 With full stack running (`supabase start`, `uvicorn`, `dotnet run`, `npm run dev`):
 
@@ -1182,7 +1182,7 @@ With full stack running (`supabase start`, `uvicorn`, `dotnet run`, `npm run dev
 
 ---
 
-### [ ] STEP 14 — Run full test suites
+### [x] STEP 14 — Run full test suites
 
 ```bash
 # Python
@@ -1194,7 +1194,7 @@ cd apps/api && dotnet test PersonalFinance.slnx
 
 ---
 
-### [ ] STEP 15 — Commit
+### [] (DONT DO THIS!) STEP 15 — Committing: DONT DO IT YET! DEVELOPER WILL MANUALLY COMMIT AFTER VERIFICATION!
 
 ```bash
 git add supabase/migrations/20260507000000_add_flow_to_category_rules.sql

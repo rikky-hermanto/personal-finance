@@ -7,4 +7,5 @@ public class CategoryRuleDto
     public string Type { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public int KeywordLength { get; set; }
+    public string? Flow { get; set; }
 }

@@ -1,6 +1,7 @@
 from enum import Enum
 from typing import Literal
-from pydantic import BaseModel, Field
+from decimal import Decimal
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class FlowType(str, Enum):
@@ -45,3 +46,17 @@ class ParseImageRequest(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     version: str
+
+class CategorizeRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    description: str
+    remarks: str = ""
+    flow: Literal["DB", "CR"]
+    amount_idr: Decimal
+    wallet: str = ""
+    available_categories: list[str]
+
+class CategorizeResponse(BaseModel):
+    category: str
+    confidence: float  # 0.0 – 1.0

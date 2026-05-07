@@ -24,4 +24,7 @@ public class CategoryRule : BaseModel
         get => string.IsNullOrEmpty(Keyword) ? 0 : Keyword.Length;
         set { /* DB value ignored — computed from Keyword; getter used on INSERT/UPDATE */ }
     }
+
+    [Column("flow")]
+    public string? Flow { get; set; }
 }

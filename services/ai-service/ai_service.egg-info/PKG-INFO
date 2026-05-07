@@ -10,6 +10,11 @@ Requires-Dist: pydantic>=2.11.0
 Requires-Dist: pydantic-settings>=2.8.0
 Requires-Dist: pymupdf>=1.25.0
 Requires-Dist: python-multipart>=0.0.20
+Requires-Dist: opentelemetry-api>=1.29.0
+Requires-Dist: opentelemetry-sdk>=1.29.0
+Requires-Dist: opentelemetry-instrumentation-fastapi>=0.50b0
+Requires-Dist: opentelemetry-instrumentation-logging>=0.50b0
+Requires-Dist: opentelemetry-exporter-otlp>=1.29.0
 Provides-Extra: dev
 Requires-Dist: python-dotenv>=1.0.0; extra == "dev"
 Requires-Dist: pytest>=8.3.0; extra == "dev"

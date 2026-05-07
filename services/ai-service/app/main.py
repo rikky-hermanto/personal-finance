@@ -5,10 +5,11 @@ from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse
 from app.providers.factory import ProviderFactory
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
+from app.services.categorizer import Categorizer
 
 from opentelemetry import trace, metrics
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
     provider = ProviderFactory.create(settings)
     app.state.parser = LlmParser(provider=provider)
     app.state.pdf_extractor = PdfExtractor()
+    app.state.categorizer = Categorizer(provider=provider)
     logger.info("AI service starting up | provider=%s | model=%s", settings.ai_provider, settings.ai_model)
     yield
     logger.info("AI service shutting down")
@@ -157,3 +159,9 @@ async def parse_image(
         )
     except LlmParseError as e:
         raise HTTPException(status_code=502, detail=str(e))
+
+@app.post("/categorize", response_model=CategorizeResponse)
+async def categorize_transaction(request: CategorizeRequest) -> CategorizeResponse:
+    if not request.available_categories:
+        raise HTTPException(status_code=422, detail="available_categories must not be empty")
+    return await app.state.categorizer.categorize(request)
