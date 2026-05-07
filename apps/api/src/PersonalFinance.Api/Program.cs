@@ -71,6 +71,11 @@ namespace PersonalFinance.Api
                     builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
                 client.Timeout = TimeSpan.FromMinutes(2);
             });
+            builder.Services.AddHttpClient<ILlmCategorizationClient, LlmCategorizationClient>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+                client.Timeout = TimeSpan.FromSeconds(15);
+            });
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<BcaCsvParser>();
             builder.Services.AddScoped<NeoBankPdfParser>();

@@ -23,3 +23,7 @@ class LlmProvider(Protocol):
             Exception: Any provider-level failure (API error, truncation, etc.).
         """
         ...
+
+    async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
+        """Return a JSON object matching the given schema."""
+        ...
