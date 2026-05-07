@@ -14,7 +14,9 @@ public class CsvTransactionParser : IBankStatementParser
         using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HeaderValidated = null,
-            MissingFieldFound = null
+            MissingFieldFound = null,
+            DetectDelimiter = true,
+            DetectDelimiterValues = [",", ";", "\t"]
         });
 
         var transactions = new List<TransactionDto>();

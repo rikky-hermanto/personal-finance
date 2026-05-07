@@ -39,3 +39,22 @@ export async function deleteCategoryRule(id: number): Promise<void> {
   const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete category rule");
 }
+
+export async function resetAllCategoryRules(): Promise<{ message: string }> {
+  const res = await fetch(`${BASE_URL}/reset`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to reset category rules");
+  return res.json();
+}
+
+export async function importCategoryRules(file: File): Promise<{ added: number }> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const res = await fetch(`${BASE_URL}/import`, {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) throw new Error("Failed to import category rules");
+  return res.json();
+}
+
+export const EXPORT_RULES_URL = `${BASE_URL}/export`;
