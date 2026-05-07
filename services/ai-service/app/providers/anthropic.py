@@ -69,3 +69,21 @@ class AnthropicProvider:
         )
 
         return tool_block.input
+
+    async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
+        tools = [{
+            "name": "classify",
+            "description": "Return classification result",
+            "input_schema": schema,
+        }]
+        response = await self._client.messages.create(
+            model=self._model,
+            max_tokens=256,
+            temperature=0.0,
+            system=system_prompt,
+            tools=tools,
+            tool_choice={"type": "any"},
+            messages=[{"role": "user", "content": user_prompt}],
+        )
+        tool_block = next(b for b in response.content if b.type == "tool_use")
+        return tool_block.input

@@ -40,8 +40,10 @@ public class CategoryRuleService : ICategoryRuleService
     {
         _logger.LogDebug("Batch categorizing {Count} transactions.", transactions.Count);
 
-        // Preserve source-supplied categories (e.g. from CSV re-import of master spreadsheet).
-        // Only re-categorize rows that are blank or still at the default placeholder.
+        // Pre-gate: preserve source-supplied Type AND Category.
+        // If the source file already supplied BOTH a non-default Type AND a non-default Category
+        // (e.g. master CSV rows with Type="Saving" Category="Emergency Fund"), preserve both as-is.
+        // The engine must never override a source-supplied Type — it is the user's ground truth.
         var needsCategorization = transactions
             .Where(tx => string.IsNullOrWhiteSpace(tx.Category)
                 || tx.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
@@ -50,20 +52,98 @@ public class CategoryRuleService : ICategoryRuleService
         if (needsCategorization.Count == 0)
             return transactions;
 
-        var result = await _supabase.From<CategoryRule>()
-            .Order("keyword_length", Ordering.Descending)
+        // ── Layers 0 + 1: History cache (one Supabase query, two lookup dictionaries) ─────────
+        // Build two dictionaries from a single round-trip:
+        //   descCache: (description, flow) → category  [Layer 0 — stable merchant name]
+        //   remCache:  (remarks, flow)     → category  [Layer 1 — bank-generated text]
+        var historyResult = await _supabase.From<Transaction>()
+            .Select("description,remarks,flow,category")
             .Get();
 
-        var rules = result.Models;
+        var categorized = historyResult.Models
+            .Where(t => !string.IsNullOrWhiteSpace(t.Category)
+                     && !t.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+            .ToList();
 
+        var descCache = categorized
+            .Where(t => !string.IsNullOrWhiteSpace(t.Description))
+            .GroupBy(t => (t.Description!.Trim().ToLowerInvariant(), t.Flow?.ToUpperInvariant()))
+            .ToDictionary(g => g.Key, g => g.First().Category);
+
+        var remCache = categorized
+            .Where(t => !string.IsNullOrWhiteSpace(t.Remarks))
+            .GroupBy(t => (t.Remarks!.Trim().ToLowerInvariant(), t.Flow?.ToUpperInvariant()))
+            .ToDictionary(g => g.Key, g => g.First().Category);
+
+        var stillNeeded = new List<TransactionDto>();
         foreach (var tx in needsCategorization)
         {
-            var typeRules = rules.Where(r => r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
-            foreach (var rule in typeRules)
+            var flow = tx.Flow?.ToUpperInvariant();
+
+            // Layer 0: Description (Item/merchant name) — highest signal, most stable across months.
+            if (!string.IsNullOrWhiteSpace(tx.Description))
             {
-                if (tx.Description.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
+                var descKey = (tx.Description.Trim().ToLowerInvariant(), flow);
+                if (descCache.TryGetValue(descKey, out var fromDesc))
+                {
+                    tx.Category = fromDesc;
+                    _logger.LogDebug("Layer 0 cache hit (Description): '{Desc}' → '{Cat}'", tx.Description, fromDesc);
+                    continue;
+                }
+            }
+
+            // Layer 1: Remarks (bank-generated text) — lower signal; only tried when Remarks is
+            // populated AND Description cache missed. Useful for invariant strings like "SAVING INTEREST"
+            // but unreliable for date-embedded strings like "TARIKAN ATM 14/01 5307952056461149".
+            if (!string.IsNullOrWhiteSpace(tx.Remarks))
+            {
+                var remKey = (tx.Remarks.Trim().ToLowerInvariant(), flow);
+                if (remCache.TryGetValue(remKey, out var fromRem))
+                {
+                    tx.Category = fromRem;
+                    _logger.LogDebug("Layer 1 cache hit (Remarks): '{Rem}' → '{Cat}'", tx.Remarks, fromRem);
+                    continue;
+                }
+            }
+
+            stillNeeded.Add(tx);
+        }
+
+        if (stillNeeded.Count == 0)
+        {
+            _logger.LogInformation("All {Count} transactions resolved by history cache (Layers 0+1).", needsCategorization.Count);
+            return transactions;
+        }
+
+        // ── Layer 2: Flow-aware rule engine ──────────────────────────────────────
+        var rulesResult = await _supabase.From<CategoryRule>()
+            .Order("keyword_length", Ordering.Descending)
+            .Get();
+        var rules = rulesResult.Models;
+
+        foreach (var tx in stillNeeded)
+        {
+            var typeRules = rules.Where(r =>
+                r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
+
+            // Flow-specific rules take priority over flow-agnostic rules (both ordered by keyword_length DESC).
+            var ordered = typeRules
+                .Where(r => !string.IsNullOrEmpty(r.Flow) && r.Flow.Equals(tx.Flow, StringComparison.OrdinalIgnoreCase))
+                .Concat(typeRules.Where(r => string.IsNullOrEmpty(r.Flow)));
+
+            foreach (var rule in ordered)
+            {
+                // Search Description first; fall back to Remarks.
+                // Keeps priority: merchant name (stable) wins over bank text (variable).
+                var primaryTarget   = tx.Description ?? string.Empty;
+                var secondaryTarget = tx.Remarks     ?? string.Empty;
+
+                if (primaryTarget.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase)
+                    || secondaryTarget.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
                 {
                     tx.Category = rule.Category;
+                    _logger.LogDebug("Layer 2 rule match: '{Keyword}' (flow={Flow}) → '{Cat}'",
+                        rule.Keyword, rule.Flow ?? "any", rule.Category);
                     break;
                 }
             }
@@ -133,7 +213,8 @@ public class CategoryRuleService : ICategoryRuleService
         Keyword = entity.Keyword,
         Type = entity.Type,
         Category = entity.Category,
-        KeywordLength = entity.KeywordLength
+        KeywordLength = entity.KeywordLength,
+        Flow = entity.Flow
     };
 
     private static CategoryRule MapToEntity(CategoryRuleDto dto) => new()
@@ -141,6 +222,7 @@ public class CategoryRuleService : ICategoryRuleService
         Id = dto.Id,
         Keyword = dto.Keyword,
         Type = dto.Type,
-        Category = dto.Category
+        Category = dto.Category,
+        Flow = dto.Flow
     };
 }
