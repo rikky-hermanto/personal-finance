@@ -59,3 +59,18 @@ class GeminiProvider:
         )
 
         return json.loads(response.text)
+
+    async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
+        config = types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            response_mime_type="application/json",
+            response_schema=schema,
+            temperature=0.0,
+        )
+        client = self._get_client()
+        response = await client.aio.models.generate_content(
+            model=self._model,
+            contents=user_prompt,
+            config=config,
+        )
+        return json.loads(response.text)
