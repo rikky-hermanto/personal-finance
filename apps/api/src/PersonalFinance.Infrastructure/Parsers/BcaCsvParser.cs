@@ -1,7 +1,15 @@
+using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
+using CsvHelper;
+using CsvHelper.Configuration;
 
 public class BcaCsvParser : IBankStatementParser
 {
@@ -20,63 +28,101 @@ public class BcaCsvParser : IBankStatementParser
         var transactions = new List<TransactionDto>();
         using var reader = new StreamReader(fileStream, leaveOpen: true);
 
+        // 1. Scan until header found via token-set
+        string? headerLine = null;
+        var headerTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        int scannedLines = 0;
 
-        // Dynamically skip lines until the header is found
-        string? header = null;
-        while ((header = await reader.ReadLineAsync()) != null)
+        while ((headerLine = await reader.ReadLineAsync()) != null && scannedLines < 15)
         {
-            if (header.Trim().StartsWith("Tanggal,Keterangan,Cabang,Jumlah,,Saldo", StringComparison.OrdinalIgnoreCase))
+            scannedLines++;
+            headerTokens = Tokenize(headerLine);
+            if (headerTokens.Contains("TANGGAL") && 
+                headerTokens.Contains("KETERANGAN") && 
+                headerTokens.Contains("JUMLAH") && 
+                headerTokens.Contains("SALDO"))
+            {
                 break;
+            }
+            headerLine = null;
         }
-        if (header == null)
+
+        if (headerLine == null)
         {
-            _logger.LogWarning("BCA CSV header not found.");
+            _logger.LogWarning("BCA CSV header not found within the first 15 lines.");
             throw new InvalidDataException("BCA CSV header not found");
         }
 
-        string? line;
-        while ((line = await reader.ReadLineAsync()) != null)
+        // 2. Detect delimiter
+        char delimiter = DetectDelimiter(headerLine);
+        
+        // 3. Build column-index map by normalized header name
+        var headerParts = SplitLine(headerLine, delimiter);
+        int dateIdx = -1, descIdx = -1, amountIdx = -1, balanceIdx = -1;
+
+        for (int i = 0; i < headerParts.Length; i++)
         {
-            // Stop at summary/footer
-            if (line.StartsWith("Saldo Awal") || string.IsNullOrWhiteSpace(line))
+            var token = headerParts[i].Trim('\"', ' ', '\'').ToUpperInvariant();
+            if (token == "TANGGAL") dateIdx = i;
+            else if (token == "KETERANGAN") descIdx = i;
+            else if (token == "JUMLAH") amountIdx = i;
+            else if (token == "SALDO") balanceIdx = i;
+        }
+
+        if (dateIdx == -1 || descIdx == -1 || amountIdx == -1 || balanceIdx == -1)
+        {
+            throw new InvalidDataException("Missing required BCA CSV headers");
+        }
+
+        int flowIdx = amountIdx + 1; // BCA exports flow without header next to amount
+
+        var config = new CsvConfiguration(CultureInfo.InvariantCulture)
+        {
+            Delimiter = delimiter.ToString(),
+            HasHeaderRecord = false,
+            BadDataFound = null,
+            MissingFieldFound = null,
+        };
+
+        using var csv = new CsvReader(reader, config);
+
+        // 4. Per-row parsing
+        while (await csv.ReadAsync())
+        {
+            var row = csv.Parser.Record;
+            if (row == null || row.Length == 0) continue;
+
+            string firstCol = row[0].Trim('\"', ' ', '\'');
+            
+            // Terminate when first column starts with "Saldo " or row is blank
+            if (string.IsNullOrWhiteSpace(firstCol) || firstCol.StartsWith("Saldo ", StringComparison.OrdinalIgnoreCase))
                 break;
 
-            var parts = SplitCsvLine(line);
-            if (parts.Length < 6) continue;
-
-            // Parse fields
-            var date = ParseBcaDate(parts[0]);
-            var description = parts[1].Trim('\'', ' ', '"');
-
-            decimal amount = 0;
-            if (!string.IsNullOrWhiteSpace(parts[3]))
-            {
-                if (!decimal.TryParse(parts[3], NumberStyles.Any, CultureInfo.InvariantCulture, out amount))
-                    throw new FormatException($"Invalid amount format: '{parts[3]}'");
-            }
-            else
-            {
-                // Optionally skip or handle empty amount fields
+            if (row.Length <= Math.Max(flowIdx, Math.Max(dateIdx, Math.Max(descIdx, Math.Max(amountIdx, balanceIdx)))))
                 continue;
-            }
-            var flow = parts[4].Trim();
+
+            var dateStr = row[dateIdx];
+            var descStr = row[descIdx].Trim('\'', ' ', '"');
+            var amountStr = row[amountIdx];
+            var flowStr = row[flowIdx].Trim().ToUpperInvariant();
+            var balanceStr = row[balanceIdx];
+
+            var date = ParseBcaDate(dateStr);
+            
+            if (!CsvAmountParser.TryParse(amountStr, out var amount))
+                continue; // Skip invalid amounts
 
             decimal? balance = null;
-            if (!string.IsNullOrWhiteSpace(parts[5]))
-            {
-                if (!decimal.TryParse(parts[5], NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedBalance))
-                    balance = null; // or throw, depending on requirements
-                else
-                    balance = parsedBalance;
-            }
+            if (CsvAmountParser.TryParse(balanceStr, out var parsedBalance))
+                balance = parsedBalance;
 
             var transaction = new TransactionDto
             {
                 Date = date,
-                Description = description,
+                Description = descStr,
                 Remarks = "",
-                Flow = flow,
-                Type = flow == "CR" ? "Income" : "Expense",
+                Flow = flowStr,
+                Type = flowStr == "CR" ? "Income" : "Expense",
                 Category = "Untracked Expense",
                 Wallet = "BCA",
                 AmountIdr = amount,
@@ -93,6 +139,52 @@ public class BcaCsvParser : IBankStatementParser
 
         _logger.LogInformation("BCA CSV parsing complete. Parsed {Count} transactions.", transactions.Count);
         return transactions;
+    }
+
+    private char DetectDelimiter(string line)
+    {
+        int commaCount = line.Count(c => c == ',');
+        int semicolonCount = line.Count(c => c == ';');
+        int tabCount = line.Count(c => c == '\t');
+
+        if (tabCount > commaCount && tabCount > semicolonCount) return '\t';
+        if (semicolonCount > commaCount) return ';';
+        return ','; // default
+    }
+
+    private string[] SplitLine(string line, char delimiter)
+    {
+        var result = new List<string>();
+        bool inQuotes = false;
+        int start = 0;
+        for (int i = 0; i < line.Length; i++)
+        {
+            if (line[i] == '"') inQuotes = !inQuotes;
+            else if (line[i] == delimiter && !inQuotes)
+            {
+                result.Add(line.Substring(start, i - start));
+                start = i + 1;
+            }
+        }
+        result.Add(line.Substring(start));
+        return result.ToArray();
+    }
+
+    private static HashSet<string> Tokenize(string line)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(line)) return result;
+
+        var parts = Regex.Split(line, "[,;\\t]");
+        foreach (var part in parts)
+        {
+            var token = part.Trim('\"', ' ', '\'').ToUpperInvariant();
+            if (!string.IsNullOrEmpty(token))
+            {
+                result.Add(token);
+            }
+        }
+        return result;
     }
 
     private DateTime ParseBcaDate(string input)
@@ -114,23 +206,5 @@ public class BcaCsvParser : IBankStatementParser
             return date;
         }
         throw new FormatException($"Invalid BCA date format: '{input}'");
-    }
-
-    private static string[] SplitCsvLine(string line)
-    {
-        var result = new List<string>();
-        bool inQuotes = false;
-        int start = 0;
-        for (int i = 0; i < line.Length; i++)
-        {
-            if (line[i] == '"') inQuotes = !inQuotes;
-            else if (line[i] == ',' && !inQuotes)
-            {
-                result.Add(line.Substring(start, i - start));
-                start = i + 1;
-            }
-        }
-        result.Add(line.Substring(start));
-        return result.ToArray();
     }
 }
