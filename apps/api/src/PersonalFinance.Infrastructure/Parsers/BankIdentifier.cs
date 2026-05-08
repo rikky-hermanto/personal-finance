@@ -18,22 +18,38 @@ public class BankIdentifier : IBankIdentifier
         {
             stream.Position = 0;
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
+            var firstFiveLines = new List<string>();
             for (int i = 0; i < 5; i++)
             {
                 var line = await reader.ReadLineAsync();
                 if (line == null) break;
-                if (line.Contains("Tanggal,Keterangan,Cabang,Jumlah,,Saldo", StringComparison.OrdinalIgnoreCase))
+                firstFiveLines.Add(line);
+
+                var tokens = Tokenize(line);
+
+                if (tokens.Contains("TANGGAL") && 
+                    tokens.Contains("KETERANGAN") && 
+                    tokens.Contains("JUMLAH") && 
+                    tokens.Contains("SALDO"))
                 {
-                    stream.Position = 0;
-                    _logger.LogDebug("Bank identified as BCA.");
-                    return "BCA";
+                    // Reinforcement: also require NO. REKENING or REKENING token in first 5 lines (mitigates over-match)
+                    bool hasAccountToken = firstFiveLines.Any(l => {
+                        var t = Tokenize(l);
+                        return t.Contains("NO. REKENING") || t.Contains("REKENING") || t.Contains("NO.REKENING");
+                    });
+
+                    if (hasAccountToken)
+                    {
+                        stream.Position = 0;
+                        _logger.LogDebug("Bank identified as BCA.");
+                        return "BCA";
+                    }
                 }
 
                 // Check for standard CSV headers
-                if (line.Contains("Date", StringComparison.OrdinalIgnoreCase) &&
-                    (line.Contains("Item", StringComparison.OrdinalIgnoreCase) ||
-                     line.Contains("Description", StringComparison.OrdinalIgnoreCase)) &&
-                    line.Contains("Amount", StringComparison.OrdinalIgnoreCase))
+                if (tokens.Contains("DATE") &&
+                    (tokens.Contains("ITEM") || tokens.Contains("DESCRIPTION")) &&
+                    tokens.Contains("AMOUNT"))
                 {
                     stream.Position = 0;
                     _logger.LogDebug("Bank identified as STANDARD.");
@@ -86,5 +102,22 @@ public class BankIdentifier : IBankIdentifier
         _logger.LogDebug("Bank could not be identified.");
         stream.Position = 0;
         return null;
+    }
+
+    private static HashSet<string> Tokenize(string line)
+    {
+        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(line)) return result;
+
+        var parts = System.Text.RegularExpressions.Regex.Split(line, "[,;\\t]");
+        foreach (var part in parts)
+        {
+            var token = part.Trim('\"', ' ', '\'').ToUpperInvariant();
+            if (!string.IsNullOrEmpty(token))
+            {
+                result.Add(token);
+            }
+        }
+        return result;
     }
 }   
