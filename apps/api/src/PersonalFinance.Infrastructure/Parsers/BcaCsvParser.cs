@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
+using PersonalFinance.Infrastructure.Parsers;
 using CsvHelper;
 using CsvHelper.Configuration;
 
@@ -122,7 +123,7 @@ public class BcaCsvParser : IBankStatementParser
                 Description = descStr,
                 Remarks = "",
                 Flow = flowStr,
-                Type = flowStr == "CR" ? "Income" : "Expense",
+                Type = TransactionTypeClassifier.Classify(descStr, flowStr),
                 Category = "Untracked Expense",
                 Wallet = "BCA",
                 AmountIdr = amount,
