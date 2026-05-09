@@ -67,12 +67,12 @@ public class CategoryRuleService : ICategoryRuleService
 
         var descCache = categorized
             .Where(t => !string.IsNullOrWhiteSpace(t.Description))
-            .GroupBy(t => (t.Description!.Trim().ToLowerInvariant(), t.Flow?.ToUpperInvariant()))
+            .GroupBy(t => (Squash(t.Description), t.Flow?.ToUpperInvariant()))
             .ToDictionary(g => g.Key, g => g.First().Category);
 
         var remCache = categorized
             .Where(t => !string.IsNullOrWhiteSpace(t.Remarks))
-            .GroupBy(t => (t.Remarks!.Trim().ToLowerInvariant(), t.Flow?.ToUpperInvariant()))
+            .GroupBy(t => (Squash(t.Remarks), t.Flow?.ToUpperInvariant()))
             .ToDictionary(g => g.Key, g => g.First().Category);
 
         var stillNeeded = new List<TransactionDto>();
@@ -80,10 +80,11 @@ public class CategoryRuleService : ICategoryRuleService
         {
             var flow = tx.Flow?.ToUpperInvariant();
 
-            // Layer 0: Description (Item/merchant name) — highest signal, most stable across months.
+            // Layer 0: Description — squashed so whitespace drift between bank format versions
+            // ("BI-FAST CR TRANSFER   DR" vs "BI-FAST CR TRANSFER DR") still hits the cache.
             if (!string.IsNullOrWhiteSpace(tx.Description))
             {
-                var descKey = (tx.Description.Trim().ToLowerInvariant(), flow);
+                var descKey = (Squash(tx.Description), flow);
                 if (descCache.TryGetValue(descKey, out var fromDesc))
                 {
                     tx.Category = fromDesc;
@@ -92,12 +93,10 @@ public class CategoryRuleService : ICategoryRuleService
                 }
             }
 
-            // Layer 1: Remarks (bank-generated text) — lower signal; only tried when Remarks is
-            // populated AND Description cache missed. Useful for invariant strings like "SAVING INTEREST"
-            // but unreliable for date-embedded strings like "TARIKAN ATM 14/01 5307952056461149".
+            // Layer 1: Remarks — same squash treatment.
             if (!string.IsNullOrWhiteSpace(tx.Remarks))
             {
-                var remKey = (tx.Remarks.Trim().ToLowerInvariant(), flow);
+                var remKey = (Squash(tx.Remarks), flow);
                 if (remCache.TryGetValue(remKey, out var fromRem))
                 {
                     tx.Category = fromRem;
@@ -123,27 +122,38 @@ public class CategoryRuleService : ICategoryRuleService
 
         foreach (var tx in stillNeeded)
         {
+            var normDesc = Squash(tx.Description);
+            var normRem  = Squash(tx.Remarks);
+
             var typeRules = rules.Where(r =>
                 r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
 
-            // Flow-specific rules take priority over flow-agnostic rules (both ordered by keyword_length DESC).
+            // "Asset Transfer" rules act as a cross-type override tier.
+            // They run after type-matched rules but before giving up — a transaction the
+            // parser classified as Income/Expense can be reclassified when a specific
+            // transfer-channel keyword (e.g. "BI-FAST") matches.
+            var assetTransferRules = rules.Where(r =>
+                r.Type.Equals("Asset Transfer", StringComparison.OrdinalIgnoreCase)
+                && !r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
+
+            // Priority: flow-specific same-type → flow-agnostic same-type → asset-transfer override.
             var ordered = typeRules
                 .Where(r => !string.IsNullOrEmpty(r.Flow) && r.Flow.Equals(tx.Flow, StringComparison.OrdinalIgnoreCase))
-                .Concat(typeRules.Where(r => string.IsNullOrEmpty(r.Flow)));
+                .Concat(typeRules.Where(r => string.IsNullOrEmpty(r.Flow)))
+                .Concat(assetTransferRules);
 
             foreach (var rule in ordered)
             {
-                // Search Description first; fall back to Remarks.
-                // Keeps priority: merchant name (stable) wins over bank text (variable).
-                var primaryTarget   = tx.Description ?? string.Empty;
-                var secondaryTarget = tx.Remarks     ?? string.Empty;
+                var normKeyword = Squash(rule.Keyword);
 
-                if (primaryTarget.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase)
-                    || secondaryTarget.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase))
+                // Squash both sides — tolerates BCA format drift (extra spaces, casing changes).
+                if (normDesc.Contains(normKeyword, StringComparison.Ordinal)
+                    || normRem.Contains(normKeyword, StringComparison.Ordinal))
                 {
                     tx.Category = rule.Category;
-                    _logger.LogDebug("Layer 2 rule match: '{Keyword}' (flow={Flow}) → '{Cat}'",
-                        rule.Keyword, rule.Flow ?? "any", rule.Category);
+                    tx.Type     = rule.Type; // Allow asset-transfer rules to fix a mis-typed transaction.
+                    _logger.LogDebug("Layer 2 rule match: '{Keyword}' (type={Type}, flow={Flow}) → '{Cat}'",
+                        rule.Keyword, rule.Type, rule.Flow ?? "any", rule.Category);
                     break;
                 }
             }
@@ -212,6 +222,14 @@ public class CategoryRuleService : ICategoryRuleService
             }
         }
     }
+
+    // Collapses any whitespace run to a single space and lowercases — applied symmetrically
+    // on both stored descriptions and incoming ones so format drift doesn't break matching.
+    private static string Squash(string? input) =>
+        string.IsNullOrWhiteSpace(input)
+            ? string.Empty
+            : string.Join(' ', input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                    .ToLowerInvariant();
 
     private static CategoryRuleDto MapToDto(CategoryRule entity) => new()
     {
