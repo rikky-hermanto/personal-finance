@@ -3,6 +3,7 @@ using Moq;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Services;
+using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Tests.Services;
 
@@ -199,6 +200,141 @@ public class CategorizationLayerTests
         Assert.Equal("Salary", tx.Category);
     }
 
+    // ── Layer 2b: Preset (dictionary) fallback ────────────────────────────────
+
+    private static string Squash(string? input) =>
+        string.IsNullOrWhiteSpace(input)
+            ? string.Empty
+            : string.Join(' ', input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                    .ToLowerInvariant();
+
+    private static void ApplyLayer2bPresets(TransactionDto tx, List<CategoryPreset> presets)
+    {
+        var normDesc = Squash(tx.Description);
+        var normRem  = Squash(tx.Remarks);
+
+        var typeSpecific = presets.Where(d =>
+            d.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
+
+        var assetTransfer = presets.Where(d =>
+            d.Type.Equals("Asset Transfer", StringComparison.OrdinalIgnoreCase)
+            && !d.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
+
+        var ordered = typeSpecific
+            .Where(d => !string.IsNullOrEmpty(d.Flow) && d.Flow.Equals(tx.Flow, StringComparison.OrdinalIgnoreCase))
+            .Concat(typeSpecific.Where(d => string.IsNullOrEmpty(d.Flow)))
+            .Concat(assetTransfer);
+
+        var matched = ordered.FirstOrDefault(d =>
+        {
+            var normKeyword = Squash(d.Keyword);
+            return normDesc.Contains(normKeyword, StringComparison.Ordinal)
+                   || normRem.Contains(normKeyword, StringComparison.Ordinal);
+        });
+
+        if (matched != null)
+        {
+            tx.Category = matched.Category;
+            tx.Type     = matched.Type;
+        }
+    }
+
+    [Fact]
+    public void Layer2b_WhenNoUserRuleButPresetMatch_UsesPreset()
+    {
+        // Arrange: no user rules, preset has "GOPAY" → E-Wallet
+        var presets = new List<CategoryPreset>
+        {
+            new() { Keyword = "GOPAY", Category = "E-Wallet", Type = "Expense", Flow = "DB" },
+        };
+        var tx = new TransactionDto
+        {
+            Description = "TRANSFER GOPAY/TOPUP",
+            Flow        = "DB",
+            Type        = "Expense",
+            Category    = "Untracked Expense",
+        };
+
+        // Act — Layer 2a has no match (empty rules), fall through to Layer 2b
+        ApplyLayer2bPresets(tx, presets);
+
+        // Assert
+        Assert.Equal("E-Wallet", tx.Category);
+    }
+
+    [Fact]
+    public void Layer2b_UserRuleWinsOverPreset()
+    {
+        // Arrange: user rule "GOPAY" → "Personal Transfers", preset "GOPAY" → "E-Wallet"
+        var rules = new List<CategoryRuleDto>
+        {
+            new() { Keyword = "GOPAY", Type = "Expense", Flow = null, Category = "Personal Transfers", KeywordLength = 5 },
+        };
+        var presets = new List<CategoryPreset>
+        {
+            new() { Keyword = "GOPAY", Category = "E-Wallet", Type = "Expense", Flow = null },
+        };
+        var tx = new TransactionDto
+        {
+            Description = "TRANSFER GOPAY/TOPUP",
+            Flow        = "DB",
+            Type        = "Expense",
+            Category    = "Untracked Expense",
+        };
+
+        // Act — user rule (Layer 2a) matches first; Layer 2b never runs
+        ApplyLayer2Rules(tx, rules);
+        if (tx.Category == "Untracked Expense")
+            ApplyLayer2bPresets(tx, presets);
+
+        // Assert: user rule wins
+        Assert.Equal("Personal Transfers", tx.Category);
+    }
+
+    [Fact]
+    public void Layer2b_FlowSpecificPresetTakesPriorityOverFlowAgnostic()
+    {
+        // Preset A: GOPAY, type=Expense, flow=DB → "E-Wallet"
+        // Preset B: GOPAY, type=Expense, flow=null → "Shopping"
+        // Transaction: flow=DB → should match Preset A
+        var presets = new List<CategoryPreset>
+        {
+            new() { Keyword = "GOPAY", Category = "E-Wallet", Type = "Expense", Flow = "DB" },
+            new() { Keyword = "GOPAY", Category = "Shopping",  Type = "Expense", Flow = null },
+        };
+        var tx = new TransactionDto
+        {
+            Description = "GOPAY TRANSFER",
+            Flow        = "DB",
+            Type        = "Expense",
+            Category    = "Untracked Expense",
+        };
+
+        ApplyLayer2bPresets(tx, presets);
+
+        Assert.Equal("E-Wallet", tx.Category);
+    }
+
+    [Fact]
+    public void Layer2b_NoMatchingPreset_LeavesUntrackedExpense()
+    {
+        var presets = new List<CategoryPreset>
+        {
+            new() { Keyword = "SHOPEE", Category = "Shopping", Type = "Expense", Flow = "DB" },
+        };
+        var tx = new TransactionDto
+        {
+            Description = "WARUNG MAKAN PADANG",
+            Flow        = "DB",
+            Type        = "Expense",
+            Category    = "Untracked Expense",
+        };
+
+        ApplyLayer2bPresets(tx, presets);
+
+        Assert.Equal("Untracked Expense", tx.Category);
+    }
+
     // ── Layer 3: LLM fallback ─────────────────────────────────────────────────
 
     [Fact]
@@ -229,8 +365,12 @@ public class CategorizationLayerTests
         mockTxService.Setup(x => x.FilterOutDuplicatesAsync(It.IsAny<IEnumerable<TransactionDto>>()))
             .ReturnsAsync((IEnumerable<TransactionDto> t) => t.ToList());
 
+        var mockSuggestionClient = new Mock<ILlmSuggestionClient>();
+        mockSuggestionClient.Setup(x => x.SuggestBatchAsync(It.IsAny<List<string>>(), It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
         var svc = new TransactionPipelineService(
-            mockTxService.Object, mockLlm.Object, mockRules.Object,
+            mockTxService.Object, mockLlm.Object, mockRules.Object, mockSuggestionClient.Object,
             NullLogger<TransactionPipelineService>.Instance);
 
         var tx = new TransactionDto
@@ -273,8 +413,12 @@ public class CategorizationLayerTests
         mockTxService.Setup(x => x.FilterOutDuplicatesAsync(It.IsAny<IEnumerable<TransactionDto>>()))
             .ReturnsAsync((IEnumerable<TransactionDto> t) => t.ToList());
 
+        var mockSuggestionClient = new Mock<ILlmSuggestionClient>();
+        mockSuggestionClient.Setup(x => x.SuggestBatchAsync(It.IsAny<List<string>>(), It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
         var svc = new TransactionPipelineService(
-            mockTxService.Object, mockLlm.Object, mockRules.Object,
+            mockTxService.Object, mockLlm.Object, mockRules.Object, mockSuggestionClient.Object,
             NullLogger<TransactionPipelineService>.Instance);
 
         var tx = new TransactionDto
