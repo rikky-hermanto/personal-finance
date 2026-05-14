@@ -11,12 +11,14 @@ public class CategoryRuleService : ICategoryRuleService
     private readonly Supabase.Client _supabase;
     private readonly IMediator _mediator;
     private readonly ILogger<CategoryRuleService> _logger;
+    private readonly ICategoryPresetService _categoryPreset;
 
-    public CategoryRuleService(Supabase.Client supabase, IMediator mediator, ILogger<CategoryRuleService> logger)
+    public CategoryRuleService(Supabase.Client supabase, IMediator mediator, ILogger<CategoryRuleService> logger, ICategoryPresetService categoryPreset)
     {
         _supabase = supabase;
         _mediator = mediator;
         _logger = logger;
+        _categoryPreset = categoryPreset;
     }
 
     public async Task<string> CategorizeAsync(string description, string type)
@@ -88,7 +90,8 @@ public class CategoryRuleService : ICategoryRuleService
                 if (descCache.TryGetValue(descKey, out var fromDesc))
                 {
                     tx.Category = fromDesc;
-                    _logger.LogDebug("Layer 0 cache hit (Description): '{Desc}' → '{Cat}'", tx.Description, fromDesc);
+                    _logger.LogDebug("Categorization layer={Layer} description={Description} category={Category}",
+                        "history", tx.Description, tx.Category);
                     continue;
                 }
             }
@@ -100,7 +103,8 @@ public class CategoryRuleService : ICategoryRuleService
                 if (remCache.TryGetValue(remKey, out var fromRem))
                 {
                     tx.Category = fromRem;
-                    _logger.LogDebug("Layer 1 cache hit (Remarks): '{Rem}' → '{Cat}'", tx.Remarks, fromRem);
+                    _logger.LogDebug("Categorization layer={Layer} description={Description} category={Category}",
+                        "history", tx.Remarks, tx.Category);
                     continue;
                 }
             }
@@ -120,6 +124,8 @@ public class CategoryRuleService : ICategoryRuleService
             .Get();
         var rules = rulesResult.Models;
 
+        var presetEntries = await _categoryPreset.GetAllAsync();
+
         foreach (var tx in stillNeeded)
         {
             var normDesc = Squash(tx.Description);
@@ -129,9 +135,6 @@ public class CategoryRuleService : ICategoryRuleService
                 r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
 
             // "Asset Transfer" rules act as a cross-type override tier.
-            // They run after type-matched rules but before giving up — a transaction the
-            // parser classified as Income/Expense can be reclassified when a specific
-            // transfer-channel keyword (e.g. "BI-FAST") matches.
             var assetTransferRules = rules.Where(r =>
                 r.Type.Equals("Asset Transfer", StringComparison.OrdinalIgnoreCase)
                 && !r.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
@@ -142,21 +145,54 @@ public class CategoryRuleService : ICategoryRuleService
                 .Concat(typeRules.Where(r => string.IsNullOrEmpty(r.Flow)))
                 .Concat(assetTransferRules);
 
-            foreach (var rule in ordered)
+            var matchedRule = ordered.FirstOrDefault(r =>
             {
-                var normKeyword = Squash(rule.Keyword);
+                var normKeyword = Squash(r.Keyword);
+                return normDesc.Contains(normKeyword, StringComparison.Ordinal)
+                       || normRem.Contains(normKeyword, StringComparison.Ordinal);
+            });
 
-                // Squash both sides — tolerates BCA format drift (extra spaces, casing changes).
-                if (normDesc.Contains(normKeyword, StringComparison.Ordinal)
-                    || normRem.Contains(normKeyword, StringComparison.Ordinal))
-                {
-                    tx.Category = rule.Category;
-                    tx.Type     = rule.Type; // Allow asset-transfer rules to fix a mis-typed transaction.
-                    _logger.LogDebug("Layer 2 rule match: '{Keyword}' (type={Type}, flow={Flow}) → '{Cat}'",
-                        rule.Keyword, rule.Type, rule.Flow ?? "any", rule.Category);
-                    break;
-                }
+            if (matchedRule != null)
+            {
+                tx.Category = matchedRule.Category;
+                tx.Type     = matchedRule.Type;
+                _logger.LogDebug("Categorization layer={Layer} keyword={Keyword} category={Category}",
+                    "user_rule", matchedRule.Keyword, tx.Category);
+                continue;
             }
+
+            // Layer 2b — preset fallback
+            var presetTypeSpecific = presetEntries.Where(d =>
+                d.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
+
+            var presetAssetTransfer = presetEntries.Where(d =>
+                d.Type.Equals("Asset Transfer", StringComparison.OrdinalIgnoreCase)
+                && !d.Type.Equals(tx.Type, StringComparison.OrdinalIgnoreCase));
+
+            var presetOrdered = presetTypeSpecific
+                .Where(d => !string.IsNullOrEmpty(d.Flow) && d.Flow.Equals(tx.Flow, StringComparison.OrdinalIgnoreCase))
+                .Concat(presetTypeSpecific.Where(d => string.IsNullOrEmpty(d.Flow)))
+                .Concat(presetAssetTransfer);
+
+            var matchedPreset = presetOrdered.FirstOrDefault(d =>
+            {
+                var normKeyword = Squash(d.Keyword);
+                return normDesc.Contains(normKeyword, StringComparison.Ordinal)
+                       || normRem.Contains(normKeyword, StringComparison.Ordinal);
+            });
+
+            if (matchedPreset != null)
+            {
+                tx.Category = matchedPreset.Category;
+                tx.Type     = matchedPreset.Type;
+                _logger.LogDebug("Categorization layer={Layer} keyword={Keyword} category={Category}",
+                    "dictionary", matchedPreset.Keyword, tx.Category);
+                continue;
+            }
+            
+            // Fallback:
+            _logger.LogDebug("Categorization layer={Layer} description={Description}",
+                "untracked", tx.Description);
         }
 
         return transactions;

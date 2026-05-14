@@ -76,6 +76,10 @@ namespace PersonalFinance.Api
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
                 client.Timeout = TimeSpan.FromSeconds(15);
             });
+            builder.Services.AddHttpClient<ILlmSuggestionClient, LlmSuggestionClient>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+            });
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<BcaCsvParser>();
             builder.Services.AddScoped<NeoBankPdfParser>();
@@ -93,6 +97,7 @@ namespace PersonalFinance.Api
                 return new StatementImportService(parsers, serviceProvider.GetRequiredService<ILogger<StatementImportService>>());
             });
             builder.Services.AddScoped<ICategoryRuleService, CategoryRuleService>();
+            builder.Services.AddScoped<ICategoryPresetService, PersonalFinance.Application.Services.CategoryPresetService>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<ITransactionPipelineService, PersonalFinance.Application.Services.TransactionPipelineService>();
