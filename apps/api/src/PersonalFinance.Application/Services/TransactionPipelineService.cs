@@ -9,6 +9,7 @@ public class TransactionPipelineService : ITransactionPipelineService
     private readonly ITransactionService _transactionService;
     private readonly ILlmCategorizationClient _llmCategorizer;
     private readonly ICategoryRuleService _categoryRuleService;
+    private readonly ILlmSuggestionClient _suggestionClient;
     private readonly ILogger<TransactionPipelineService> _logger;
 
     private const double LlmAutoAcceptThreshold = 0.85;
@@ -17,12 +18,28 @@ public class TransactionPipelineService : ITransactionPipelineService
         ITransactionService transactionService,
         ILlmCategorizationClient llmCategorizer,
         ICategoryRuleService categoryRuleService,
+        ILlmSuggestionClient suggestionClient,
         ILogger<TransactionPipelineService> logger)
     {
         _transactionService = transactionService;
         _llmCategorizer = llmCategorizer;
         _categoryRuleService = categoryRuleService;
+        _suggestionClient = suggestionClient;
         _logger = logger;
+    }
+
+    private static string SanitizeForLlm(string description)
+    {
+        // Strip nomor HP Indonesia
+        var result = System.Text.RegularExpressions.Regex.Replace(description, @"(\+62|08\d{2})\d+", " ");
+        // Strip pola "A/N ..." (atas nama)
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"A\/N\s+\S+(\s+\S+)*", " ", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        // Strip angka 7+ digit (rekening, referensi transaksi)
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"\d{7,}", " ");
+        // Strip kode alfanumerik panjang (reference ID seperti TRF/ABCDEF12345)
+        result = System.Text.RegularExpressions.Regex.Replace(result, @"[A-Z0-9]{10,}", " ");
+        // Collapse whitespace
+        return System.Text.RegularExpressions.Regex.Replace(result.Trim(), @"\s+", " ");
     }
 
     public async Task<List<TransactionDto>> ProcessAsync(List<TransactionDto> transactions)
@@ -102,7 +119,40 @@ public class TransactionPipelineService : ITransactionPipelineService
 
         if (availableCategories.Count == 0) return;
 
-        foreach (var tx in uncategorized)
+        var untrackedPatterns = uncategorized
+            .Select(tx => SanitizeForLlm(tx.Description))
+            .Where(p => p.Length >= 3)
+            .Distinct()
+            .ToList();
+
+        if (untrackedPatterns.Count > 0)
+        {
+            var batchSuggestions = await _suggestionClient.SuggestBatchAsync(untrackedPatterns, availableCategories);
+
+            foreach (var suggestion in batchSuggestions.Where(s => s.Confidence >= LlmAutoAcceptThreshold))
+            {
+                await _categoryRuleService.AddAsync(new CategoryRuleDto
+                {
+                    Keyword = suggestion.SuggestedKeyword,
+                    Category = suggestion.SuggestedCategory,
+                    Type = "Expense",
+                    Flow = null
+                });
+
+                foreach (var tx in transactions.Where(t => t.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase) && t.Description.Contains(suggestion.SuggestedKeyword, StringComparison.OrdinalIgnoreCase)))
+                {
+                    tx.Category = suggestion.SuggestedCategory;
+                    _logger.LogDebug("Categorization layer={Layer} pattern={Pattern} category={Category} confidence={Confidence}",
+                        "llm_suggest", suggestion.MerchantPattern, tx.Category, suggestion.Confidence);
+                }
+            }
+        }
+
+        var stillUncategorized = transactions
+            .Where(t => t.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var tx in stillUncategorized)
         {
             var (category, confidence) = await _llmCategorizer.CategorizeAsync(
                 tx.Description, tx.Remarks, tx.Flow, tx.AmountIdr, tx.Wallet,

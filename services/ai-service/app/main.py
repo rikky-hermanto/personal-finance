@@ -5,11 +5,12 @@ from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion
 from app.providers.factory import ProviderFactory
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
 from app.services.categorizer import Categorizer
+from app.services.merchant_suggester import MerchantSuggester
 
 from opentelemetry import trace, metrics
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -39,6 +40,7 @@ async def lifespan(app: FastAPI):
     app.state.parser = LlmParser(provider=provider)
     app.state.pdf_extractor = PdfExtractor()
     app.state.categorizer = Categorizer(provider=provider)
+    app.state.suggester = MerchantSuggester(provider=provider)
     logger.info("AI service starting up | provider=%s | model=%s", settings.ai_provider, settings.ai_model)
     yield
     logger.info("AI service shutting down")
@@ -165,3 +167,12 @@ async def categorize_transaction(request: CategorizeRequest) -> CategorizeRespon
     if not request.available_categories:
         raise HTTPException(status_code=422, detail="available_categories must not be empty")
     return await app.state.categorizer.categorize(request)
+
+@app.post("/suggest-categories", response_model=SuggestCategoriesResponse)
+async def suggest_categories(request: SuggestCategoriesRequest) -> SuggestCategoriesResponse:
+    suggestions_raw = await app.state.suggester.suggest_batch(
+        request.merchant_patterns,
+        request.available_categories,
+    )
+    suggestions = [MerchantSuggestion(**s) for s in suggestions_raw if s.get("confidence", 0) > 0]
+    return SuggestCategoriesResponse(suggestions=suggestions)
