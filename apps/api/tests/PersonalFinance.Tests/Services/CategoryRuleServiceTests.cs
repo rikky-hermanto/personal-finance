@@ -1,6 +1,7 @@
 using Moq;
 using Xunit;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using MediatR;
 using PersonalFinance.Application.Commands;
@@ -12,15 +13,17 @@ public class CategoryRuleServiceTests
 {
     private readonly Mock<IMediator> _mediatorMock;
     private readonly Mock<ILogger<CategoryRuleService>> _loggerMock;
+    private readonly Mock<ICategoryPresetService> _presetMock;
     private readonly CategoryRuleService _service;
 
     public CategoryRuleServiceTests()
     {
         _mediatorMock = new Mock<IMediator>();
         _loggerMock = new Mock<ILogger<CategoryRuleService>>();
+        _presetMock = new Mock<ICategoryPresetService>();
         // Supabase.Client is a concrete class — pass null for tests that only exercise the MediatR-delegating methods.
         // Tests requiring a real Supabase connection are skipped until an integration test harness exists (see PF-034).
-        _service = new CategoryRuleService(null!, _mediatorMock.Object, _loggerMock.Object);
+        _service = new CategoryRuleService(null!, _mediatorMock.Object, _loggerMock.Object, _presetMock.Object);
     }
 
     [Fact(Skip = "Requires Supabase integration — EF Core removed in PF-S06, integration harness tracked in PF-034")]

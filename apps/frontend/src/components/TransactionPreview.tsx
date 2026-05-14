@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/format';
 import * as transactionsApi from '@/api/transactionsApi';
 import DataTable, { DataTableColumn } from '@/components/DataTable';
+import { Checkbox } from '@/components/ui/checkbox';
+import { extractKeyword } from '@/utils/keywordExtractor';
 
 interface TransactionPreviewProps {
   transactions: Transaction[];
@@ -82,11 +84,29 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [applyToSimilarMap, setApplyToSimilarMap] = useState<Record<string, boolean>>({});
+  const [pendingKeywords, setPendingKeywords] = useState<Record<string, string>>({});
 
   const handleFieldChange = (transactionId: string, field: keyof Transaction, value: any) => {
     setEditedTransactions(prev =>
       prev.map(t => t.id === transactionId ? { ...t, [field]: value } : t)
     );
+  };
+
+  const handleCategoryChange = (id: string, newCategory: string) => {
+    handleFieldChange(id, 'category', newCategory);
+
+    if (applyToSimilarMap[id]) {
+      const keyword = pendingKeywords[id]?.toLowerCase();
+      if (!keyword) return;
+      setEditedTransactions(prev =>
+        prev.map(t =>
+          t.id !== id && t.description.toLowerCase().includes(keyword)
+            ? { ...t, category: newCategory }
+            : t
+        )
+      );
+    }
   };
 
   const toISODate = (ds: string) => {
@@ -142,7 +162,14 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         exchangeRate: null,
         balance: 0,
         isDuplicate: false,
-        categoryRuleDto: null
+        categoryRuleDto: applyToSimilarMap[t.id]
+          ? {
+              keyword: pendingKeywords[t.id] ?? extractKeyword(t.description),
+              category: t.category,
+              type: t.type.charAt(0).toUpperCase() + t.type.slice(1),
+              flow: t.flow || null,
+            }
+          : null
       }));
       await transactionsApi.submitTransactions(payload, fileHash || undefined, fileName || undefined);
       onConfirm(newTransactions);
@@ -218,15 +245,41 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         </td>
         <td className="px-5 py-3 whitespace-nowrap">
           {isEditing ? (
-            <select
-              value={tx.category}
-              onChange={(e) => handleFieldChange(tx.id, 'category', e.target.value)}
-              className={selectCls}
-            >
-              {categoryOptions.map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <div>
+              <select
+                value={tx.category}
+                onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
+                className={selectCls}
+              >
+                {categoryOptions.map(c => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <div className="flex items-center gap-2 mt-1">
+                <Checkbox
+                  id={`apply-similar-${tx.id}`}
+                  checked={applyToSimilarMap[tx.id] ?? false}
+                  onCheckedChange={(checked) => {
+                    setApplyToSimilarMap(prev => ({ ...prev, [tx.id]: !!checked }));
+                    if (checked) {
+                      const kw = extractKeyword(tx.description);
+                      setPendingKeywords(prev => ({ ...prev, [tx.id]: kw }));
+                    }
+                  }}
+                />
+                <label htmlFor={`apply-similar-${tx.id}`} className="text-xs text-muted-foreground">
+                  Apply to similar
+                </label>
+                {applyToSimilarMap[tx.id] && (
+                  <input
+                    className="text-xs border rounded px-1 py-0.5 font-mono"
+                    value={pendingKeywords[tx.id] ?? ''}
+                    onChange={e => setPendingKeywords(prev => ({ ...prev, [tx.id]: e.target.value }))}
+                    placeholder="keyword..."
+                  />
+                )}
+              </div>
+            </div>
           ) : (
             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
               {tx.category}

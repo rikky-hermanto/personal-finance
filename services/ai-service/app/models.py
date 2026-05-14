@@ -60,3 +60,17 @@ class CategorizeRequest(BaseModel):
 class CategorizeResponse(BaseModel):
     category: str
     confidence: float  # 0.0 – 1.0
+
+class SuggestCategoriesRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    merchant_patterns: list[str]
+    available_categories: list[str]
+
+class MerchantSuggestion(BaseModel):
+    merchant_pattern: str
+    suggested_category: str
+    suggested_keyword: str
+    confidence: float
+
+class SuggestCategoriesResponse(BaseModel):
+    suggestions: list[MerchantSuggestion]
