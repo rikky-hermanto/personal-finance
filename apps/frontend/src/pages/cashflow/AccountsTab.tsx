@@ -1,18 +1,31 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Wallet, TrendingUp, TrendingDown, X } from 'lucide-react';
+import { Plus, Wallet, TrendingUp, TrendingDown, X, LayoutList, LayoutGrid, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TransactionTable from '@/components/TransactionTable';
-import { getWalletSummaries, WalletSummary } from '@/api/transactionsApi';
+import CashflowStatementTable from '@/components/CashflowStatementTable';
+import { getWalletSummaries, getCashflowStatement, WalletSummary } from '@/api/transactionsApi';
+import { CashflowStatement } from '@/types/CashflowStatement';
 import { formatCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Transaction } from '@/types/Transaction';
 
 const CUSTOM_WALLETS_KEY = 'pf_custom_wallets';
+
+const RANGES = [
+  { label: 'Last Month', value: 1 },
+  { label: '3M', value: 3 },
+  { label: '6M', value: 6 },
+  { label: '1Y', value: 12 },
+  { label: '2Y', value: 24 },
+  { label: 'YTD', value: 0 },
+];
+
+type ViewMode = 'table' | 'statement';
 
 interface CustomWallet {
   name: string;
@@ -101,9 +114,17 @@ const WalletCard = ({
 
 const AccountsTab = () => {
   const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [customWallets, setCustomWallets] = useState<CustomWallet[]>(loadCustomWallets);
 
+  // Statement controls
+  const [range, setRange] = useState(6);
+  const [groupBy, setGroupBy] = useState<'quarterly' | 'monthly'>('quarterly');
+  const [statementData, setStatementData] = useState<CashflowStatement | null>(null);
+  const [statementLoading, setStatementLoading] = useState(false);
+
+  // Add wallet dialog state
   const [newWalletName, setNewWalletName] = useState('');
   const [newWalletCurrency, setNewWalletCurrency] = useState<'IDR' | 'USD'>('IDR');
   const [newWalletType, setNewWalletType] = useState<CustomWallet['type']>('Banking');
@@ -133,6 +154,18 @@ const AccountsTab = () => {
   );
   const totalNet = totals.income - totals.expenses;
 
+  // Fetch statement whenever view/wallet/range/groupBy changes
+  useEffect(() => {
+    if (viewMode !== 'statement') return;
+    let cancelled = false;
+    setStatementLoading(true);
+    getCashflowStatement(range, selectedWallet ?? undefined, groupBy)
+      .then((data) => { if (!cancelled) setStatementData(data); })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setStatementLoading(false); });
+    return () => { cancelled = true; };
+  }, [viewMode, selectedWallet, range, groupBy]);
+
   const handleAddWallet = () => {
     if (!newWalletName.trim()) return;
     const updated = [
@@ -146,6 +179,13 @@ const AccountsTab = () => {
   };
 
   const handleTransactionUpdate = useCallback((_id: string, _updates: Partial<Transaction>) => {}, []);
+
+  const btnCls = (active: boolean) => cn(
+    'h-7 px-2.5 text-xs font-medium transition-all rounded-md gap-1.5',
+    active
+      ? 'bg-secondary text-white shadow-none'
+      : 'text-muted-foreground hover:text-white hover:bg-white/5',
+  );
 
   return (
     <div className="flex h-full bg-transparent">
@@ -175,18 +215,14 @@ const AccountsTab = () => {
               {totalNet >= 0 ? '+' : ''}Rp {formatCompact(totalNet)}
             </div>
             <div className="flex gap-3 mt-1.5">
-              <span className="text-[10px] text-muted-foreground">
-                <span className="text-emerald-400 font-mono">↑ Rp {formatCompact(totals.income)}</span>
-              </span>
-              <span className="text-[10px] text-muted-foreground">
-                <span className="text-red-400 font-mono">↓ Rp {formatCompact(totals.expenses)}</span>
-              </span>
+              <span className="text-emerald-400 font-mono text-[10px]">↑ Rp {formatCompact(totals.income)}</span>
+              <span className="text-red-400 font-mono text-[10px]">↓ Rp {formatCompact(totals.expenses)}</span>
             </div>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
-          {/* All accounts option */}
+          {/* All wallets option */}
           <button
             onClick={() => setSelectedWallet(null)}
             className={cn(
@@ -222,10 +258,11 @@ const AccountsTab = () => {
         </div>
       </div>
 
-      {/* Right panel — transactions */}
+      {/* Right panel */}
       <div className="flex-1 overflow-auto">
         <div className="p-8">
-          <div className="flex items-start justify-between mb-6">
+          {/* Header row */}
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-white tracking-tight">
                 {selectedWallet ?? 'All Wallets'}
@@ -236,27 +273,76 @@ const AccountsTab = () => {
                   : 'View transactions across all wallets'}
               </p>
             </div>
-            {selectedWallet && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => setSelectedWallet(null)}
-              >
-                <X className="w-4 h-4 mr-1" />
-                Clear filter
-              </Button>
-            )}
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* View toggle */}
+              <div className="flex items-center gap-1 rounded-md border border-border bg-muted/30 p-0.5">
+                <Button variant="ghost" size="sm" className={btnCls(viewMode === 'table')} onClick={() => setViewMode('table')}>
+                  <LayoutList className="w-3.5 h-3.5" />
+                  Table
+                </Button>
+                <Button variant="ghost" size="sm" className={btnCls(viewMode === 'statement')} onClick={() => setViewMode('statement')}>
+                  <LayoutGrid className="w-3.5 h-3.5" />
+                  Statement
+                </Button>
+              </div>
+
+              {/* Statement controls — only visible in statement view */}
+              {viewMode === 'statement' && (
+                <>
+                  <div className="flex items-center gap-1 rounded-md border border-border bg-muted/30 p-0.5">
+                    <Button variant="ghost" size="sm" className={btnCls(groupBy === 'quarterly')} onClick={() => setGroupBy('quarterly')}>
+                      <LayoutGrid className="w-3 h-3" />
+                      Quarterly
+                    </Button>
+                    <Button variant="ghost" size="sm" className={btnCls(groupBy === 'monthly')} onClick={() => setGroupBy('monthly')}>
+                      <Calendar className="w-3 h-3" />
+                      Monthly
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center gap-1 rounded-md border border-border bg-muted/30 p-0.5">
+                    {RANGES.map((r) => (
+                      <Button
+                        key={r.label}
+                        variant="ghost"
+                        size="sm"
+                        className={btnCls(range === r.value)}
+                        onClick={() => setRange(r.value)}
+                      >
+                        {r.label}
+                      </Button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {selectedWallet && (
+                <Button variant="ghost" size="sm" className="text-muted-foreground h-7" onClick={() => setSelectedWallet(null)}>
+                  <X className="w-3.5 h-3.5 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
           </div>
-          <TransactionTable
-            key={selectedWallet ?? '__all__'}
-            onTransactionUpdate={handleTransactionUpdate}
-            walletFilter={selectedWallet ?? undefined}
-          />
+
+          {/* Content */}
+          {viewMode === 'table' ? (
+            <TransactionTable
+              key={selectedWallet ?? '__all__'}
+              onTransactionUpdate={handleTransactionUpdate}
+              walletFilter={selectedWallet ?? undefined}
+            />
+          ) : (
+            <CashflowStatementTable
+              data={statementData}
+              isLoading={statementLoading}
+            />
+          )}
         </div>
       </div>
 
-      {/* Add Account dialog */}
+      {/* Add Wallet dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
