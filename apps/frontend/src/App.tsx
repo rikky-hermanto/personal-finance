@@ -10,6 +10,7 @@ import OverviewTab from "@/pages/cashflow/OverviewTab";
 import TransactionsTab from "@/pages/cashflow/TransactionsTab";
 import UploadTab from "@/pages/cashflow/UploadTab";
 import StatementTab from "@/pages/cashflow/StatementTab";
+import AccountsTab from "@/pages/cashflow/AccountsTab";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
 import CategoriesTab from "@/pages/settings/CategoriesTab";
 import DataTab from "@/pages/settings/DataTab";
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="overview" element={<OverviewTab />} />
               <Route path="transactions" element={<TransactionsTab />} />
               <Route path="upload" element={<UploadTab />} />
+              <Route path="accounts" element={<AccountsTab />} />
               <Route path="statement" element={<StatementTab />} />
             </Route>
             <Route path="/settings" element={<SettingsLayout />}>
