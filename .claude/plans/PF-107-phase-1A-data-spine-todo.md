@@ -12,8 +12,8 @@ Build the complete backend data layer for Assets Management as a **fully indepen
 
 ## Acceptance Criteria
 
-- [ ] Supabase migration applied — 7 new tables: `institutions`, `accounts`, `assets`, `holdings`, `valuations`, `liabilities`, `fx_rates`
-- [ ] All tables have `user_id uuid NOT NULL` and permissive RLS (`USING (true)`) ready for PF-S08 flip
+- [x] Supabase migration applied — 7 new tables: `institutions`, `accounts`, `assets`, `holdings`, `valuations`, `liabilities`, `fx_rates`
+- [x] All tables have `user_id uuid NOT NULL` and permissive RLS (`USING (true)`) ready for PF-S08 flip
 - [ ] `valuations` table has the FX quad-tuple: `value_native`, `currency`, `fx_rate_to_idr`, `value_idr`
 - [ ] `assets` table has `valuation_strategy` enum: `RealTime | Algorithmic | Amortized | Manual`
 - [ ] `liabilities` table has both `account_id?` and `asset_id?` FKs with a CHECK constraint enforcing mutual exclusivity
@@ -75,7 +75,7 @@ Out of scope: auto-pricing jobs (Phase 2), UI beyond Settings tab (Phase 1B), an
 
 ## TODO
 
-### [ ] STEP 1 — Check migration file numbering
+### [x] STEP 1 — Check migration file numbering
 
 ```bash
 ls supabase/migrations/
@@ -85,7 +85,7 @@ ls supabase/migrations/
 
 ---
 
-### [ ] STEP 2 — Create Supabase migration: enums + tables
+### [x] STEP 2 — Create Supabase migration: enums + tables
 
 Create `supabase/migrations/NNNN_assets_management.sql` with the full assets schema:
 
@@ -236,7 +236,7 @@ END $$;
 
 ---
 
-### [ ] STEP 3 — Apply migration and verify
+### [x] STEP 3 — Apply migration and verify
 
 ```bash
 supabase db push

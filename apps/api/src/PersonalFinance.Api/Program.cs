@@ -2,6 +2,7 @@ using PersonalFinance.Api.Extensions;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Infrastructure.External;
 using PersonalFinance.Infrastructure.Parsers;
+using PersonalFinance.Infrastructure.Services;
 using PersonalFinance.Infrastructure.Supabase;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -102,6 +103,12 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<ITransactionPipelineService, PersonalFinance.Application.Services.TransactionPipelineService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+            // Assets module services
+            builder.Services.AddHttpClient<JisdorFxRateService>();
+            builder.Services.AddScoped<IFxRateService, JisdorFxRateService>();
+            builder.Services.AddScoped<IValuationService, ValuationService>();
+            builder.Services.AddScoped<INetWorthService, NetWorthService>();
             builder.Services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssemblyContaining<Program>();
