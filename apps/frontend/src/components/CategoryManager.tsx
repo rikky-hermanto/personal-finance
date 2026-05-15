@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { CategoryRule } from '@/types/Transaction';
-import { Plus, Edit2, Trash2, Save, X, Upload, Download, AlignJustify, Layers } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, Download, AlignJustify, Layers, FolderPlus } from 'lucide-react';
 import CategoryGroupView from '@/components/CategoryGroupView';
 import {
   getCategoryRules,
@@ -40,6 +40,7 @@ const CategoryManager = () => {
   const [newRule, setNewRule] = useState<Omit<CategoryRule, 'id'>>({ keyword: '', category: '', type: 'expense' });
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'keyword' | 'category'>('keyword');
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
   const { toast } = useToast();
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhrase, setResetPhrase] = useState('');
@@ -135,6 +136,22 @@ const CategoryManager = () => {
     }
   };
 
+  const handleRenameCategory = async (oldName: string, newName: string) => {
+    const targets = categoryRules.filter(r => r.category === oldName);
+    await Promise.all(
+      targets.map(r => updateCategoryRule(r.id as number, { keyword: r.keyword, category: newName, type: r.type }))
+    );
+    setCategoryRules(prev => prev.map(r => r.category === oldName ? { ...r, category: newName } : r));
+    toast({ title: 'Category renamed', description: `"${oldName}" → "${newName}"` });
+  };
+
+  const handleDeleteCategory = async (categoryName: string) => {
+    const targets = categoryRules.filter(r => r.category === categoryName);
+    await Promise.all(targets.map(r => deleteCategoryRule(r.id as number)));
+    setCategoryRules(prev => prev.filter(r => r.category !== categoryName));
+    toast({ title: 'Category deleted', description: `Deleted "${categoryName}" and ${targets.length} ${targets.length === 1 ? 'rule' : 'rules'}.` });
+  };
+
   const sortedRules = useMemo(() =>
     [...categoryRules].sort((a, b) => {
       const lenDiff = b.keyword.length - a.keyword.length;
@@ -220,6 +237,15 @@ const CategoryManager = () => {
               Add Rule
             </button>
           )}
+          {viewMode === 'category' && (
+            <button
+              onClick={() => setIsAddingCategory(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
+            >
+              <FolderPlus className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Add Category
+            </button>
+          )}
         </div>
       </div>
 
@@ -230,6 +256,10 @@ const CategoryManager = () => {
           onSaveRule={handleSaveRule}
           onDeleteRule={handleDeleteRule}
           onAddRule={handleAddRule}
+          onRenameCategory={handleRenameCategory}
+          onDeleteCategory={handleDeleteCategory}
+          isAddingCategory={isAddingCategory}
+          onCancelAddCategory={() => setIsAddingCategory(false)}
         />
       )}
 

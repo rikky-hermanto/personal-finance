@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { formatCurrency, formatCompact } from '@/lib/format';
 import { DashboardCashFlow } from '@/types/Dashboard';
+import { cn } from '@/lib/utils';
 
 interface FinancialChartProps {
   data: DashboardCashFlow[] | null;
