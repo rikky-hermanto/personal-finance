@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, TrendingUp, Settings, Menu, X, Plus, PiggyBank } from 'lucide-react';
+import { BarChart3, Settings, Menu, X, Plus, PiggyBank, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
+import { useTheme } from 'next-themes';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard', matchPrefix: '/dashboard' },
   { id: 'cashflow', label: 'Cashflow', icon: PiggyBank, path: '/cashflow', matchPrefix: '/cashflow' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', matchPrefix: '/settings' },
 ];
 
 const Sidebar = () => {
@@ -15,6 +15,9 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { focused } = useFocusMode();
+  const { theme, setTheme } = useTheme();
+  const isDark = theme === 'dark';
+  const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
 
   return (
     <div
@@ -98,6 +101,52 @@ const Sidebar = () => {
           })}
         </ul>
       </nav>
+
+      {/* Bottom section — theme toggle + settings */}
+      <div className="px-3 pb-4 pt-2 border-t border-sidebar-border space-y-0.5">
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          title={isDark ? 'Switch to Light' : 'Switch to Dark'}
+          className={cn(
+            'w-full flex items-center rounded-lg transition-all duration-150 group',
+            'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground',
+            collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-3'
+          )}
+        >
+          {isDark
+            ? <Sun className="w-4 h-4 flex-shrink-0 text-inherit group-hover:text-foreground" strokeWidth={1.5} />
+            : <Moon className="w-4 h-4 flex-shrink-0 text-inherit group-hover:text-foreground" strokeWidth={1.5} />
+          }
+          {!collapsed && (
+            <span className="text-xs font-medium tracking-wide">
+              {isDark ? 'Light mode' : 'Dark mode'}
+            </span>
+          )}
+        </button>
+
+        {/* Settings */}
+        <button
+          onClick={() => navigate('/settings')}
+          title={collapsed ? 'Settings' : undefined}
+          className={cn(
+            'w-full flex items-center rounded-lg transition-all duration-150 group',
+            collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-3',
+            location.pathname.startsWith('/settings')
+              ? 'bg-secondary text-foreground'
+              : 'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground'
+          )}
+        >
+          <Settings
+            className={cn(
+              'w-4 h-4 flex-shrink-0 transition-colors',
+              location.pathname.startsWith('/settings') ? 'text-foreground' : 'text-inherit group-hover:text-foreground'
+            )}
+            strokeWidth={1.5}
+          />
+          {!collapsed && <span className="text-xs font-medium tracking-wide">Settings</span>}
+        </button>
+      </div>
     </div>
   );
 };
