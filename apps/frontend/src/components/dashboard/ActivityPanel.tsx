@@ -3,6 +3,7 @@ import * as transactionsApi from '@/api/transactionsApi';
 import { Transaction } from '@/types/Transaction';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { useFocusMode } from '@/lib/focus-mode';
 
 interface ActivityPanelProps {
   selectedMonth?: string;
@@ -14,7 +15,7 @@ const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => 
   date: t.date,
   description: t.description,
   amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-  type: (t.type.toLowerCase() === 'income' ? 'income' : 
+  type: (t.type.toLowerCase() === 'income' ? 'income' :
          t.type.toLowerCase().includes('transfer') || t.type.toLowerCase().includes('trar') ? 'transfer' : 'expense') as 'income' | 'expense' | 'transfer',
   category: t.category,
   bank: t.wallet,
@@ -27,6 +28,8 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
     staleTime: Infinity,
     refetchOnWindowFocus: false,
   });
+
+  const { focused } = useFocusMode();
 
   const recent = pagedResult?.items.map(mapApiToTransaction) || [];
 
@@ -42,7 +45,10 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
   ];
 
   return (
-    <div className="w-80 flex-shrink-0 flex flex-col h-full bg-sidebar overflow-hidden">
+    <div className={cn(
+      'w-80 flex-shrink-0 flex flex-col h-full bg-sidebar overflow-hidden',
+      focused && 'focus-recessed'
+    )}>
       {/* Recent transactions */}
       <div className="flex-1 overflow-y-auto">
         <div className="px-5 pt-6 pb-2">
@@ -61,7 +67,7 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
             </div>
           ) : (
             recent.map((tx) => (
-              <div key={tx.id} className="px-5 py-2 hover:bg-white/[0.03] transition-all group cursor-default">
+              <div key={tx.id} className="px-5 py-2 hover:bg-foreground/[0.03] transition-all group cursor-default">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
@@ -82,7 +88,7 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
                   <span
                     className={cn(
                       'font-mono text-xs flex-shrink-0 tabular-nums',
-                      tx.type === 'income' ? 'text-emerald-400/80' : 'text-red-400/80'
+                      tx.type === 'income' ? 'text-income' : 'text-expense'
                     )}
                   >
                     {(() => {
@@ -120,8 +126,8 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
                 className={cn(
                   'text-xs text-left px-2 py-1.5 rounded-md transition-all font-medium',
                   selectedMonth === f.value
-                    ? 'bg-white/10 text-white'
-                    : 'text-muted-foreground/70 hover:text-white hover:bg-white/5'
+                    ? 'bg-foreground/10 text-foreground'
+                    : 'text-muted-foreground/70 hover:text-foreground hover:bg-foreground/5'
                 )}
               >
                 {f.label}
@@ -135,4 +141,3 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
 };
 
 export default ActivityPanel;
-

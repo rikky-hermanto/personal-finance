@@ -6,12 +6,74 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Light mode (zen canvas) — default ────────────────────────────── */
   :root {
-    /* Toloshi Inspired Theme */
-    --background: 240 10% 3%; /* Deep Near-Black #08080a */
-    --foreground: 0 0% 98%; /* Near white for high-fidelity text */
+    color-scheme: light;
 
-    --card: 240 6% 8%; /* Content surface #121214 */
+    --background: 42 17% 94%;        /* #F5F3EE warm off-white */
+    --foreground: 35 9% 19%;         /* #37352F warm near-black */
+
+    --card: 0 0% 100%;               /* #FFFFFF */
+    --card-foreground: 35 9% 19%;
+
+    --popover: 36 17% 97%;           /* #FAF9F7 elevated surface */
+    --popover-foreground: 35 9% 19%;
+
+    --primary: 35 9% 19%;            /* near-black primary actions */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 39 18% 91%;         /* #EDEBE5 soft warm surface */
+    --secondary-foreground: 35 9% 19%;
+
+    --muted: 39 18% 91%;
+    --muted-foreground: 0 0% 42%;    /* #6B6B6B */
+
+    --accent: 35 9% 19% / 0.1;
+    --accent-foreground: 35 9% 19%;
+
+    --destructive: 354 91% 65%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 39 18% 88%;            /* #E8E5DF */
+    --input: 39 18% 91%;
+    --ring: 35 9% 19%;
+
+    --radius: 12px;
+
+    --sidebar-background: 42 17% 91%;     /* slightly darker than canvas */
+    --sidebar-foreground: 0 0% 42%;
+    --sidebar-primary: 35 9% 19%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 39 18% 88%;
+    --sidebar-accent-foreground: 35 9% 19%;
+    --sidebar-border: 39 18% 85%;
+    --sidebar-ring: 35 9% 19%;
+
+    /* Functional — unchanged across themes */
+    --success: 170 90% 32%;
+    --income:  158 64% 52%;
+    --expense: 354 70% 54%;          /* slightly deeper red for light bg readability */
+    --warning: 35 91% 50%;
+    --info: 220 91% 55%;
+
+    --chart-1: 220 80% 55%;
+    --chart-2: 170 90% 32%;
+    --chart-3: 280 66% 65%;
+    --chart-4: 355 85% 58%;
+    --chart-5: 35 91% 50%;
+
+    /* Zen extras */
+    --font-title: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  }
+
+  /* ── Dark mode (Toloshi) ───────────────────────────────────────────── */
+  .dark {
+    color-scheme: dark;
+
+    --background: 240 10% 3%;
+    --foreground: 0 0% 98%;
+
+    --card: 240 6% 8%;
     --card-foreground: 210 12% 90%;
 
     --popover: 240 6% 10%;
@@ -20,7 +82,7 @@
     --primary: 220 91% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 240 6% 12%; /* Active background #1a1a1c */
+    --secondary: 240 6% 12%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 240 6% 10%;
@@ -32,7 +94,7 @@
     --destructive: 354 91% 65%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 6% 12%; /* Very subtle border */
+    --border: 240 6% 12%;
     --input: 240 6% 10%;
     --ring: 220 91% 65%;
 
@@ -47,13 +109,12 @@
     --sidebar-border: 240 6% 10%;
     --sidebar-ring: 220 91% 65%;
 
-    --success: 170 90% 32%; /* Professional Emerald Green #089981 */
-    --income: 158 64% 52%; /* Subtle Emerald 400 */
-    --expense: 0 91% 71%; /* Subtle Red 400 */
+    --success: 170 90% 32%;
+    --income:  158 64% 52%;
+    --expense: 0 91% 71%;
     --warning: 35 91% 60%;
     --info: 220 91% 65%;
 
-    /* Chart scale */
     --chart-1: 220 91% 65%;
     --chart-2: 170 90% 32%;
     --chart-3: 280 66% 65%;
@@ -91,6 +152,7 @@
 }
 
 @layer utilities {
+  /* ── Functional color helpers ──────────────────────────────────────── */
   .text-success {
     color: hsl(var(--success));
   }
@@ -128,7 +190,79 @@
     background: linear-gradient(135deg, hsl(var(--chart-1) / 0.05) 0%, hsl(var(--chart-2) / 0.02) 100%);
   }
 
-  /* Custom scrollbar — Dark Islands style: Pill shaped */
+  /* ── Zen mode utilities ────────────────────────────────────────────── */
+
+  /* Warm canvas with 80px grid texture (skill spec) */
+  .zen-canvas {
+    background-color: hsl(var(--background));
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 0, 0, 0.018) 1px, transparent 1px);
+    background-size: 80px 80px;
+  }
+
+  .dark .zen-canvas {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  }
+
+  /* Editorial serif for page titles in zen mode */
+  .zen-title {
+    font-family: var(--font-title);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  /* Warm peach CTA — one per view */
+  .zen-cta {
+    background: #E8C5A8;
+    color: #5C3D1E;
+    border: none;
+    border-radius: 16px;
+    padding: 8px 18px;
+    font-size: 0.8125rem;
+    font-weight: 550;
+    cursor: pointer;
+    transition: background 160ms ease;
+  }
+
+  .zen-cta:hover {
+    background: #DEBB9A;
+  }
+
+  /* Bottom action pill bar */
+  .zen-action-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 10px;
+    padding: 4px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  /* Zen ease transitions */
+  .zen-ease-reveal {
+    transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
+                transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Recessed chrome — used on Sidebar and ActivityPanel in focus mode */
+  .focus-recessed {
+    opacity: 0.25;
+    transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .focus-recessed:hover {
+    opacity: 1;
+  }
+
+  /* ── Scrollbar ─────────────────────────────────────────────────────── */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -137,11 +271,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: hsl(var(--foreground) / 0.1);
     border-radius: 10px;
     transition: background 0.2s;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: hsl(var(--foreground) / 0.2);
   }
 }
