@@ -259,7 +259,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     }
   };
 
-  const selectCls = 'bg-muted border border-border rounded text-foreground text-xs px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-ring w-full';
+  const selectCls = 'bg-muted border border-border rounded text-foreground text-xs px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring w-full';
 
   const columns: DataTableColumn<Transaction>[] = [
     { key: 'date', label: 'Date', className: 'w-32' },
