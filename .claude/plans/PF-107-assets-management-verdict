@@ -1,0 +1,261 @@
+# PF-107 — Assets Management: PO Decision Memo
+
+**Author:** Senior PO/Analyst review
+**Date:** 2026-05-15
+**Status:** Ideas-selection — engineering plan to follow
+
+---
+
+## Context
+
+User currently tracks net worth in an Excel **Balance Sheet** with monthly snapshot columns (Sep 2025 → Apr 2026), covering Hard Cash (BCA, Bank Jago, Neo Bank, Seabank, Superbank, Wise — incl. AUD/SGD/USD sub-balances), Stock/Mutual Fund (Mansek, Bibit, Stockbit), Crypto (Binance, Pluang), Gold, Plot Land, Piutang (receivables: Melda/Lae, Nelly, Roga, Pesta, Ucok), and a Liabilities row (Kartu Kredit BCA). The bottom rows compute **NET WORTH + monthly growth %**, with red/green conditional formatting and event annotations ("BTC CL happening", "AUD naik tajam", "Bleeding MSCI + IRAN").
+
+The product today solves *cashflow* — the **transaction stream** ("where did my money go"). PF-107 introduces a separate second pillar — the **balance sheet** ("what do I own and what is it worth right now") — to replace this Excel workflow inside the app.
+
+Two teams pitched proposals. **My job: pick which ideas come in, ruthlessly.**
+
+---
+
+## Founding Architectural Principle (PO-level call)
+
+> **`assets` and `cashflow` are two independent modules. They do NOT share schema in Phase 1. Reconciliation is a future exploration, not a foundation.**
+
+Both teams proposed varying degrees of tight coupling (Team B most aggressively — `transactions.account_id` FK, dual-write `wallet`/`Account`, statement-upload auto-writes `Valuation`, Cashflow↔NetWorth reconciliation widget). This is rejected. Rationale:
+
+- **Different mental models.** Cashflow is an *event stream* of transactions. Assets is *point-in-time snapshots* of value. Forcing them into one schema forces compromises in both.
+- **Assets records data cashflow never sees.** Gold bought in 2020, a plot of land, piutang to Ucok, depreciation of a car, market revaluation of Mansek — none of these are transactions. Manual entry is not a fallback, it is *the* primary input for half of the balance sheet.
+- **Coupling blocks shipping.** If `Valuation` rows depend on `bank_running_balance` quality across 5 parsers, Phase 1 inherits 5 banks' worth of edge cases before user sees any value.
+- **Convergence point is not yet obvious.** When we find the right reconciliation seam (likely: monthly statement balance auto-becoming a candidate `Valuation` after user confirms), we add it as a feature. Not as a foundation.
+
+This single decision deletes a large amount of integration risk from both proposals.
+
+---
+
+## Executive Decision
+
+**Adopt Team B as the foundation. Graft 3 specific ideas from Team A. Strip all cross-module coupling. Cut everything else.**
+
+One-line reasoning per call:
+
+- **Team B wins the foundation** — concrete schema, Indonesia-aware (JISDOR, IDX, BPJS, SPT, Piutang as Receivables), 7-entity model, phased plan, RLS-friendly for PF-S08.
+- **Team A wins specific conceptual framings** — Valuation-Strategy enum, Asset↔Liability linking with derived LTV, and Treemap visualization.
+- **Net Worth Waterfall is split.** The Income/Expense-bridge version → backlog (needs reconciliation). The asset-class-Δ version → Phase 2 (pure read of `Valuation` table, no coupling).
+- **Neither team scoped or estimated.** PO call below trims and sizes.
+
+---
+
+## Scorecard
+
+| Dimension | Team A | Team B | Winner |
+|---|---|---|---|
+| Implementation specificity (entities, FKs, migrations) | Absent | Detailed (7 entities) | **B** |
+| Indonesia/IDR/multi-currency fit | Ignored (US-centric: 401k, Zillow, KBB) | Native (JISDOR, IDX, BPJS, SPT, Piutang) | **B** |
+| Module independence from cashflow | Implicit (didn't address) | Heavy coupling proposed | **A (by accident)** — overruled by PO principle |
+| Conceptual rigor of data model | Strong (`valuation_strategy`, Asset↔Liability LTV) | Strong (polymorphic Valuation + FX quad-tuple) | **Tie — combine** |
+| Phasing / MVP cut line | None | 6 phases, but Phase 1 over-stuffed | **B (still needs trim)** |
+| Visualization concepts | Wow-factor (Waterfall, Treemap, Journey Lines, glassmorphism) | Pragmatic (Trend, Donut, Liquidity Ladder, Snapshot Compare) | **Mixed — pick from each** |
+| Effort estimation | Absent | Absent | **Neither** |
+| Coverage of user's Excel categories | Misses Piutang, ignores multi-currency | Covers all 9 classes incl. Piutang | **B** |
+
+---
+
+## Adopted: Team B's Foundation (kept, but cross-module ties stripped)
+
+1. **Entity model:** `Institution`, `Account`, `Asset`, `Holding`, `Valuation`, `Liability`, `PriceQuote`, `fx_rates`. **All lives under `assets`-domain. No FKs to `transactions`.**
+2. **Polymorphic `Valuation` ledger** with `subject_type ∈ {account, asset, holding}` + `source ∈ {manual, price_feed, computed}`. Note: `statement` source is **removed** from this enum — statement uploads do not write `Valuation` rows in Phase 1.
+3. **FX quad-tuple on every Valuation row:** `value_native + currency + fx_rate_to_idr + value_idr`. Historically honest, fast to query.
+4. **Bank Indonesia JISDOR** as primary FX source (free, Indonesia-native). Fallback: fixer.io free tier.
+5. **`user_id` + permissive RLS from day 1**, flip to `auth.uid() = user_id` in PF-S08. Avoids future migration.
+6. **Materialized `daily_net_worth` table** for trend queries (not on-the-fly aggregation).
+7. **9-class asset taxonomy** covering all user's Excel categories including **Piutang as Receivables asset class** (Team A missed this entirely).
+8. **Settings: enable disabled `banks` placeholder** → "Institutions & Accounts" CRUD tab. New "Asset Targets" tab.
+9. **Sidebar entry `/assets/*`** between Dashboard and Cashflow, icon `Landmark` from lucide-react. Follows existing tabbed-workspace pattern.
+10. **`Account` entity here is NOT the same as `cashflow/accounts` localStorage wallets.** Independent. Names may align cosmetically but no FK or join. Existing `pages/cashflow/AccountsTab.tsx` and `pf_custom_wallets` localStorage are **untouched**.
+
+### Removed from Team B (cross-module coupling)
+- ❌ `transactions.account_id` FK — not added
+- ❌ Dual-write of statement-upload to `wallet` string AND `Account` — not done
+- ❌ Statement parsers writing `Valuation` rows from `bank_running_balance` — not done; manual entry is the data source
+- ❌ Migration of `pf_custom_wallets` localStorage → server `Account` rows on first login — not done
+- ❌ `/cashflow/accounts` → `/assets/accounts` deprecation/redirect path — not done; both coexist independently forever (or until user explicitly asks to consolidate)
+- ❌ Cashflow ↔ Net Worth Reconciliation widget — moved to backlog (see "Reconciliation Exploration" below)
+
+## Adopted: Team A's Refinements
+
+Three high-signal ideas from Team A grafted onto the foundation:
+
+### A-1. **`Asset.valuation_strategy` enum** — *Phase 1A schema*
+Per-asset enum: `RealTime | Algorithmic | Amortized | Manual`.
+
+**Why:** Drives UX (which input fields to show on `AddValuationDialog`), drives auto-pricing job eligibility (only `RealTime` assets are polled), gives the system a clean extensibility seam. Cheap now, expensive to retrofit. Keep Team B's `Valuation.source` enum too — they serve different purposes (strategy = how to value, source = where this row came from).
+
+### A-2. **Asset↔Liability linking with derived LTV** — *Phase 1A schema*
+Extend Team B's `Liability` with `asset_id?` FK (mutually exclusive with `account_id?`). Compute LTV server-side (`liability.principal / asset.current_value`). Surface in UI.
+
+**Why:** User's current liabilities (Kartu Kredit BCA) link to a cash Account. Future home/vehicle purchases need Mortgage→House and Auto Loan→Vehicle linking. One nullable column today; structural alerting + scorecard improvements forever after.
+
+### A-3. **Treemap (size = value, color = performance)** — *Phase 3 visual suite*
+Single chart showing allocation *and* performance simultaneously. Pair with Team B's Allocation Donut (donut = static snapshot, treemap = performance-weighted snapshot).
+
+### A-1.5. **"Asset Class Delta" chart (PO-derived from Team A's Waterfall idea)** — *Phase 2*
+Simplified Waterfall: decompose monthly NW Δ by **asset class only** (e.g., "Cash −5M, Stocks +12M, Crypto +3M = NW +10M"). Reads `Valuation` table only — no cashflow coupling. Answers *"why did NW change this month?"* without needing transactions.
+
+The full Income/Expense-bridge version → backlog (requires reconciliation).
+
+---
+
+## Rejected (with reasons)
+
+### From Team A — cut
+| Idea | Why cut |
+|---|---|
+| 401(k), IRA, Roth IRA, HSA tracking | User is Indonesia-resident. Use BPJS/DPLK instead. |
+| Zillow / Redfin / KBB / Polygon.io / Alpha Vantage | US-only APIs. None quote IDR. Use JISDOR + CoinGecko + manual valuations. |
+| Tax-loss harvesting engine | US tax concept. Indonesian SPT capital-gains report (Phase 5) is the local analog. |
+| Asset Location Strategy (Taxable / Tax-Deferred / Tax-Free) | Irrelevant under Indonesian tax regime. |
+| Beneficiary tracking + Document Vault | Out of scope (estate planning, not wealth tracking). |
+| Glassmorphism + "wow factor" UX | Violates `.claude/skills/data-oriented-theme/SKILL.md`. Apply data-oriented-theme uniformly. |
+| Look-through ETF analysis | Ambitious. Backlog, not roadmap. |
+| Asset Journey Lines (cost-basis vs market-value per asset) | Duplicates info already in HoldingsTable. Skip. |
+| Full Net Worth Waterfall (Income/Expense bridge) | Requires cashflow coupling. Backlog under Reconciliation. |
+
+### From Team B — cut or defer
+| Idea | Disposition |
+|---|---|
+| Statement-upload auto-writes `Valuation` from `bank_running_balance` | **Cut.** Cross-module coupling. Manual entry only in Phase 1. |
+| `transactions.account_id` FK + dual-write coexistence | **Cut.** No schema crossover. |
+| `/cashflow/accounts` migration / deprecation | **Cut.** Both `/cashflow/accounts` and `/assets/accounts` coexist independently. |
+| Cashflow ↔ Net Worth Reconciliation widget | **Backlog → Reconciliation Exploration.** |
+| LLM broker statement parsing (Stockbit / Mandiri Sek / Pintu / Indodax) | **Defer indefinitely.** Manual monthly entry is fine for 5 banks + 2-3 brokers. |
+| What-If Scenario modeller | **Defer.** Backlog. |
+| TWR (time-weighted returns) alongside XIRR | **Cut.** XIRR alone is correct for a personal portfolio. |
+| `/assets/goals` tab | **Defer to Phase 5.** Couple to budgets later, not net-worth-now. |
+| IDX scraping for Indonesian stock prices | **Defer to Phase 3 or later.** Scraping is fragile; manual entry of monthly Mansek/Stockbit totals is acceptable. |
+
+---
+
+## Revised Phase Plan
+
+Team B's Phase 1 is over-stuffed. Split into 1A (data spine) + 1B (visible MVP), with a clean kill-line in between.
+
+### Phase 1A — Data Spine *(MVP-blocking, backend only)*
+- All 7 entities + `fx_rates` table + permissive RLS (`user_id` populated, policy is `USING (true)` until PF-S08) — Supabase migrations
+- Domain entities + Supabase models — `apps/api/src/PersonalFinance.Domain/Entities/`
+- CRUD CQRS commands/handlers per entity — `apps/api/src/PersonalFinance.Application/Commands/`
+- `IFxRateService` (JISDOR primary, fixer.io fallback) — `apps/api/src/PersonalFinance.Application/Services/`
+- **Includes A-1 (`valuation_strategy` enum) + A-2 (`Liability.asset_id?`)** baked into schema from day 1
+- Settings → enable `banks` placeholder → **Institutions & Accounts** CRUD tab (`apps/frontend/src/pages/settings/SettingsLayout.tsx`)
+- **No statement-parser changes. No transactions-table changes.**
+- **No new `/assets/*` workspace yet** — data layer only
+
+### Phase 1B — Minimum Visible Balance Sheet *(MVP-completing)*
+- New `/assets/*` workspace: Overview · Accounts · Investments · Properties · Liabilities (5 tabs)
+- Overview shows: **NetWorthHeadline** + **NetWorthTrendChart** (basic line chart, reads `Valuation` rows directly — slow OK at low data volume) + AllocationDonut + Top Holdings
+- `AddValuationDialog` is the **only** way to populate values — branched UX by `valuation_strategy`
+- LTV badge on linked Liability rows
+- `/cashflow/accounts` and `pf_custom_wallets` localStorage **untouched**
+
+### Phase 2 — Asset Class Delta + Auto-Pricing *(first delight)*
+- **Asset Class Delta chart** (A-1.5) on Overview — pure read of `Valuation` table, no transactions dependency
+- Auto-pricing background job: CoinGecko (crypto), gold spot, JISDOR daily FX → writes `Valuation` rows with `source='price_feed'`
+- `price_quotes` cache table
+- Recurring-valuation reminders ("Real estate last updated 87 days ago — update?")
+
+### Phase 3 — Historical Snapshots + Visual Suite
+- Daily snapshot job → materialized `daily_net_worth` table
+- **Treemap** (A-3) added next to AllocationDonut on Overview
+- Liquidity Ladder + Currency Exposure donut + Concentration Risk widget (>10% threshold)
+- Snapshot Compare tool (two-date diff with attribution by asset class)
+- Event annotations on Net Worth Trend chart (manual notes — replicates user's Excel red-text annotations)
+
+### Phase 4 — Returns + Debt Health
+- **XIRR only** (cut TWR)
+- Debt Health Scorecard (debt-to-asset ratio, DSCR, avalanche vs snowball suggestion)
+- Allocation Drift with rebalance $ amounts
+
+### Phase 5 — Auth Retrofit + Tax Reporting *(closes the loop)*
+- Flip RLS to `auth.uid() = user_id` (coordinate with PF-S08 JwtBearer middleware)
+- Wire user_id from JWT in controllers
+- Realized gains SPT report (short-term vs long-term capital gains export)
+- `/assets/goals` tab (savings targets, runway — but **without** Income from transactions; user inputs savings rate manually)
+
+### Backlog — Reconciliation Exploration (not promised, not roadmapped)
+> **Trigger: when a clear convergence point is identified during real usage.**
+
+Candidate features for the day we decide to bridge:
+- Statement-upload → suggest a candidate `Valuation` for matching Account (user confirms before write)
+- Full Net Worth Waterfall with Income/Expense bridge from transactions
+- Cashflow ↔ Net Worth Reconciliation widget ("you saved IDR 8M, NW grew IDR 12M, IDR 4M was market gains")
+- Name-match between `pf_custom_wallets` and `accounts` for opt-in consolidation
+- LLM broker statement parsing
+- What-If Scenarios
+
+These exist as ideas, not commitments. We add them when usage tells us where the seam is.
+
+---
+
+## Critical Files Touched
+
+**Backend** (`apps/api/`):
+- New: `src/PersonalFinance.Domain/Entities/{Institution,Account,Asset,Holding,Valuation,Liability,PriceQuote}.cs`
+- New: `src/PersonalFinance.Application/Commands/{Create,Update,Delete}{Entity}Command.cs` + handlers
+- New: `src/PersonalFinance.Application/Services/{INetWorthService,IValuationService,IPricingService,IFxRateService}.cs`
+- New: `src/PersonalFinance.Application/Dtos/{Account,Asset,Holding,Valuation,Liability}Dto.cs`
+- New: `src/PersonalFinance.Api/Controllers/{Accounts,Assets,Liabilities,NetWorth}Controller.cs`
+- New: `supabase/migrations/NNNN_assets_management.sql` — all `assets`-domain tables, RLS policies (permissive day 1)
+- **Untouched:** all existing parsers, all existing transactions code, all existing cashflow controllers
+
+**Frontend** (`apps/frontend/src/`):
+- Modified: `components/Sidebar.tsx` — add `/assets` nav between Dashboard and Cashflow (icon: `Landmark`)
+- Modified: `App.tsx` — new `/assets/*` route block
+- New: `pages/assets/AssetsLayout.tsx` + tab files (Overview, Accounts, Investments, Properties, Liabilities)
+- New: `api/{accountsApi,assetsApi,liabilitiesApi,netWorthApi}.ts`
+- New: `types/{Account,Asset,Liability,Valuation}.ts`
+- New: `components/assets/{NetWorthHeadline,NetWorthTrendChart,AllocationDonut,AddValuationDialog,HoldingsTable,LTVBadge}.tsx`
+- Modified: `pages/settings/SettingsLayout.tsx` — un-disable `banks`, add `targets`
+- **Untouched:** `pages/cashflow/AccountsTab.tsx`, all `pf_custom_wallets` localStorage code, all transaction-related pages
+
+**Existing utilities to reuse (don't reinvent):**
+- `@/lib/format.ts` — IDR formatting
+- `@/lib/utils.ts` — `cn()`
+- Existing chart wrapper from cashflow dashboard — for NetWorthTrendChart and AssetClassDelta
+- `DataTable` component pattern from cashflow transactions table
+- Theme tokens `--success`, `--destructive`, `--chart-1..5`, `.font-data` (per `.claude/skills/data-oriented-theme/SKILL.md`)
+
+---
+
+## Risk Callouts
+
+1. **No effort estimates from either team.** Realistic sizing: **3-4 weeks** Phase 1A, **2 weeks** Phase 1B, **2-3 weeks** Phase 2. Total to first delight: ~7-9 weeks. Engineering team confirms before kickoff.
+2. **Manual-entry adherence is the only Phase 1 data risk.** If user stops entering monthly valuations, the trend chart goes flat. Mitigation: Phase 2 recurring-valuation reminders + Phase 2 auto-pricing for crypto/gold/FX reduces manual burden meaningfully.
+3. **RLS retrofit (Phase 5) is the highest-risk migration.** Permissive-to-restrictive flip on production data requires every `INSERT/UPDATE` path to already populate `user_id` correctly. Test in staging with multiple user accounts before flip.
+4. **JISDOR feed availability/format risk.** Confirm Bank Indonesia exposes a stable JSON/CSV endpoint before committing. Fallback: fixer.io free tier (already specified).
+5. **Two parallel "account" concepts (`pf_custom_wallets` for cashflow, `accounts` table for assets) will confuse users.** Acceptable Phase 1 cost — both have clear scope ("which wallet did this transaction touch?" vs. "what cash do I have right now?"). Address only if user complains. Don't pre-emptively merge.
+6. **No reconciliation = `Asset Class Delta` chart cannot distinguish "I saved IDR 5M" from "market gave me IDR 5M".** Acceptable Phase 1-4. Reconciliation Exploration unlocks the distinction when we get there.
+
+---
+
+## Verification Plan
+
+After Phase 1A (backend only):
+- `dotnet test apps/api/PersonalFinance.slnx` — new handler tests for each entity (use `CategoryRuleServiceTests` pattern)
+- Manual: POST a `Valuation` with `currency=USD`, verify `fx_rate_to_idr` is fetched from JISDOR and `value_idr` is correct
+- Manual: POST a `Liability` with `asset_id`, verify LTV is computed correctly
+- Supabase Studio: confirm RLS policies are permissive on all new tables, confirm `user_id` populated on every row
+- Manual: confirm `transactions` table is unchanged (no new columns, no new FKs)
+
+After Phase 1B:
+- Playwright E2E (`apps/frontend/e2e/assets.spec.ts`): Add Institution → Add Account → Add Valuation → Verify it appears in NetWorthHeadline and NetWorthTrendChart
+- Manual: replay user's Excel data (Sep 2025 → Apr 2026, 8 monthly snapshots × ~20 line items) via `AddValuationDialog` — verify Net Worth Trend reproduces the monthly NW figures within ±0.5%
+- Manual: verify `/cashflow/accounts` still renders unchanged with localStorage wallets intact (independence confirmed)
+- Manual: verify Liability LTV badge displays for any liability with `asset_id`
+
+After Phase 2:
+- Manual: verify Asset Class Delta chart on Overview decomposes month-over-month correctly (sum of ΔValuation per class equals NW delta)
+- Background job: tail logs to confirm CoinGecko + JISDOR + gold-spot sync runs daily without errors
+- Manual: verify recurring-valuation reminder appears for any asset whose latest `Valuation` is > 30 days old
+
+After Phase 5:
+- Integration test: log in as User A, confirm cannot see User B's accounts/valuations/liabilities
+- Manual: re-run all Phase 1B verification with auth enabled
+- Manual: export SPT capital-gains report and validate against a known-good test portfolio
