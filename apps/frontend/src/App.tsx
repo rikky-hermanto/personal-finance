@@ -13,6 +13,7 @@ import UploadTab from "@/pages/cashflow/UploadTab";
 import StatementTab from "@/pages/cashflow/StatementTab";
 import AccountsTab from "@/pages/cashflow/AccountsTab";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
+import AppearanceTab from "@/pages/settings/AppearanceTab";
 import CategoriesTab from "@/pages/settings/CategoriesTab";
 import DataTab from "@/pages/settings/DataTab";
 import RegionalTab from "@/pages/settings/RegionalTab";
@@ -44,7 +45,8 @@ const App = () => (
               <Route path="statement" element={<StatementTab />} />
             </Route>
             <Route path="/settings" element={<SettingsLayout />}>
-              <Route index element={<Navigate to="/settings/categories" replace />} />
+              <Route index element={<Navigate to="/settings/appearance" replace />} />
+              <Route path="appearance" element={<AppearanceTab />} />
               <Route path="categories" element={<CategoriesTab />} />
               <Route path="regional" element={<RegionalTab />} />
               <Route path="data" element={<DataTab />} />

@@ -1,7 +1,10 @@
 import { createRoot } from 'react-dom/client'
+import { ThemeProvider } from 'next-themes'
 import App from './App.tsx'
 import './index.css'
 
-document.documentElement.setAttribute('style', 'color-scheme: dark');
-
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <App />
+  </ThemeProvider>
+);
