@@ -363,7 +363,7 @@ const AccountsTab = () => {
               <div className="space-y-1.5">
                 <Label>Currency</Label>
                 <Select value={newWalletCurrency} onValueChange={(v) => setNewWalletCurrency(v as 'IDR' | 'USD')}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background border-input text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -375,7 +375,7 @@ const AccountsTab = () => {
               <div className="space-y-1.5">
                 <Label>Wallet type</Label>
                 <Select value={newWalletType} onValueChange={(v) => setNewWalletType(v as CustomWallet['type'])}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-background border-input text-foreground">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

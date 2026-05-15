@@ -25,7 +25,8 @@
       "Bash(grep -E \"^-.*\\\\.\\(json|yml|yaml|toml|txt|ts|js|md|xml\\)$\")",
       "Bash(npm start)",
       "Bash(npx tsc *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(xargs grep *)"
     ]
   }
 }
