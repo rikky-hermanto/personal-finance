@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BarChart3, TrendingUp, Settings, Menu, X, Plus, PiggyBank } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useFocusMode } from '@/lib/focus-mode';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard', matchPrefix: '/dashboard' },
@@ -13,23 +14,25 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { focused } = useFocusMode();
 
   return (
     <div
       className={cn(
         'bg-sidebar h-full flex flex-col flex-shrink-0 transition-all duration-300 ease-in-out',
-        collapsed ? 'w-14' : 'w-60'
+        collapsed ? 'w-14' : 'w-60',
+        focused && 'focus-recessed'
       )}
     >
       {/* Header */}
       <div className="h-14 px-4 flex items-center justify-between">
         {!collapsed && (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-7 h-7 bg-white/5 rounded flex items-center justify-center flex-shrink-0 border border-white/5">
-              <PiggyBank className="w-4 h-4 text-white" />
+            <div className="w-7 h-7 bg-foreground/5 rounded flex items-center justify-center flex-shrink-0 border border-foreground/5">
+              <PiggyBank className="w-4 h-4 text-foreground" />
             </div>
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-white tracking-tight">Finance</div>
+              <div className="text-sm font-semibold text-foreground tracking-tight">Finance</div>
             </div>
           </div>
         )}
@@ -48,7 +51,7 @@ const Sidebar = () => {
         <button
           onClick={() => navigate('/cashflow/upload')}
           className={cn(
-            'flex items-center gap-2 transition-all duration-200 bg-white/5 hover:bg-white/10 text-white border border-white/5',
+            'flex items-center gap-2 transition-all duration-200 bg-foreground/5 hover:bg-foreground/10 text-foreground border border-foreground/5',
             collapsed
               ? 'p-2 justify-center w-9 h-9 rounded-full mx-auto'
               : 'px-3 py-2 w-full text-xs font-medium rounded-lg'
@@ -75,11 +78,17 @@ const Sidebar = () => {
                     'w-full flex items-center rounded-lg transition-all duration-150 group',
                     collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-3',
                     isActive
-                      ? 'bg-secondary text-white'
-                      : 'text-sidebar-foreground hover:bg-white/5 hover:text-white'
+                      ? 'bg-secondary text-foreground'
+                      : 'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground'
                   )}
                 >
-                  <Icon className={cn("w-4 h-4 flex-shrink-0 transition-colors", isActive ? "text-white" : "text-inherit group-hover:text-white")} strokeWidth={1.5} />
+                  <Icon
+                    className={cn(
+                      "w-4 h-4 flex-shrink-0 transition-colors",
+                      isActive ? "text-foreground" : "text-inherit group-hover:text-foreground"
+                    )}
+                    strokeWidth={1.5}
+                  />
                   {!collapsed && (
                     <span className="text-xs font-medium tracking-wide">{item.label}</span>
                   )}

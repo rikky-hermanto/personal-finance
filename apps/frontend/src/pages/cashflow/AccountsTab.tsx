@@ -183,8 +183,8 @@ const AccountsTab = () => {
   const btnCls = (active: boolean) => cn(
     'h-7 px-2.5 text-xs font-medium transition-all rounded-md gap-1.5',
     active
-      ? 'bg-secondary text-white shadow-none'
-      : 'text-muted-foreground hover:text-white hover:bg-white/5',
+      ? 'bg-secondary text-foreground shadow-none'
+      : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
   );
 
   return (
@@ -264,7 +264,7 @@ const AccountsTab = () => {
           {/* Header row */}
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">
                 {selectedWallet ?? 'All Wallets'}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
