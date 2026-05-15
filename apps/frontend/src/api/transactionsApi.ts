@@ -133,6 +133,33 @@ export async function submitTransactions(transactions: TransactionDto[], fileHas
   }
 }
 
+export interface WalletSummary {
+  wallet: string;
+  totalIncome: number;
+  totalExpenses: number;
+  net: number;
+  transactionCount: number;
+}
+
+export async function getWalletSummaries(): Promise<WalletSummary[]> {
+  const data = await getTransactionPage({ pageSize: 500, page: 1 });
+  const walletNames = Array.from(new Set(data.items.map((t) => t.wallet))).filter(Boolean).sort();
+
+  const summaries = await Promise.all(
+    walletNames.map(async (wallet) => {
+      const dash = await getDashboardData(wallet);
+      return {
+        wallet,
+        totalIncome: dash.summary.totalIncome,
+        totalExpenses: dash.summary.totalExpenses,
+        net: dash.summary.totalIncome - dash.summary.totalExpenses,
+        transactionCount: dash.summary.transactionCount,
+      };
+    })
+  );
+  return summaries;
+}
+
 export async function resetAllTransactions(): Promise<{ deleted: number }> {
   const res = await fetch(`${BASE_URL}/reset`, { method: "DELETE" });
   if (!res.ok) throw new Error("Reset failed");
