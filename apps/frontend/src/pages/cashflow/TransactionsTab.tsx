@@ -17,7 +17,7 @@ const TransactionsTab = () => {
       <div className="max-w-6xl mx-auto">
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Transactions</h1>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Transactions</h1>
             <p className="text-sm text-muted-foreground mt-1">View and manage all your transactions</p>
           </div>
           <div className="flex gap-2">

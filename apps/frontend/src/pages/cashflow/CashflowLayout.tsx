@@ -23,7 +23,7 @@ const CashflowLayout = () => {
       {/* Tab bar */}
       <div className="flex items-center px-6 pt-6 pb-5 border-b border-border gap-6">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Cashflow</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Cashflow</h1>
         </div>
         <Tabs value={activeTab} onValueChange={(v) => {
           const tab = TABS.find((t) => t.value === v);
@@ -36,8 +36,8 @@ const CashflowLayout = () => {
                 value={tab.value}
                 className={cn(
                   'rounded-md px-4 py-1.5 text-xs font-medium transition-all duration-150',
-                  'data-[state=active]:bg-secondary data-[state=active]:text-white data-[state=active]:shadow-none',
-                  'data-[state=inactive]:text-muted-foreground hover:text-white hover:bg-white/5',
+                  'data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-none',
+                  'data-[state=inactive]:text-muted-foreground hover:text-foreground hover:bg-foreground/5',
                 )}
               >
                 {tab.label}
