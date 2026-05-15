@@ -8,6 +8,7 @@ import DataTable, { DataTableColumn, SortState } from '@/components/DataTable';
 
 interface TransactionTableProps {
   onTransactionUpdate: (id: string, updates: Partial<Transaction>) => void;
+  walletFilter?: string;
 }
 
 const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => ({
@@ -45,7 +46,7 @@ const COLUMNS: DataTableColumn<Transaction, ColKey>[] = [
 
 const PAGE_SIZE = 50;
 
-const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
+const TransactionTable = ({ onTransactionUpdate, walletFilter }: TransactionTableProps) => {
   // ── Server-side state ──────────────────────────────────────────────────────
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal]               = useState(0);
@@ -69,11 +70,12 @@ const TransactionTable = ({ onTransactionUpdate }: TransactionTableProps) => {
   // Derive API query params from current filter/sort state
   const query = useMemo<transactionsApi.TransactionQuery>(() => ({
     pageSize:  PAGE_SIZE,
+    wallet:    walletFilter || undefined,
     search:    searchTerm || undefined,
     category:  categoryFilter !== 'all' ? categoryFilter : undefined,
     type:      typeFilter    !== 'all' ? typeFilter    : undefined,
     sortOrder: sort.order,
-  }), [searchTerm, categoryFilter, typeFilter, sort.order]);
+  }), [walletFilter, searchTerm, categoryFilter, typeFilter, sort.order]);
 
   // ── Fetch page 1 whenever filters/sort change ─────────────────────────────
   useEffect(() => {
