@@ -102,21 +102,20 @@ const Sidebar = () => {
         </ul>
       </nav>
 
-      {/* Bottom section — theme toggle + settings */}
-      <div className="px-3 pb-4 pt-2 border-t border-sidebar-border space-y-0.5">
-        {/* Theme toggle */}
+      {/* Theme toggle — above the divider */}
+      <div className={cn('px-3 pb-2', collapsed ? 'flex justify-center' : '')}>
         <button
           onClick={toggleTheme}
           title={isDark ? 'Switch to Light' : 'Switch to Dark'}
           className={cn(
-            'w-full flex items-center rounded-lg transition-all duration-150 group',
-            'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground',
+            'w-full flex items-center rounded-lg transition-colors duration-150 group',
+            'text-sidebar-foreground hover:text-foreground',
             collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-3'
           )}
         >
           {isDark
-            ? <Sun className="w-4 h-4 flex-shrink-0 text-inherit group-hover:text-foreground" strokeWidth={1.5} />
-            : <Moon className="w-4 h-4 flex-shrink-0 text-inherit group-hover:text-foreground" strokeWidth={1.5} />
+            ? <Sun className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+            : <Moon className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
           }
           {!collapsed && (
             <span className="text-xs font-medium tracking-wide">
@@ -124,8 +123,10 @@ const Sidebar = () => {
             </span>
           )}
         </button>
+      </div>
 
-        {/* Settings */}
+      {/* Settings — below the divider */}
+      <div className="px-3 pb-4 pt-2 border-t border-sidebar-border">
         <button
           onClick={() => navigate('/settings')}
           title={collapsed ? 'Settings' : undefined}
