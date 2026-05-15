@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { CategoryRule } from '@/types/Transaction';
 import { Plus, Edit2, Trash2, Save, X, Upload, Download, AlignJustify, Layers } from 'lucide-react';
 import CategoryGroupView from '@/components/CategoryGroupView';
@@ -135,6 +135,15 @@ const CategoryManager = () => {
     }
   };
 
+  const sortedRules = useMemo(() =>
+    [...categoryRules].sort((a, b) => {
+      const lenDiff = b.keyword.length - a.keyword.length;
+      if (lenDiff !== 0) return lenDiff;
+      return a.keyword.localeCompare(b.keyword, undefined, { numeric: true, sensitivity: 'base' });
+    }),
+    [categoryRules]
+  );
+
   if (loading) {
     return <div className="p-6 text-sm text-muted-foreground">Loading…</div>;
   }
@@ -241,7 +250,7 @@ const CategoryManager = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {categoryRules.map((rule) => {
+              {sortedRules.map((rule) => {
                 const isEditing = editingRule?.id === rule.id;
                 return (
                   <tr key={String(rule.id)} className="hover:bg-accent transition-colors">

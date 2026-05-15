@@ -23,7 +23,8 @@
       "Bash(grep -A 20 '\"\"scripts\"\"' package.json)",
       "Bash(wc -l .claude/rules/*.md)",
       "Bash(grep -E \"^-.*\\\\.\\(json|yml|yaml|toml|txt|ts|js|md|xml\\)$\")",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(npx tsc *)"
     ]
   }
 }
