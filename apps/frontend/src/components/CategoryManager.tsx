@@ -154,7 +154,7 @@ const CategoryManager = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <p className="text-xs text-muted-foreground mt-0.5">
-            {categoryRules.length} rules — longest-keyword match applies first
+            {categoryRules.length} rules
           </p>
           {/* View mode toggle */}
           <div className="flex items-center rounded-md border border-border overflow-hidden">
