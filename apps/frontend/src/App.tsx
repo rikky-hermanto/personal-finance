@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "@/components/AppShell";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardPage from "@/pages/DashboardPage";
 import CashflowLayout from "@/pages/cashflow/CashflowLayout";
 import OverviewTab from "@/pages/cashflow/OverviewTab";
@@ -32,7 +33,7 @@ const App = () => (
           <Route path="/upload" element={<Navigate to="/cashflow/upload" replace />} />
           <Route path="/transactions" element={<Navigate to="/cashflow/transactions" replace />} />
           <Route path="/categories" element={<Navigate to="/settings/categories" replace />} />
-          <Route element={<AppShell />}>
+          <Route element={<ErrorBoundary><AppShell /></ErrorBoundary>}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/cashflow" element={<CashflowLayout />}>
               <Route index element={<Navigate to="/cashflow/overview" replace />} />
