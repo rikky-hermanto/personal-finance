@@ -1,11 +1,13 @@
 import { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import { Transaction } from '@/types/Transaction';
-import { Edit2, Check, X, Send, Hash, TrendingUp, TrendingDown, Wallet } from 'lucide-react';
+import { Edit2, Check, Send, Hash, TrendingUp, TrendingDown, Wallet, ChevronsUpDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/format';
 import * as transactionsApi from '@/api/transactionsApi';
 import DataTable, { DataTableColumn } from '@/components/DataTable';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from '@/components/ui/command';
 import { extractKeyword } from '@/utils/keywordExtractor';
 
 interface TransactionPreviewProps {
@@ -79,6 +81,67 @@ const AutoScalingText = ({ children, className }: { children: React.ReactNode; c
   );
 };
 
+interface CategoryComboboxProps {
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}
+
+const CategoryCombobox = ({ value, options, onChange }: CategoryComboboxProps) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const filtered = query
+    ? options.filter(o => o.toLowerCase().includes(query.toLowerCase()))
+    : options;
+  const canCreate = query.trim() !== '' && !options.some(o => o.toLowerCase() === query.trim().toLowerCase());
+
+  return (
+    <Popover open={open} onOpenChange={(v) => { setOpen(v); if (!v) setQuery(''); }}>
+      <PopoverTrigger asChild>
+        <button className="flex items-center justify-between w-full text-xs bg-muted border border-border rounded px-2 py-1 text-foreground hover:bg-accent transition-colors focus:outline-none focus:ring-1 focus:ring-ring">
+          <span className="truncate">{value}</span>
+          <ChevronsUpDown className="w-3 h-3 ml-1 shrink-0 text-muted-foreground" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-44" align="start" sideOffset={4}>
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search or create…"
+            value={query}
+            onValueChange={setQuery}
+            className="h-7 text-xs"
+          />
+          <CommandList className="max-h-52">
+            {filtered.map(c => (
+              <CommandItem
+                key={c}
+                value={c}
+                onSelect={() => { onChange(c); setOpen(false); setQuery(''); }}
+                className={cn("text-xs cursor-pointer", c === value && "font-medium")}
+              >
+                {c}
+              </CommandItem>
+            ))}
+            {canCreate && (
+              <CommandItem
+                value={`__create__${query}`}
+                onSelect={() => { onChange(query.trim()); setOpen(false); setQuery(''); }}
+                className="text-xs cursor-pointer text-muted-foreground italic"
+              >
+                ＋ Create "{query.trim()}"
+              </CommandItem>
+            )}
+            {filtered.length === 0 && !canCreate && (
+              <CommandEmpty className="text-xs py-3 text-center text-muted-foreground">Nothing found</CommandEmpty>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileName }: TransactionPreviewProps) => {
   const [editedTransactions, setEditedTransactions] = useState<Transaction[]>(transactions);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -86,6 +149,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const [apiError, setApiError] = useState<string | null>(null);
   const [applyToSimilarMap, setApplyToSimilarMap] = useState<Record<string, boolean>>({});
   const [pendingKeywords, setPendingKeywords] = useState<Record<string, string>>({});
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   const handleFieldChange = (transactionId: string, field: keyof Transaction, value: any) => {
     setEditedTransactions(prev =>
@@ -195,7 +259,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     }
   };
 
-  const selectCls = 'bg-muted border border-border rounded text-foreground text-sm px-2 py-1 focus:outline-none focus:ring-1 focus:ring-ring w-full';
+  const selectCls = 'bg-muted border border-border rounded text-foreground text-xs px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-ring w-full';
 
   const columns: DataTableColumn<Transaction>[] = [
     { key: 'date', label: 'Date', className: 'w-32' },
@@ -209,12 +273,11 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const renderRow = (tx: Transaction) => {
     const isEditing = editingId === tx.id;
     
-    // Ensure the current category is in the options list
-    const categoryOptions = [...new Set([...CORE_CATEGORIES, tx.category])].sort();
+    const categoryOptions = [...new Set([...CORE_CATEGORIES, ...customCategories, tx.category])].sort();
 
     return (
       <tr key={tx.id} className={cn("hover:bg-accent transition-colors", isEditing && "bg-accent/40")}>
-        <td className="px-5 py-3 whitespace-nowrap">
+        <td className="px-4 py-2 whitespace-nowrap">
           {isEditing ? (
             <input
               type="date"
@@ -229,7 +292,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
             </span>
           )}
         </td>
-        <td className="px-5 py-3">
+        <td className="px-4 py-2">
           {isEditing ? (
             <input
               type="text"
@@ -243,39 +306,37 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
             </span>
           )}
         </td>
-        <td className="px-5 py-3 whitespace-nowrap">
+        <td className="px-4 py-2 whitespace-nowrap">
           {isEditing ? (
-            <div>
-              <select
+            <div className="space-y-1">
+              <CategoryCombobox
                 value={tx.category}
-                onChange={(e) => handleCategoryChange(tx.id, e.target.value)}
-                className={selectCls}
-              >
-                {categoryOptions.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <div className="flex items-center gap-2 mt-1">
+                options={categoryOptions}
+                onChange={(cat) => {
+                  if (!CORE_CATEGORIES.includes(cat) && !customCategories.includes(cat)) {
+                    setCustomCategories(prev => [...prev, cat]);
+                  }
+                  handleCategoryChange(tx.id, cat);
+                }}
+              />
+              <div className="flex items-center gap-1.5">
                 <Checkbox
                   id={`apply-similar-${tx.id}`}
                   checked={applyToSimilarMap[tx.id] ?? false}
                   onCheckedChange={(checked) => {
                     setApplyToSimilarMap(prev => ({ ...prev, [tx.id]: !!checked }));
-                    if (checked) {
-                      const kw = extractKeyword(tx.description);
-                      setPendingKeywords(prev => ({ ...prev, [tx.id]: kw }));
-                    }
+                    if (checked) setPendingKeywords(prev => ({ ...prev, [tx.id]: extractKeyword(tx.description) }));
                   }}
                 />
-                <label htmlFor={`apply-similar-${tx.id}`} className="text-xs text-muted-foreground">
+                <label htmlFor={`apply-similar-${tx.id}`} className="text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">
                   Apply to similar
                 </label>
                 {applyToSimilarMap[tx.id] && (
                   <input
-                    className="text-xs border rounded px-1 py-0.5 font-mono"
+                    className="text-[10px] border border-border rounded px-1.5 py-0.5 font-mono bg-muted text-foreground flex-1 min-w-0"
                     value={pendingKeywords[tx.id] ?? ''}
                     onChange={e => setPendingKeywords(prev => ({ ...prev, [tx.id]: e.target.value }))}
-                    placeholder="keyword..."
+                    placeholder="keyword…"
                   />
                 )}
               </div>
@@ -286,7 +347,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
             </span>
           )}
         </td>
-        <td className="px-5 py-3 whitespace-nowrap">
+        <td className="px-4 py-2 whitespace-nowrap">
           {isEditing ? (
             <div className="flex items-center gap-1 justify-end">
               <span className="text-[10px] text-muted-foreground">{tx.flow === 'CR' ? '+' : '-'}</span>
@@ -313,7 +374,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
             </div>
           )}
         </td>
-        <td className="px-5 py-3 whitespace-nowrap">
+        <td className="px-4 py-2 whitespace-nowrap">
           {isEditing ? (
             <input
               type="text"
@@ -327,7 +388,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
             </span>
           )}
         </td>
-        <td className="px-5 py-3 whitespace-nowrap">
+        <td className="px-4 py-2 whitespace-nowrap">
           {!tx.isDuplicate && (
             isEditing ? (
               <div className="flex gap-1">
@@ -355,73 +416,53 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 flex flex-col h-[calc(100vh-140px)]">
+    <div className="max-w-6xl mx-auto p-4 flex flex-col h-[calc(100vh-140px)]">
       {/* Header */}
-      <div className="mb-6 shrink-0">
-        <p className="text-sm text-muted-foreground">
-          Review the parsed transactions below. <strong>{newTransactions.length}</strong> new transactions will be imported.
-          Duplicate transactions are shown for verification.
+      <div className="mb-3 shrink-0">
+        <p className="text-xs text-muted-foreground">
+          <strong className="text-foreground">{newTransactions.length}</strong> new transactions ready to import.
+          {duplicateTransactions.length > 0 && <span className="ml-1 text-muted-foreground/60">{duplicateTransactions.length} duplicates skipped.</span>}
         </p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 shrink-0">
-        {/* Card 1: Total Transactions */}
-        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">New Transactions</p>
-              <p className="text-2xl font-bold text-foreground tracking-tight">{summary.totalTransactions}</p>
-            </div>
-            <div className="p-2 rounded-lg bg-muted/50 border border-border/50">
-              <Hash className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-            </div>
+      <div className="grid grid-cols-4 gap-3 mb-4 shrink-0">
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+          <div>
+            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Transactions</p>
+            <p className="text-lg font-bold text-foreground tabular-nums">{summary.totalTransactions}</p>
           </div>
+          <Hash className="w-3.5 h-3.5 text-muted-foreground/50" strokeWidth={2} />
         </div>
 
-        {/* Card 2: New Income */}
-        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0 pr-2">
-              <p className="text-[10px] font-semibold text-income uppercase tracking-widest mb-1.5">New Income</p>
-              <AutoScalingText className="text-income tracking-tight">
-                +{formatCurrency(summary.income)}
-              </AutoScalingText>
-            </div>
-            <div className="p-2 rounded-lg bg-income/10 border border-income/20">
-              <TrendingUp className="w-4 h-4 text-income" strokeWidth={2} />
-            </div>
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+          <div className="flex-1 min-w-0 pr-2">
+            <p className="text-[9px] font-semibold text-income uppercase tracking-widest mb-0.5">Income</p>
+            <AutoScalingText className="text-income">
+              +{formatCurrency(summary.income)}
+            </AutoScalingText>
           </div>
+          <TrendingUp className="w-3.5 h-3.5 text-income/50 shrink-0" strokeWidth={2} />
         </div>
 
-        {/* Card 3: New Expenses */}
-        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0 pr-2">
-              <p className="text-[10px] font-semibold text-expense uppercase tracking-widest mb-1.5">New Expenses</p>
-              <AutoScalingText className="text-expense tracking-tight">
-                -{formatCurrency(Math.abs(summary.expenses))}
-              </AutoScalingText>
-            </div>
-            <div className="p-2 rounded-lg bg-expense/10 border border-expense/20">
-              <TrendingDown className="w-4 h-4 text-expense" strokeWidth={2} />
-            </div>
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+          <div className="flex-1 min-w-0 pr-2">
+            <p className="text-[9px] font-semibold text-expense uppercase tracking-widest mb-0.5">Expenses</p>
+            <AutoScalingText className="text-expense">
+              -{formatCurrency(Math.abs(summary.expenses))}
+            </AutoScalingText>
           </div>
+          <TrendingDown className="w-3.5 h-3.5 text-expense/50 shrink-0" strokeWidth={2} />
         </div>
 
-        {/* Card 4: Net Balance */}
-        <div className="relative overflow-hidden bg-card/40 border border-border/50 rounded-xl p-4 transition-all hover:bg-card/60 hover:border-border">
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0 pr-2">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-1.5">Net Balance (New)</p>
-              <AutoScalingText className={cn("tracking-tight", summary.balance >= 0 ? 'text-income' : 'text-expense')}>
-                {summary.balance >= 0 ? '+' : ''}{formatCurrency(summary.balance)}
-              </AutoScalingText>
-            </div>
-            <div className="p-2 rounded-lg bg-muted/50 border border-border/50">
-              <Wallet className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-            </div>
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+          <div className="flex-1 min-w-0 pr-2">
+            <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Net Balance</p>
+            <AutoScalingText className={cn(summary.balance >= 0 ? 'text-income' : 'text-expense')}>
+              {summary.balance >= 0 ? '+' : ''}{formatCurrency(summary.balance)}
+            </AutoScalingText>
           </div>
+          <Wallet className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" strokeWidth={2} />
         </div>
       </div>
 
