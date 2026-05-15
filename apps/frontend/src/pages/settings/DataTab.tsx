@@ -61,7 +61,7 @@ const DataTab = () => {
     <div className="p-8 bg-transparent min-h-full">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-white tracking-tight">Data Management</h2>
+          <h2 className="text-2xl font-bold text-foreground tracking-tight">Data Management</h2>
           <p className="text-sm text-muted-foreground mt-1">
             Manage your stored data. Destructive actions cannot be undone.
           </p>

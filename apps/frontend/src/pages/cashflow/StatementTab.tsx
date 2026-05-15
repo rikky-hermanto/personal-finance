@@ -41,7 +41,7 @@ const StatementTab = () => {
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Cash Flow Statement</h2>
+            <h2 className="text-2xl font-bold text-foreground tracking-tight">Cash Flow Statement</h2>
             <p className="text-sm text-muted-foreground mt-1">
               Broken down by operating, investing, and financing activities.
             </p>
@@ -56,8 +56,8 @@ const StatementTab = () => {
                 className={cn(
                   "h-8 px-3 text-xs font-medium transition-all gap-1.5 rounded-md",
                   groupBy === 'quarterly' 
-                    ? "bg-secondary text-white shadow-none" 
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                    ? "bg-secondary text-foreground shadow-none"
+                    : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                 )}
                 onClick={() => setGroupBy('quarterly')}
               >
@@ -70,8 +70,8 @@ const StatementTab = () => {
                 className={cn(
                   "h-8 px-3 text-xs font-medium transition-all gap-1.5 rounded-md",
                   groupBy === 'monthly' 
-                    ? "bg-secondary text-white shadow-none" 
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                    ? "bg-secondary text-foreground shadow-none"
+                    : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                 )}
                 onClick={() => setGroupBy('monthly')}
               >

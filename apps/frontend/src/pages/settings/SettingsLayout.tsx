@@ -3,6 +3,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 const TABS = [
+  { value: 'appearance', label: 'Appearance', path: '/settings/appearance', disabled: false },
   { value: 'categories', label: 'Categories', path: '/settings/categories', disabled: false },
   { value: 'regional', label: 'Regional', path: '/settings/regional', disabled: false },
   { value: 'data', label: 'Data', path: '/settings/data', disabled: false },
@@ -16,14 +17,14 @@ const SettingsLayout = () => {
   const navigate = useNavigate();
 
   const activeTab =
-    TABS.find((t) => location.pathname.startsWith(t.path))?.value ?? 'categories';
+    TABS.find((t) => location.pathname.startsWith(t.path))?.value ?? 'appearance';
 
   return (
     <div className="flex flex-col h-full bg-transparent">
       {/* Tab bar */}
       <div className="flex items-center px-6 pt-6 pb-5 border-b border-border gap-6">
         <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">Settings</h1>
         </div>
         <Tabs value={activeTab} onValueChange={(v) => {
           const tab = TABS.find((t) => t.value === v);
@@ -37,8 +38,8 @@ const SettingsLayout = () => {
                 disabled={tab.disabled}
                 className={cn(
                   'rounded-md px-4 py-1.5 text-xs font-medium transition-all duration-150',
-                  'data-[state=active]:bg-secondary data-[state=active]:text-white data-[state=active]:shadow-none',
-                  'data-[state=inactive]:text-muted-foreground hover:text-white hover:bg-white/5',
+                  'data-[state=active]:bg-secondary data-[state=active]:text-foreground data-[state=active]:shadow-none',
+                  'data-[state=inactive]:text-muted-foreground hover:text-foreground hover:bg-foreground/5',
                   tab.disabled && 'opacity-30 cursor-not-allowed hover:bg-transparent'
                 )}
               >
