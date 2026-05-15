@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { CategoryRule } from '@/types/Transaction';
-import { Plus, Edit2, Trash2, Save, X, Upload, Download, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Upload, Download, AlignJustify, Layers } from 'lucide-react';
+import CategoryGroupView from '@/components/CategoryGroupView';
 import {
   getCategoryRules,
   addCategoryRule,
@@ -38,6 +39,7 @@ const CategoryManager = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newRule, setNewRule] = useState<Omit<CategoryRule, 'id'>>({ keyword: '', category: '', type: 'expense' });
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'keyword' | 'category'>('keyword');
   const { toast } = useToast();
   const [resetOpen, setResetOpen] = useState(false);
   const [resetPhrase, setResetPhrase] = useState('');
@@ -119,15 +121,18 @@ const CategoryManager = () => {
     setCategoryRules((rules) => rules.filter((r) => r.id !== id));
   };
 
-  const handleAddRule = async () => {
-    if (!newRule.keyword || !newRule.category) return;
-    const created = await addCategoryRule({ keyword: newRule.keyword, category: newRule.category, type: newRule.type });
+  const handleAddRule = async (rule?: Omit<CategoryRule, 'id'>) => {
+    const target = rule ?? newRule;
+    if (!target.keyword || !target.category) return;
+    const created = await addCategoryRule({ keyword: target.keyword, category: target.category, type: target.type });
     setCategoryRules((rules) => [
       ...rules,
       { id: created.id, keyword: created.keyword ?? '', category: created.category ?? '', type: (created.type?.toLowerCase() ?? 'expense') as 'income' | 'expense', keywordLength: created.keywordLength },
     ]);
-    setNewRule({ keyword: '', category: '', type: 'expense' });
-    setIsAddingNew(false);
+    if (!rule) {
+      setNewRule({ keyword: '', category: '', type: 'expense' });
+      setIsAddingNew(false);
+    }
   };
 
   if (loading) {
@@ -138,10 +143,40 @@ const CategoryManager = () => {
     <div className="space-y-4">
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           <p className="text-xs text-muted-foreground mt-0.5">
             {categoryRules.length} rules — longest-keyword match applies first
           </p>
+          {/* View mode toggle */}
+          <div className="flex items-center rounded-md border border-border overflow-hidden">
+            <button
+              onClick={() => setViewMode('keyword')}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 text-xs transition-colors',
+                viewMode === 'keyword'
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+              )}
+              title="By keyword"
+            >
+              <AlignJustify className="w-3 h-3" strokeWidth={1.5} />
+              Keywords
+            </button>
+            <div className="w-px h-full bg-border" />
+            <button
+              onClick={() => setViewMode('category')}
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 text-xs transition-colors',
+                viewMode === 'category'
+                  ? 'bg-accent text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+              )}
+              title="By category"
+            >
+              <Layers className="w-3 h-3" strokeWidth={1.5} />
+              Categories
+            </button>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <input
@@ -167,18 +202,30 @@ const CategoryManager = () => {
             <Download className="w-3.5 h-3.5" strokeWidth={1.5} />
             Export
           </button>
-          <button
-            onClick={() => setIsAddingNew(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
-          >
-            <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
-            Add Rule
-          </button>
+          {viewMode === 'keyword' && (
+            <button
+              onClick={() => setIsAddingNew(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground border border-border rounded-md hover:bg-accent transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" strokeWidth={1.5} />
+              Add Rule
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Table card */}
-      <div className="bg-card rounded-lg border border-border overflow-hidden">
+      {/* Category-focused view */}
+      {viewMode === 'category' && (
+        <CategoryGroupView
+          rules={categoryRules}
+          onSaveRule={handleSaveRule}
+          onDeleteRule={handleDeleteRule}
+          onAddRule={handleAddRule}
+        />
+      )}
+
+      {/* Keyword-focused table */}
+      {viewMode === 'keyword' && <div className="bg-card rounded-lg border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -324,7 +371,7 @@ const CategoryManager = () => {
             </tbody>
           </table>
         </div>
-      </div>
+      </div>}
 
       <div className="pt-6">
         <div className="rounded-lg border border-destructive/50 bg-destructive/5">
