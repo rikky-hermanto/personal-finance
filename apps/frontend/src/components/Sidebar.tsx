@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Settings, Menu, X, Plus, PiggyBank, Sun, Moon } from 'lucide-react';
+import { BarChart3, Settings, Menu, X, Plus, PiggyBank, Sun, Moon, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
 import { useTheme } from 'next-themes';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard', matchPrefix: '/dashboard' },
+  { id: 'assets', label: 'Assets', icon: Landmark, path: '/assets', matchPrefix: '/assets' },
   { id: 'cashflow', label: 'Cashflow', icon: PiggyBank, path: '/cashflow', matchPrefix: '/cashflow' },
 ];
 

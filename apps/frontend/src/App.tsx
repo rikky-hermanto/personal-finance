@@ -17,8 +17,15 @@ import AppearanceTab from "@/pages/settings/AppearanceTab";
 import CategoriesTab from "@/pages/settings/CategoriesTab";
 import DataTab from "@/pages/settings/DataTab";
 import RegionalTab from "@/pages/settings/RegionalTab";
+import BanksTab from "@/pages/settings/BanksTab";
 import NotFound from "@/pages/NotFound";
 import StatusPage from "@/pages/StatusPage";
+import AssetsLayout from '@/pages/assets/AssetsLayout';
+import AssetsOverviewTab from '@/pages/assets/OverviewTab';
+import AssetsAccountsTab from '@/pages/assets/AccountsTab';
+import InvestmentsTab from '@/pages/assets/InvestmentsTab';
+import PropertiesTab from '@/pages/assets/PropertiesTab';
+import LiabilitiesTab from '@/pages/assets/LiabilitiesTab';
 
 const queryClient = new QueryClient();
 
@@ -50,6 +57,15 @@ const App = () => (
               <Route path="categories" element={<CategoriesTab />} />
               <Route path="regional" element={<RegionalTab />} />
               <Route path="data" element={<DataTab />} />
+              <Route path="banks" element={<BanksTab />} />
+            </Route>
+            <Route path="/assets" element={<AssetsLayout />}>
+              <Route index element={<Navigate to="/assets/overview" replace />} />
+              <Route path="overview" element={<AssetsOverviewTab />} />
+              <Route path="accounts" element={<AssetsAccountsTab />} />
+              <Route path="investments" element={<InvestmentsTab />} />
+              <Route path="properties" element={<PropertiesTab />} />
+              <Route path="liabilities" element={<LiabilitiesTab />} />
             </Route>
           </Route>
           <Route path="/status" element={<StatusPage />} />
