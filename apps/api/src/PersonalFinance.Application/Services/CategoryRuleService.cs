@@ -248,8 +248,7 @@ public class CategoryRuleService : ICategoryRuleService
             if (string.IsNullOrWhiteSpace(dto.Category)) continue;
 
             var alreadyExists = existingRules.Any(r =>
-                r.Category == dto.Category &&
-                r.Type == dto.Type);
+                string.Equals(r.Keyword, dto.CategoryRuleDto?.Keyword, StringComparison.OrdinalIgnoreCase));
 
             if (!alreadyExists && dto.CategoryRuleDto is not null)
             {
