@@ -12,6 +12,7 @@ import TransactionsTab from "@/pages/cashflow/TransactionsTab";
 import UploadTab from "@/pages/cashflow/UploadTab";
 import StatementTab from "@/pages/cashflow/StatementTab";
 import AccountsTab from "@/pages/cashflow/AccountsTab";
+import AnalysisTab from "@/pages/cashflow/AnalysisTab";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
 import AppearanceTab from "@/pages/settings/AppearanceTab";
 import CategoriesTab from "@/pages/settings/CategoriesTab";
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="upload" element={<UploadTab />} />
               <Route path="accounts" element={<AccountsTab />} />
               <Route path="statement" element={<StatementTab />} />
+              <Route path="analysis" element={<AnalysisTab />} />
             </Route>
             <Route path="/settings" element={<SettingsLayout />}>
               <Route index element={<Navigate to="/settings/appearance" replace />} />
