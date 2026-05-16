@@ -2,7 +2,7 @@
 
 A self-hosted personal finance platform, built specifically for Indonesian users. The goal is a single place for the full financial picture — cashflow, net worth, investments, tax, goals, budgeting, debt, and more. AI-powered ingestion handles the messy part: getting data out of bank CSVs, PDFs, and screenshots automatically.
 
-**Cashflow management is live.** Everything else is being built out one piece at a time.
+**Cashflow tracking, assets management, investment portfolio, and spending analysis are all live.** Everything else is being built out one piece at a time.
 
 ## 🤔 The problem this solves
 
@@ -21,8 +21,39 @@ Upload bank statements from BCA, Superbank, NeoBank, Wise, or Bank Jago — CSV,
 - Hybrid parser: CSV files parsed directly (fast, zero AI cost); PDFs and screenshots go through Gemini / Claude for structured extraction
 - 106-rule auto-categorization engine, longest-match priority, fully configurable from Settings
 - 4-step upload wizard — drag/drop, file picker, or clipboard paste; PDF password support; inline editing before save
-- Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly), Upload
+- Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly), Wallet Statement, Upload
 - Three-tier deduplication so nothing gets imported twice
+
+### 🏦 Assets management & balance sheet
+
+Track everything you own and owe in one place.
+
+- Asset registry: property, vehicles, savings accounts, cash, valuables, and other assets with current valuations
+- Liability tracking: loans, mortgages, BNPL, and other debts
+- Live net worth calculation — total assets minus total liabilities, updated as you add or edit entries
+- Balance sheet view with categorized breakdown
+
+### 📈 Investment portfolio
+
+Track your full investment picture across Indonesian market instruments.
+
+- Stocks (IDX), mutual funds, government bonds (SBN/ORI), crypto, P2P lending
+- Portfolio overview with allocation breakdown and total valuation
+- Return tracking per instrument
+
+### 📊 Spending analysis
+
+Understand where your money actually goes.
+
+- Safe-to-Spend indicator — compares income vs committed expenses to show discretionary headroom
+- Variance explainer — highlights categories that deviated from the prior period and explains why
+- Monthly spending breakdown with category drilldown
+
+### 🖥️ Platform
+
+- Dark/light theme with zen-mode UX — focus mode toggle, clean minimal interface (PF-106)
+- System health dashboard at `/status` — polls all services every 30 seconds
+- LGTM observability stack — OpenTelemetry traces, metrics, and logs across .NET API and Python AI service, surfaced in Grafana
 
 ![alt text](image-4.png)
 ![alt text](image-3.png)
@@ -48,15 +79,6 @@ Register every debt (mortgage, personal loan, BNPL, credit card, private loan). 
 **📉 Reports & analytics**
 Deeper monthly and annual cash flow statements. Net worth over time — total assets minus total liabilities. Spending trends by category. Needs vs wants breakdown. Period-over-period comparison.
 
-**🏦 Balance sheet & net worth**
-Asset registry (property, vehicles, savings, cash, valuables) and liabilities. Net worth timeline. Depreciation schedule for physical assets. Export in standard accounting format.
-
-**📈 Investment portfolio**
-Track stocks (IDX), mutual funds (NAV or APERD sync), government bonds (SBN/ORI), crypto, and P2P lending. Absolute return, CAGR, XIRR for irregular cash flows. Dividend and coupon tracking. Asset allocation breakdown. Benchmark against IDX Composite. Target integrations: Bibit, Stockbit, KSEI.
-
-**🛡️ Insurance & protection**
-Policy registry (life, health — BPJS and private, vehicle, property, critical illness). Premium schedule, renewal reminders, coverage gap analysis, document storage.
-
 **🖥️ Unified home dashboard**
 One screen: net worth snapshot, cashflow health, portfolio performance, goal progress, upcoming due dates, and alerts — all from live data across every feature.
 
@@ -68,17 +90,16 @@ Pull income data from Cashflow (salary, freelance, dividends, interest, rental).
 | Feature | Status |
 |---|---|
 | Cashflow tracking | ✅ Live |
+| Assets management & balance sheet | ✅ Live |
+| Investment portfolio | ✅ Live |
+| Spending analysis | ✅ Live |
 | Budgeting | 🔜 Planned |
 | Bills & subscriptions | 🔜 Planned |
 | Savings & goals | 🔜 Planned |
 | Debt management | 🔜 Planned |
 | Reports & analytics | 🔜 Planned |
-| Balance sheet & net worth | 🔜 Planned |
-| Investment portfolio | 🔜 Planned |
-| Insurance & protection | 🔜 Planned |
 | Unified dashboard | 🔜 Planned |
 | Personal tax | 🔜 Planned |
- 
 
 ## 🚀 Getting started
 
@@ -119,7 +140,7 @@ Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview,
             │ direct                       │ via .NET API
             ▼                              ▼
 ┌───────────────────────┐   ┌──────────────────────────────────────┐
-│   Supabase Platform   │   │        .NET 9 Web API (C#)           │
+│   Supabase Platform   │   │        .NET 10 Web API (C#)          │
 │                       │   │  Controllers → MediatR (CQRS)        │
 │  Auth (GoTrue/JWT)    │   │  FluentValidation                    │
 │  Storage (buckets)  ◄─┼───┤  Infrastructure:                     │
@@ -127,7 +148,7 @@ Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview,
 │  Database Webhooks ───┼─┐ │   - StorageService (Supabase Storage)│
 │                       │ │ │   - CSV Parsers (BCA, Wise, Default) │
 │  ┌─────────────────┐  │ │ │   - Validation Pipeline              │
-│  │ PostgreSQL 16   │  │ │ └──────────────────────────────────────┘
+│  │ PostgreSQL 17   │  │ │ └──────────────────────────────────────┘
 │  │ + pgvector      │  │ │
 │  │ transactions    │  │ │       Webhook POST on INSERT
 │  │ category_rules  │  │ │         to statement_uploads
