@@ -1,6 +1,7 @@
 using PersonalFinance.Api.Extensions;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Infrastructure.External;
+using PersonalFinance.Application.Investments;
 using PersonalFinance.Infrastructure.Parsers;
 using PersonalFinance.Infrastructure.Services;
 using PersonalFinance.Infrastructure.Supabase;
@@ -80,6 +81,11 @@ namespace PersonalFinance.Api
             builder.Services.AddHttpClient<ILlmSuggestionClient, LlmSuggestionClient>(client =>
             {
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+            });
+            builder.Services.AddHttpClient<IPortfolioReviewClient, PortfolioReviewClient>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+                client.Timeout = TimeSpan.FromMinutes(2);
             });
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<BcaCsvParser>();
