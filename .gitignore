@@ -60,9 +60,11 @@ project_items_utf8.json
 supabase/.temp/
 supabase/.branches/
 supabase/local-setup.md
+supabase/migrations/20260516000001_assets_seed.sql
 # Python build artifacts
 *.egg-info/
 build/
 dist/
 
 docs/statement-examples/Cashflow 2024 2025.csv
+supabase/seed/assets_seed.sql
