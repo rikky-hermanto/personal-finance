@@ -1,10 +1,12 @@
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
-import { addAccount } from '@/api/accountsApi';
+import { addAccount, updateAccount } from '@/api/accountsApi';
+import { Account } from '@/types/Account';
 import { Institution } from '@/types/Institution';
 
 type Props = {
   institutions: Institution[];
+  initial?: Account;
   onSuccess: () => void;
   onClose: () => void;
 };
@@ -18,21 +20,32 @@ type FormValues = {
   openingDate: string;
 };
 
-export function AddAccountDialog({ institutions, onSuccess, onClose }: Props) {
+export function AddAccountDialog({ institutions, initial, onSuccess, onClose }: Props) {
+  const isEdit = !!initial;
   const today = new Date().toISOString().slice(0, 10);
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { currency: 'IDR', openingBalance: 0, openingDate: today },
+    defaultValues: {
+      institutionId: initial?.institutionId ?? '',
+      name: initial?.name ?? '',
+      accountType: initial?.accountType ?? '',
+      currency: initial?.currency ?? 'IDR',
+      openingBalance: initial?.openingBalance ?? 0,
+      openingDate: initial?.openingDate?.slice(0, 10) ?? today,
+    },
   });
 
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => addAccount(values),
+    mutationFn: (values: FormValues) =>
+      isEdit
+        ? updateAccount(initial!.id, values)
+        : addAccount(values),
     onSuccess: () => { onSuccess(); onClose(); },
   });
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-card border border-border rounded-xl p-6 shadow-lg max-w-md w-full">
-        <h2 className="text-base font-semibold mb-4">Add Account</h2>
+        <h2 className="text-base font-semibold mb-4">{isEdit ? 'Edit Account' : 'Add Account'}</h2>
         <form onSubmit={handleSubmit(v => mutation.mutate(v))} className="space-y-4">
           <div>
             <label className="block text-xs font-medium mb-1">Institution</label>
@@ -65,12 +78,11 @@ export function AddAccountDialog({ institutions, onSuccess, onClose }: Props) {
             >
               <option value="">Select type…</option>
               <option value="savings">Savings</option>
-              <option value="checking">Checking</option>
-              <option value="giro">Giro</option>
-              <option value="e-money">E-Money</option>
-              <option value="investment">Investment</option>
-              <option value="crypto">Crypto</option>
-              <option value="other">Other</option>
+              <option value="checking">Checking / Giro</option>
+              <option value="credit_card">Credit Card</option>
+              <option value="brokerage">Brokerage</option>
+              <option value="wallet">E-Wallet / Crypto</option>
+              <option value="loan">Loan</option>
             </select>
             {errors.accountType && <p className="text-xs text-destructive mt-1">{errors.accountType.message}</p>}
           </div>
@@ -124,7 +136,7 @@ export function AddAccountDialog({ institutions, onSuccess, onClose }: Props) {
               disabled={mutation.isPending}
               className="px-4 py-2 text-xs rounded-md bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors"
             >
-              {mutation.isPending ? 'Saving…' : 'Save'}
+              {mutation.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Save'}
             </button>
           </div>
         </form>
