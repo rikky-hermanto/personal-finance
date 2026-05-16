@@ -74,3 +74,43 @@ class MerchantSuggestion(BaseModel):
 
 class SuggestCategoriesResponse(BaseModel):
     suggestions: list[MerchantSuggestion]
+
+
+# ── Portfolio Review ──────────────────────────────────────────────────────────
+
+class PortfolioHolding(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    ticker: str | None = None
+    name: str
+    asset_class: Literal["equity", "bond", "crypto", "forex", "commodity", "property", "cash", "other"]
+    sector: str | None = None
+    allocation_pct: Decimal | None = None
+    quantity: Decimal | None = None
+    avg_buy_price: Decimal | None = None
+
+
+class PortfolioReviewRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    setup_name: str
+    archetype: dict   # full archetype context block sent to AI
+    snapshot_label: str
+    total_value: Decimal | None = None
+    currency: str = "IDR"
+    holdings: list[PortfolioHolding]
+    provider: str | None = None   # override AI_PROVIDER per-call
+    model: str | None = None
+
+
+# 7-section analysis response — each section is a flexible dict so the schema
+# can evolve without breaking the .NET DTO (raw JsonObject on the .NET side).
+
+class PortfolioReviewResponse(BaseModel):
+    diagnostics: dict
+    holdings_evaluation: dict
+    macro_map: dict
+    scenarios: dict
+    resilience_test: dict
+    decision_tree: dict
+    recommended_portfolio: dict
