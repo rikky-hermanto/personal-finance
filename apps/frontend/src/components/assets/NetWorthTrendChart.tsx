@@ -1,7 +1,7 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Area, AreaChart } from 'recharts';
 import { formatCurrency } from '@/lib/format';
 
-export function NetWorthTrendChart({ data }: { data: { date: string; totalIdr: number }[] }) {
+export function NetWorthTrendChart({ data }: { data: { date: string; valueIdr: number }[] }) {
   const formatYAxis = (tickItem: number) => {
     return `${(tickItem / 1000000000).toFixed(1)}B`;
   };
@@ -55,7 +55,7 @@ export function NetWorthTrendChart({ data }: { data: { date: string; totalIdr: n
             />
             <Area 
               type="monotone" 
-              dataKey="totalIdr" 
+              dataKey="valueIdr"
               stroke="hsl(var(--chart-1))" 
               fillOpacity={1} 
               fill="url(#colorNetWorth)" 

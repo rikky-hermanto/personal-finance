@@ -4,13 +4,13 @@ import { Institution } from '@/types/Institution';
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:7209';
 
 export async function getInstitutions(): Promise<Institution[]> {
-  const res = await fetch(`${BASE}/api/institutions`);
+  const res = await fetch(`${BASE}/api/accounts/institutions`);
   if (!res.ok) throw new Error('Failed to fetch institutions');
   return res.json();
 }
 
 export async function addInstitution(data: Partial<Institution>): Promise<Institution> {
-  const res = await fetch(`${BASE}/api/institutions`, {
+  const res = await fetch(`${BASE}/api/accounts/institutions`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

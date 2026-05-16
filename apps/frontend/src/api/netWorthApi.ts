@@ -1,6 +1,6 @@
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:7209';
 
-export async function getNetWorthCurrent(): Promise<{ totalIdr: number }> {
+export async function getNetWorthCurrent(): Promise<{ netWorthIdr: number }> {
   const res = await fetch(`${BASE}/api/networth/current`);
   if (!res.ok) throw new Error('Failed to fetch net worth');
   return res.json();
@@ -8,7 +8,7 @@ export async function getNetWorthCurrent(): Promise<{ totalIdr: number }> {
 
 export async function getNetWorthHistory(from?: string, to?: string): Promise<Array<{
   date: string;
-  totalIdr: number;
+  valueIdr: number;
 }>> {
   const params = new URLSearchParams();
   if (from) params.set('from', from);

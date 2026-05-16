@@ -47,7 +47,9 @@
       "Bash(powershell -Command \"Remove-Item -Recurse -Force 'c:\\\\workspaces\\\\personal-finance\\\\apps\\\\api\\\\src\\\\PersonalFinance.Persistence'\")",
       "Bash(powershell -Command \"Stop-Process -Id 37420 -Force -ErrorAction SilentlyContinue; Write-Host 'done'\")",
       "Bash(.venv/Scripts/pip install *)",
-      "Bash(GEMINI_API_KEY=test-key .venv/Scripts/python -m pytest tests/ -v)"
+      "Bash(GEMINI_API_KEY=test-key .venv/Scripts/python -m pytest tests/ -v)",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_navigate"
     ],
     "deny": [
       "Bash(rm -rf *)",
