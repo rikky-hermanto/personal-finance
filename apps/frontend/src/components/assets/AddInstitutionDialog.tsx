@@ -1,8 +1,13 @@
 import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
-import { addInstitution } from '@/api/accountsApi';
+import { addInstitution, updateInstitution } from '@/api/accountsApi';
+import { Institution } from '@/types/Institution';
 
-type Props = { onSuccess: () => void; onClose: () => void };
+type Props = {
+  initial?: Institution;
+  onSuccess: () => void;
+  onClose: () => void;
+};
 
 type FormValues = {
   name: string;
@@ -10,20 +15,28 @@ type FormValues = {
   country: string;
 };
 
-export function AddInstitutionDialog({ onSuccess, onClose }: Props) {
+export function AddInstitutionDialog({ initial, onSuccess, onClose }: Props) {
+  const isEdit = !!initial;
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { country: 'ID' },
+    defaultValues: {
+      name: initial?.name ?? '',
+      type: initial?.type ?? '',
+      country: initial?.country ?? 'ID',
+    },
   });
 
   const mutation = useMutation({
-    mutationFn: (values: FormValues) => addInstitution(values),
+    mutationFn: (values: FormValues) =>
+      isEdit
+        ? updateInstitution(initial!.id, values)
+        : addInstitution(values),
     onSuccess: () => { onSuccess(); onClose(); },
   });
 
   return (
     <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="bg-card border border-border rounded-xl p-6 shadow-lg max-w-md w-full">
-        <h2 className="text-base font-semibold mb-4">Add Institution</h2>
+        <h2 className="text-base font-semibold mb-4">{isEdit ? 'Edit Institution' : 'Add Institution'}</h2>
         <form onSubmit={handleSubmit(v => mutation.mutate(v))} className="space-y-4">
           <div>
             <label className="block text-xs font-medium mb-1">Name</label>
@@ -42,11 +55,11 @@ export function AddInstitutionDialog({ onSuccess, onClose }: Props) {
               className="w-full bg-background border border-input rounded-md px-3 py-2 text-xs"
             >
               <option value="">Select type…</option>
-              <option value="Bank">Bank</option>
-              <option value="E-Money">E-Money</option>
-              <option value="Brokerage">Brokerage</option>
-              <option value="Exchange">Exchange</option>
-              <option value="Other">Other</option>
+              <option value="bank">Bank</option>
+              <option value="broker">Broker / Brokerage</option>
+              <option value="crypto_exchange">Crypto Exchange</option>
+              <option value="insurer">Insurer</option>
+              <option value="other">Other</option>
             </select>
             {errors.type && <p className="text-xs text-destructive mt-1">{errors.type.message}</p>}
           </div>
@@ -78,7 +91,7 @@ export function AddInstitutionDialog({ onSuccess, onClose }: Props) {
               disabled={mutation.isPending}
               className="px-4 py-2 text-xs rounded-md bg-foreground text-background hover:bg-foreground/90 disabled:opacity-50 transition-colors"
             >
-              {mutation.isPending ? 'Saving…' : 'Save'}
+              {mutation.isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Save'}
             </button>
           </div>
         </form>
