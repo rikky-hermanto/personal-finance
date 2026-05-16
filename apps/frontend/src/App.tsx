@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppShell from "@/components/AppShell";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardPage from "@/pages/DashboardPage";
+import { JourneyPage } from "@/pages/journey/JourneyPage";
+import { AchievementsPage } from "@/pages/journey/AchievementsPage";
 import CashflowLayout from "@/pages/cashflow/CashflowLayout";
 import OverviewTab from "@/pages/cashflow/OverviewTab";
 import TransactionsTab from "@/pages/cashflow/TransactionsTab";
@@ -45,13 +47,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<Navigate to="/journey" replace />} />
           {/* Legacy redirects — keep bookmarks working */}
+          <Route path="/dashboard" element={<Navigate to="/journey" replace />} />
           <Route path="/upload" element={<Navigate to="/cashflow/upload" replace />} />
           <Route path="/transactions" element={<Navigate to="/cashflow/transactions" replace />} />
           <Route path="/categories" element={<Navigate to="/settings/categories" replace />} />
           <Route element={<ErrorBoundary><AppShell /></ErrorBoundary>}>
-            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/journey" element={<JourneyPage />} />
+            <Route path="/journey/achievements" element={<AchievementsPage />} />
             <Route path="/cashflow" element={<CashflowLayout />}>
               <Route index element={<Navigate to="/cashflow/overview" replace />} />
               <Route path="overview" element={<OverviewTab />} />

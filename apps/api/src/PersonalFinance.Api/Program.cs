@@ -1,5 +1,6 @@
 using PersonalFinance.Api.Extensions;
 using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Application.Services;
 using PersonalFinance.Infrastructure.External;
 using PersonalFinance.Application.Investments;
 using PersonalFinance.Infrastructure.Parsers;
@@ -116,6 +117,14 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IFxRateService, JisdorFxRateService>();
             builder.Services.AddScoped<IValuationService, ValuationService>();
             builder.Services.AddScoped<INetWorthService, NetWorthService>();
+
+            // Journey module
+            builder.Services.AddScoped<IJourneyScoringService, JourneyScoringService>();
+            builder.Services.AddHttpClient<IJourneyAdvisorClient, JourneyAdvisorClient>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+                client.Timeout = TimeSpan.FromSeconds(30);
+            });
             builder.Services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssemblyContaining<Program>();

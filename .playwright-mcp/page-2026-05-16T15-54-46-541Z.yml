@@ -1,0 +1,219 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img [ref=e8]
+          - generic [ref=e12]: Finance
+        - button [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+      - button "Journey" [ref=e18] [cursor=pointer]:
+        - img [ref=e19]
+        - generic [ref=e21]: Journey
+      - navigation [ref=e22]:
+        - list [ref=e23]:
+          - listitem [ref=e24]:
+            - button "Assets" [ref=e25] [cursor=pointer]:
+              - img [ref=e26]
+              - generic [ref=e28]: Assets
+          - listitem [ref=e29]:
+            - button "Cashflow" [ref=e30] [cursor=pointer]:
+              - img [ref=e31]
+              - generic [ref=e34]: Cashflow
+          - listitem [ref=e35]:
+            - button "Investments" [ref=e36] [cursor=pointer]:
+              - img [ref=e37]
+              - generic [ref=e40]: Investments
+      - button "Light mode" [ref=e42] [cursor=pointer]:
+        - img [ref=e43]
+        - generic [ref=e49]: Light mode
+      - generic [ref=e51]:
+        - img [ref=e52]
+        - combobox [ref=e55] [cursor=pointer]:
+          - generic: Gemini 3.1 Pro (High)
+          - img [ref=e56]
+      - button "Settings" [ref=e59] [cursor=pointer]:
+        - img [ref=e60]
+        - generic [ref=e63]: Settings
+    - main [ref=e64]:
+      - button "Enter focus mode" [ref=e66] [cursor=pointer]:
+        - img [ref=e67]
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]:
+            - heading "Your Financial Journey" [level=1] [ref=e77]
+            - paragraph [ref=e78]:
+              - text: Level 1 · Score 0.0 / 100 ·
+              - generic [ref=e79]: updated 5/16/2026
+          - generic [ref=e80]:
+            - link "Achievements (0)" [ref=e81] [cursor=pointer]:
+              - /url: /journey/achievements
+              - img
+              - text: Achievements (0)
+            - button "Recalculate" [ref=e82] [cursor=pointer]:
+              - img
+              - text: Recalculate
+        - generic [ref=e83]:
+          - img "Financial journey tree" [ref=e85]
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - generic [ref=e162]:
+                - generic [ref=e163]:
+                  - img [ref=e164]
+                  - generic [ref=e167]: L1 · Cashflow
+                - generic [ref=e168]:
+                  - generic [ref=e169]: 0 / 100
+                  - generic [ref=e170]: In Progress
+              - generic [ref=e171]:
+                - generic [ref=e172]:
+                  - generic [ref=e173]:
+                    - generic [ref=e174]: Spend less than income
+                    - generic [ref=e175]: "0"
+                  - generic:
+                    - generic "50" [ref=e177]
+                    - generic "70" [ref=e178]
+                    - generic "100" [ref=e179]
+                - generic [ref=e180]:
+                  - generic [ref=e181]: Pay bills on time
+                  - generic [ref=e182]: Coming soon
+                - link "Open Cashflow" [ref=e184] [cursor=pointer]:
+                  - /url: /cashflow/overview
+                  - text: Open Cashflow
+                  - img [ref=e185]
+            - generic [ref=e187]:
+              - generic [ref=e189]:
+                - generic [ref=e190]:
+                  - img [ref=e191]
+                  - generic [ref=e193]: L2 · Defense
+                - generic [ref=e194]:
+                  - generic [ref=e195]: 0 / 100
+                  - generic [ref=e196]: Not Started
+              - generic [ref=e197]:
+                - generic [ref=e198]:
+                  - generic [ref=e199]:
+                    - generic [ref=e200]: Liquid savings ratio
+                    - generic [ref=e201]: "0"
+                  - generic:
+                    - generic "50" [ref=e203]
+                    - generic "70" [ref=e204]
+                    - generic "100" [ref=e205]
+                - generic [ref=e206]:
+                  - generic [ref=e207]:
+                    - generic [ref=e208]: Manageable debt (DTI)
+                    - generic [ref=e209]: "0"
+                  - generic:
+                    - generic "50" [ref=e211]
+                    - generic "70" [ref=e212]
+                    - generic "100" [ref=e213]
+            - generic [ref=e214]:
+              - generic [ref=e216]:
+                - generic [ref=e217]:
+                  - img [ref=e218]
+                  - generic [ref=e220]: L3 · Growth
+                - generic [ref=e221]:
+                  - generic [ref=e222]: 0 / 100
+                  - generic [ref=e223]: Not Started
+              - generic [ref=e224]:
+                - generic [ref=e225]:
+                  - generic [ref=e226]:
+                    - generic [ref=e227]: Long-term savings rate
+                    - generic [ref=e228]: "0"
+                  - generic:
+                    - generic "50" [ref=e230]
+                    - generic "70" [ref=e231]
+                    - generic "100" [ref=e232]
+                - generic [ref=e233]:
+                  - generic [ref=e234]: Appropriate insurance
+                  - generic [ref=e235]: Coming soon
+                - generic [ref=e236]:
+                  - generic [ref=e237]: Prime credit score
+                  - generic [ref=e238]: Coming soon
+            - generic [ref=e239]:
+              - generic [ref=e241]:
+                - generic [ref=e242]:
+                  - img [ref=e243]
+                  - generic [ref=e245]: L4 · Freedom
+                - generic [ref=e246]:
+                  - generic [ref=e247]: 0 / 100
+                  - generic [ref=e248]: Not Started
+              - generic [ref=e250]:
+                - generic [ref=e251]: Passive income coverage
+                - generic [ref=e252]: Coming soon
+            - generic [ref=e255]:
+              - generic [ref=e256]:
+                - img [ref=e257]
+                - generic [ref=e259]: L5 · Legacy
+              - generic [ref=e260]:
+                - generic [ref=e261]: 0 / 100
+                - generic [ref=e262]: Not Started
+        - generic [ref=e264]:
+          - heading "Active Quests" [level=2] [ref=e265]
+          - generic [ref=e266]:
+            - generic [ref=e267]:
+              - generic [ref=e269]:
+                - paragraph [ref=e270]: Review your monthly budget
+                - generic [ref=e271]:
+                  - img [ref=e272]
+                  - generic [ref=e274]: Easy
+              - generic [ref=e275]:
+                - paragraph [ref=e276]: Check last month's spending breakdown and identify the top category to reduce.
+                - generic [ref=e277]:
+                  - generic [ref=e278]: +10 pts
+                  - generic [ref=e279]: spend lt income
+                - generic [ref=e280]:
+                  - link "Start" [ref=e281] [cursor=pointer]:
+                    - /url: /cashflow/analysis
+                    - text: Start
+                    - img
+                  - button "Remind me" [ref=e282] [cursor=pointer]
+            - generic [ref=e283]:
+              - generic [ref=e285]:
+                - paragraph [ref=e286]: Update your savings account balance
+                - generic [ref=e287]:
+                  - img [ref=e288]
+                  - generic [ref=e290]: Easy
+              - generic [ref=e291]:
+                - paragraph [ref=e292]: Record your current savings balance to get an accurate emergency fund score.
+                - generic [ref=e293]:
+                  - generic [ref=e294]: +8 pts
+                  - generic [ref=e295]: liquid savings ratio
+                - generic [ref=e296]:
+                  - link "Start" [ref=e297] [cursor=pointer]:
+                    - /url: /assets/accounts
+                    - text: Start
+                    - img
+                  - button "Remind me" [ref=e298] [cursor=pointer]
+            - generic [ref=e299]:
+              - generic [ref=e301]:
+                - paragraph [ref=e302]: Check debt obligations
+                - generic [ref=e303]:
+                  - img [ref=e304]
+                  - generic [ref=e306]: Medium
+              - generic [ref=e307]:
+                - paragraph [ref=e308]: Review your active liabilities and update monthly payment amounts.
+                - generic [ref=e309]:
+                  - generic [ref=e310]: +6 pts
+                  - generic [ref=e311]: manageable dti
+                - generic [ref=e312]:
+                  - link "Start" [ref=e313] [cursor=pointer]:
+                    - /url: /assets/liabilities
+                    - text: Start
+                    - img
+                  - button "Remind me" [ref=e314] [cursor=pointer]
+        - generic [ref=e315]:
+          - heading "Activity Streak" [level=2] [ref=e316]
+          - paragraph [ref=e317]: Transaction activity over the last 12 weeks
+          - generic [ref=e320]:
+            - generic [ref=e321]: Sun
+            - generic [ref=e323]: Tue
+            - generic [ref=e325]: Thu
+            - generic [ref=e327]: Sat
+    - generic [ref=e424]:
+      - generic [ref=e425]:
+        - generic [ref=e426]: Recent
+        - generic [ref=e429]: No recent transactions
+      - generic [ref=e430]:
+        - text: Processing
+        - paragraph [ref=e431]: No active uploads

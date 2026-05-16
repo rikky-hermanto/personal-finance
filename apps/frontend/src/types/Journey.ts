@@ -1,0 +1,41 @@
+export interface JourneyState {
+  currentLevel: number;
+  totalScore: number;
+  levelScores: Record<string, number>;
+  indicators: IndicatorScore[];
+  achievements: Achievement[];
+  lastComputedAt: string;
+}
+
+export interface IndicatorScore {
+  code: string;
+  level: 'L1' | 'L2' | 'L3' | 'L4' | 'L5';
+  score: number;
+  rawValue: number | null;
+  status: 'achieved' | 'in_progress' | 'not_started' | 'no_data';
+  displayName: string;
+  description: string;
+}
+
+export interface Achievement {
+  code: string;
+  name: string;
+  unlockedAt: string;
+}
+
+export interface Quest {
+  title: string;
+  description: string;
+  targetIndicator: string;
+  estimatedScoreGain: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  actionDeeplink: string | null;
+}
+
+export const TIER_META: Record<string, { label: string; color: string; deeplink: string; module: string }> = {
+  L1: { label: 'Cashflow',  color: 'rgb(100 116 139)', deeplink: '/cashflow/overview',  module: 'Cashflow' },
+  L2: { label: 'Defense',   color: 'rgb(217 119 6)',   deeplink: '/assets/accounts',    module: 'Assets' },
+  L3: { label: 'Growth',    color: 'rgb(5 150 105)',   deeplink: '/investment/overview', module: 'Investment' },
+  L4: { label: 'Freedom',   color: 'rgb(2 132 199)',   deeplink: '/investment/holdings', module: 'Investment' },
+  L5: { label: 'Legacy',    color: 'rgb(124 58 237)',  deeplink: '/assets/overview',    module: 'Assets' },
+};

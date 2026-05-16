@@ -1,0 +1,117 @@
+- generic [ref=e2]:
+  - region "Notifications (F8)":
+    - list
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - img [ref=e8]
+          - generic [ref=e12]: Finance
+        - button [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+      - button "Journey" [ref=e18] [cursor=pointer]:
+        - img [ref=e19]
+        - generic [ref=e21]: Journey
+      - navigation [ref=e22]:
+        - list [ref=e23]:
+          - listitem [ref=e24]:
+            - button "Assets" [ref=e25] [cursor=pointer]:
+              - img [ref=e26]
+              - generic [ref=e28]: Assets
+          - listitem [ref=e29]:
+            - button "Cashflow" [ref=e30] [cursor=pointer]:
+              - img [ref=e31]
+              - generic [ref=e34]: Cashflow
+          - listitem [ref=e35]:
+            - button "Investments" [ref=e36] [cursor=pointer]:
+              - img [ref=e37]
+              - generic [ref=e40]: Investments
+      - button "Dark mode" [ref=e42] [cursor=pointer]:
+        - img [ref=e43]
+        - generic [ref=e45]: Dark mode
+      - generic [ref=e47]:
+        - img [ref=e48]
+        - combobox [ref=e51] [cursor=pointer]:
+          - generic: Gemini 3.1 Pro (High)
+          - img [ref=e52]
+      - button "Settings" [ref=e55] [cursor=pointer]:
+        - img [ref=e56]
+        - generic [ref=e59]: Settings
+    - main [ref=e60]:
+      - button "Enter focus mode" [ref=e62] [cursor=pointer]:
+        - img [ref=e63]
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - heading "Settings" [level=1] [ref=e73]
+          - tablist [ref=e75]:
+            - tab "Appearance" [selected] [ref=e76] [cursor=pointer]
+            - tab "Categories" [ref=e77] [cursor=pointer]
+            - tab "Regional" [ref=e78] [cursor=pointer]
+            - tab "Data" [ref=e79] [cursor=pointer]
+            - tab "Banks & Accounts" [ref=e80] [cursor=pointer]
+            - tab "Rules soon" [disabled]:
+              - text: Rules
+              - generic: soon
+            - tab "Profile soon" [disabled]:
+              - text: Profile
+              - generic: soon
+        - generic [ref=e83]:
+          - generic [ref=e84]:
+            - heading "Appearance" [level=2] [ref=e85]
+            - paragraph [ref=e86]: Customize how the app looks and feels.
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - heading "Theme" [level=3] [ref=e89]
+              - paragraph [ref=e90]: Dark keeps the current Toloshi palette. Light switches to the warm zen canvas.
+            - radiogroup [ref=e91]:
+              - generic [ref=e92] [cursor=pointer]:
+                - radio "Dark" [ref=e93]
+                - img [ref=e95]
+                - generic [ref=e97]: Dark
+              - generic [ref=e98] [cursor=pointer]:
+                - radio "Light" [checked] [ref=e99]:
+                  - img [ref=e101]
+                - img [ref=e104]
+                - generic [ref=e110]: Light
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - heading "Journey Visualization" [level=3] [ref=e114]
+              - paragraph [ref=e115]: How your financial progress pyramid is displayed on the Journey page.
+            - radiogroup [ref=e116]:
+              - generic [ref=e117] [cursor=pointer]:
+                - radio "Growing Tree From roots to crown" [checked] [ref=e118]:
+                  - img [ref=e120]
+                - img [ref=e123]
+                - generic [ref=e131]:
+                  - generic [ref=e132]: Growing Tree
+                  - generic [ref=e133]: From roots to crown
+              - generic [ref=e134] [cursor=pointer]:
+                - radio "City Skyline From house to landmark" [ref=e135]
+                - img [ref=e137]
+                - generic [ref=e146]:
+                  - generic [ref=e147]: City Skyline
+                  - generic [ref=e148]: From house to landmark
+              - generic [ref=e149] [cursor=pointer]:
+                - radio "Diamond From rough stone to gem" [ref=e150]
+                - img [ref=e152]
+                - generic [ref=e159]:
+                  - generic [ref=e160]: Diamond
+                  - generic [ref=e161]: From rough stone to gem
+          - generic [ref=e163]:
+            - generic [ref=e164]:
+              - heading "Focus mode" [level=3] [ref=e165]
+              - paragraph [ref=e166]: Recesses the sidebar and activity panel so the active feature takes the full stage. Best combined with the Light theme.
+            - generic [ref=e167]:
+              - generic [ref=e168]:
+                - img [ref=e170]
+                - generic [ref=e175]:
+                  - generic [ref=e176]: Inactive
+                  - generic [ref=e177]: ⌘. to toggle anywhere
+              - switch [ref=e178] [cursor=pointer]
+    - generic [ref=e179]:
+      - generic [ref=e180]:
+        - generic [ref=e181]: Recent
+        - generic [ref=e184]: No recent transactions
+      - generic [ref=e185]:
+        - text: Processing
+        - paragraph [ref=e186]: No active uploads
