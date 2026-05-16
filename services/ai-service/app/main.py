@@ -5,13 +5,14 @@ from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse
 from app.providers.factory import ProviderFactory
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
 from app.services.categorizer import Categorizer
 from app.services.merchant_suggester import MerchantSuggester
 from app.services.portfolio_reviewer import PortfolioReviewer
+from app.services.journey_advisor import advise as journey_advise
 
 from opentelemetry import trace, metrics
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -178,6 +179,17 @@ async def portfolio_review(req: PortfolioReviewRequest) -> PortfolioReviewRespon
         raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": str(e)})
     except Exception as e:
         logger.exception("Unexpected error in portfolio_review")
+        raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": str(e)})
+
+
+@app.post("/journey/advise", response_model=JourneyAdviseResponse)
+async def journey_advise_endpoint(req: JourneyAdviseRequest) -> JourneyAdviseResponse:
+    try:
+        return await journey_advise(req)
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": str(e)})
+    except Exception as e:
+        logger.exception("Unexpected error in journey_advise")
         raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": str(e)})
 
 

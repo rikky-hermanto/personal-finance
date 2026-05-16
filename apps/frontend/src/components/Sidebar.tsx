@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Settings, Menu, X, Plus, PiggyBank, Sun, Moon, Landmark, Bot, TrendingUp } from 'lucide-react';
+import { Mountain, Settings, Menu, X, PiggyBank, Sun, Moon, Landmark, Bot, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
 import { useTheme } from 'next-themes';
@@ -16,7 +16,7 @@ const AI_MODELS = [
 ] as const;
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard', matchPrefix: '/dashboard' },
+  { id: 'journey', label: 'Journey', icon: Mountain, path: '/journey', matchPrefix: '/journey' },
   { id: 'assets', label: 'Assets', icon: Landmark, path: '/assets', matchPrefix: '/assets' },
   { id: 'cashflow', label: 'Cashflow', icon: PiggyBank, path: '/cashflow', matchPrefix: '/cashflow' },
   { id: 'investment', label: 'Investments', icon: TrendingUp, path: '/investment', matchPrefix: '/investment' },
@@ -62,27 +62,30 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* New upload CTA */}
+      {/* Journey hero CTA */}
       <div className={cn('px-3 pt-4 pb-2', collapsed && 'flex justify-center')}>
         <button
-          onClick={() => navigate('/cashflow/upload')}
+          onClick={() => navigate('/journey')}
           className={cn(
-            'flex items-center gap-2 transition-all duration-200 bg-foreground/5 hover:bg-foreground/10 text-foreground border border-foreground/5',
+            'flex items-center gap-2 transition-all duration-200 border',
+            location.pathname.startsWith('/journey')
+              ? 'bg-foreground/10 border-foreground/15 text-foreground'
+              : 'bg-foreground/5 hover:bg-foreground/10 text-foreground border-foreground/5',
             collapsed
               ? 'p-2 justify-center w-9 h-9 rounded-full mx-auto'
               : 'px-3 py-2 w-full text-xs font-medium rounded-lg'
           )}
-          title={collapsed ? 'New upload' : undefined}
+          title={collapsed ? 'Journey' : undefined}
         >
-          <Plus className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span>New upload</span>}
+          <Mountain className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          {!collapsed && <span>Journey</span>}
         </button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-3 pb-4 pt-2 overflow-y-auto">
         <ul className="space-y-0.5">
-          {menuItems.map((item) => {
+          {menuItems.filter(item => item.id !== 'journey').map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.startsWith(item.matchPrefix);
             return (
