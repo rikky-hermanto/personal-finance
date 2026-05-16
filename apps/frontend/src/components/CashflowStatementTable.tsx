@@ -55,7 +55,7 @@ const CashflowStatementTable = ({ data, isLoading }: CashflowStatementTableProps
               ))}
             </tr>
           </thead>
-          <tbody className="text-sm font-mono tabular-nums">
+          <tbody className="text-sm">
             {data.sections.map((section) => (
               <React.Fragment key={section.id}>
                 {/* Section Header */}
