@@ -1,9 +1,19 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Settings, Menu, X, Plus, PiggyBank, Sun, Moon, Landmark } from 'lucide-react';
+import { BarChart3, Settings, Menu, X, Plus, PiggyBank, Sun, Moon, Landmark, Bot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
 import { useTheme } from 'next-themes';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const AI_MODELS = [
+  { id: 'gemini-31-pro-high', label: 'Gemini 3.1 Pro (High)' },
+  { id: 'gemini-31-pro-low', label: 'Gemini 3.1 Pro (Low)' },
+  { id: 'gemini-3-flash', label: 'Gemini 3 Flash' },
+  { id: 'claude-sonnet-46-thinking', label: 'Claude Sonnet 4.6 (Thinking)' },
+  { id: 'claude-opus-46-thinking', label: 'Claude Opus 4.6 (Thinking)' },
+  { id: 'gpt-oss-120b', label: 'GPT-OSS 120B (Medium)' },
+] as const;
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: BarChart3, path: '/dashboard', matchPrefix: '/dashboard' },
@@ -13,6 +23,7 @@ const menuItems = [
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [activeModel, setActiveModel] = useState(AI_MODELS[0].id);
   const navigate = useNavigate();
   const location = useLocation();
   const { focused } = useFocusMode();
@@ -124,6 +135,32 @@ const Sidebar = () => {
             </span>
           )}
         </button>
+      </div>
+
+      {/* AI Model selector */}
+      <div className={cn('px-3 pb-2', collapsed ? 'flex justify-center' : '')}>
+        {collapsed ? (
+          <button
+            title={AI_MODELS.find(m => m.id === activeModel)?.label}
+            className="flex items-center justify-center px-2 py-2 rounded-lg text-sidebar-foreground hover:text-foreground transition-colors duration-150"
+          >
+            <Bot className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          </button>
+        ) : (
+          <div className="px-3 py-1 flex items-center gap-3">
+            <Bot className="w-4 h-4 flex-shrink-0 text-sidebar-foreground" strokeWidth={1.5} />
+            <Select value={activeModel} onValueChange={v => setActiveModel(v as typeof activeModel)}>
+              <SelectTrigger className="flex-1 h-auto border-none shadow-none bg-transparent px-0 py-0 text-xs font-medium text-sidebar-foreground hover:text-foreground focus:ring-0 justify-start gap-1 [&>svg]:opacity-50 [&>svg]:w-3 [&>svg]:h-3 [&>svg]:flex-shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AI_MODELS.map(m => (
+                  <SelectItem key={m.id} value={m.id} className="text-xs">{m.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Settings — below the divider */}
