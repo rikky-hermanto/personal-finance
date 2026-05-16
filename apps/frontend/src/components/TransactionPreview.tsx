@@ -301,7 +301,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
               className={selectCls}
             />
           ) : (
-            <span className="text-xs font-mono text-foreground/70 max-w-xs truncate block">
+            <span className="text-xs text-foreground/70 max-w-xs truncate block">
               {tx.description}
             </span>
           )}
@@ -530,7 +530,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
                   <div className="font-mono text-[10px] text-muted-foreground tabular-nums">
                     {formatDate(tx.date)}
                   </div>
-                  <div className="font-mono text-[10px] text-foreground/50 truncate">
+                  <div className="text-[10px] text-foreground/50 truncate">
                     {tx.description}
                   </div>
                   <div className="text-[10px] text-muted-foreground/70 italic">
