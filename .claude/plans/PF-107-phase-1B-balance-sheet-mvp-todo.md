@@ -2,7 +2,7 @@
 
 > **Parent Issue:** PF-107 (Assets Management)
 > **Phase:** 1B of 6 — Frontend workspace, first user-visible delivery
-> **Status:** Not started
+> **Status:** Complete
 > **Depends on:** Phase 1A complete (all 7 tables migrated, 4 controllers live)
 > **Blocks:** Phase 2
 
@@ -12,19 +12,19 @@ Ship the minimum visible Assets workspace that lets the user manually replicate 
 
 ## Acceptance Criteria
 
-- [ ] Sidebar has an `/assets` nav entry (icon `Landmark`) positioned between Dashboard and Cashflow
-- [ ] `/assets/*` route block added to `App.tsx`
-- [ ] `AssetsLayout.tsx` with 5 tabs: Overview · Accounts · Investments · Properties · Liabilities
-- [ ] **Overview tab**: NetWorthHeadline (current NW in IDR), NetWorthTrendChart (line chart from `valuations`), AllocationDonut (by asset class)
-- [ ] **Accounts tab**: lists all institutions + accounts with latest valuation per account; "Add Account" flow with `AddValuationDialog`
-- [ ] **Investments tab**: HoldingsTable (ticker, quantity, cost basis, latest value, P&L in IDR); "Add Holding" + "Add Valuation" per holding
-- [ ] **Properties tab**: card list of Real Estate + Tangibles + Vehicles + Receivables assets with latest value + last-updated date
-- [ ] **Liabilities tab**: table of liabilities with `LtvBadge` for any liability linked to an asset via `asset_id`
-- [ ] `AddValuationDialog` branches UX by `valuation_strategy`: `Manual` = text input; `RealTime` = read-only (shows auto-price); `Amortized` = schedule-based; `Algorithmic` = formula display
-- [ ] User can manually replay their Excel data (8 months × ~20 line items) via `AddValuationDialog` and see Net Worth Trend populate correctly
-- [ ] `/cashflow/accounts` and `pf_custom_wallets` localStorage **untouched** — verify after merge
-- [ ] All new components follow `.claude/skills/data-oriented-theme/SKILL.md` — no glassmorphism, no consumer-app aesthetics
-- [ ] Playwright E2E: Add institution → Add account → Add valuation → Verify headline updates
+- [x] Sidebar has an `/assets` nav entry (icon `Landmark`) positioned between Dashboard and Cashflow
+- [x] `/assets/*` route block added to `App.tsx`
+- [x] `AssetsLayout.tsx` with 5 tabs: Overview · Accounts · Investments · Properties · Liabilities
+- [x] **Overview tab**: NetWorthHeadline (current NW in IDR), NetWorthTrendChart (line chart from `valuations`), AllocationDonut (by asset class)
+- [x] **Accounts tab**: lists all institutions + accounts with latest valuation per account; "Add Account" flow with `AddValuationDialog`
+- [x] **Investments tab**: HoldingsTable (ticker, quantity, cost basis, latest value, P&L in IDR); "Add Holding" + "Add Valuation" per holding
+- [x] **Properties tab**: card list of Real Estate + Tangibles + Vehicles + Receivables assets with latest value + last-updated date
+- [x] **Liabilities tab**: table of liabilities with `LtvBadge` for any liability linked to an asset via `asset_id`
+- [x] `AddValuationDialog` branches UX by `valuation_strategy`: `Manual` = text input; `RealTime` = read-only (shows auto-price); `Amortized` = schedule-based; `Algorithmic` = formula display
+- [x] User can manually replay their Excel data (8 months × ~20 line items) via `AddValuationDialog` and see Net Worth Trend populate correctly
+- [x] `/cashflow/accounts` and `pf_custom_wallets` localStorage **untouched** — verify after merge
+- [x] All new components follow `.claude/skills/data-oriented-theme/SKILL.md` — no glassmorphism, no consumer-app aesthetics
+- [x] Playwright E2E: Add institution → Add account → Add valuation → Verify headline updates
 
 ## Approach
 
@@ -66,7 +66,7 @@ Out of scope: auto-pricing (Phase 2), Treemap / Liquidity Ladder / Snapshot Comp
 
 ## TODO
 
-### [ ] STEP 1 — Create TypeScript types
+### [x] STEP 1 — Create TypeScript types
 
 Create one file per entity in `apps/frontend/src/types/`. Each maps to the API response DTO:
 
@@ -124,7 +124,7 @@ export interface Liability {
 
 ---
 
-### [ ] STEP 2 — Create API client files
+### [x] STEP 2 — Create API client files
 
 Create in `apps/frontend/src/api/`. Follow existing pattern from `transactionsApi.ts` — plain `fetch()`, no axios, use `VITE_API_URL` from env:
 
@@ -161,7 +161,7 @@ export async function getAllocationByClass(): Promise<Record<string, number>> {
 
 ---
 
-### [ ] STEP 3 — Add `/assets` to Sidebar
+### [x] STEP 3 — Add `/assets` to Sidebar
 
 In `apps/frontend/src/components/Sidebar.tsx`, add the assets nav entry **between Dashboard and Cashflow**:
 
@@ -178,7 +178,7 @@ Run the dev server and verify the Landmark icon appears at the correct position.
 
 ---
 
-### [ ] STEP 4 — Add routes to App.tsx
+### [x] STEP 4 — Add routes to App.tsx
 
 In `apps/frontend/src/App.tsx`, add the assets route block:
 
@@ -205,7 +205,7 @@ import LiabilitiesTab from '@/pages/assets/LiabilitiesTab';
 
 ---
 
-### [ ] STEP 5 — Create AssetsLayout.tsx
+### [x] STEP 5 — Create AssetsLayout.tsx
 
 ```tsx
 // pages/assets/AssetsLayout.tsx
@@ -252,7 +252,7 @@ export default function AssetsLayout() {
 
 ---
 
-### [ ] STEP 6 — Create OverviewTab.tsx with 3 widgets
+### [x] STEP 6 — Create OverviewTab.tsx with 3 widgets
 
 ```tsx
 // pages/assets/OverviewTab.tsx
@@ -291,7 +291,7 @@ export default function OverviewTab() {
 
 ---
 
-### [ ] STEP 7 — Create AccountsTab.tsx
+### [x] STEP 7 — Create AccountsTab.tsx
 
 Displays grouped by Institution. Each institution expands to show its accounts with latest `value_idr`. "Add Valuation" button per account opens `AddValuationDialog`.
 
@@ -310,7 +310,7 @@ Each account row shows: account name, currency, latest `value_idr`, last-updated
 
 ---
 
-### [ ] STEP 8 — Create InvestmentsTab.tsx with HoldingsTable
+### [x] STEP 8 — Create InvestmentsTab.tsx with HoldingsTable
 
 `HoldingsTable` columns: Institution, Ticker, Quantity, Avg Cost (IDR), Latest Price (IDR/unit), Market Value (IDR), P&L (IDR + %), Weight (% of total holdings).
 
@@ -320,7 +320,7 @@ Phase 1B: Price and Market Value come from the latest `Valuation` row for the ho
 
 ---
 
-### [ ] STEP 9 — Create PropertiesTab.tsx
+### [x] STEP 9 — Create PropertiesTab.tsx
 
 Card grid layout — one card per asset in classes: `real_estate`, `tangibles`, `vehicles`, `receivables`, `retirement`.
 
@@ -335,7 +335,7 @@ For `receivables` (Piutang): show face value + a "Collectible" status toggle (us
 
 ---
 
-### [ ] STEP 10 — Create LiabilitiesTab.tsx with LtvBadge
+### [x] STEP 10 — Create LiabilitiesTab.tsx with LtvBadge
 
 Table columns: Name, Type, Principal (IDR), Interest Rate, Monthly Payment, Linked Account/Asset, LTV.
 
@@ -359,7 +359,7 @@ LTV thresholds: < 60% = green (healthy), 60-80% = amber (watch), > 80% = red (al
 
 ---
 
-### [ ] STEP 11 — Create AddValuationDialog.tsx
+### [x] STEP 11 — Create AddValuationDialog.tsx
 
 Central dialog for entering valuations. Branches by `valuation_strategy`:
 
@@ -390,7 +390,7 @@ FX conversion preview: when `currency ≠ IDR`, show live conversion using the l
 
 ---
 
-### [ ] STEP 12 — Write Playwright E2E test
+### [x] STEP 12 — Write Playwright E2E test
 
 Create `apps/frontend/e2e/assets.spec.ts`:
 

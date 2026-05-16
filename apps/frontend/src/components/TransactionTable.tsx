@@ -216,7 +216,7 @@ const TransactionTable = ({ onTransactionUpdate, walletFilter }: TransactionTabl
             <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums">
               {formatDate(tx.date)}
             </td>
-            <td className="px-5 py-3 text-xs font-mono text-foreground/70 max-w-xs truncate">
+            <td className="px-5 py-3 text-xs text-foreground/80 max-w-xs truncate">
               {tx.description}
             </td>
             <td className="px-5 py-3 whitespace-nowrap">

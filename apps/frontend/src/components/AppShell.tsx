@@ -19,7 +19,7 @@ const AppShellInner = () => {
   return (
     <div
       className={cn(
-        'flex h-screen w-full overflow-hidden bg-background',
+        'flex h-screen w-full overflow-hidden bg-sidebar',
         isZen && 'zen-canvas'
       )}
     >

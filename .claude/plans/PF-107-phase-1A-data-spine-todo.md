@@ -2,7 +2,7 @@
 
 > **Parent Issue:** PF-107 (Assets Management)
 > **Phase:** 1A of 6 — Backend data layer only
-> **Status:** Not started
+> **Status:** Complete (2026-05-16) — all ACs met; Step 13 (manual FX curl) requires stack running to verify
 > **Depends on:** PF-S07 (EF Core removal) ✅ done
 > **Blocks:** Phase 1B (frontend can't start without API)
 
@@ -14,18 +14,18 @@ Build the complete backend data layer for Assets Management as a **fully indepen
 
 - [x] Supabase migration applied — 7 new tables: `institutions`, `accounts`, `assets`, `holdings`, `valuations`, `liabilities`, `fx_rates`
 - [x] All tables have `user_id uuid NOT NULL` and permissive RLS (`USING (true)`) ready for PF-S08 flip
-- [ ] `valuations` table has the FX quad-tuple: `value_native`, `currency`, `fx_rate_to_idr`, `value_idr`
-- [ ] `assets` table has `valuation_strategy` enum: `RealTime | Algorithmic | Amortized | Manual`
-- [ ] `liabilities` table has both `account_id?` and `asset_id?` FKs with a CHECK constraint enforcing mutual exclusivity
-- [ ] 7 C# Domain entities created, all inherit `BaseModel`, all use snake_case `[Column]` attributes
-- [ ] CQRS Create/Update/Delete commands + handlers for all 6 core entities (Institution, Account, Asset, Holding, Valuation, Liability)
-- [ ] `IFxRateService` interface + `JisdorFxRateService` implementation wired in DI — fetches IDR rates from Bank Indonesia
-- [ ] 4 REST controllers: `AccountsController`, `AssetsController`, `LiabilitiesController`, `NetWorthController`
-- [ ] Settings "Banks & Accounts" tab enabled in frontend (replaces disabled placeholder)
-- [ ] `dotnet test` passes — new handler unit tests for Create operations on each entity
+- [x] `valuations` table has the FX quad-tuple: `value_native`, `currency`, `fx_rate_to_idr`, `value_idr`
+- [x] `assets` table has `valuation_strategy` enum: `RealTime | Algorithmic | Amortized | Manual`
+- [x] `liabilities` table has both `account_id?` and `asset_id?` FKs with a CHECK constraint enforcing mutual exclusivity
+- [x] 7 C# Domain entities created, all inherit `BaseModel`, all use snake_case `[Column]` attributes
+- [x] CQRS Create/Update/Delete commands + handlers for all 6 core entities (Institution, Account, Asset, Holding, Valuation, Liability)
+- [x] `IFxRateService` interface + `JisdorFxRateService` implementation wired in DI — fetches IDR rates from Bank Indonesia
+- [x] 4 REST controllers: `AccountsController`, `AssetsController`, `LiabilitiesController`, `NetWorthController`
+- [x] Settings "Banks & Accounts" tab enabled in frontend (replaces disabled placeholder)
+- [x] `dotnet test` passes — new handler unit tests for Create operations on each entity
 - [ ] Manual verification: POST a `Valuation` with `currency=USD` → `value_idr` populated correctly via JISDOR
-- [ ] `transactions` table is unchanged — no new columns, no new FKs, confirm via `supabase db diff`
-- [ ] No changes to any existing parser, cashflow controller, or transaction API
+- [x] `transactions` table is unchanged — no new columns, no new FKs, confirm via `supabase db diff`
+- [x] No changes to any existing parser, cashflow controller, or transaction API
 
 ## Approach
 
@@ -252,7 +252,7 @@ Then open Supabase Studio at `http://localhost:54323` and verify:
 
 ---
 
-### [ ] STEP 4 — Create 7 C# Domain Entities
+### [x] STEP 4 — Create 7 C# Domain Entities
 
 Create each entity in `apps/api/src/PersonalFinance.Domain/Entities/`. Pattern (follow existing entities for exact attribute style):
 
@@ -298,7 +298,7 @@ Repeat for: `Account.cs`, `Asset.cs` (add `ValuationStrategy` string property), 
 
 ---
 
-### [ ] STEP 5 — Create DTOs
+### [x] STEP 5 — Create DTOs
 
 Create in `apps/api/src/PersonalFinance.Application/Dtos/`. One DTO per entity — expose only what the API response should return (omit `UserId` from most, omit `CreatedAt` from create-request DTOs):
 
@@ -326,7 +326,7 @@ public record LiabilityDto(
 
 ---
 
-### [ ] STEP 6 — Create Service Interfaces
+### [x] STEP 6 — Create Service Interfaces
 
 Create in `apps/api/src/PersonalFinance.Application/Interfaces/`:
 
@@ -357,7 +357,7 @@ public interface INetWorthService
 
 ---
 
-### [ ] STEP 7 — Create CQRS Commands + Handlers
+### [x] STEP 7 — Create CQRS Commands + Handlers
 
 For each of the 6 entities (Institution, Account, Asset, Holding, Valuation, Liability), create the Create, Update, Delete command trio. Example pattern for Institution:
 
@@ -406,7 +406,7 @@ Create the same pattern for Update (takes `Guid Id` + mutable fields) and Delete
 
 ---
 
-### [ ] STEP 8 — Implement JisdorFxRateService
+### [x] STEP 8 — Implement JisdorFxRateService
 
 Create `apps/api/src/PersonalFinance.Infrastructure/Services/JisdorFxRateService.cs`:
 
@@ -448,7 +448,7 @@ public class JisdorFxRateService(
 
 ---
 
-### [ ] STEP 9 — Create 4 REST Controllers
+### [x] STEP 9 — Create 4 REST Controllers
 
 Create in `apps/api/src/PersonalFinance.Api/Controllers/`. Follow existing controller patterns (inject `IMediator`, `[ApiController]`, `[Route("api/[controller]")]`):
 
@@ -461,7 +461,7 @@ Create in `apps/api/src/PersonalFinance.Api/Controllers/`. Follow existing contr
 
 ---
 
-### [ ] STEP 10 — Register DI in Program.cs
+### [x] STEP 10 — Register DI in Program.cs
 
 Add to `apps/api/src/PersonalFinance.Api/Program.cs`:
 
@@ -477,7 +477,7 @@ builder.Services.AddScoped<INetWorthService, NetWorthService>();
 
 ---
 
-### [ ] STEP 11 — Enable "Banks & Accounts" tab in Settings
+### [x] STEP 11 — Enable "Banks & Accounts" tab in Settings
 
 In `apps/frontend/src/pages/settings/SettingsLayout.tsx`, find the disabled `banks` tab entry and enable it:
 
@@ -495,7 +495,7 @@ Create a minimal `BanksTab.tsx` with a basic Institution list + "Add Institution
 
 ---
 
-### [ ] STEP 12 — Write unit tests
+### [x] STEP 12 — Write unit tests
 
 Create `apps/api/tests/PersonalFinance.Tests/Commands/` with one test class per entity Create handler. Follow the `CategoryRuleServiceTests.cs` pattern: `UseInMemoryDatabase`, `IDisposable`, naming `MethodName_Condition_ExpectedResult`.
 
@@ -532,7 +532,7 @@ Expected: response contains `fxRateToIdr` (roughly 16000) and `valueIdr` ≈ 16,
 
 ---
 
-### [ ] STEP 14 — Verify transactions table is untouched
+### [x] STEP 14 — Verify transactions table is untouched
 
 ```bash
 supabase db diff
