@@ -46,6 +46,8 @@ appsettings.Development.json
 
 # Claude Code worktrees (stale branches from past sessions)
 .claude/worktrees/
+# Machine-specific Claude Code permissions — use .claude/settings.json for shared config
+.claude/settings.local.json
 services/ai-service/.env
 
 # GitHub API export dumps (generated, not repo artifacts)

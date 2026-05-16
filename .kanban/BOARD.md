@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-05-06 (Added PF-090, PF-100, PF-101 — committed but not GitHub-tracked)
+> **Last synced:** 2026-05-16 (Added PF-107 Phase 1A — Assets Management data spine)
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
