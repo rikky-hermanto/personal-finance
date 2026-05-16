@@ -27,6 +27,14 @@ import AssetsAccountsTab from '@/pages/assets/AccountsTab';
 import InvestmentsTab from '@/pages/assets/InvestmentsTab';
 import PropertiesTab from '@/pages/assets/PropertiesTab';
 import LiabilitiesTab from '@/pages/assets/LiabilitiesTab';
+import InvestmentLayout from '@/pages/investment/InvestmentLayout';
+import InvestmentHome from '@/pages/investment/InvestmentHome';
+import InvestmentWizard from '@/pages/investment/InvestmentWizard';
+import InvestmentSetupDetail from '@/pages/investment/InvestmentSetupDetail';
+import InvestmentAnalysis from '@/pages/investment/InvestmentAnalysis';
+import HoldingsTab from '@/pages/investment/HoldingsTab';
+import SnapshotsTab from '@/pages/investment/SnapshotsTab';
+import AIReviewTab from '@/pages/investment/AIReviewTab';
 
 const queryClient = new QueryClient();
 
@@ -68,6 +76,16 @@ const App = () => (
               <Route path="investments" element={<InvestmentsTab />} />
               <Route path="properties" element={<PropertiesTab />} />
               <Route path="liabilities" element={<LiabilitiesTab />} />
+            </Route>
+            <Route path="/investment" element={<InvestmentLayout />}>
+              <Route index element={<Navigate to="/investment/overview" replace />} />
+              <Route path="overview" element={<InvestmentHome />} />
+              <Route path="holdings" element={<HoldingsTab />} />
+              <Route path="snapshots" element={<SnapshotsTab />} />
+              <Route path="ai-review" element={<AIReviewTab />} />
+              <Route path="new" element={<InvestmentWizard />} />
+              <Route path=":setupId" element={<InvestmentSetupDetail />} />
+              <Route path=":setupId/review/:snapshotId" element={<InvestmentAnalysis />} />
             </Route>
           </Route>
           <Route path="/status" element={<StatusPage />} />
