@@ -1,6 +1,6 @@
 # PF-108 — Safe-to-Spend + Variance Explainer (Spending Analysis MVP)
 
-> **Status:** Planned
+> **Status:** Done
 > **Phase:** 5 — Spending Analysis
 > **Objective:** Build the two core decision-support metrics: a real-time "how much can I spend today?" number and a CFO-grade variance breakdown explaining why this month differs from the baseline. These two together answer 80% of why anyone opens a finance app.
 
@@ -13,15 +13,15 @@ Replace the rearview-mirror dashboard with two forward-looking instruments:
 
 ## Acceptance Criteria
 
-- [ ] `GET /api/spending-analysis/safe-to-spend` returns amount, status (ok/warning/danger), days remaining, and component breakdown.
-- [ ] Safe-to-Spend math: `(income_baseline − committed_bills_remaining − savings_goal − already_spent) / days_remaining`.
-- [ ] Income baseline = average monthly income over the last 3 complete months.
-- [ ] Committed bills = sum of recurring debit patterns (same description ±fuzzy, amount ±10%, ~monthly cadence) not yet charged this month.
-- [ ] `GET /api/spending-analysis/variance` returns current month spend, trailing 3-month average, delta, delta %, and top drivers sorted by absolute delta.
-- [ ] Drivers mark a transaction cluster as `is_one_off: true` if the category has zero spend in 2 of the last 3 trailing months.
-- [ ] New `/cashflow/analysis` tab appears in `CashflowLayout` with a `SafeToSpendCard` and `VarianceExplainerCard`.
-- [ ] `SafeToSpendCard` shows: amount in IDR, color-coded status, days remaining label, and an expandable breakdown (income baseline, committed bills, spent so far, savings goal).
-- [ ] `VarianceExplainerCard` shows: total delta sentence, ranked driver rows with category + delta + one-off badge.
+- [x] `GET /api/spending-analysis/safe-to-spend` returns amount, status (ok/warning/danger), days remaining, and component breakdown.
+- [x] Safe-to-Spend math: `(income_baseline − committed_bills_remaining − savings_goal − already_spent) / days_remaining`.
+- [x] Income baseline = average monthly income over the last 3 complete months.
+- [x] Committed bills = sum of recurring debit patterns (same description ±fuzzy, amount ±10%, ~monthly cadence) not yet charged this month.
+- [x] `GET /api/spending-analysis/variance` returns current month spend, trailing 3-month average, delta, delta %, and top drivers sorted by absolute delta.
+- [x] Drivers mark a transaction cluster as `is_one_off: true` if the category has zero spend in 2 of the last 3 trailing months.
+- [x] New `/cashflow/analysis` tab appears in `CashflowLayout` with a `SafeToSpendCard` and `VarianceExplainerCard`.
+- [x] `SafeToSpendCard` shows: amount in IDR, color-coded status, days remaining label, and an expandable breakdown (income baseline, committed bills, spent so far, savings goal).
+- [x] `VarianceExplainerCard` shows: total delta sentence, ranked driver rows with category + delta + one-off badge.
 
 ## Architecture
 
@@ -52,7 +52,7 @@ graph TD
 
 ### STEP 1 — Backend: DTOs
 
-- [ ] Create `apps/api/src/PersonalFinance.Application/Dtos/SpendingAnalysisDto.cs`:
+- [x] Create `apps/api/src/PersonalFinance.Application/Dtos/SpendingAnalysisDto.cs`:
   ```csharp
   public record SafeToSpendDto(
       decimal Amount,
@@ -83,7 +83,7 @@ graph TD
 
 ### STEP 2 — Backend: Interface + Service
 
-- [ ] Create `apps/api/src/PersonalFinance.Application/Interfaces/ISpendingAnalysisService.cs`:
+- [x] Create `apps/api/src/PersonalFinance.Application/Interfaces/ISpendingAnalysisService.cs`:
   ```csharp
   public interface ISpendingAnalysisService
   {
@@ -92,7 +92,7 @@ graph TD
   }
   ```
 
-- [ ] Create `apps/api/src/PersonalFinance.Application/Services/SpendingAnalysisService.cs`:
+- [x] Create `apps/api/src/PersonalFinance.Application/Services/SpendingAnalysisService.cs`:
   - Inject `Supabase.Client _supabase` and `ILogger<SpendingAnalysisService>`.
   - `GetSafeToSpendAsync`: fetch last 4 months of transactions, compute income baseline (avg of 3 complete months), detect recurring patterns for committed bills (group by normalized description, filter cadence ~28–32 days, amount ±10%), subtract bills already charged this month, subtract user's savings goal (hardcoded 0 for MVP — wire to config later), divide remaining by `DateTime.DaysInMonth - today.Day + 1`.
   - `GetVarianceExplainerAsync`: fetch current month + last 3 complete months, compute per-category trailing avg and current month total, rank by `|delta|`, flag `IsOneOff` where category appears in 0 or 1 of the 3 trailing months.
@@ -100,7 +100,7 @@ graph TD
 
 ### STEP 3 — Backend: Controller
 
-- [ ] Create `apps/api/src/PersonalFinance.Api/Controllers/SpendingAnalysisController.cs`:
+- [x] Create `apps/api/src/PersonalFinance.Api/Controllers/SpendingAnalysisController.cs`:
   ```csharp
   [ApiController]
   [Route("api/spending-analysis")]
@@ -116,14 +116,14 @@ graph TD
   }
   ```
 
-- [ ] Register in `apps/api/src/PersonalFinance.Api/Program.cs`:
+- [x] Register in `apps/api/src/PersonalFinance.Api/Program.cs`:
   ```csharp
   builder.Services.AddScoped<ISpendingAnalysisService, SpendingAnalysisService>();
   ```
 
 ### STEP 4 — Frontend: API Client
 
-- [ ] Create `apps/frontend/src/api/spendingAnalysisApi.ts`:
+- [x] Create `apps/frontend/src/api/spendingAnalysisApi.ts`:
   ```ts
   export interface SafeToSpend { amount: number; status: 'ok' | 'warning' | 'danger'; daysRemaining: number; incomeBaseline: number; committedBillsRemaining: number; savingsGoal: number; alreadySpent: number; }
   export interface VarianceDriver { category: string; currentMonthSpend: number; trailingAvg: number; delta: number; isOneOff: boolean; }
@@ -138,28 +138,28 @@ graph TD
 
 ### STEP 5 — Frontend: Components
 
-- [ ] Create `apps/frontend/src/components/analysis/SafeToSpendCard.tsx`:
+- [x] Create `apps/frontend/src/components/analysis/SafeToSpendCard.tsx`:
   - Large IDR number, color-coded by status (green/amber/red).
   - Subtitle: "X days left this month".
   - Expandable breakdown: income baseline, committed bills, spent so far, savings goal.
   - Uses `useQuery` from `@tanstack/react-query`.
 
-- [ ] Create `apps/frontend/src/components/analysis/VarianceExplainerCard.tsx`:
+- [x] Create `apps/frontend/src/components/analysis/VarianceExplainerCard.tsx`:
   - Header sentence: "You spent [+/-X IDR] vs your 3-month average."
   - Driver rows: category name, delta amount (colored), one-off badge if applicable.
   - Top 6 drivers shown, rest collapsed.
 
 ### STEP 6 — Frontend: New Analysis Tab
 
-- [ ] Create `apps/frontend/src/pages/cashflow/AnalysisTab.tsx`:
+- [x] Create `apps/frontend/src/pages/cashflow/AnalysisTab.tsx`:
   - 2-column grid: `SafeToSpendCard` left, `VarianceExplainerCard` right. Stack on mobile.
 
-- [ ] Add route + tab in `apps/frontend/src/pages/cashflow/CashflowLayout.tsx`:
+- [x] Add route + tab in `apps/frontend/src/pages/cashflow/CashflowLayout.tsx`:
   ```tsx
   { path: 'analysis', label: 'Analysis', element: <AnalysisTab /> }
   ```
 
-- [ ] Add `analysis` to the tab nav links in `CashflowLayout.tsx`.
+- [x] Add `analysis` to the tab nav links in `CashflowLayout.tsx`.
 
 ## Verification
 
