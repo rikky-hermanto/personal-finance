@@ -7,6 +7,7 @@ const TABS = [
   { value: 'transactions', label: 'Transactions', path: '/cashflow/transactions' },
   { value: 'accounts', label: 'Wallets', path: '/cashflow/accounts' },
   { value: 'statement', label: 'Statements', path: '/cashflow/statement' },
+  { value: 'analysis', label: 'Spend Pulse', path: '/cashflow/analysis' },
 ];
 
 const CashflowLayout = () => {

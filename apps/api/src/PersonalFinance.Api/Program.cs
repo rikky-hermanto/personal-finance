@@ -103,6 +103,7 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<ITransactionPipelineService, PersonalFinance.Application.Services.TransactionPipelineService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<ISpendingAnalysisService, SpendingAnalysisService>();
 
             // Assets module services
             builder.Services.AddHttpClient<JisdorFxRateService>();
