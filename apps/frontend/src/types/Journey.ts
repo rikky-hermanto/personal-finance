@@ -33,9 +33,9 @@ export interface Quest {
 }
 
 export const TIER_META: Record<string, { label: string; color: string; deeplink: string; module: string }> = {
-  L1: { label: 'Cashflow',  color: 'rgb(100 116 139)', deeplink: '/cashflow/overview',  module: 'Cashflow' },
-  L2: { label: 'Defense',   color: 'rgb(217 119 6)',   deeplink: '/assets/accounts',    module: 'Assets' },
-  L3: { label: 'Growth',    color: 'rgb(5 150 105)',   deeplink: '/investment/overview', module: 'Investment' },
-  L4: { label: 'Freedom',   color: 'rgb(2 132 199)',   deeplink: '/investment/holdings', module: 'Investment' },
-  L5: { label: 'Legacy',    color: 'rgb(124 58 237)',  deeplink: '/assets/overview',    module: 'Assets' },
+  L1: { label: 'Foundations', color: 'rgb(100 116 139)', deeplink: '/cashflow/overview',  module: 'Cashflow' },
+  L2: { label: 'Defense',    color: 'rgb(76 175 80)',   deeplink: '/assets/accounts',    module: 'Assets' },
+  L3: { label: 'Growth',     color: 'rgb(56 142 60)',   deeplink: '/investment/overview', module: 'Investment' },
+  L4: { label: 'Freedom',    color: 'rgb(46 125 50)',   deeplink: '/investment/holdings', module: 'Investment' },
+  L5: { label: 'Legacy',     color: 'rgb(27 94 32)',    deeplink: '/assets/overview',    module: 'Assets' },
 };
