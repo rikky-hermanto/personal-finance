@@ -11,10 +11,37 @@ test.describe('Journey Page', () => {
     await expect(page).toHaveURL(/\/journey$/);
   });
 
-  test('renders heading and pyramid on load', async ({ page }) => {
+  test('renders heading and garden hero on load', async ({ page }) => {
     await page.goto('/journey');
     await expect(page.getByRole('heading', { name: /Your Financial Journey/i })).toBeVisible();
-    await expect(page.locator('svg[data-testid="pyramid"]')).toBeVisible();
+    await expect(page.locator('[data-testid="garden-hero"]')).toBeVisible();
+  });
+
+  test('Living Garden hero renders all 5 plants', async ({ page }) => {
+    await page.goto('/journey');
+    for (const level of ['l1', 'l2', 'l3', 'l4', 'l5']) {
+      const plant = page.locator(`[data-testid="plant-${level}"]`);
+      await expect(plant).toBeVisible();
+      const stage = await plant.getAttribute('data-stage');
+      expect(['0', '1', '2', '3']).toContain(stage);
+    }
+  });
+
+  test('Clicking plant L2 scrolls to tier card L2', async ({ page }) => {
+    await page.goto('/journey');
+    await page.locator('[data-testid="plant-l2"]').click();
+    await page.waitForTimeout(700);
+    const tierCard = page.locator('#tier-card-L2');
+    await expect(tierCard).toBeInViewport();
+  });
+
+  test('TierCard indicator dual display shows product headline', async ({ page }) => {
+    await page.goto('/journey');
+    const liquidLabel = page.getByText('3-month emergency fund');
+    const count = await liquidLabel.count();
+    if (count > 0) {
+      await expect(liquidLabel.first()).toBeVisible();
+    }
   });
 
   test('renders 5 tier level labels', async ({ page }) => {

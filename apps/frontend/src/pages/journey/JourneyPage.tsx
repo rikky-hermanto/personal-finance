@@ -3,19 +3,13 @@ import { RefreshCw, Trophy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { PyramidProgress } from '@/components/journey/PyramidProgress';
-import { SkylineProgress } from '@/components/journey/SkylineProgress';
-import { CrystalProgress } from '@/components/journey/CrystalProgress';
+import { LivingGardenHero } from '@/components/journey/LivingGardenHero';
 import { TierCard } from '@/components/journey/TierCard';
-import { useJourneyStyle } from '@/hooks/useJourneyStyle';
 import { QuestCard } from '@/components/journey/QuestCard';
-import { StreakHeatmap } from '@/components/journey/StreakHeatmap';
 import { getJourneyState, getJourneyQuests, recalculateJourney } from '@/api/journeyApi';
 
 export const JourneyPage = () => {
   const queryClient = useQueryClient();
-
-  const { style: journeyStyle } = useJourneyStyle();
 
   const { data: state, isLoading: stateLoading } = useQuery({
     queryKey: ['journey-state'],
@@ -42,8 +36,8 @@ export const JourneyPage = () => {
         <Skeleton className="h-8 w-56" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Skeleton className="h-80" />
-          <div className="md:col-span-2 space-y-3">
-            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-24" />)}
+          <div className="md:col-span-2 space-y-2">
+            {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-14" />)}
           </div>
         </div>
       </div>
@@ -93,23 +87,17 @@ export const JourneyPage = () => {
         </div>
       </div>
 
-      {/* Pyramid + Tier Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1 flex flex-col justify-center">
-          {journeyStyle === 'skyline' ? (
-            <SkylineProgress state={state} />
-          ) : journeyStyle === 'crystal' ? (
-            <CrystalProgress state={state} />
-          ) : (
-            <PyramidProgress state={state} />
-          )}
+      {/* Hero (left) + Tier Cards (right) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-1">
+          <LivingGardenHero state={state} topQuest={quests?.[0]} />
         </div>
-        <div className="md:col-span-2 space-y-3">
+        <div className="md:col-span-2 space-y-2">
           {['L1', 'L2', 'L3', 'L4', 'L5'].map((lvl) => (
             <TierCard key={lvl} level={lvl} state={state} />
           ))}
         </div>
-      </section>
+      </div>
 
       {/* Active Quests */}
       <section>
@@ -127,12 +115,6 @@ export const JourneyPage = () => {
         )}
       </section>
 
-      {/* Streak Heatmap */}
-      <section>
-        <h2 className="text-lg font-semibold mb-3">Activity Streak</h2>
-        <p className="text-xs text-muted-foreground mb-3">Transaction activity over the last 12 weeks</p>
-        <StreakHeatmap />
-      </section>
     </div>
   );
 };
