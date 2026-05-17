@@ -407,7 +407,7 @@ gh issue create \
 - **Always update `.kanban/BOARD.md`** to reflect the new state
 
 ### Next task ID
-Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-101** → next is **PF-102**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13).
+Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-114** → next is **PF-115**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13).
 
 ---
 
@@ -423,6 +423,8 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - **Supabase Migration:** IN PROGRESS — 6 phases, tasks PF-S01–PF-S13
   - Done: PF-S01 through PF-S07 (EF Core removal)
   - See [docs/supabase-migration.md](docs/supabase-migration.md) for full phase breakdown
+- **Feature expansion:** ACTIVE — Investment Portfolio, Spending Analysis (PF-108), Financial Journey Gamification, all shipped
+  - **PF-114 IN PROGRESS** — Living Garden Hero redesign (Journey page visual overhaul): LivingGardenHero.tsx + 5 plant SVG components + GroundBand + CloudAccent + dual-display indicators + journeyLabels.ts
 
 ### What's Working
 - Full upload-preview-submit pipeline — BCA CSV, NeoBank PDF (direct parser), Default CSV, any unrecognized PDF (LLM-routed), PNG/JPG/WebP (LLM vision)
@@ -435,6 +437,12 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - Cashflow workspace: Overview, Transactions (server-paged, Excel-style filters, CSV export), Upload, Statement (quarterly/monthly)
 - Dashboard: Net Cashflow, Top Categories, Monthly chart
 - Settings: Category CRUD, Regional (date format), Data (reset)
+- Assets management: asset registry, liability tracking, live net worth calculation, balance sheet view
+- Investment portfolio: stocks (IDX), mutual funds, government bonds, crypto, P2P; allocation breakdown + return tracking
+- Spending analysis (PF-108): Safe-to-Spend indicator, variance explainer, monthly category drilldown
+- Financial Journey gamification: 5-tier scoring system (Cashflow → Defense → Growth → Freedom → Legacy), quest cards, streak heatmap, `/journey` page
+  - PF-114 IN PROGRESS: Living Garden Hero (5 animated plant SVGs replacing static pyramid hero, no-decay localStorage, dual-display indicator labels)
+- Dark/light theme + zen-mode UX focus toggle (PF-106)
 - Docker Compose full-stack orchestration
 - GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4))
 - Playwright E2E test infrastructure (`e2e/` with 5 spec files + BCA CSV fixture)
@@ -446,6 +454,7 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - RAG pipeline, embeddings, natural language querying (PF-S13)
 - Wise CSV parser (with FX rate conversion)
 - Bank profile config system (YAML-driven)
+- Budgeting, Bills & subscriptions, Savings & goals, Debt management, Reports & analytics, Unified dashboard, Personal tax
 
 ### Known Tech Debt
 - TypeScript strict mode disabled (PF-052)

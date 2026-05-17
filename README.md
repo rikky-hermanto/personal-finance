@@ -2,7 +2,7 @@
 
 A self-hosted personal finance platform, built specifically for Indonesian users. The goal is a single place for the full financial picture — cashflow, net worth, investments, tax, goals, budgeting, debt, and more. AI-powered ingestion handles the messy part: getting data out of bank CSVs, PDFs, and screenshots automatically.
 
-**Cashflow tracking, assets management, investment portfolio, and spending analysis are all live.** Everything else is being built out one piece at a time.
+**Cashflow tracking, assets management, investment portfolio, spending analysis, and financial journey gamification are all live.** Everything else is being built out one piece at a time.
 
 ## 🤔 The problem this solves
 
@@ -23,6 +23,14 @@ Upload bank statements from BCA, Superbank, NeoBank, Wise, or Bank Jago — CSV,
 - 4-step upload wizard — drag/drop, file picker, or clipboard paste; PDF password support; inline editing before save
 - Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly), Wallet Statement, Upload
 - Three-tier deduplication so nothing gets imported twice
+
+![alt text](image-4.png)
+
+![alt text](image-3.png)
+
+![alt text](image-2.png)
+
+![alt text](image-1.png)
 
 ### 🏦 Assets management & balance sheet
 
@@ -49,16 +57,29 @@ Understand where your money actually goes.
 - Variance explainer — highlights categories that deviated from the prior period and explains why
 - Monthly spending breakdown with category drilldown
 
+### 🗺️ Financial Journey
+
+A 5-tier financial health progression system inspired by the wealth pyramid.
+
+- Five tiers: Cashflow → Defense → Growth → Freedom → Legacy — each with 2–3 scored indicators
+- Living Garden Hero — 5 animated plants grow horizontally as your scores improve; each plant has 4 growth stages
+- No-decay rule — plants never shrink when scores dip (peak stage persisted in localStorage)
+- Indicator dual display — product-language headlines ("3-month emergency fund") with metric sub-text, replacing raw technical labels
+- Quest cards with actionable next steps per tier
+- Activity streak heatmap
+- Click-to-scroll plant → tier card, recommended-tier pulse glow
+
+![alt text](image-5.png)
+
 ### 🖥️ Platform
 
 - Dark/light theme with zen-mode UX — focus mode toggle, clean minimal interface (PF-106)
 - System health dashboard at `/status` — polls all services every 30 seconds
 - LGTM observability stack — OpenTelemetry traces, metrics, and logs across .NET API and Python AI service, surfaced in Grafana
 
-![alt text](image-4.png)
-![alt text](image-3.png)
-![alt text](image-2.png)
-![alt text](image-1.png)
+
+
+
 
 ## 🔭 What's coming
 
@@ -93,6 +114,7 @@ Pull income data from Cashflow (salary, freelance, dividends, interest, rental).
 | Assets management & balance sheet | ✅ Live |
 | Investment portfolio | ✅ Live |
 | Spending analysis | ✅ Live |
+| Financial Journey gamification | ✅ Live |
 | Budgeting | 🔜 Planned |
 | Bills & subscriptions | 🔜 Planned |
 | Savings & goals | 🔜 Planned |

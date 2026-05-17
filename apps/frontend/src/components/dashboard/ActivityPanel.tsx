@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import * as transactionsApi from '@/api/transactionsApi';
 import { Transaction } from '@/types/Transaction';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
+import { StreakHeatmap } from '@/components/journey/StreakHeatmap';
 
 interface ActivityPanelProps {
   selectedMonth?: string;
@@ -30,6 +32,8 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
   });
 
   const { focused } = useFocusMode();
+  const { pathname } = useLocation();
+  const isJourney = pathname.startsWith('/journey');
 
   const recent = pagedResult?.items.map(mapApiToTransaction) || [];
 
@@ -43,6 +47,28 @@ const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => 
     { label: 'Last month', value: lastMonthKey },
     { label: 'All time', value: 'all' },
   ];
+
+  // Journey page — show streak heatmap instead of recent transactions
+  if (isJourney) {
+    return (
+      <div className={cn(
+        'w-80 flex-shrink-0 flex flex-col h-full bg-sidebar overflow-hidden',
+        focused && 'focus-recessed',
+      )}>
+        <div className="px-5 pt-6 pb-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-widest opacity-50">
+            Activity Streak
+          </span>
+          <p className="text-[10px] text-muted-foreground/50 mt-1">
+            Transaction activity · last 12 weeks
+          </p>
+        </div>
+        <div className="px-5">
+          <StreakHeatmap />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(
