@@ -1,8 +1,36 @@
 # 💰 Personal Finance Platform
 
-A self-hosted personal finance platform, built specifically for Indonesian users. The goal is a single place for the full financial picture — cashflow, net worth, investments, tax, goals, budgeting, debt, and more. AI-powered ingestion handles the messy part: getting data out of bank CSVs, PDFs, and screenshots automatically.
+> **Finance should feel like a game you're winning, not a spreadsheet you're losing.**
 
-**Cashflow tracking, assets management, investment portfolio, spending analysis, and financial journey gamification are all live.** Everything else is being built out one piece at a time.
+A self-hosted personal finance platform built for Indonesian users. The mission: make managing money genuinely enjoyable — through clarity, progress, and a sense of level-up. Not another budgeting tool that guilts you. A system that shows where you stand, what to do next, and celebrates when you move forward.
+
+AI-powered ingestion handles the messy part — getting data out of bank CSVs, PDFs, and screenshots automatically so you spend time on decisions, not data entry.
+
+**Cashflow tracking, assets management, investment portfolio, spending analysis, and financial journey gamification are all live.** Everything else is being built out one level at a time.
+
+---
+
+## 🏔️ The Backbone: Financial Pyramid
+
+Every feature in this app is anchored to a single framework — the **financial pyramid hierarchy**. You can't invest well without a safety net. You can't build a safety net without understanding your cashflow. Skipping levels is how people end up with crypto portfolios and no emergency fund.
+
+```
+                 ▲
+               ████             L5 · Legacy
+                                Estate Planning · Succession · Tax Planning
+             ████████           L4 · Freedom
+                                FIRE Calculator · Passive Income
+           ████████████         L3 · Growth
+                                Investments · Savings Goals
+         ████████████████       L2 · Defense
+                                Assets · Emergency Fund
+       ████████████████████     L1 · Foundations
+                                Cashflow · Budgeting · Recurring
+```
+
+Each level unlocks naturally from the one below. The app tracks your score across all five tiers and shows exactly where to focus next — no guessing, no overwhelm.
+
+---
 
 ## 🤔 The problem this solves
 
@@ -10,9 +38,53 @@ Managing money in Indonesia means juggling 5+ bank accounts, each exporting data
 
 The usual workaround: copy-paste into ChatGPT, clean the output, dump into an ever-growing Excel file, repeat every month. It works until it doesn't — and it never scales.
 
-This project automates the whole pipeline. Upload any bank statement in any format, get clean categorized data back, and see everything in one place.
+This project automates the whole pipeline. Upload any bank statement in any format, get clean categorized data back, and see everything in one place — mapped to the level of the pyramid where it belongs.
 
-## ✅ What's built so far
+---
+
+## 🗺️ The Roadmap (by level)
+
+### L1 · Foundations — *Know where your money goes*
+
+| Feature | Status |
+|---|---|
+| Cashflow tracking (upload, categorize, review) | ✅ Live |
+| Spending analysis (Safe-to-Spend, variance) | ✅ Live |
+| Budgeting (50/30/20, zero-based, envelope) | 🔜 Soon |
+| Recurring (bills, subscriptions, due dates) | 🔜 Soon |
+
+### L2 · Defense — *Protect what you have*
+
+| Feature | Status |
+|---|---|
+| Assets & balance sheet (net worth, liabilities) | ✅ Live |
+| Emergency Fund tracker | 🔜 Soon |
+
+### L3 · Growth — *Make money work*
+
+| Feature | Status |
+|---|---|
+| Investment portfolio (IDX, funds, bonds, crypto, P2P) | ✅ Live |
+| Savings Goals | 🔜 Soon |
+
+### L4 · Freedom — *Build passive income*
+
+| Feature | Status |
+|---|---|
+| FIRE Calculator | 🔜 Soon |
+| Passive Income tracker | 🔜 Soon |
+
+### L5 · Legacy — *Leave a mark*
+
+| Feature | Status |
+|---|---|
+| Estate Planning (hibah, warisan, wills, trusts) | 🔜 Soon |
+| Succession (business ownership transfer) | 🔜 Soon |
+| Tax Planning (SPT, PTKP, deductibles) | 🔜 Soon |
+
+---
+
+## ✅ What's live now
 
 ### Cashflow tracking
 
@@ -21,7 +93,7 @@ Upload bank statements from BCA, Superbank, NeoBank, Wise, or Bank Jago — CSV,
 - Hybrid parser: CSV files parsed directly (fast, zero AI cost); PDFs and screenshots go through Gemini / Claude for structured extraction
 - 106-rule auto-categorization engine, longest-match priority, fully configurable from Settings
 - 4-step upload wizard — drag/drop, file picker, or clipboard paste; PDF password support; inline editing before save
-- Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly), Wallet Statement, Upload
+- Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly)
 - Three-tier deduplication so nothing gets imported twice
 
 ![alt text](image-4.png)
@@ -54,74 +126,28 @@ Track your full investment picture across Indonesian market instruments.
 Understand where your money actually goes.
 
 - Safe-to-Spend indicator — compares income vs committed expenses to show discretionary headroom
-- Variance explainer — highlights categories that deviated from the prior period and explains why
+- Variance explainer — highlights categories that deviated from the prior period
 - Monthly spending breakdown with category drilldown
 
 ### 🗺️ Financial Journey
 
-A 5-tier financial health progression system inspired by the wealth pyramid.
+The gamification layer that ties everything together. Progress through the five pyramid levels, earn scores, complete quests.
 
-- Five tiers: Cashflow → Defense → Growth → Freedom → Legacy — each with 2–3 scored indicators
-- Living Garden Hero — 5 animated plants grow horizontally as your scores improve; each plant has 4 growth stages
+- Five tiers: **Foundations → Defense → Growth → Freedom → Legacy** — each with 2–3 scored indicators
+- Living Garden Hero — 5 animated plants grow as your scores improve; each plant has 4 growth stages tied to your level progress
 - No-decay rule — plants never shrink when scores dip (peak stage persisted in localStorage)
-- Indicator dual display — product-language headlines ("3-month emergency fund") with metric sub-text, replacing raw technical labels
-- Quest cards with actionable next steps per tier
-- Activity streak heatmap
-- Click-to-scroll plant → tier card, recommended-tier pulse glow
+- Quest cards with actionable next steps per tier, activity streak heatmap
+- The journey page is the home screen — it always shows where you are in the pyramid and what to do next
 
 ![alt text](image-5.png)
 
 ### 🖥️ Platform
 
-- Dark/light theme with zen-mode UX — focus mode toggle, clean minimal interface (PF-106)
+- Dark/light theme with zen-mode UX — focus mode toggle, clean minimal interface
 - System health dashboard at `/status` — polls all services every 30 seconds
 - LGTM observability stack — OpenTelemetry traces, metrics, and logs across .NET API and Python AI service, surfaced in Grafana
 
-
-
-
-
-## 🔭 What's coming
-
-*Ordered from most essential to advanced.*
-
-**📊 Budgeting**
-Monthly spending limits per category, live budget vs actual from Cashflow data. Choose your method: 50/30/20, Zero-Based, or Envelope System. Alerts when you're approaching or over the limit. Rollover rules. Historical analysis — see which categories consistently go over budget.
-
-**📅 Bills & subscriptions**
-Due date calendar for utilities, internet, credit cards, and loan installments. Reminders 3 days before each due date. Subscription tracker — a full list of active services (Netflix, Spotify, gym, etc.) with the total monthly cost, so you can easily spot what to cut.
-
-**🎯 Savings & goals**
-Set a savings target (emergency fund, house down payment, vacation, new laptop, retirement) and link it to a real account or investment. Progress bar per goal. Estimated completion date based on your current saving rate. Scenario modelling: "if I save Rp X more per month, I'll hit this by..."
-
-**💳 Debt management**
-Register every debt (mortgage, personal loan, BNPL, credit card, private loan). See the interest vs principal split per payment. Simulate payoff using Avalanche or Snowball method. Due date alerts. Project the total interest cost over the life of each debt. Payments reconcile automatically with Cashflow.
-
-**📉 Reports & analytics**
-Deeper monthly and annual cash flow statements. Net worth over time — total assets minus total liabilities. Spending trends by category. Needs vs wants breakdown. Period-over-period comparison.
-
-**🖥️ Unified home dashboard**
-One screen: net worth snapshot, cashflow health, portfolio performance, goal progress, upcoming due dates, and alerts — all from live data across every feature.
-
-**🧾 Personal tax** *(advanced)*
-Pull income data from Cashflow (salary, freelance, dividends, interest, rental). Track deductibles: BPJS, pension contributions, zakat. Calculate income tax and non-taxable income threshold (PTKP). Pre-fill assets and liabilities for annual tax return (SPT Form 1770). Export compatible with DJP Online / e-SPT.
-
-## 📋 Status
-
-| Feature | Status |
-|---|---|
-| Cashflow tracking | ✅ Live |
-| Assets management & balance sheet | ✅ Live |
-| Investment portfolio | ✅ Live |
-| Spending analysis | ✅ Live |
-| Financial Journey gamification | ✅ Live |
-| Budgeting | 🔜 Planned |
-| Bills & subscriptions | 🔜 Planned |
-| Savings & goals | 🔜 Planned |
-| Debt management | 🔜 Planned |
-| Reports & analytics | 🔜 Planned |
-| Unified dashboard | 🔜 Planned |
-| Personal tax | 🔜 Planned |
+---
 
 ## 🚀 Getting started
 
@@ -142,11 +168,14 @@ npm start
 | URL | What |
 |---|---|
 | http://localhost:8080 | The app |
+| http://localhost:8080/journey | Your pyramid progress |
 | http://localhost:8080/status | Service health |
 | http://localhost:54323 | Supabase Studio |
 | http://localhost:3000 | Grafana |
 
-Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview, hit Submit. A sample CSV is available via the Download Template button.
+Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview, hit Submit.
+
+---
 
 ## 🏗️ Architecture
 
@@ -173,31 +202,14 @@ Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview,
 │  │ PostgreSQL 17   │  │ │ └──────────────────────────────────────┘
 │  │ + pgvector      │  │ │
 │  │ transactions    │  │ │       Webhook POST on INSERT
-│  │ category_rules  │  │ │         to statement_uploads
-│  │ statement_      │  │ │
-│  │   uploads       │  │ │  ┌──────────────────────────────────┐
-│  │ embeddings      │  │ └──►  Python AI Service (FastAPI)     │
-│  │ (RLS enforced)  │◄─┼──────┤  1. Download from Storage      │
-│  └─────────────────┘  │      │  2. PyMuPDF / Claude Vision    │
-│                       │      │  3. Claude tool_use extraction  │
-└───────────────────────┘      │  4. Write results via supabase-py│
-                               │  5. Update status → "done"     │
-                               │                                │
-                               │  RAG / Embeddings (Sprint 2+)  │
-                               └────────────────────────────────┘
-```
-
-```
-  .NET 10 API  ──┐
-                 │  OTLP (traces · metrics · logs)
-  Python AI   ───┼──► Alloy (collector)
-                 │         │
-                 │    ┌────┼────────┐
-                 │    ▼    ▼        ▼
-                 │  Prometheus    Loki     Tempo
-                 │    └────────────┬────────┘
-                 │                 ▼
-                 └──────────► Grafana :3000
+│  │ category_rules  │  │ │
+│  │ statement_      │  │ │  ┌──────────────────────────────────┐
+│  │   uploads       │  │ └──►  Python AI Service (FastAPI)     │
+│  │ embeddings      │  │      │  1. Download from Storage      │
+│  │ (RLS enforced)  │◄─┼──────┤  2. PyMuPDF / Claude Vision    │
+│  └─────────────────┘  │      │  3. Claude tool_use extraction  │
+│                       │      │  4. Write results via supabase-py│
+└───────────────────────┘      └────────────────────────────────┘
 ```
 
 | Layer | Technology |
