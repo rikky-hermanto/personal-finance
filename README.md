@@ -8,7 +8,20 @@ AI-powered ingestion handles the messy part — getting data out of bank CSVs, P
 
 **Cashflow tracking, assets management, investment portfolio, spending analysis, and financial journey gamification are all live.** Everything else is being built out one level at a time.
 
----
+## 🤔 The problem this solves
+
+Most people don't have a money problem. They have a **clarity and direction problem.**
+
+They earn, they spend, they occasionally invest — but without a coherent picture of where they stand or a framework for what to do next. Every financial tool they use answers a different slice of the question in isolation: a budgeting app here, a broker app there, a bank statement downloaded once a month that nobody reads. Plenty of data, no map.
+
+The result is a financially active person who still feels stuck. Not because they're doing nothing — but because they don't know if what they're doing is the *right thing at their level*. Someone maxing out their investment portfolio while carrying high-interest debt. Someone diligently saving without knowing whether their emergency fund is adequate. Someone who opened a FIRE calculator before they've ever tracked a month of spending. Good intentions, wrong order.
+
+That's the problem the **Financial Pyramid** is designed to fix. Financial health isn't a checklist — it's a hierarchy. Each level has prerequisites. You can't defend what you haven't yet built. You can't grow what you haven't defended. The pyramid makes the order explicit, so every decision has context: *this is the level you're on, this is what matters here, this is what unlocks next.*
+
+This platform is built around that framework end-to-end. The data infrastructure (automatic ingestion from any Indonesian bank format, unified cashflow + assets + investments in one place) exists to feed the framework — so your pyramid scores reflect reality, not estimates. The gamification layer exists to make progress feel like progress, not just another month of tracking. The whole system points at one question: **not "where did my money go?" but "how far up the pyramid am I, and what's my next move?"**
+
+Let's make finance fun!
+
 
 ## 🏔️ The Backbone: Financial Pyramid
 
@@ -29,18 +42,6 @@ Every feature in this app is anchored to a single framework — the **financial 
 ```
 
 Each level unlocks naturally from the one below. The app tracks your score across all five tiers and shows exactly where to focus next — no guessing, no overwhelm.
-
----
-
-## 🤔 The problem this solves
-
-Managing money in Indonesia means juggling 5+ bank accounts, each exporting data in a completely different format. BCA gives you a CSV. Superbank gives you a PDF. Bank Jago gives you a screenshot. Wise gives you a CSV in foreign currency. None of them talk to each other.
-
-The usual workaround: copy-paste into ChatGPT, clean the output, dump into an ever-growing Excel file, repeat every month. It works until it doesn't — and it never scales.
-
-This project automates the whole pipeline. Upload any bank statement in any format, get clean categorized data back, and see everything in one place — mapped to the level of the pyramid where it belongs.
-
----
 
 ## 🗺️ The Roadmap (by level)
 
@@ -81,9 +82,7 @@ This project automates the whole pipeline. Upload any bank statement in any form
 | Estate Planning (hibah, warisan, wills, trusts) | 🔜 Soon |
 | Succession (business ownership transfer) | 🔜 Soon |
 | Tax Planning (SPT, PTKP, deductibles) | 🔜 Soon |
-
----
-
+ 
 ## ✅ What's live now
 
 ### Cashflow tracking
@@ -139,7 +138,7 @@ The gamification layer that ties everything together. Progress through the five 
 - Quest cards with actionable next steps per tier, activity streak heatmap
 - The journey page is the home screen — it always shows where you are in the pyramid and what to do next
 
-![alt text](image-5.png)
+![alt text](image-7.png)
 
 ### 🖥️ Platform
 
@@ -147,7 +146,7 @@ The gamification layer that ties everything together. Progress through the five 
 - System health dashboard at `/status` — polls all services every 30 seconds
 - LGTM observability stack — OpenTelemetry traces, metrics, and logs across .NET API and Python AI service, surfaced in Grafana
 
----
+ 
 
 ## 🚀 Getting started
 
@@ -174,8 +173,7 @@ npm start
 | http://localhost:3000 | Grafana |
 
 Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview, hit Submit.
-
----
+ 
 
 ## 🏗️ Architecture
 
