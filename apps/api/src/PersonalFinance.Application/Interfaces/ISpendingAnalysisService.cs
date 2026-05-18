@@ -2,6 +2,6 @@ using PersonalFinance.Application.Dtos;
 
 public interface ISpendingAnalysisService
 {
-    Task<SafeToSpendDto> GetSafeToSpendAsync(string? wallet = null);
-    Task<VarianceExplainerDto> GetVarianceExplainerAsync(string? wallet = null);
+    Task<SafeToSpendDto> GetSafeToSpendAsync(Guid? accountId = null);
+    Task<VarianceExplainerDto> GetVarianceExplainerAsync(Guid? accountId = null);
 }

@@ -26,8 +26,8 @@ export interface VarianceExplainer {
   drivers: VarianceDriver[];
 }
 
-export const getSafeToSpend = (wallet?: string): Promise<SafeToSpend> =>
-  fetch(`${BASE}/api/spending-analysis/safe-to-spend${wallet ? `?wallet=${encodeURIComponent(wallet)}` : ''}`).then(r => r.json());
+export const getSafeToSpend = (accountId?: string): Promise<SafeToSpend> =>
+  fetch(`${BASE}/api/spending-analysis/safe-to-spend${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ''}`).then(r => r.json());
 
-export const getVarianceExplainer = (wallet?: string): Promise<VarianceExplainer> =>
-  fetch(`${BASE}/api/spending-analysis/variance${wallet ? `?wallet=${encodeURIComponent(wallet)}` : ''}`).then(r => r.json());
+export const getVarianceExplainer = (accountId?: string): Promise<VarianceExplainer> =>
+  fetch(`${BASE}/api/spending-analysis/variance${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ''}`).then(r => r.json());

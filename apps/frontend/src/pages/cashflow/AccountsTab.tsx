@@ -1,20 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Wallet, TrendingUp, TrendingDown, X, LayoutList, LayoutGrid, Calendar } from 'lucide-react';
+import { Building2, TrendingUp, TrendingDown, X, LayoutList, LayoutGrid, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import TransactionTable from '@/components/TransactionTable';
 import CashflowStatementTable from '@/components/CashflowStatementTable';
-import { getWalletSummaries, getCashflowStatement, WalletSummary } from '@/api/transactionsApi';
+import { getAccountSummaries, getCashflowStatement, AccountSummary } from '@/api/transactionsApi';
 import { CashflowStatement } from '@/types/CashflowStatement';
 import { formatCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { Transaction } from '@/types/Transaction';
-
-const CUSTOM_WALLETS_KEY = 'pf_custom_wallets';
 
 const RANGES = [
   { label: 'Last Month', value: 1 },
@@ -27,36 +21,16 @@ const RANGES = [
 
 type ViewMode = 'table' | 'statement';
 
-interface CustomWallet {
-  name: string;
-  currency: 'IDR' | 'USD';
-  type: 'Banking' | 'Investment' | 'E-Wallet' | 'Other';
-}
-
-function loadCustomWallets(): CustomWallet[] {
-  try {
-    return JSON.parse(localStorage.getItem(CUSTOM_WALLETS_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function saveCustomWallets(wallets: CustomWallet[]) {
-  localStorage.setItem(CUSTOM_WALLETS_KEY, JSON.stringify(wallets));
-}
-
-const WalletCard = ({
-  name,
+const AccountCard = ({
   summary,
   selected,
   onClick,
 }: {
-  name: string;
-  summary?: WalletSummary;
+  summary: AccountSummary;
   selected: boolean;
   onClick: () => void;
 }) => {
-  const net = summary?.net ?? 0;
+  const net = summary.netPosition ?? 0;
   const isPositive = net >= 0;
 
   return (
@@ -75,48 +49,49 @@ const WalletCard = ({
             'w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold',
             selected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
           )}>
-            {name.charAt(0).toUpperCase()}
+            {summary.accountName.charAt(0).toUpperCase()}
           </div>
-          <span className="text-sm font-medium">{name}</span>
+          <div className="min-w-0">
+            <span className="text-sm font-medium block truncate">{summary.accountName}</span>
+            {summary.institutionName && (
+              <span className="text-[10px] text-muted-foreground">{summary.institutionName}</span>
+            )}
+          </div>
         </div>
-        {summary && (
-          <span className={cn(
-            'text-xs font-mono font-medium',
-            isPositive ? 'text-emerald-400' : 'text-red-400'
-          )}>
-            {isPositive ? '+' : ''}Rp {formatCompact(net)}
-          </span>
-        )}
+        <span className={cn(
+          'text-xs font-mono font-medium shrink-0 ml-2',
+          isPositive ? 'text-emerald-400' : 'text-red-400'
+        )}>
+          {isPositive ? '+' : ''}Rp {formatCompact(net)}
+        </span>
       </div>
-      {summary && (
-        <div className="grid grid-cols-2 gap-1 mt-1">
-          <div className="flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-emerald-400" />
-            <span className="text-[11px] text-muted-foreground font-mono">Rp {formatCompact(summary.totalIncome)}</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <TrendingDown className="w-3 h-3 text-red-400" />
-            <span className="text-[11px] text-muted-foreground font-mono">Rp {formatCompact(summary.totalExpenses)}</span>
-          </div>
+      <div className="grid grid-cols-2 gap-1 mt-1">
+        <div className="flex items-center gap-1">
+          <TrendingUp className="w-3 h-3 text-emerald-400" />
+          <span className="text-[11px] text-muted-foreground font-mono">Rp {formatCompact(summary.totalIn)}</span>
         </div>
-      )}
-      {summary && (
-        <div className="text-[10px] text-muted-foreground mt-1.5">
-          {summary.transactionCount.toLocaleString()} transactions
+        <div className="flex items-center gap-1">
+          <TrendingDown className="w-3 h-3 text-red-400" />
+          <span className="text-[11px] text-muted-foreground font-mono">Rp {formatCompact(summary.totalOut)}</span>
         </div>
-      )}
-      {!summary && (
-        <div className="text-[11px] text-muted-foreground">No transactions yet</div>
-      )}
+      </div>
+      <div className="text-[10px] text-muted-foreground mt-1.5">
+        {summary.transactionCount > 0
+          ? `${summary.transactionCount.toLocaleString()} transactions`
+          : 'No transactions yet'}
+      </div>
     </button>
   );
 };
 
 const AccountsTab = () => {
-  const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [customWallets, setCustomWallets] = useState<CustomWallet[]>(loadCustomWallets);
+
+  // Clear stale localStorage key from old custom-wallets system
+  useEffect(() => {
+    localStorage.removeItem('pf_custom_wallets');
+  }, []);
 
   // Statement controls
   const [range, setRange] = useState(6);
@@ -124,59 +99,35 @@ const AccountsTab = () => {
   const [statementData, setStatementData] = useState<CashflowStatement | null>(null);
   const [statementLoading, setStatementLoading] = useState(false);
 
-  // Add wallet dialog state
-  const [newWalletName, setNewWalletName] = useState('');
-  const [newWalletCurrency, setNewWalletCurrency] = useState<'IDR' | 'USD'>('IDR');
-  const [newWalletType, setNewWalletType] = useState<CustomWallet['type']>('Banking');
-
   const { data: summaries = [], isLoading } = useQuery({
-    queryKey: ['wallet-summaries'],
-    queryFn: getWalletSummaries,
+    queryKey: ['account-summaries'],
+    queryFn: () => getAccountSummaries(12),
     staleTime: 60_000,
   });
 
-  const summaryMap = Object.fromEntries(summaries.map((s) => [s.wallet, s]));
-
-  const allWalletNames = Array.from(
-    new Set([
-      ...summaries.map((s) => s.wallet),
-      ...customWallets.map((w) => w.name),
-    ])
-  ).sort();
-
   const totals = summaries.reduce(
     (acc, s) => ({
-      income: acc.income + s.totalIncome,
-      expenses: acc.expenses + s.totalExpenses,
-      count: acc.count + s.transactionCount,
+      income:   acc.income   + s.totalIn,
+      expenses: acc.expenses + s.totalOut,
+      count:    acc.count    + s.transactionCount,
     }),
     { income: 0, expenses: 0, count: 0 }
   );
   const totalNet = totals.income - totals.expenses;
 
-  // Fetch statement whenever view/wallet/range/groupBy changes
+  const selectedSummary = summaries.find(s => s.accountId === selectedAccountId);
+
+  // Fetch statement whenever view/account/range/groupBy changes
   useEffect(() => {
     if (viewMode !== 'statement') return;
     let cancelled = false;
     setStatementLoading(true);
-    getCashflowStatement(range, selectedWallet ?? undefined, groupBy)
+    getCashflowStatement(range, selectedAccountId ?? undefined, groupBy)
       .then((data) => { if (!cancelled) setStatementData(data); })
       .catch(console.error)
       .finally(() => { if (!cancelled) setStatementLoading(false); });
     return () => { cancelled = true; };
-  }, [viewMode, selectedWallet, range, groupBy]);
-
-  const handleAddWallet = () => {
-    if (!newWalletName.trim()) return;
-    const updated = [
-      ...customWallets,
-      { name: newWalletName.trim(), currency: newWalletCurrency, type: newWalletType },
-    ];
-    setCustomWallets(updated);
-    saveCustomWallets(updated);
-    setNewWalletName('');
-    setShowAddDialog(false);
-  };
+  }, [viewMode, selectedAccountId, range, groupBy]);
 
   const handleTransactionUpdate = useCallback((_id: string, _updates: Partial<Transaction>) => {}, []);
 
@@ -187,22 +138,15 @@ const AccountsTab = () => {
       : 'text-muted-foreground hover:text-foreground hover:bg-foreground/5',
   );
 
+  const displayTitle = selectedSummary?.accountName ?? 'All Bank Accounts';
+
   return (
     <div className="flex h-full bg-transparent">
-      {/* Left panel — wallet list */}
+      {/* Left panel — account list */}
       <div className="w-72 shrink-0 border-r border-border flex flex-col">
         <div className="px-4 pt-6 pb-4 border-b border-border">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-foreground">Wallets</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setShowAddDialog(true)}
-            >
-              <Plus className="w-3.5 h-3.5 mr-1" />
-              Add
-            </Button>
+            <h2 className="text-sm font-semibold text-foreground">Bank Accounts</h2>
           </div>
 
           {/* Net position summary card */}
@@ -222,36 +166,43 @@ const AccountsTab = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
-          {/* All wallets option */}
+          {/* All accounts option */}
           <button
-            onClick={() => setSelectedWallet(null)}
+            onClick={() => setSelectedAccountId(null)}
             className={cn(
               'w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-150',
-              selectedWallet === null
+              selectedAccountId === null
                 ? 'border-primary/60 bg-primary/10 text-foreground'
                 : 'border-border bg-card hover:bg-muted/50 text-muted-foreground hover:text-foreground',
             )}
           >
             <div className="flex items-center gap-2">
-              <Wallet className="w-4 h-4" />
-              <span className="text-sm font-medium">All Wallets</span>
+              <Building2 className="w-4 h-4" />
+              <span className="text-sm font-medium">All Bank Accounts</span>
             </div>
             <div className="text-[10px] text-muted-foreground mt-0.5 ml-6">
               {totals.count.toLocaleString()} transactions
             </div>
           </button>
 
-          {/* Per-wallet cards */}
+          {/* Per-account cards */}
           {isLoading ? (
-            <div className="py-8 text-center text-xs text-muted-foreground">Loading wallets…</div>
+            <div className="py-8 text-center text-xs text-muted-foreground">Loading accounts…</div>
+          ) : summaries.length === 0 ? (
+            <div className="py-6 text-center text-xs text-muted-foreground">
+              No accounts yet.
+              <br />
+              <span className="text-[11px]">Add in Settings → Banks &amp; Accounts.</span>
+            </div>
           ) : (
-            allWalletNames.map((name) => (
-              <WalletCard
-                key={name}
-                name={name}
-                summary={summaryMap[name]}
-                selected={selectedWallet === name}
-                onClick={() => setSelectedWallet(name === selectedWallet ? null : name)}
+            summaries.map((summary) => (
+              <AccountCard
+                key={summary.accountId}
+                summary={summary}
+                selected={selectedAccountId === summary.accountId}
+                onClick={() => setSelectedAccountId(
+                  summary.accountId === selectedAccountId ? null : summary.accountId
+                )}
               />
             ))
           )}
@@ -265,12 +216,12 @@ const AccountsTab = () => {
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
               <h1 className="text-2xl font-bold text-foreground tracking-tight">
-                {selectedWallet ?? 'All Wallets'}
+                {displayTitle}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                {selectedWallet
-                  ? `Transactions for ${selectedWallet}`
-                  : 'View transactions across all wallets'}
+                {selectedAccountId
+                  ? `Transactions for ${displayTitle}`
+                  : 'View transactions across all bank accounts'}
               </p>
             </div>
 
@@ -317,8 +268,8 @@ const AccountsTab = () => {
                 </>
               )}
 
-              {selectedWallet && (
-                <Button variant="ghost" size="sm" className="text-muted-foreground h-7" onClick={() => setSelectedWallet(null)}>
+              {selectedAccountId && (
+                <Button variant="ghost" size="sm" className="text-muted-foreground h-7" onClick={() => setSelectedAccountId(null)}>
                   <X className="w-3.5 h-3.5 mr-1" />
                   Clear
                 </Button>
@@ -329,9 +280,9 @@ const AccountsTab = () => {
           {/* Content */}
           {viewMode === 'table' ? (
             <TransactionTable
-              key={selectedWallet ?? '__all__'}
+              key={selectedAccountId ?? '__all__'}
               onTransactionUpdate={handleTransactionUpdate}
-              walletFilter={selectedWallet ?? undefined}
+              accountIdFilter={selectedAccountId ?? undefined}
             />
           ) : (
             <CashflowStatementTable
@@ -341,61 +292,6 @@ const AccountsTab = () => {
           )}
         </div>
       </div>
-
-      {/* Add Wallet dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Add Wallet</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="wallet-name">Wallet name</Label>
-              <Input
-                id="wallet-name"
-                placeholder="e.g. Bank Jago, Mandiri"
-                value={newWalletName}
-                onChange={(e) => setNewWalletName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleAddWallet(); }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Currency</Label>
-                <Select value={newWalletCurrency} onValueChange={(v) => setNewWalletCurrency(v as 'IDR' | 'USD')}>
-                  <SelectTrigger className="bg-background border-input text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IDR">IDR — Indonesian Rupiah</SelectItem>
-                    <SelectItem value="USD">USD — US Dollar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Wallet type</Label>
-                <Select value={newWalletType} onValueChange={(v) => setNewWalletType(v as CustomWallet['type'])}>
-                  <SelectTrigger className="bg-background border-input text-foreground">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Banking">Banking</SelectItem>
-                    <SelectItem value="Investment">Investment</SelectItem>
-                    <SelectItem value="E-Wallet">E-Wallet</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-            <Button onClick={handleAddWallet} disabled={!newWalletName.trim()}>
-              Add Wallet
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

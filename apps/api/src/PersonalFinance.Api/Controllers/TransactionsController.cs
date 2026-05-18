@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Application.Commands;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Domain.Entities;
+using static Supabase.Postgrest.Constants;
 
 namespace PersonalFinance.Api.Controllers;
 
@@ -25,6 +27,7 @@ public class TransactionsController : ControllerBase
     private readonly IMediator _mediator;
     private readonly IFileStorageService _fileStorageService;
     private readonly ITransactionPipelineService _pipelineService;
+    private readonly Supabase.Client _supabase;
 
     public TransactionsController(
         ILogger<TransactionsController> logger,
@@ -36,7 +39,8 @@ public class TransactionsController : ControllerBase
         ILlmExtractionClient llmClient,
         IMediator mediator,
         IFileStorageService fileStorageService,
-        ITransactionPipelineService pipelineService)
+        ITransactionPipelineService pipelineService,
+        Supabase.Client supabase)
     {
         _logger = logger;
         _statementImportService = statementImportService;
@@ -48,13 +52,11 @@ public class TransactionsController : ControllerBase
         _mediator = mediator;
         _fileStorageService = fileStorageService;
         _pipelineService = pipelineService;
+        _supabase = supabase;
     }
 
     [HttpGet("health")]
-    public IActionResult HealthCheck()
-    {
-        return Ok(new { status = "Healthy" });
-    }
+    public IActionResult HealthCheck() => Ok(new { status = "Healthy" });
 
     [HttpGet("supported-types")]
     public IActionResult GetSupportedTypes()
@@ -74,10 +76,10 @@ public class TransactionsController : ControllerBase
     [HttpPost("upload-preview")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadPreview(
-    IFormFile file,
-    [FromForm] string? pdfPassword = null,
-    [FromForm] string? bankHint = null,
-    [FromForm] string? dateFormat = null)
+        IFormFile file,
+        [FromForm] string? pdfPassword = null,
+        [FromForm] string? bankHint = null,
+        [FromForm] string? dateFormat = null)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { Message = "File is empty." });
@@ -117,6 +119,19 @@ public class TransactionsController : ControllerBase
 
                 mainStream.Position = 0;
                 transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword, dateFormat);
+            }
+
+            // Auto-resolve account_id from wallet text — alias lookup, then name match, then null
+            if (transactions.Any())
+            {
+                var walletText = transactions.First().Wallet;
+                var resolvedAccountId = await AutoResolveAccountIdAsync(walletText);
+                if (resolvedAccountId.HasValue)
+                {
+                    _logger.LogInformation("Auto-resolved account_id {AccountId} for wallet '{Wallet}'", resolvedAccountId, walletText);
+                    foreach (var tx in transactions)
+                        tx.AccountId = resolvedAccountId;
+                }
             }
 
             var allTransactions = await _transactionService.IdentifyDuplicatesAsync(transactions);
@@ -159,7 +174,7 @@ public class TransactionsController : ControllerBase
         try
         {
             var isImageOrPdf = ImageContentTypes.Contains(file.ContentType) || file.ContentType == "application/pdf";
-            
+
             using var fileStream = new MemoryStream();
             await file.CopyToAsync(fileStream);
             fileStream.Position = 0;
@@ -178,25 +193,18 @@ public class TransactionsController : ControllerBase
                 bank = bankHint ?? "UNKNOWN";
             }
 
-            // 1. Upload to Supabase Storage FIRST
             var filename = $"{Guid.NewGuid()}_{file.FileName}";
-            var userId = "default-user"; // Will be replaced by real auth UID later
+            var userId = "default-user";
             var storagePath = await _fileStorageService.UploadAsync(userId, bank, filename, fileStream, file.ContentType);
 
             if (isImageOrPdf)
-            {
-                // PDF/image path: upload -> store -> return { processing_id } immediately
                 return Accepted(new { processing_id = storagePath, message = "File uploaded and is processing asynchronously." });
-            }
 
-            // CSV path: download from storage -> parse -> validate -> return preview
             var downloadedStream = await _fileStorageService.DownloadAsync(storagePath);
             if (downloadedStream == null)
                 return StatusCode(500, new { Message = "Failed to retrieve file from storage." });
 
             var transactions = await _statementImportService.ImportAsync(downloadedStream, bank, pdfPassword, dateFormat);
-            
-            // Validation Pipeline
             var processedTransactions = await _pipelineService.ProcessAsync(transactions);
 
             return Ok(processedTransactions);
@@ -241,9 +249,12 @@ public class TransactionsController : ControllerBase
         var addedTransactions = await _transactionService.AddTransactionsAsync(nonDuplicates);
 
         if (!string.IsNullOrEmpty(request.FileHash))
-        {
             await _transactionService.RegisterFileHashAsync(request.FileHash, request.FileName ?? "uploaded_file");
-        }
+
+        // Upsert alias: persist wallet → account_id mapping for future auto-resolution
+        var first = request.Transactions.FirstOrDefault(t => t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.Wallet));
+        if (first != null)
+            await _transactionService.UpsertAliasAsync(first.Wallet, first.AccountId!.Value);
 
         return Ok(new
         {
@@ -259,74 +270,147 @@ public class TransactionsController : ControllerBase
         public string? FileName { get; set; }
     }
 
-    // List transactions — server-side paginated, filtered, ordered newest-first by default.
     [HttpGet]
     public async Task<IActionResult> GetTransactions(
-        [FromQuery] string? wallet   = null,
-        [FromQuery] string? category = null,
-        [FromQuery] string? type     = null,
-        [FromQuery] string? search   = null,
-        [FromQuery] string sortOrder = "desc",
-        [FromQuery] int    page      = 1,
-        [FromQuery] int    pageSize  = 50)
+        [FromQuery] Guid?   accountId = null,
+        [FromQuery] string? category  = null,
+        [FromQuery] string? type      = null,
+        [FromQuery] string? search    = null,
+        [FromQuery] string  sortOrder = "desc",
+        [FromQuery] int     page      = 1,
+        [FromQuery] int     pageSize  = 50)
     {
         pageSize = Math.Clamp(pageSize, 1, 200);
         page     = Math.Max(page, 1);
 
         var result = await _transactionService.GetTransactionPageAsync(
-            page, pageSize, wallet, search, category, type, sortOrder);
+            page, pageSize, accountId, search, category, type, sortOrder);
 
         return Ok(result);
     }
 
-    // Get details for a specific transaction by ID
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetTransactionById(int id)
     {
-        // You need to add this method to your ITransactionService and implementation.
         var transaction = await _transactionService.GetTransactionByIdAsync(id);
-        if (transaction == null)
-            return NotFound();
+        if (transaction == null) return NotFound();
         return Ok(transaction);
     }
 
-    // Dashboard endpoint - get aggregated data for dashboard
     [HttpGet("aggregated")]
     public async Task<IActionResult> GetDashboardData(
-        [FromQuery] string? wallet = null, [FromQuery] int? year = null, [FromQuery] int? month = null, [FromQuery] int months = 6)
+        [FromQuery] Guid? accountId = null,
+        [FromQuery] int? year = null,
+        [FromQuery] int? month = null,
+        [FromQuery] int months = 6)
     {
-        var data = await _dashboardService.GetDashboardDataAsync(wallet, year, month, months);
+        var data = await _dashboardService.GetDashboardDataAsync(accountId, year, month, months);
         return Ok(data);
     }
 
     [HttpGet("statement")]
     public async Task<IActionResult> GetCashflowStatement(
-        [FromQuery] int months = 6, 
-        [FromQuery] string? wallet = null, 
+        [FromQuery] int months = 6,
+        [FromQuery] Guid? accountId = null,
         [FromQuery] string groupBy = "quarterly")
     {
-        var data = await _dashboardService.GetCashflowStatementAsync(months, wallet, groupBy);
+        var data = await _dashboardService.GetCashflowStatementAsync(months, accountId, groupBy);
         return Ok(data);
+    }
+
+    [HttpGet("account-summaries")]
+    public async Task<IActionResult> GetAccountSummaries([FromQuery] int months = 12)
+    {
+        var since = DateTime.UtcNow.AddMonths(-months);
+
+        var accountsResult = await _supabase.From<Account>()
+            .Filter("include_in_cashflow", Operator.Equals, "true")
+            .Order("name", Ordering.Ascending)
+            .Get();
+
+        var institutionsResult = await _supabase.From<Institution>()
+            .Get();
+        var instMap = institutionsResult.Models.ToDictionary(i => i.Id, i => i.Name);
+
+        var txResult = await _supabase.From<Transaction>()
+            .Filter("date", Operator.GreaterThanOrEqual, since)
+            .Range(0, 100_000)
+            .Get();
+
+        var grouped = txResult.Models
+            .GroupBy(t => t.AccountId)
+            .ToDictionary(
+                g => g.Key,
+                g => new
+                {
+                    TotalIn  = g.Where(t => t.Type.Equals("Income",  StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr),
+                    TotalOut = g.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr),
+                    Count    = g.Count()
+                });
+
+        var summaries = accountsResult.Models.Select(a =>
+        {
+            grouped.TryGetValue(a.Id, out var stats);
+            var totalIn  = stats?.TotalIn  ?? 0m;
+            var totalOut = stats?.TotalOut ?? 0m;
+            return new
+            {
+                AccountId       = a.Id,
+                AccountName     = a.Name,
+                InstitutionId   = a.InstitutionId,
+                InstitutionName = a.InstitutionId.HasValue && instMap.TryGetValue(a.InstitutionId.Value, out var n) ? n : string.Empty,
+                Currency        = a.Currency,
+                TotalIn         = totalIn,
+                TotalOut        = totalOut,
+                NetPosition     = totalIn - totalOut,
+                TransactionCount = stats?.Count ?? 0
+            };
+        });
+
+        return Ok(summaries);
+    }
+
+    [HttpGet("resolve-alias")]
+    public async Task<IActionResult> ResolveAlias([FromQuery] string aliasText)
+    {
+        if (string.IsNullOrWhiteSpace(aliasText)) return BadRequest();
+
+        var accountId = await _transactionService.ResolveAliasAsync(aliasText);
+        if (accountId == null) return NotFound();
+
+        var account = await _supabase.From<Account>()
+            .Filter("id", Operator.Equals, accountId.Value.ToString())
+            .Single();
+        if (account == null) return NotFound();
+
+        string institutionName = string.Empty;
+        if (account.InstitutionId.HasValue)
+        {
+            var inst = await _supabase.From<Institution>()
+                .Filter("id", Operator.Equals, account.InstitutionId.Value.ToString())
+                .Single();
+            institutionName = inst?.Name ?? string.Empty;
+        }
+
+        return Ok(new { accountId = account.Id, accountName = account.Name, institutionName });
     }
 
     [HttpGet("export")]
     public async Task<IActionResult> ExportCsv(
-        [FromQuery] string? wallet,
+        [FromQuery] Guid? accountId,
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {
-        var transactions = await _transactionService.GetTransactionsWithBalanceAsync(wallet);
+        var transactions = await _transactionService.GetTransactionsWithBalanceAsync(accountId);
 
-        if (from.HasValue)
-            transactions = transactions.Where(t => t.Date >= from.Value).ToList();
-        if (to.HasValue)
-            transactions = transactions.Where(t => t.Date <= to.Value).ToList();
+        if (from.HasValue) transactions = transactions.Where(t => t.Date >= from.Value).ToList();
+        if (to.HasValue)   transactions = transactions.Where(t => t.Date <= to.Value).ToList();
 
         var stream = new MemoryStream();
         using (var writer = new StreamWriter(stream, leaveOpen: true))
         using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
         {
-            foreach (var header in new[] { "Date", "Item", "Remarks", "Flow", "Type", "Category", "Wallet", "Amount", "Exc. Rate", "Amount (IDR)", "Currency" })
+            foreach (var header in new[] { "Date", "Item", "Remarks", "Flow", "Type", "Category", "Bank Account", "Amount", "Exc. Rate", "Amount (IDR)", "Currency" })
                 csv.WriteField(header);
             await csv.NextRecordAsync();
 
@@ -338,7 +422,7 @@ public class TransactionsController : ControllerBase
                 csv.WriteField(t.Flow);
                 csv.WriteField(t.Type);
                 csv.WriteField(t.Category);
-                csv.WriteField(t.Wallet);
+                csv.WriteField(t.AccountId.ToString());
                 csv.WriteField(t.AmountIdr);
                 csv.WriteField(t.ExchangeRate?.ToString(CultureInfo.InvariantCulture) ?? "");
                 csv.WriteField(t.AmountIdr);
@@ -357,6 +441,21 @@ public class TransactionsController : ControllerBase
     {
         var deleted = await _mediator.Send(new DeleteAllTransactionsCommand());
         return Ok(new { deleted });
+    }
+
+    private async Task<Guid?> AutoResolveAccountIdAsync(string walletText)
+    {
+        if (string.IsNullOrWhiteSpace(walletText)) return null;
+
+        var aliasId = await _transactionService.ResolveAliasAsync(walletText);
+        if (aliasId.HasValue) return aliasId;
+
+        // Fall back to name match against accounts table
+        var accounts = await _supabase.From<Account>().Get();
+        var match = accounts.Models.FirstOrDefault(a =>
+            a.Name.Contains(walletText, StringComparison.OrdinalIgnoreCase) ||
+            walletText.Contains(a.Name, StringComparison.OrdinalIgnoreCase));
+        return match?.Id;
     }
 
     private string CalculateFileHash(Stream stream)

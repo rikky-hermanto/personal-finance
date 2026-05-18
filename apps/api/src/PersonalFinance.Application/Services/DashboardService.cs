@@ -23,9 +23,9 @@ public class DashboardService : IDashboardService
         _logger = logger;
     }
 
-    public async Task<DashboardDto> GetDashboardDataAsync(string? wallet, int? year, int? month, int months = 6)
+    public async Task<DashboardDto> GetDashboardDataAsync(Guid? accountId, int? year, int? month, int months = 6)
     {
-        _logger.LogDebug("Building dashboard data for wallet={Wallet} year={Year} month={Month} months={Months} using Date-Range Filtering", wallet, year, month, months);
+        _logger.LogDebug("Building dashboard data for accountId={AccountId} year={Year} month={Month} months={Months} using Date-Range Filtering", accountId, year, month, months);
 
         // 1. Determine baseline date (latest transaction date)
         DateTime baselineDate;
@@ -69,8 +69,8 @@ public class DashboardService : IDashboardService
                 .Order("date", Ordering.Descending) // Crucial: get latest data first
                 .Range(offset, offset + pageSize - 1);
 
-            if (!string.IsNullOrEmpty(wallet))
-                query = query.Filter("wallet", Operator.Equals, wallet);
+            if (accountId.HasValue)
+                query = query.Filter("account_id", Operator.Equals, accountId.Value.ToString());
 
             var result = await query.Get();
             var batch = result.Models;
@@ -149,9 +149,9 @@ public class DashboardService : IDashboardService
             DateTime.Now);
     }
 
-    public async Task<CashflowStatementDto> GetCashflowStatementAsync(int months, string? wallet, string groupBy)
+    public async Task<CashflowStatementDto> GetCashflowStatementAsync(int months, Guid? accountId, string groupBy)
     {
-        _logger.LogInformation("Generating Cashflow Statement: months={Months}, wallet={Wallet}, groupBy={GroupBy}", months, wallet, groupBy);
+        _logger.LogInformation("Generating Cashflow Statement: months={Months}, accountId={AccountId}, groupBy={GroupBy}", months, accountId, groupBy);
 
         // 1. Get baseline date
         var latestTx = await _supabase.From<Transaction>()
@@ -178,8 +178,8 @@ public class DashboardService : IDashboardService
                 .Order("date", Ordering.Descending)
                 .Range(offset, offset + pageSize - 1);
 
-            if (!string.IsNullOrEmpty(wallet))
-                query = query.Filter("wallet", Operator.Equals, wallet);
+            if (accountId.HasValue)
+                query = query.Filter("account_id", Operator.Equals, accountId.Value.ToString());
 
             var result = await query.Get();
             var batch = result.Models;

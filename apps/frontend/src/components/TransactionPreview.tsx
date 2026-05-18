@@ -221,6 +221,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         type: t.type.charAt(0).toUpperCase() + t.type.slice(1),
         category: t.category,
         wallet: t.bank,
+        accountId: t.accountId || undefined,
         amountIdr: Math.abs(t.amount),
         currency: "IDR",
         exchangeRate: null,

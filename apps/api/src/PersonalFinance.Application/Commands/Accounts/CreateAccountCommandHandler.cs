@@ -15,6 +15,9 @@ public class CreateAccountCommandHandler(
         logger.LogDebug("Creating account: {Name}", request.Name);
         await validator.ValidateAndThrowAsync(request, cancellationToken);
 
+        // Investment/debt accounts default to excluded from cashflow
+        var excludeFromCashflow = new HashSet<string> { "brokerage", "loan" };
+
         var entity = new Account
         {
             Id = Guid.NewGuid(),
@@ -25,6 +28,7 @@ public class CreateAccountCommandHandler(
             Currency = request.Currency,
             OpeningBalance = request.OpeningBalance,
             OpeningDate = request.OpeningDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            IncludeInCashflow = !excludeFromCashflow.Contains(request.AccountType),
             Color = request.Color,
             Icon = request.Icon,
             CreatedAt = DateTime.UtcNow,
