@@ -15,10 +15,12 @@ const STEPS: { key: WorkflowStep; label: string }[] = [
   { key: 'upload',    label: 'Upload'  },
   { key: 'review',   label: 'Review'  },
   { key: 'preview',  label: 'Preview' },
-  { key: 'submitted', label: 'Submit' },
+  { key: 'submitted', label: 'Done'   },
 ];
 
 const stepIndex = (s: WorkflowStep) => STEPS.findIndex(x => x.key === s);
+
+const isImageFile = (f: File) => f.type.startsWith('image/');
 
 const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [isDragging, setIsDragging]           = useState(false);
@@ -31,14 +33,10 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [fileHash, setFileHash]               = useState<string | null>(null);
   const [apiError, setApiError]               = useState<string | null>(null);
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
-  
-  // Clear error on unmount
+
   useEffect(() => {
     return () => setApiError(null);
   }, []);
-
-  const isImageFile = (f: File) =>
-    f.type === 'image/png' || f.type === 'image/jpeg' || f.type === 'image/webp';
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -60,7 +58,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     );
     if (validFiles.length > 0) {
       setUploadedFiles(prev => [...prev, ...validFiles]);
-      setApiError(null); // Clear previous errors on new file selection
+      setApiError(null);
       setShowPasswordConfirmation(false);
       if (currentStep === 'upload') setCurrentStep('review');
     }
@@ -70,7 +68,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) {
       setUploadedFiles(prev => [...prev, ...files]);
-      setApiError(null); // Clear previous errors on new file selection
+      setApiError(null);
       setShowPasswordConfirmation(false);
       if (currentStep === 'upload') setCurrentStep('review');
     }
@@ -87,11 +85,8 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   }, []);
 
   const handlePaste = useCallback((e: ClipboardEvent) => {
-    // Don't intercept paste if user is typing in an input/textarea
     const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
-      return;
-    }
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
 
     const items = e.clipboardData?.items;
     if (!items) return;
@@ -101,19 +96,15 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       if (items[i].kind === 'file') {
         const file = items[i].getAsFile();
         if (file) {
-          // Check if it's a valid file type (csv, pdf, or image)
-          const isValid = file.type === 'text/csv' || 
+          const isValid = file.type === 'text/csv' ||
                          file.type === 'application/pdf' ||
                          file.type.startsWith('image/') ||
-                         file.name.endsWith('.csv') || 
+                         file.name.endsWith('.csv') ||
                          file.name.endsWith('.pdf');
-          
           if (isValid) {
-            // Give pasted images a slightly better name if they are generic
             if (file.type.startsWith('image/') && file.name === 'image.png') {
               const now = new Date().toISOString().replace(/[:.]/g, '-');
-              const newFile = new File([file], `pasted-image-${now}.png`, { type: file.type });
-              files.push(newFile);
+              files.push(new File([file], `pasted-image-${now}.png`, { type: file.type }));
             } else {
               files.push(file);
             }
@@ -147,12 +138,10 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     setIsProcessing(true);
     setApiError(null);
     try {
-      const file = uploadedFiles[0];
-      if (!file) return;
       const dateFormat = localStorage.getItem('pf_date_format') || undefined;
       const apiTransactions = await transactionsApi.uploadPreview(
-        file, 
-        pdfPassword, 
+        file,
+        pdfPassword,
         bankHint || undefined,
         dateFormat
       );
@@ -160,7 +149,6 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       const transactions: Transaction[] = apiTransactions.transactions.map((t: transactionsApi.TransactionDto, idx: number) => {
         let mappedType: 'income' | 'expense' | 'transfer';
         const rawType = t.type.toLowerCase();
-        
         if (rawType === 'income') {
           mappedType = 'income';
         } else if (rawType.includes('transfer') || rawType.includes('trar') || rawType === 'asset transfer') {
@@ -178,6 +166,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           type:        mappedType,
           category:    t.category,
           bank:        t.wallet,
+          accountId:   t.accountId ?? undefined,
           balance:     t.balance,
           isDuplicate: t.isDuplicate,
         };
@@ -203,7 +192,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [uploadedFiles, pdfPassword, showPasswordConfirmation]);
+  }, [uploadedFiles, pdfPassword, showPasswordConfirmation, bankHint]);
 
   const handleConfirmData = useCallback(() => {
     onFileUpload(uploadedFiles);
@@ -396,69 +385,72 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   }
 
   // ── Upload step ─────────────────────────────────────────────────────────────
-  return (
-    <div className="max-w-lg mx-auto px-6">
-      {renderStepIndicator()}
+  if (currentStep === 'upload') {
+    return (
+      <div className="max-w-lg mx-auto px-6">
+        {renderStepIndicator()}
 
-      <div className="mb-5 text-center">
-        <h2 className="text-base font-semibold text-foreground mb-1">Upload bank statements</h2>
-        <p className="text-xs text-muted-foreground">
-          CSV, PDF, or screenshot from BCA, NeoBank, Superbank, Wise, or Bank Jago
-        </p>
-      </div>
+        <div className="mb-5 text-center">
+          <h2 className="text-base font-semibold text-foreground mb-1">Upload bank statements</h2>
+          <p className="text-xs text-muted-foreground">
+            CSV, PDF, or screenshot from BCA, NeoBank, Superbank, Wise, or Bank Jago
+          </p>
+        </div>
 
-      <input
-        type="file"
-        multiple
-        accept=".csv,.pdf,image/png,image/jpeg,image/webp"
-        onChange={handleFileSelect}
-        className="hidden"
-        id="file-upload"
-      />
-      <label
-        htmlFor="file-upload"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={cn(
-          'block border border-dashed rounded-lg py-10 text-center transition-all duration-150 cursor-pointer',
-          isDragging
-            ? 'border-foreground/30 bg-muted/40'
-            : 'border-border hover:border-foreground/20 hover:bg-muted/20',
-        )}
-      >
-        <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-2.5" strokeWidth={1.5} />
-        <p className="text-sm text-muted-foreground mb-1">
-          Drop files here, paste, or <span className="text-foreground font-medium">click to browse</span>
-        </p>
-        <p className="text-[11px] text-muted-foreground/50 tracking-wide">
-          CSV · PDF · Screenshot &nbsp;·&nbsp; max 10 MB
-        </p>
-      </label>
-
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
-        <span className="text-[11px] text-muted-foreground/60">Supported:</span>
-        {(['BCA', 'NeoBank', 'Superbank', 'Wise', 'Bank Jago'] as const).map(bank => (
-          <span
-            key={bank}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-[11px] text-muted-foreground"
-          >
-            {bank}
-          </span>
-        ))}
-      </div>
-
-      <div className="mt-4 flex justify-center">
-        <button
-          onClick={transactionsApi.downloadTransactionTemplate}
-          className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        <input
+          type="file"
+          multiple
+          accept=".csv,.pdf,image/png,image/jpeg,image/webp"
+          onChange={handleFileSelect}
+          className="hidden"
+          id="file-upload"
+        />
+        <label
+          htmlFor="file-upload"
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={cn(
+            'block border border-dashed rounded-lg py-10 text-center transition-all duration-150 cursor-pointer',
+            isDragging
+              ? 'border-foreground/30 bg-muted/40'
+              : 'border-border hover:border-foreground/20 hover:bg-muted/20',
+          )}
         >
-          <FileDown className="w-3 h-3" strokeWidth={1.5} />
-          Download Template
-        </button>
+          <Upload className="w-5 h-5 text-muted-foreground mx-auto mb-2.5" strokeWidth={1.5} />
+          <p className="text-sm text-muted-foreground mb-1">
+            Drop files here, paste, or <span className="text-foreground font-medium">click to browse</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground/50 tracking-wide">
+            CSV · PDF · Screenshot &nbsp;·&nbsp; max 10 MB
+          </p>
+        </label>
+
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5">
+          <span className="text-[11px] text-muted-foreground/60">Supported:</span>
+          {(['BCA', 'NeoBank', 'Superbank', 'Wise', 'Bank Jago'] as const).map(bank => (
+            <span
+              key={bank}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border text-[11px] text-muted-foreground"
+            >
+              {bank}
+            </span>
+          ))}
+        </div>
+
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={transactionsApi.downloadTransactionTemplate}
+            className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+          >
+            <FileDown className="w-3 h-3" strokeWidth={1.5} />
+            Download Template
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
 };
 
 export default FileUpload;

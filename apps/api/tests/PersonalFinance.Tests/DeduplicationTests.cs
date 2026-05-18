@@ -7,6 +7,9 @@ namespace PersonalFinance.Tests;
 
 public class DeduplicationTests
 {
+    private static readonly Guid TestAccountId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+    private static readonly Guid OtherAccountId = Guid.Parse("00000000-0000-0000-0000-000000000002");
+
     [Fact]
     public void FilterLogic_IntraBatchDuplicates_FilteredOut()
     {
@@ -14,9 +17,9 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB" },
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB" }, // Duplicate
-            new() { Date = date, AmountIdr = 200, Description = "Makan", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" },
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" }, // Duplicate
+            new() { Date = date, AmountIdr = 200, Description = "Makan", AccountId = TestAccountId, Flow = "DB" }
         };
         var existing = new List<Transaction>();
 
@@ -36,11 +39,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" }
         };
 
         // Act
@@ -57,11 +60,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB", BankRunningBalance = 1100 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1100 }
         };
 
         // Act
@@ -78,11 +81,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
         };
 
         // Act
@@ -99,11 +102,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "BCA", Flow = "DB", BankRunningBalance = null } // Legacy
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = null } // Legacy
         };
 
         // Act
@@ -120,11 +123,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = " KOPI ", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = " KOPI ", AccountId = TestAccountId, Flow = "DB" }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "kopi", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "kopi", AccountId = TestAccountId, Flow = "DB" }
         };
 
         // Act
@@ -141,11 +144,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100.004m, Description = "Kopi", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100.004m, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100.00m, Description = "Kopi", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100.00m, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" }
         };
 
         // Act
@@ -162,11 +165,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Initial   Balance", Wallet = "BCA", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "Initial   Balance", AccountId = TestAccountId, Flow = "DB" }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Initial Balance", Wallet = "bca", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "Initial Balance", AccountId = TestAccountId, Flow = "DB" }
         };
 
         // Act
@@ -177,23 +180,23 @@ public class DeduplicationTests
     }
 
     [Fact]
-    public void FilterLogic_MissingWalletNormalization_FilteredOut()
+    public void FilterLogic_DifferentAccountId_NotFilteredOut()
     {
-        // Arrange
+        // Arrange — same transaction text but different bank account -> distinct, not a duplicate
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = "", Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", Wallet = null!, Flow = "DB" }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = OtherAccountId, Flow = "DB" }
         };
 
         // Act
         var result = TransactionService.FilterLogic(transactions, existing);
 
         // Assert
-        Assert.Empty(result); // Both normalized to "unknown"
+        Assert.Single(result); // Different account -> not a duplicate
     }
 }

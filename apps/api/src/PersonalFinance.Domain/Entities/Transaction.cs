@@ -27,8 +27,8 @@ public class Transaction : BaseModel
     [Column("category")]
     public string Category { get; set; } = "Untracked Category";
 
-    [Column("wallet")]
-    public string Wallet { get; set; } = string.Empty;
+    [Column("account_id")]
+    public Guid? AccountId { get; set; }
 
     [Column("amount_idr")]
     public decimal AmountIdr { get; set; }

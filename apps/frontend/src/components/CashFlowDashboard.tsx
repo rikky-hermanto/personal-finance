@@ -72,7 +72,7 @@ const CashFlowDashboard = ({
       />
 
       <div className="flex-1 overflow-y-auto">
-        {/* Top Wallets Row */}
+        {/* Top Bank Accounts Row */}
         <TopWalletsRow wallets={mockWalletBalances} selected={selectedWallet} />
 
         <div className="p-5 space-y-4">

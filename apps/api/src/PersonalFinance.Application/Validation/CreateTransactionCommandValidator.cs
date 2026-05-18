@@ -22,8 +22,8 @@ public class CreateTransactionCommandValidator : AbstractValidator<CreateTransac
             //    .NotEmpty().WithMessage("Transaction type is required.")
             //    .Must(t => t == "Expense" || t == "Income").WithMessage("Transaction type must be 'Expense' or 'Income'.");
 
-            RuleFor(x => x.Transaction.Wallet)
-                .NotEmpty().WithMessage("Transaction wallet is required.");
+            RuleFor(x => x.Transaction.AccountId)
+                .NotEqual(Guid.Empty).WithMessage("Transaction account is required.");
 
             RuleFor(x => x.Transaction.AmountIdr)
                 .GreaterThanOrEqualTo(0).WithMessage("Transaction amount must be non-negative.");
