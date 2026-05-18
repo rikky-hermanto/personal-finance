@@ -33,6 +33,9 @@ public class Account : BaseModel
     [Column("is_active")]
     public bool IsActive { get; set; } = true;
 
+    [Column("include_in_cashflow")]
+    public bool IncludeInCashflow { get; set; } = true;
+
     [Column("color")]
     public string? Color { get; set; }
 

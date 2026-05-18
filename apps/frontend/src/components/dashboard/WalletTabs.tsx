@@ -13,7 +13,7 @@ interface WalletTabsProps {
 }
 
 const TABS: { id: WalletFilter; label: string }[] = [
-  { id: 'all', label: 'All Wallets' },
+  { id: 'all', label: 'All Bank Accounts' },
   { id: 'BCA', label: 'BCA' },
   { id: 'Superbank', label: 'Superbank' },
   { id: 'NeoBank', label: 'Neo' },

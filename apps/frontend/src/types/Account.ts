@@ -9,6 +9,7 @@ export interface Account {
   openingBalance: number;
   openingDate: string;
   isActive: boolean;
+  includeInCashflow: boolean;
   color?: string;
   icon?: string;
   latestValuation?: Valuation;

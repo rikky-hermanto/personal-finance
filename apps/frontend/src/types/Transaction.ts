@@ -7,7 +7,8 @@ export interface Transaction {
   flow?: string;
   type: 'income' | 'expense' | 'transfer';
   category: string;
-  bank: string;
+  bank: string;       // wallet text from AI service (transient)
+  accountId?: string; // uuid of the linked account
   balance?: number;
   isRecurring?: boolean;
   isDuplicate?: boolean;
