@@ -1,0 +1,188 @@
+# Skills Quick Reference
+
+Custom slash commands for this project. Type `/skill-name [args]` in Claude Code.
+
+---
+
+## Architecture & Design
+
+### `/arch-review` — Full codebase architecture health report + discussion
+Reads the entire live codebase (not CLAUDE.md summaries — actual source files), produces a structured health report, then enters discussion mode for improvements and new ideas.
+
+| Argument | Scope |
+|----------|-------|
+| *(none)* | Full-stack review — all layers |
+| `backend` | .NET API only |
+| `frontend` | React app only |
+| `ai-service` | Python FastAPI service only |
+| `data-flow` | End-to-end path: upload → parse → validate → persist → display |
+
+```
+/arch-review                    # full review
+/arch-review backend            # .NET only
+/arch-review frontend           # React only
+/arch-review ai-service         # Python service only
+/arch-review data-flow          # trace the data path end-to-end
+```
+
+**Output:** Strengths · Architecture findings (🔴/🟡/🟢) · Consistency audit · Test coverage gaps · Tech debt ledger · Top 3 highest-leverage improvements.
+
+After the report, Claude enters discussion mode — ask it to go deeper on any finding, evaluate a new idea, or propose what to build next. It can generate `todo.md` or battle plan files directly from the discussion.
+
+Optionally saves the report to `.claude/plans/arch-review-{YYYY-MM-DD}.md`.
+
+---
+
+## Plan Review & Decision-Making
+
+### `/battle-plans` — Compare two competing proposals
+Pick a winner between Team A and Team B proposals.
+
+| Flag | Role | Scores on |
+|------|------|-----------|
+| *(none)* | Senior PO / Analyst | User Value, Scope Fit, Delivery Risk, Speed, Maintainability |
+| `as architect` | Senior Software Architect | Design Correctness, Integration Fit, Scalability, Testability, Complexity vs Value |
+
+```
+/battle-plans PF-115                                        # auto-discover teamA + teamB
+/battle-plans PF-115 as architect                           # architect lens
+/battle-plans PF-115-feature-teamA PF-115-feature-teamB     # explicit file names
+/battle-plans PF-115-feature-teamA PF-115-feature-teamB as architect
+```
+
+Files are resolved from `.claude/plans/`. Optionally saves a `*-verdict.md` at the end.
+
+---
+
+### `/review-plan` — Deep-review a single plan before execution
+Stress-test a plan file and get a Go / No-Go verdict with gap table.
+
+| Flag | Role | Focus |
+|------|------|-------|
+| *(none)* | Senior Software Architect | Layer violations, contracts, sequencing, test strategy |
+| `as po` | Senior PO / Analyst | Acceptance criteria, scope creep, MVP cuts, delivery risk |
+| `quick` | Either | Key risks only, abbreviated output |
+
+```
+/review-plan PF-115-feature-todo.md                         # architect review
+/review-plan PF-115-feature-todo.md as po                   # PO lens
+/review-plan PF-115-feature-todo.md quick                   # abbreviated
+/review-plan PF-115-feature-todo.md as po quick             # abbreviated PO lens
+```
+
+Files are resolved from `.claude/plans/`. Offers to apply revisions to the file directly.
+
+---
+
+## Code Scaffolding
+
+### `/add-endpoint` — New REST API endpoint (full CRUD)
+Scaffolds Domain entity → Command/Handler → Validator → Service → Controller → DI → Frontend API client → Tests.
+
+```
+/add-endpoint
+# Claude will ask: entity name, operations needed, properties
+```
+
+---
+
+### `/add-bank-parser` — New bank statement parser
+Guides through `IBankStatementParser` implementation, `BankIdentifier` detection, DI registration.
+
+```
+/add-bank-parser
+# Claude will ask: bank name, file format (CSV/PDF/image), parser strategy
+```
+
+---
+
+### `/add-llm-extractor` — New LLM extraction provider
+Adds a new provider to the Python AI service following the `GeminiProvider` / `AnthropicProvider` pattern.
+
+```
+/add-llm-extractor
+# Claude will ask: provider name, model, tool_use vs JSON mode
+```
+
+---
+
+### `/datatable` — Add a server-paginated data table
+Adds an Excel-style filtered, paginated table to the frontend following the Transactions table pattern.
+
+```
+/datatable
+# Claude will ask: entity, columns, filters needed
+```
+
+---
+
+## Dev Operations
+
+### `/docker-up` — Start full stack via Docker Compose
+Runs `docker compose down && docker compose up --build` with correct service ordering.
+
+```
+/docker-up             # all services
+/docker-up api         # API + DB only
+```
+
+---
+
+### `/run-ai-service` — Start Python AI service locally
+Activates venv and starts uvicorn with reload.
+
+```
+/run-ai-service
+```
+
+---
+
+### `/db-migrate` — Create and apply a Supabase migration
+Generates a numbered SQL migration file and runs `supabase db push`.
+
+```
+/db-migrate add_user_id_to_transactions
+```
+
+---
+
+### `/test-all` — Run full test suite
+Runs xUnit backend tests, ESLint, TypeScript check, and Playwright E2E in sequence.
+
+```
+/test-all
+```
+
+---
+
+### `/ci-check` — Run CI gates locally before pushing
+Mirrors the GitHub Actions pipeline: build → test → lint → tsc → secret scan.
+
+```
+/ci-check
+```
+
+---
+
+## UI Themes (auto-applied)
+
+These are applied **automatically** — you don't need to invoke them manually.
+
+| Skill | When applied |
+|-------|-------------|
+| `data-oriented-theme` | Any web UI, dashboard, component, or artifact |
+| `data-oriented-zenmode` | When you ask for "zen", "minimal", "clean", "focus mode" UI |
+
+To override: explicitly request a different style ("landing page", "marketing design").
+
+---
+
+## Naming Convention for Plan Files
+
+```
+.claude/plans/
+  PF-{n}-{feature}-teamA          # Proposal A (no extension = markdown)
+  PF-{n}-{feature}-teamB          # Proposal B
+  PF-{n}-{feature}-verdict.md     # Battle plans output
+  PF-{n}-{feature}-todo.md        # Execution plan (review-plan input)
+```
