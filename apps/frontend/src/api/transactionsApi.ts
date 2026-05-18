@@ -11,7 +11,8 @@ export interface TransactionDto {
   flow: string;
   type: string;
   category: string;
-  wallet: string;
+  wallet: string;      // transient — from AI service, never in DB
+  accountId: string;   // uuid
   amountIdr: number;
   currency: string;
   exchangeRate: number | null;
@@ -30,18 +31,30 @@ export interface PagedResult<T> {
 export interface TransactionQuery {
   page?: number;
   pageSize?: number;
-  wallet?: string;
+  accountId?: string;
   search?: string;
   category?: string;
   type?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
+export interface AccountSummary {
+  accountId: string;
+  accountName: string;
+  institutionId: string | null;
+  institutionName: string;
+  currency: string;
+  totalIn: number;
+  totalOut: number;
+  netPosition: number;
+  transactionCount: number;
+}
+
 export async function getTransactionPage(q: TransactionQuery = {}): Promise<PagedResult<TransactionDto>> {
   const params = new URLSearchParams();
   if (q.page)      params.set('page',      String(q.page));
   if (q.pageSize)  params.set('pageSize',  String(q.pageSize));
-  if (q.wallet)    params.set('wallet',    q.wallet);
+  if (q.accountId) params.set('accountId', q.accountId);
   if (q.search)    params.set('search',    q.search);
   if (q.category)  params.set('category',  q.category);
   if (q.type)      params.set('type',      q.type);
@@ -58,37 +71,6 @@ export async function getTransaction(id: number): Promise<TransactionDto> {
   return res.json();
 }
 
-export async function addTransaction(transaction: Omit<TransactionDto, "id">): Promise<TransactionDto> {
-  const res = await fetch(BASE_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(transaction),
-  });
-  if (!res.ok) throw new Error("Failed to add transaction");
-  return res.json();
-}
-
-export async function updateTransaction(id: number, transaction: Partial<TransactionDto>): Promise<TransactionDto> {
-  const res = await fetch(`${BASE_URL}/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(transaction),
-  });
-  if (!res.ok) throw new Error("Failed to update transaction");
-  return res.json();
-}
-
-export async function deleteTransaction(id: number): Promise<void> {
-  const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
-  if (!res.ok) throw new Error("Failed to delete transaction");
-}
-
-/**
- * Uploads a bank statement file for preview (parsing, not saving to DB yet).
- * @param file The CSV or PDF file to upload.
- * @param pdfPassword Optional PDF password if needed.
- * @returns Promise<TransactionDto[]> - parsed transactions for preview.
- */
 export async function uploadPreview(
   file: File,
   pdfPassword?: string,
@@ -97,15 +79,9 @@ export async function uploadPreview(
 ): Promise<{ transactions: TransactionDto[], hash: string }> {
   const formData = new FormData();
   formData.append("file", file);
-  if (pdfPassword) {
-    formData.append("pdfPassword", pdfPassword);
-  }
-  if (bankHint) {
-    formData.append("bankHint", bankHint);
-  }
-  if (dateFormat) {
-    formData.append("dateFormat", dateFormat);
-  }
+  if (pdfPassword) formData.append("pdfPassword", pdfPassword);
+  if (bankHint)    formData.append("bankHint",    bankHint);
+  if (dateFormat)  formData.append("dateFormat",  dateFormat);
 
   const res = await fetch(`${BASE_URL}/upload-preview`, {
     method: "POST",
@@ -120,7 +96,11 @@ export async function uploadPreview(
   return res.json();
 }
 
-export async function submitTransactions(transactions: TransactionDto[], fileHash?: string, fileName?: string): Promise<void> {
+export async function submitTransactions(
+  transactions: TransactionDto[],
+  fileHash?: string,
+  fileName?: string
+): Promise<void> {
   const res = await fetch(`${BASE_URL}/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -133,31 +113,17 @@ export async function submitTransactions(transactions: TransactionDto[], fileHas
   }
 }
 
-export interface WalletSummary {
-  wallet: string;
-  totalIncome: number;
-  totalExpenses: number;
-  net: number;
-  transactionCount: number;
+export async function getAccountSummaries(months = 12): Promise<AccountSummary[]> {
+  const res = await fetch(`${BASE_URL}/account-summaries?months=${months}`);
+  if (!res.ok) throw new Error('Failed to fetch account summaries');
+  return res.json();
 }
 
-export async function getWalletSummaries(): Promise<WalletSummary[]> {
-  const data = await getTransactionPage({ pageSize: 500, page: 1 });
-  const walletNames = Array.from(new Set(data.items.map((t) => t.wallet))).filter(Boolean).sort();
-
-  const summaries = await Promise.all(
-    walletNames.map(async (wallet) => {
-      const dash = await getDashboardData(wallet);
-      return {
-        wallet,
-        totalIncome: dash.summary.totalIncome,
-        totalExpenses: dash.summary.totalExpenses,
-        net: dash.summary.totalIncome - dash.summary.totalExpenses,
-        transactionCount: dash.summary.transactionCount,
-      };
-    })
-  );
-  return summaries;
+export async function resolveAlias(aliasText: string): Promise<{ accountId: string; accountName: string; institutionName: string } | null> {
+  const res = await fetch(`${BASE_URL}/resolve-alias?aliasText=${encodeURIComponent(aliasText)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('Failed to resolve alias');
+  return res.json();
 }
 
 export async function resetAllTransactions(): Promise<{ deleted: number }> {
@@ -166,12 +132,11 @@ export async function resetAllTransactions(): Promise<{ deleted: number }> {
   return res.json();
 }
 
-
-export async function getDashboardData(wallet?: string, year?: number, month?: number, months?: number): Promise<DashboardData> {
+export async function getDashboardData(accountId?: string, year?: number, month?: number, months?: number): Promise<DashboardData> {
   const params = new URLSearchParams();
-  if (wallet) params.append("wallet", wallet);
-  if (year) params.append("year", year.toString());
-  if (month) params.append("month", month.toString());
+  if (accountId) params.append("accountId", accountId);
+  if (year)      params.append("year",      year.toString());
+  if (month)     params.append("month",     month.toString());
   if (months !== undefined) params.append("months", months.toString());
 
   const res = await fetch(`${BASE_URL}/aggregated?${params.toString()}`);
@@ -179,10 +144,10 @@ export async function getDashboardData(wallet?: string, year?: number, month?: n
   return res.json();
 }
 
-export async function getCashflowStatement(months = 6, wallet?: string, groupBy = 'quarterly'): Promise<CashflowStatement> {
+export async function getCashflowStatement(months = 6, accountId?: string, groupBy = 'quarterly'): Promise<CashflowStatement> {
   const params = new URLSearchParams();
   params.append("months", months.toString());
-  if (wallet) params.append("wallet", wallet);
+  if (accountId) params.append("accountId", accountId);
   params.append("groupBy", groupBy);
 
   const res = await fetch(`${BASE_URL}/statement?${params.toString()}`);
@@ -190,18 +155,18 @@ export async function getCashflowStatement(months = 6, wallet?: string, groupBy 
   return res.json();
 }
 
-export const exportTransactionsCsv = (wallet?: string, from?: string, to?: string): void => {
+export const exportTransactionsCsv = (accountId?: string, from?: string, to?: string): void => {
   const params = new URLSearchParams();
-  if (wallet) params.set("wallet", wallet);
+  if (accountId) params.set("accountId", accountId);
   if (from) params.set("from", from);
-  if (to) params.set("to", to);
+  if (to)   params.set("to",   to);
   const query = params.toString();
   window.location.href = `${BASE_URL}/export${query ? `?${query}` : ""}`;
 };
 
 const TEMPLATE_HEADERS = [
   "Date", "Item", "Remarks", "Flow", "Type",
-  "Category", "Wallet", "Amount", "Exc. Rate", "Amount (IDR)", "Balance",
+  "Category", "Bank Account", "Amount", "Exc. Rate", "Amount (IDR)", "Balance",
 ];
 
 const TEMPLATE_ROWS = [

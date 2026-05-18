@@ -15,15 +15,15 @@ public class SpendingAnalysisService : ISpendingAnalysisService
         _logger = logger;
     }
 
-    public async Task<SafeToSpendDto> GetSafeToSpendAsync(string? wallet = null)
+    public async Task<SafeToSpendDto> GetSafeToSpendAsync(Guid? accountId = null)
     {
         var today = DateTime.Today;
         var currentMonthStart = new DateTime(today.Year, today.Month, 1);
         var fetchStart = currentMonthStart.AddMonths(-3);
 
-        _logger.LogInformation("Computing safe-to-spend for wallet={Wallet}", wallet);
+        _logger.LogInformation("Computing safe-to-spend for accountId={AccountId}", accountId);
 
-        var transactions = await FetchTransactionsAsync(fetchStart, today, wallet);
+        var transactions = await FetchTransactionsAsync(fetchStart, today, accountId);
 
         var currentMonthTxs = transactions.Where(t => t.Date >= currentMonthStart).ToList();
         var trailingTxs = transactions.Where(t => t.Date < currentMonthStart).ToList();
@@ -66,15 +66,15 @@ public class SpendingAnalysisService : ISpendingAnalysisService
             Math.Round(alreadySpent, 0));
     }
 
-    public async Task<VarianceExplainerDto> GetVarianceExplainerAsync(string? wallet = null)
+    public async Task<VarianceExplainerDto> GetVarianceExplainerAsync(Guid? accountId = null)
     {
         var today = DateTime.Today;
         var currentMonthStart = new DateTime(today.Year, today.Month, 1);
         var fetchStart = currentMonthStart.AddMonths(-3);
 
-        _logger.LogInformation("Computing variance explainer for wallet={Wallet}", wallet);
+        _logger.LogInformation("Computing variance explainer for accountId={AccountId}", accountId);
 
-        var transactions = await FetchTransactionsAsync(fetchStart, today, wallet);
+        var transactions = await FetchTransactionsAsync(fetchStart, today, accountId);
 
         var expenses = transactions
             .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
@@ -131,7 +131,7 @@ public class SpendingAnalysisService : ISpendingAnalysisService
             drivers);
     }
 
-    private async Task<List<Transaction>> FetchTransactionsAsync(DateTime start, DateTime end, string? wallet)
+    private async Task<List<Transaction>> FetchTransactionsAsync(DateTime start, DateTime end, Guid? accountId)
     {
         var all = new List<Transaction>();
         int pageSize = 1000;
@@ -146,8 +146,8 @@ public class SpendingAnalysisService : ISpendingAnalysisService
                 .Order("date", Ordering.Descending)
                 .Range(offset, offset + pageSize - 1);
 
-            if (!string.IsNullOrEmpty(wallet))
-                query = query.Filter("wallet", Operator.Equals, wallet);
+            if (accountId.HasValue)
+                query = query.Filter("account_id", Operator.Equals, accountId.Value.ToString());
 
             var result = await query.Get();
             all.AddRange(result.Models);

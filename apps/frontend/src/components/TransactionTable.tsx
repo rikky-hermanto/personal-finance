@@ -8,7 +8,7 @@ import DataTable, { DataTableColumn, SortState } from '@/components/DataTable';
 
 interface TransactionTableProps {
   onTransactionUpdate: (id: string, updates: Partial<Transaction>) => void;
-  walletFilter?: string;
+  accountIdFilter?: string;
 }
 
 const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => ({
@@ -17,10 +17,11 @@ const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => 
   description: t.description,
   flow: t.flow,
   amount: t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-  type: (t.type.toLowerCase() === 'income' ? 'income' : 
+  type: (t.type.toLowerCase() === 'income' ? 'income' :
          t.type.toLowerCase().includes('transfer') || t.type.toLowerCase().includes('trar') ? 'transfer' : 'expense') as 'income' | 'expense' | 'transfer',
   category: t.category,
   bank: t.wallet,
+  accountId: t.accountId,
   balance: t.balance,
 });
 
@@ -32,21 +33,21 @@ const formatDate = (ds: string) => {
   return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 
-type ColKey = 'date' | 'description' | 'category' | 'wallet' | 'amount' | 'balance' | 'actions';
+type ColKey = 'date' | 'description' | 'category' | 'account' | 'amount' | 'balance' | 'actions';
 
 const COLUMNS: DataTableColumn<Transaction, ColKey>[] = [
-  { key: 'date',        label: 'Date',        sortable: true, filterType: 'date', getDate: (tx) => tx.date },
-  { key: 'description', label: 'Description', sortable: false },
-  { key: 'category',    label: 'Category',    sortable: false, getValue: (tx) => tx.category },
-  { key: 'wallet',      label: 'Wallet',      sortable: false, getValue: (tx) => tx.bank },
-  { key: 'amount',      label: 'Amount',      sortable: false },
-  { key: 'balance',     label: 'Balance',     sortable: false },
-  { key: 'actions',     label: '',            sortable: false },
+  { key: 'date',        label: 'Date',         sortable: true, filterType: 'date', getDate: (tx) => tx.date },
+  { key: 'description', label: 'Description',  sortable: false },
+  { key: 'category',    label: 'Category',     sortable: false, getValue: (tx) => tx.category },
+  { key: 'account',     label: 'Bank Account', sortable: false, getValue: (tx) => tx.bank },
+  { key: 'amount',      label: 'Amount',       sortable: false },
+  { key: 'balance',     label: 'Balance',      sortable: false },
+  { key: 'actions',     label: '',             sortable: false },
 ];
 
 const PAGE_SIZE = 50;
 
-const TransactionTable = ({ onTransactionUpdate, walletFilter }: TransactionTableProps) => {
+const TransactionTable = ({ onTransactionUpdate, accountIdFilter }: TransactionTableProps) => {
   // ── Server-side state ──────────────────────────────────────────────────────
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [total, setTotal]               = useState(0);
@@ -70,12 +71,12 @@ const TransactionTable = ({ onTransactionUpdate, walletFilter }: TransactionTabl
   // Derive API query params from current filter/sort state
   const query = useMemo<transactionsApi.TransactionQuery>(() => ({
     pageSize:  PAGE_SIZE,
-    wallet:    walletFilter || undefined,
+    accountId: accountIdFilter || undefined,
     search:    searchTerm || undefined,
     category:  categoryFilter !== 'all' ? categoryFilter : undefined,
     type:      typeFilter    !== 'all' ? typeFilter    : undefined,
     sortOrder: sort.order,
-  }), [walletFilter, searchTerm, categoryFilter, typeFilter, sort.order]);
+  }), [accountIdFilter, searchTerm, categoryFilter, typeFilter, sort.order]);
 
   // ── Fetch page 1 whenever filters/sort change ─────────────────────────────
   useEffect(() => {

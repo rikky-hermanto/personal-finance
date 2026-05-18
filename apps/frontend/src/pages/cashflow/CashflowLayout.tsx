@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 const TABS = [
   { value: 'overview', label: 'Overview', path: '/cashflow/overview' },
   { value: 'transactions', label: 'Transactions', path: '/cashflow/transactions' },
-  { value: 'accounts', label: 'Wallets', path: '/cashflow/accounts' },
+  { value: 'accounts', label: 'Bank Accounts', path: '/cashflow/accounts' },
   { value: 'statement', label: 'Statements', path: '/cashflow/statement' },
   { value: 'analysis', label: 'Spend Pulse', path: '/cashflow/analysis' },
 ];

@@ -78,6 +78,24 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
         return Ok();
     }
 
+    [HttpPatch("{id:guid}/cashflow")]
+    public async Task<IActionResult> SetCashflowFlag(Guid id, [FromBody] bool include)
+    {
+        var existing = await supabase.From<Account>()
+            .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
+            .Single();
+        if (existing == null) return NotFound();
+
+        await supabase.From<Account>()
+            .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
+            .Set(x => x.IncludeInCashflow, include)
+            .Set(x => x.UpdatedAt, DateTime.UtcNow)
+            .Update();
+
+        existing.IncludeInCashflow = include;
+        return Ok(ToDto(existing));
+    }
+
     private static AccountDto ToDto(Account a) => new(
         a.Id,
         a.InstitutionId,
@@ -87,6 +105,7 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
         a.OpeningBalance,
         DateOnly.FromDateTime(a.OpeningDate),
         a.IsActive,
+        a.IncludeInCashflow,
         a.Color,
         a.Icon
     );

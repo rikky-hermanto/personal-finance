@@ -64,3 +64,13 @@ export async function deleteAccount(id: string): Promise<void> {
   const res = await fetch(`${BASE}/api/accounts/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error('Failed to delete account');
 }
+
+export async function setAccountCashflowFlag(id: string, include: boolean): Promise<Account> {
+  const res = await fetch(`${BASE}/api/accounts/${id}/cashflow`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(include),
+  });
+  if (!res.ok) throw new Error('Failed to update cashflow flag');
+  return res.json();
+}

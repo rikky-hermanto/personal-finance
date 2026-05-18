@@ -9,6 +9,7 @@ public record AccountDto(
     decimal OpeningBalance,
     DateOnly OpeningDate,
     bool IsActive,
+    bool IncludeInCashflow,
     string? Color,
     string? Icon
 );
