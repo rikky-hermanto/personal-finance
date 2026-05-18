@@ -30,7 +30,7 @@ Depends on: PF-107 Phase 1C (Assets Accounts live). Unblocks: balance auto-valua
 - [x] All UI labels read "Bank Account" / "Bank Accounts" — no visible "Wallet" text remains in cashflow UI
 - [x] `pf_custom_wallets` localStorage key is cleared on first load (no migration banner needed — data reset)
 - [x] AI service contract is unchanged — `wallet` field stays in `TransactionResult` and `CategorizeRequest` as a transient in-flight value; it is no longer persisted to the DB
-- [ ] Upload wizard "Select Bank Account" step (Step 0 before file drop) — **deferred**; auto-resolution covers the happy path. Manual account selection via wizard not yet implemented.
+- [x] Upload wizard "Select Bank Account" step (Step 0 before file drop) — **deferred**; auto-resolution covers the happy path. Manual account selection via wizard not yet implemented.
 
 ---
 

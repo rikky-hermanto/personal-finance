@@ -199,4 +199,69 @@ public class DeduplicationTests
         // Assert
         Assert.Single(result); // Different account -> not a duplicate
     }
+
+    // ── Null AccountId edge cases (PF-115 account integration) ───────────────
+
+    [Fact]
+    public void FilterLogic_NullAccountId_TreatedAsDifferentFromNamedAccount()
+    {
+        // Arrange — same details but incoming has null AccountId (unlinked), existing has a real account.
+        // Null and a real Guid produce different key strings, so they must NOT deduplicate.
+        var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var transactions = new List<TransactionDto>
+        {
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = null, Flow = "DB" }
+        };
+        var existing = new List<Transaction>
+        {
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB" }
+        };
+
+        // Act
+        var result = TransactionService.FilterLogic(transactions, existing);
+
+        // Assert
+        Assert.Single(result);
+    }
+
+    [Fact]
+    public void FilterLogic_BothNullAccountId_SameDetails_Deduped()
+    {
+        // Arrange — pre-migration transactions both have null AccountId; same details should still
+        // deduplicate against each other so we don't double-import legacy data.
+        var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+        var transactions = new List<TransactionDto>
+        {
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = null, Flow = "DB" }
+        };
+        var existing = new List<Transaction>
+        {
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = null, Flow = "DB" }
+        };
+
+        // Act
+        var result = TransactionService.FilterLogic(transactions, existing);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void TagDuplicatesLogic_IntraBatch_TwoNullAccountId_SameDetails_SecondMarkedDuplicate()
+    {
+        // Arrange — two identical rows with null AccountId in the same upload batch
+        var date = new DateTime(2024, 3, 1, 0, 0, 0, DateTimeKind.Utc);
+        var transactions = new List<TransactionDto>
+        {
+            new() { Date = date, AmountIdr = 500_000, Description = "Gaji", AccountId = null, Flow = "CR" },
+            new() { Date = date, AmountIdr = 500_000, Description = "Gaji", AccountId = null, Flow = "CR" },
+        };
+
+        // Act
+        var result = TransactionService.TagDuplicatesLogic(transactions, new List<Transaction>());
+
+        // Assert
+        Assert.False(result[0].IsDuplicate);
+        Assert.True(result[1].IsDuplicate);
+    }
 }
