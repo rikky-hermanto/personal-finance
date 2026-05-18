@@ -103,18 +103,38 @@ const Sidebar = () => {
         <button
           onClick={() => navigate('/journey')}
           className={cn(
-            'flex items-center gap-2 transition-all duration-200 border',
+            'flex items-center gap-2 transition-all duration-300 border relative overflow-hidden group',
             location.pathname.startsWith('/journey')
-              ? 'bg-foreground/10 border-foreground/15 text-foreground'
-              : 'bg-foreground/5 hover:bg-foreground/10 text-foreground border-foreground/5',
+              ? 'bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 border-purple-500/30 text-foreground shadow-[0_0_15px_rgba(168,85,247,0.15)]'
+              : 'bg-transparent border-transparent hover:border-purple-500/40 text-sidebar-foreground hover:text-foreground hover:shadow-[0_0_15px_rgba(168,85,247,0.1)]',
             collapsed
               ? 'p-2 justify-center w-9 h-9 rounded-full mx-auto'
               : 'px-3 py-2 w-full text-xs font-medium rounded-lg'
           )}
           title={collapsed ? 'Journey' : undefined}
         >
-          <Mountain className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
-          {!collapsed && <span>Journey</span>}
+          {/* Subtle hover fill */}
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          
+          <Mountain 
+            className={cn(
+              "w-4 h-4 flex-shrink-0 z-10 transition-colors duration-300",
+              location.pathname.startsWith('/journey')
+                ? "text-purple-600 dark:text-purple-400"
+                : "text-indigo-500/70 dark:text-indigo-400/70 group-hover:text-purple-600 dark:group-hover:text-purple-400"
+            )} 
+            strokeWidth={1.5} 
+          />
+          {!collapsed && (
+            <span className={cn(
+              "z-10 font-semibold tracking-wide transition-all duration-300",
+              location.pathname.startsWith('/journey')
+                ? "bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400"
+                : "text-sidebar-foreground group-hover:bg-clip-text group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-indigo-600 group-hover:via-purple-600 group-hover:to-pink-600 dark:group-hover:from-indigo-400 dark:group-hover:via-purple-400 dark:group-hover:to-pink-400"
+            )}>
+              Journey
+            </span>
+          )}
         </button>
       </div>
 
