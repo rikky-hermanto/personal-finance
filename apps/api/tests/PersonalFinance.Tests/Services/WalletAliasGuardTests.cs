@@ -50,6 +50,29 @@ public class WalletAliasGuardTests
         Assert.Null(result);
     }
 
+    // ── ResolveAliasesBatchAsync ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task ResolveAliasesBatchAsync_EmptyEnumerable_ReturnsEmptyDictWithoutDbCall()
+    {
+        // Supabase.Client is null — if the guard fails it throws NullReferenceException
+        var service = BuildService();
+
+        var result = await service.ResolveAliasesBatchAsync([]);
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task ResolveAliasesBatchAsync_AllWhitespace_ReturnsEmptyDictWithoutDbCall()
+    {
+        var service = BuildService();
+
+        var result = await service.ResolveAliasesBatchAsync(["  ", "\t", ""]);
+
+        Assert.Empty(result);
+    }
+
     // ── UpsertAliasAsync ──────────────────────────────────────────────────────
 
     [Fact]

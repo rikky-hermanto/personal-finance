@@ -40,6 +40,9 @@ public interface ITransactionService
     /// <summary>Resolves a wallet alias text to an account_id. Returns null if no alias found.</summary>
     Task<Guid?> ResolveAliasAsync(string walletText);
 
+    /// <summary>Resolves multiple wallet alias texts in a single query. Returns only matched pairs.</summary>
+    Task<Dictionary<string, Guid>> ResolveAliasesBatchAsync(IEnumerable<string> walletTexts);
+
     /// <summary>Upserts a wallet alias mapping. Silently ignores if the pair already exists.</summary>
     Task UpsertAliasAsync(string walletText, Guid accountId);
 }

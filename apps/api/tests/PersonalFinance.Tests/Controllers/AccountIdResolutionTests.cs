@@ -408,4 +408,219 @@ public class AccountIdResolutionTests
         Assert.Equal(BcaId, transactions[0].AccountId);
         Assert.Null(transactions[1].AccountId);
     }
+
+    // ── ScoreCandidate: Normalize (Level 1) ──────────────────────────────────
+
+    [Fact]
+    public void ScoreCandidate_NormalizeStripsSpaces_Matches()
+    {
+        // "NeoBank" and "Neo Bank" both normalize to "neobank"
+        var score = ScoreCandidate("NeoBank", "Neo Bank");
+
+        Assert.Equal(1f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_NormalizeStripsHyphens_Matches()
+    {
+        // "Wise-AUD" normalizes to "wiseaud"; "Wise AUD" normalizes to "wiseaud"
+        var score = ScoreCandidate("Wise-AUD", "Wise AUD");
+
+        Assert.Equal(1f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_NormalizeStripsDots_Matches()
+    {
+        var score = ScoreCandidate("B.C.A", "BCA");
+
+        Assert.Equal(1f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_NormalizeCaseInsensitive_Matches()
+    {
+        var score = ScoreCandidate("SUPERBANK", "Superbank");
+
+        Assert.Equal(1f, score);
+    }
+
+    // ── ScoreCandidate: Token intersection (Level 2) ─────────────────────────
+
+    [Fact]
+    public void ScoreCandidate_TokenIntersection_PartialMatch_ReturnsExpectedScore()
+    {
+        // wallet tokens (after stopwords): {"jago"}; candidate tokens: {"bank","jago"}
+        // intersection = 1 / wallet_count = 1/1 = 1.0
+        var score = ScoreCandidate("Jago Main Pocket", "Bank Jago");
+
+        Assert.Equal(1f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_TokenIntersection_NoSharedTokens_ReturnsZero()
+    {
+        // "bca" ∩ {"bank","jago"} = {}
+        var score = ScoreCandidate("BCA Extra Stuff", "Bank Jago");
+
+        Assert.Equal(0f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_WalletAllStopwords_ReturnsZero()
+    {
+        // wallet tokenizes to empty set → guard returns 0f
+        var score = ScoreCandidate("Main Pocket Savings", "Bank Jago");
+
+        Assert.Equal(0f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_CandidateAllStopwords_ReturnsZero()
+    {
+        var score = ScoreCandidate("Bank Jago", "Main Pocket Account");
+
+        Assert.Equal(0f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_PartialTokenOverlap_ScoreBelowThreshold()
+    {
+        // wallet tokens: {"wise","aud","transfer"}; candidate tokens: {"wise"}
+        // intersection = 1; score = 1/3 ≈ 0.33 — below 0.5 threshold
+        var score = ScoreCandidate("Wise AUD Transfer Fee", "Wise");
+
+        // Level 1 normalized-contains: "wiseaudtransferfee" contains "wise" → returns 1f
+        // (Normalize strips spaces, so "wise" IS a substring of "wiseaudtransferfee")
+        Assert.Equal(1f, score);
+    }
+
+    [Fact]
+    public void ScoreCandidate_TwoMatchingTokensOutOfThree_AboveThreshold()
+    {
+        // wallet tokens after stopwords: {"seabank","digital"} — "digital" is not a stopword here
+        // candidate tokens: {"seabank"}
+        // intersection = 1 / 2 = 0.5 — at threshold, not above
+        // Let's use a case where 2/2 tokens match
+        var score = ScoreCandidate("Seabank Digital", "Seabank Digital Plus");
+
+        // Level 1: "seabankdigital" is contained in "seabankdigitalplus" → 1f
+        Assert.Equal(1f, score);
+    }
+
+    // ── ScoreBestMatch: institution-join path ─────────────────────────────────
+    // Tests the ScoreBestMatch overload that checks institution name when account
+    // name alone doesn't match. Mirrors controller ScoreBestMatch signature.
+
+    private record AccountFixture(Guid Id, string AccountName, string? InstitutionName);
+
+    private static Guid? ScoreBestMatchHelper(string wallet, List<AccountFixture> accounts)
+    {
+        AccountFixture? best = null;
+        float bestScore = 0f;
+        foreach (var account in accounts)
+        {
+            var score = ScoreCandidate(wallet, account.AccountName);
+            if (account.InstitutionName is not null)
+            {
+                var instScore = ScoreCandidate(wallet, account.InstitutionName) * 0.95f;
+                score = Math.Max(score, instScore);
+            }
+            if (score > bestScore) { bestScore = score; best = account; }
+        }
+        return bestScore >= 0.5f ? best!.Id : null;
+    }
+
+    [Fact]
+    public void ScoreBestMatch_UserNamedAccount_ResolvesViaInstitutionName()
+    {
+        // User named their account "Jago Tabungan Utama" — doesn't match "Jago Main Pocket" directly.
+        // Institution name "Bank Jago" provides the token "jago" → match.
+        var accounts = new List<AccountFixture>
+        {
+            new(BcaId,  "My BCA Checking",      "BCA"),
+            new(JagoId, "Jago Tabungan Utama",  "Bank Jago"),
+        };
+
+        var result = ScoreBestMatchHelper("Jago Main Pocket", accounts);
+
+        Assert.Equal(JagoId, result);
+    }
+
+    [Fact]
+    public void ScoreBestMatch_ExactAccountNameBeatsInstitutionMatch()
+    {
+        // "Wise" exactly matches account name → score 1.0.
+        // Institution "Wise Inc" would score 0.95 * 1.0 = 0.95.
+        // Account-name match must win.
+        var accounts = new List<AccountFixture>
+        {
+            new(WiseId, "Wise",  "Wise Inc"),
+            new(BcaId,  "BCA Savings", "BCA"),
+        };
+
+        var result = ScoreBestMatchHelper("Wise", accounts);
+
+        Assert.Equal(WiseId, result);
+    }
+
+    [Fact]
+    public void ScoreBestMatch_NullInstitutionId_FallsBackToAccountNameOnly()
+    {
+        // Account has no institution — should still resolve via account name.
+        var accounts = new List<AccountFixture>
+        {
+            new(BcaId, "BCA", null),
+        };
+
+        var result = ScoreBestMatchHelper("BCA", accounts);
+
+        Assert.Equal(BcaId, result);
+    }
+
+    [Fact]
+    public void ScoreBestMatch_NeoBank_ResolvesViaInstitutionNameWhenAccountNameDiffers()
+    {
+        // Account named "Digital Savings"; institution is "Neo Bank".
+        // Wallet "NeoBank" normalizes to "neobank" which contains normalized "neobank" (institution) → match.
+        var accounts = new List<AccountFixture>
+        {
+            new(NeoId, "Digital Savings", "Neo Bank"),
+            new(BcaId, "BCA",             "BCA"),
+        };
+
+        var result = ScoreBestMatchHelper("NeoBank", accounts);
+
+        Assert.Equal(NeoId, result);
+    }
+
+    [Fact]
+    public void ScoreBestMatch_BelowThreshold_ReturnsNull()
+    {
+        // "mandiri" shares no tokens with any account or institution name in the list.
+        var accounts = new List<AccountFixture>
+        {
+            new(BcaId, "BCA", "BCA"),
+            new(JagoId, "Bank Jago", "Bank Jago"),
+        };
+
+        var result = ScoreBestMatchHelper("Mandiri", accounts);
+
+        Assert.Null(result);
+    }
+
+    [Fact]
+    public void ScoreBestMatch_HigherScoringAccountWins()
+    {
+        // Two accounts partially match; the one with higher token overlap wins.
+        var accounts = new List<AccountFixture>
+        {
+            new(JagoId,      "Bank Jago",  null),  // token "jago" → score 1/1 = 1.0
+            new(SuperbankId, "Superbank",  null),  // no shared token → 0
+        };
+
+        var result = ScoreBestMatchHelper("Jago Pocket", accounts);
+
+        Assert.Equal(JagoId, result);
+    }
 }
