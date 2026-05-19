@@ -1,6 +1,11 @@
 {
   "permissions": {
     "allow": [
+      "Edit",
+      "Write",
+      "Bash(supabase *)",
+      "Bash(npx supabase *)",
+      "Bash(jq *)",
       "Bash(npm install*)",
       "Bash(npm run *)",
       "Bash(npm ci*)",

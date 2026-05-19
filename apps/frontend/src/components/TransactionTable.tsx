@@ -254,7 +254,9 @@ const TransactionTable = ({ onTransactionUpdate, accountIdFilter }: TransactionT
               })()}
             </td>
             <td className="px-5 py-3 whitespace-nowrap font-mono text-xs text-muted-foreground tabular-nums text-right">
-              {tx.balance != null ? formatCurrency(tx.balance).replace('Rp', '').trim() : '—'}
+              {tx.balance !== 0
+                ? formatCurrency(tx.balance).replace('Rp', '').trim()
+                : '—'}
             </td>
             <td className="px-5 py-3 whitespace-nowrap">
               <button

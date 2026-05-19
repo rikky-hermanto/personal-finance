@@ -99,6 +99,30 @@ public class TransactionService : ITransactionService
         return tagged.Where(t => !t.IsDuplicate).ToList();
     }
 
+    /// <summary>
+    /// In-memory mirror of the SQL window function in v_transactions_with_balance.
+    /// CR adds amount_idr to the running total; DB subtracts. Rows are ordered by date then id,
+    /// matching the ORDER BY in the VIEW. Used in unit tests to validate sign convention and
+    /// decimal precision independently of PostgreSQL.
+    /// </summary>
+    public static IReadOnlyList<(TransactionDto Transaction, decimal Balance)> ComputeRunningBalances(
+        IEnumerable<TransactionDto> transactions)
+    {
+        var sorted = transactions
+            .OrderBy(t => t.Date)
+            .ThenBy(t => t.Id)
+            .ToList();
+
+        var result = new List<(TransactionDto, decimal)>(sorted.Count);
+        decimal running = 0m;
+        foreach (var t in sorted)
+        {
+            running += t.Flow == "CR" ? t.AmountIdr : -t.AmountIdr;
+            result.Add((t, running));
+        }
+        return result;
+    }
+
     private static bool IsMatch(Transaction db, TransactionDto incoming)
     {
         if (!db.BankRunningBalance.HasValue || !incoming.BankRunningBalance.HasValue)
@@ -211,7 +235,7 @@ public class TransactionService : ITransactionService
             };
         }
 
-        IPostgrestTable<Transaction> query = _supabase.From<Transaction>();
+        IPostgrestTable<TransactionWithBalance> query = _supabase.From<TransactionWithBalance>();
         if (sortOrder == "asc")
             query = query.Order("date", Ordering.Ascending).Order("id", Ordering.Ascending);
         else
@@ -229,7 +253,12 @@ public class TransactionService : ITransactionService
 
         return new PagedResult<TransactionDto>
         {
-            Items = result.Models.Select(t => MapToDto(t, accountNames)).ToList(),
+            Items = result.Models.Select(t =>
+            {
+                var dto = MapToDto(t, accountNames);
+                dto.Balance = t.RunningBalance ?? 0m;
+                return dto;
+            }).ToList(),
             Total = totalCount,
             Page = page,
             PageSize = pageSize,
