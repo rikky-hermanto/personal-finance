@@ -62,7 +62,7 @@ public class DefaultCsvParser : IBankStatementParser
                 remarks = string.Empty;
             }
 
-            string? wallet = GetFieldValue(normalizedDict, "Wallet", "Bank", "Account");
+            string? wallet = GetFieldValue(normalizedDict, "Wallet", "BankAccount", "Bank", "Account");
             var parsedBalance = ParseNullableDecimal(GetFieldValue(normalizedDict, "Balance", "RunningBalance", "BankRunningBalance"));
             var transaction = new TransactionDto
             {
