@@ -121,18 +121,7 @@ public class TransactionsController : ControllerBase
                 transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword, dateFormat);
             }
 
-            // Auto-resolve account_id from wallet text — alias lookup, then name match, then null
-            if (transactions.Any())
-            {
-                var walletText = transactions.First().Wallet;
-                var resolvedAccountId = await AutoResolveAccountIdAsync(walletText);
-                if (resolvedAccountId.HasValue)
-                {
-                    _logger.LogInformation("Auto-resolved account_id {AccountId} for wallet '{Wallet}'", resolvedAccountId, walletText);
-                    foreach (var tx in transactions)
-                        tx.AccountId = resolvedAccountId;
-                }
-            }
+            await ResolveAccountIdsAsync(transactions);
 
             var allTransactions = await _transactionService.IdentifyDuplicatesAsync(transactions);
             return Ok(new { Transactions = allTransactions, Hash = hash });
@@ -207,6 +196,8 @@ public class TransactionsController : ControllerBase
             var transactions = await _statementImportService.ImportAsync(downloadedStream, bank, pdfPassword, dateFormat);
             var processedTransactions = await _pipelineService.ProcessAsync(transactions);
 
+            await ResolveAccountIdsAsync(processedTransactions);
+
             return Ok(processedTransactions);
         }
         catch (NotSupportedException ex)
@@ -235,6 +226,11 @@ public class TransactionsController : ControllerBase
             return BadRequest("No transactions to submit.");
 
         await _categoryRuleService.EnsureCategoryRulesAsync(request.Transactions);
+
+        // Re-resolve account_id per-row from Wallet text as safety net.
+        // Guards against accountId being dropped between preview and submit (JSON undefined → null)
+        // and handles multi-bank master CSVs where each row has a different wallet.
+        await ResolveAccountIdsAsync(request.Transactions);
 
         var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(request.Transactions);
         if (nonDuplicates.Count == 0)
@@ -446,19 +442,99 @@ public class TransactionsController : ControllerBase
         return Ok(new { deleted });
     }
 
-    private async Task<Guid?> AutoResolveAccountIdAsync(string walletText)
+    // Resolves account_id per-transaction from each row's Wallet field.
+    // Fetches accounts + institutions once, then scores each distinct wallet via two-level cascade.
+    // Level 1: normalized contains (strips spaces — fixes "NeoBank" vs "Neo Bank").
+    // Level 2: token intersection (removes sub-account words — fixes "Jago Main Pocket" vs "Bank Jago").
+    // Also scores against institution.Name so user-defined account names don't break matching.
+    // Auto-learns fuzzy matches into WalletAccountAlias so next upload hits the O(1) alias cache.
+    private async Task ResolveAccountIdsAsync(List<TransactionDto> transactions)
     {
-        if (string.IsNullOrWhiteSpace(walletText)) return null;
+        var unlinked = transactions.Where(t => !t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.Wallet)).ToList();
+        if (!unlinked.Any()) return;
 
-        var aliasId = await _transactionService.ResolveAliasAsync(walletText);
-        if (aliasId.HasValue) return aliasId;
-
-        // Fall back to name match against accounts table
         var accounts = await _supabase.From<Account>().Get();
-        var match = accounts.Models.FirstOrDefault(a =>
-            a.Name.Contains(walletText, StringComparison.OrdinalIgnoreCase) ||
-            walletText.Contains(a.Name, StringComparison.OrdinalIgnoreCase));
-        return match?.Id;
+        var institutions = await _supabase.From<Institution>().Get();
+        var institutionNameById = institutions.Models.ToDictionary(i => i.Id, i => i.Name);
+
+        var distinctWallets = unlinked.Select(t => t.Wallet).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var walletToAccount = new Dictionary<string, Guid?>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var wallet in distinctWallets)
+        {
+            var aliasId = await _transactionService.ResolveAliasAsync(wallet);
+            if (aliasId.HasValue)
+            {
+                walletToAccount[wallet] = aliasId;
+                continue;
+            }
+
+            var (matchId, isFuzzy) = ScoreBestMatch(wallet, accounts.Models, institutionNameById);
+            walletToAccount[wallet] = matchId;
+
+            if (matchId.HasValue)
+            {
+                _logger.LogInformation("Resolved account_id {AccountId} for wallet '{Wallet}' (fuzzy={IsFuzzy})", matchId, wallet, isFuzzy);
+                if (isFuzzy)
+                    await _transactionService.UpsertAliasAsync(wallet, matchId.Value);
+            }
+            else
+                _logger.LogWarning("Could not resolve account_id for wallet '{Wallet}'", wallet);
+        }
+
+        foreach (var tx in unlinked)
+        {
+            if (walletToAccount.TryGetValue(tx.Wallet, out var id))
+                tx.AccountId = id;
+        }
+    }
+
+    private static string Normalize(string s) =>
+        s.ToLowerInvariant().Replace(" ", "").Replace("-", "").Replace(".", "").Replace("_", "");
+
+    private static readonly HashSet<string> _walletStopwords =
+        ["main", "pocket", "savings", "account", "rekening", "tabungan", "card", "utama", "by"];
+
+    private static HashSet<string> Tokenize(string s) =>
+        [.. s.ToLowerInvariant()
+             .Split([' ', '-', '_', '.', '(', ')'], StringSplitOptions.RemoveEmptyEntries)
+             .Where(t => !_walletStopwords.Contains(t))];
+
+    private static float ScoreCandidate(string wallet, string candidate)
+    {
+        var normW = Normalize(wallet);
+        var normC = Normalize(candidate);
+        if (normW.Contains(normC) || normC.Contains(normW)) return 1f;
+
+        var wTokens = Tokenize(wallet);
+        var cTokens = Tokenize(candidate);
+        if (wTokens.Count == 0 || cTokens.Count == 0) return 0f;
+        return (float)wTokens.Intersect(cTokens).Count() / wTokens.Count;
+    }
+
+    private static (Guid? Id, bool IsFuzzy) ScoreBestMatch(
+        string wallet,
+        IReadOnlyList<Account> accounts,
+        Dictionary<Guid, string> institutionNameById)
+    {
+        Account? best = null;
+        float bestScore = 0f;
+
+        foreach (var account in accounts)
+        {
+            var score = ScoreCandidate(wallet, account.Name);
+            if (account.InstitutionId.HasValue &&
+                institutionNameById.TryGetValue(account.InstitutionId.Value, out var instName))
+            {
+                // Institution name is canonical — slight preference for account-name match on tie
+                var instScore = ScoreCandidate(wallet, instName) * 0.95f;
+                score = Math.Max(score, instScore);
+            }
+            if (score > bestScore) { bestScore = score; best = account; }
+        }
+
+        const float Threshold = 0.5f;
+        return bestScore >= Threshold ? (best!.Id, true) : (null, false);
     }
 
     private string CalculateFileHash(Stream stream)

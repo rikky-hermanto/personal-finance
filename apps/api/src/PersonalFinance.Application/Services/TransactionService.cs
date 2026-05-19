@@ -27,7 +27,7 @@ public class TransactionService : ITransactionService
         {
             var result = await _supabase.From<Transaction>().Insert(entities);
             _logger.LogInformation("Supabase confirmed {ConfirmedCount} of {RequestedCount} transactions inserted.", result.Models.Count, entities.Count);
-            return result.Models.Select(MapToDto).ToList();
+            return result.Models.Select(t => MapToDto(t)).ToList();
         }
         catch (Exception ex) when (ex.Message.Contains("23505"))
         {
@@ -161,10 +161,11 @@ public class TransactionService : ITransactionService
         if (!string.IsNullOrEmpty(search))   query = query.Filter("description", Operator.ILike,  $"%{search}%");
 
         var result = await query.Get();
+        var accountNames = await FetchAccountNameLookupAsync();
 
         return result.Models.Select(t =>
         {
-            var dto = MapToDto(t);
+            var dto = MapToDto(t, accountNames);
             dto.Balance = 0;
             return dto;
         }).ToList();
@@ -222,12 +223,13 @@ public class TransactionService : ITransactionService
         if (!string.IsNullOrEmpty(search))   query = query.Filter("description", Operator.ILike, $"%{search}%");
 
         var result = await query.Range(from, to).Get();
+        var accountNames = await FetchAccountNameLookupAsync();
 
         _logger.LogDebug("GetTransactionPageAsync page={Page} size={Size} total={Total}", page, pageSize, result.Count);
 
         return new PagedResult<TransactionDto>
         {
-            Items = result.Models.Select(MapToDto).ToList(),
+            Items = result.Models.Select(t => MapToDto(t, accountNames)).ToList(),
             Total = totalCount,
             Page = page,
             PageSize = pageSize,
@@ -294,7 +296,13 @@ public class TransactionService : ITransactionService
         BankRunningBalance = dto.BankRunningBalance
     };
 
-    private static TransactionDto MapToDto(Transaction t) => new()
+    private async Task<Dictionary<Guid, string>> FetchAccountNameLookupAsync()
+    {
+        var accounts = await _supabase.From<Account>().Get();
+        return accounts.Models.ToDictionary(a => a.Id, a => a.Name);
+    }
+
+    private static TransactionDto MapToDto(Transaction t, Dictionary<Guid, string>? accountNames = null) => new()
     {
         Id = t.Id,
         Date = t.Date,
@@ -304,6 +312,7 @@ public class TransactionService : ITransactionService
         Type = t.Type,
         Category = t.Category,
         AccountId = t.AccountId,
+        Wallet = t.AccountId.HasValue && accountNames != null && accountNames.TryGetValue(t.AccountId.Value, out var name) ? name : string.Empty,
         AmountIdr = t.AmountIdr,
         Currency = t.Currency,
         ExchangeRate = t.ExchangeRate,
