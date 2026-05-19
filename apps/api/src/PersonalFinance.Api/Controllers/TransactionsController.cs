@@ -338,7 +338,8 @@ public class TransactionsController : ControllerBase
             .Get();
 
         var grouped = txResult.Models
-            .GroupBy(t => t.AccountId)
+            .Where(t => t.AccountId.HasValue)
+            .GroupBy(t => t.AccountId!.Value)
             .ToDictionary(
                 g => g.Key,
                 g => new
@@ -348,7 +349,9 @@ public class TransactionsController : ControllerBase
                     Count    = g.Count()
                 });
 
-        var summaries = accountsResult.Models.Select(a =>
+        var summaries = accountsResult.Models
+            .Where(a => grouped.ContainsKey(a.Id))
+            .Select(a =>
         {
             grouped.TryGetValue(a.Id, out var stats);
             var totalIn  = stats?.TotalIn  ?? 0m;
