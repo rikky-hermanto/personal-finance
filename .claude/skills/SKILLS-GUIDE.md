@@ -4,6 +4,35 @@ Custom slash commands for this project. Type `/skill-name [args]` in Claude Code
 
 ---
 
+## Product Management & Brainstorming
+
+### `/pm-brainstorm` — Feature ideation and PM analysis
+Acts as a Senior Product Manager. Analyzes feature ideas, scans competitors, generates alternatives, and gives a Go/No-Go verdict. Aware of this product's current state and the Indonesian fintech market.
+
+| Mode | Usage |
+|------|-------|
+| *(none)* | Interactive — Claude asks what idea to explore |
+| `analyze [idea]` | Deep PM analysis: user pain, competitive scan, MVP cut, fit score, verdict |
+| `compete [area]` | Competitive landscape scan for a feature area (e.g. "budgeting", "goals") |
+| `prioritize` | Rank a list of ideas you provide, output a build-order stack |
+| `alternatives [idea]` | Generate 3–5 alternative framings for the same user pain |
+
+```
+/pm-brainstorm                                  # interactive
+/pm-brainstorm analyze smart bill detection     # full analysis
+/pm-brainstorm compete savings goals            # competitive scan
+/pm-brainstorm prioritize                       # rank a list you'll paste
+/pm-brainstorm alternatives recurring expenses  # explore different angles
+```
+
+**Output:** User Pain Map · Competitive Scan · Feature Breakdown · Risk & Blind Spots · Fit Score (out of 25) · Go/No-Go verdict · Alternative Framings.
+
+After analysis, enters discussion mode — push back, ask follow-ups, explore alternatives. Can hand off to `/battle-plans` or `/review-plan` when ready to execute.
+
+Optionally saves output to `.claude/plans/pm-{feature}-analysis.md`.
+
+---
+
 ## Architecture & Design
 
 ### `/arch-review` — Full codebase architecture health report + discussion
