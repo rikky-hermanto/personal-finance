@@ -15,7 +15,7 @@ public class TransactionDto
     public string Currency { get; set; } = "IDR";
     public decimal? ExchangeRate { get; set; }
     public decimal? BankRunningBalance { get; set; }
-    public decimal Balance { get; set; } // Calculated on the fly (UI)
+    public decimal Balance { get; set; }
 
     // Flag to indicate if this transaction is already in the database
     public bool IsDuplicate { get; set; }
