@@ -10,6 +10,7 @@ export interface Transaction {
   bank: string;       // wallet text from AI service (transient)
   accountId?: string; // uuid of the linked account
   balance?: number;
+  bankRunningBalance?: number | null; // tie-breaker for dedup — must survive preview→submit round-trip
   isRecurring?: boolean;
   isDuplicate?: boolean;
 }

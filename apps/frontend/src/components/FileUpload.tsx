@@ -158,17 +158,18 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
         }
 
         return {
-          id:          `${t.id}-${idx}`,
-          date:        t.date,
-          description: t.description,
-          flow:        t.flow,
-          amount:      t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
-          type:        mappedType,
-          category:    t.category,
-          bank:        t.wallet,
-          accountId:   t.accountId ?? undefined,
-          balance:     t.balance,
-          isDuplicate: t.isDuplicate,
+          id:                 `${t.id}-${idx}`,
+          date:               t.date,
+          description:        t.description,
+          flow:               t.flow,
+          amount:             t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
+          type:               mappedType,
+          category:           t.category,
+          bank:               t.wallet,
+          accountId:          t.accountId ?? undefined,
+          balance:            t.balance,
+          bankRunningBalance: t.bankRunningBalance ?? null,
+          isDuplicate:        t.isDuplicate,
         };
       });
       setParsedTransactions(transactions);
