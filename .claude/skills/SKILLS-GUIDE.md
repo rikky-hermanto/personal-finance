@@ -181,6 +181,27 @@ Adds an Excel-style filtered, paginated table to the frontend following the Tran
 
 ---
 
+## Plan Execution
+
+### `/execute` — Execute a plan file end-to-end, unattended
+Reads every unchecked step in a plan file, implements it, marks it `[x]` immediately after, then verifies all acceptance criteria at the end. Never stops mid-execution to ask questions — leave it running and review the diff in your git client when you're back.
+
+```
+/execute PF-115                                          # fuzzy match on prefix
+/execute PF-115-transaction-running-balance-view.md      # exact filename
+```
+
+**What it does:**
+1. Reads the plan + all affected files before touching anything
+2. Executes each `[ ] STEP` in order — create files, edit files, run commands
+3. Marks each step `[x]` immediately on completion
+4. Verifies each acceptance criterion and checks it off if met
+5. Outputs a final summary: steps done, steps failed, ACTs met/unmet
+
+**After it finishes:** review changes in your git client, then run `/ci-check` before pushing.
+
+---
+
 ## Dev Operations
 
 ### `/docker-up` — Start full stack via Docker Compose
