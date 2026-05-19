@@ -62,6 +62,42 @@ Optionally saves the report to `.claude/plans/arch-review-{YYYY-MM-DD}.md`.
 
 ---
 
+## Plan Creation (End-to-End)
+
+### `/plan` — Use case → approaches → winner → implementation plan
+The full pipeline: takes a raw problem, bug, feature, or refactor request; reads live codebase context; generates 2–3 competing approaches; scores them; picks a winner; then writes a complete, PF-009-style implementation plan (Objective → Acceptance Criteria → Approach → Affected Files → TODO steps) ready for execution.
+
+| Argument | Behavior |
+|----------|----------|
+| `[ticket]` | Look up ticket in `.kanban/BOARD.md`, plan from description |
+| `[free-text description]` | Plan from the description directly |
+| `[ticket or text] as architect` | Skip PO scoring; go straight to technical approach scoring |
+
+```
+/plan PF-116                                        # plan from ticket
+/plan "statement tab is slow on date filter"        # plan from problem
+/plan "add monthly budget limits per category"      # plan from feature brief
+/plan "extract category logic out of controller"    # plan from refactor request
+/plan PF-116 as architect                           # architect-only scoring
+```
+
+**Output flow:**
+1. Problem restatement (type / domain / layers affected)
+2. 2–3 solution approaches with tradeoffs
+3. Scoring grid (adapts to bug / feature / refactor)
+4. Verdict: winner + why not the others
+5. Full implementation plan (Objective → Acceptance Criteria → Approach → Affected Files → TODO steps with `> **Why:**` rationale on each)
+6. Offers to save to `.claude/plans/{ticket}-todo.md`
+7. Suggests natural next steps: `/review-plan`, `/battle-plans`, `/pm-brainstorm`
+
+**When to use `/plan` vs others:**
+- Have a raw problem → `/plan`
+- Have two written proposals → `/battle-plans`
+- Have a plan, want it stress-tested → `/review-plan`
+- Have a vague idea, want PM thinking first → `/pm-brainstorm`
+
+---
+
 ## Plan Review & Decision-Making
 
 ### `/battle-plans` — Compare two competing proposals
