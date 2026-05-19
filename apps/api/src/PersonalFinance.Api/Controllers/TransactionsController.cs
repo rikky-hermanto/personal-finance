@@ -443,33 +443,36 @@ public class TransactionsController : ControllerBase
     }
 
     // Resolves account_id per-transaction from each row's Wallet field.
-    // Fetches accounts + institutions once, then scores each distinct wallet via two-level cascade.
-    // Level 1: normalized contains (strips spaces — fixes "NeoBank" vs "Neo Bank").
-    // Level 2: token intersection (removes sub-account words — fixes "Jago Main Pocket" vs "Bank Jago").
-    // Also scores against institution.Name so user-defined account names don't break matching.
-    // Auto-learns fuzzy matches into WalletAccountAlias so next upload hits the O(1) alias cache.
+    // All three lookups (accounts, institutions, aliases) fire in parallel — one round-trip each.
+    // Scoring cascade: alias cache → normalized-contains → token-intersection against account + institution name.
+    // Fuzzy matches are auto-learned into WalletAccountAlias so subsequent uploads hit the alias cache.
     private async Task ResolveAccountIdsAsync(List<TransactionDto> transactions)
     {
         var unlinked = transactions.Where(t => !t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.Wallet)).ToList();
         if (!unlinked.Any()) return;
 
-        var accounts = await _supabase.From<Account>().Get();
-        var institutions = await _supabase.From<Institution>().Get();
-        var institutionNameById = institutions.Models.ToDictionary(i => i.Id, i => i.Name);
-
         var distinctWallets = unlinked.Select(t => t.Wallet).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+        var accountsTask      = _supabase.From<Account>().Get();
+        var institutionsTask  = _supabase.From<Institution>().Get();
+        var aliasTask         = _transactionService.ResolveAliasesBatchAsync(distinctWallets);
+        await Task.WhenAll(accountsTask, institutionsTask, aliasTask);
+
+        var accounts           = accountsTask.Result.Models;
+        var institutionNameById = institutionsTask.Result.Models.ToDictionary(i => i.Id, i => i.Name);
+        var aliasMap           = aliasTask.Result;
+
         var walletToAccount = new Dictionary<string, Guid?>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var wallet in distinctWallets)
         {
-            var aliasId = await _transactionService.ResolveAliasAsync(wallet);
-            if (aliasId.HasValue)
+            if (aliasMap.TryGetValue(wallet, out var cachedId))
             {
-                walletToAccount[wallet] = aliasId;
+                walletToAccount[wallet] = cachedId;
                 continue;
             }
 
-            var (matchId, isFuzzy) = ScoreBestMatch(wallet, accounts.Models, institutionNameById);
+            var (matchId, isFuzzy) = ScoreBestMatch(wallet, accounts, institutionNameById);
             walletToAccount[wallet] = matchId;
 
             if (matchId.HasValue)

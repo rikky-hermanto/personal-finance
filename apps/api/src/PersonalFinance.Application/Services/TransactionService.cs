@@ -263,6 +263,27 @@ public class TransactionService : ITransactionService
         return result.Models.FirstOrDefault()?.AccountId;
     }
 
+    public async Task<Dictionary<string, Guid>> ResolveAliasesBatchAsync(IEnumerable<string> walletTexts)
+    {
+        var texts = walletTexts
+            .Select(w => w.Trim())
+            .Where(w => !string.IsNullOrEmpty(w))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (texts.Count == 0)
+            return new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
+
+        var all = await _supabase.From<WalletAccountAlias>().Get();
+        return all.Models
+            .Where(a => texts.Contains(a.AliasText.Trim(), StringComparer.OrdinalIgnoreCase))
+            .GroupBy(a => a.AliasText.Trim(), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(a => a.CreatedAt).First().AccountId,
+                StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task UpsertAliasAsync(string walletText, Guid accountId)
     {
         if (string.IsNullOrWhiteSpace(walletText)) return;
