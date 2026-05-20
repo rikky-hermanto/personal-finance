@@ -100,6 +100,31 @@ The full pipeline: takes a raw problem, bug, feature, or refactor request; reads
 
 ## Plan Review & Decision-Making
 
+### `/council` — 5-persona adversarial debate → Chairman verdict
+Instead of asking Claude one question and getting a yes, run it through five adversarial voices that argue from locked positions, then a Chairman synthesizes the real answer.
+
+| Persona | Mandate |
+|---------|---------|
+| 🔴 The Contrarian | Find every way this fails |
+| 🧱 The First-Principles Thinker | Rebuild the question from scratch |
+| 🟢 The Expansionist | Find the upside you missed |
+| 🔭 The Outsider | Strip context, look at the raw problem |
+| ⚙️ The Executor | What do we do Monday morning? |
+| 🎯 The Chairman | Reads the debate, delivers the verdict |
+
+```
+/council should we build a budgeting feature next?
+/council is the Supabase migration the right call for a solo project?
+/council I want to go full-time on this app
+/council                                        # interactive — Claude asks what to evaluate
+```
+
+**Verdict options:** YES · NO · NOT YET · REFRAME
+
+After the verdict, enters discussion mode — push back on any voice, run again with a new framing, or ask the Chairman to reconsider under new constraints. Optionally saves to `.claude/plans/council-{slug}-{date}.md`.
+
+---
+
 ### `/battle-plans` — Compare two competing proposals
 Pick a winner between Team A and Team B proposals.
 
