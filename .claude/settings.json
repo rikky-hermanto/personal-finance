@@ -81,6 +81,16 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py .claude/hooks/plan-complete-sync.py"
+          }
+        ]
+      }
     ]
   }
 }
