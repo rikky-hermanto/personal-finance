@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-05-20
+> **Last synced:** 2026-05-21
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -57,6 +57,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-117 | [#84](https://github.com/rikky-hermanto/personal-finance/issues/84) | Dashboard Overview: Data Accuracy & UX Polish |
 
 ---
 
@@ -131,6 +132,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | Completed — `providers/{factory,anthropic,gemini}.py` exist; provider abstraction is live |
 | PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Superseded by PF-S08/PF-S09 (Supabase GoTrue replaces Auth0) |
 | PF-116 | _(no issue)_ | Transaction Running Balance View |
+| PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
 
 ---
 
