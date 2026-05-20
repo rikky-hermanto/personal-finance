@@ -23,16 +23,19 @@ const OverviewTab = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useLocalStorage<number>('pf_overview_range', 1);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         const result = await getDashboardData(undefined, undefined, undefined, range);
         setData(result);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
+      } catch (err) {
+        console.error('Failed to fetch dashboard data:', err);
+        setError('Could not load dashboard data — check your connection and try again.');
       } finally {
         setIsLoading(false);
       }
@@ -76,6 +79,35 @@ const OverviewTab = () => {
           </div>
         </div>
 
+        {/* Error state */}
+        {error && !isLoading && (
+          <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {/* Staleness badge — only when data is from > 30 days ago */}
+        {!error && data?.dataThrough && (() => {
+          // dataThrough is "Month YYYY" e.g. "January 2026" — parse as first of that month
+          const [monthName, yearStr] = data.dataThrough.split(' ');
+          const dateThroughDate = new Date(`${monthName} 1, ${yearStr}`);
+          const isStale = !isNaN(dateThroughDate.getTime()) &&
+            new Date().getTime() - dateThroughDate.getTime() > 30 * 24 * 60 * 60 * 1000;
+          return isStale ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
+              Data through {data.dataThrough} — upload a new statement to sync
+            </div>
+          ) : null;
+        })()}
+
+        {/* YTD hint — when YTD range returns only one month */}
+        {range === 0 && data && data.cashFlow.length === 1 && (
+          <p className="text-xs text-muted-foreground -mt-3">
+            Showing {data.dataThrough} only — upload data for subsequent months to see full YTD.
+          </p>
+        )}
+
         {/* Top row: net cashflow + top categories */}
         <div className="grid grid-cols-[1fr_280px] gap-4">
           <NetCashflowCard data={data?.currentMonth || null} isLoading={isLoading} />
@@ -90,7 +122,7 @@ const OverviewTab = () => {
         <MonthlyFlowChart 
           data={data?.cashFlow || null} 
           isLoading={isLoading} 
-          rangeLabel={RANGES.find(r => r.value === range)?.label} 
+          rangeLabel={data?.currentMonth?.month}
         />
       </div>
     </div>

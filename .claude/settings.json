@@ -1,8 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Edit",
-      "Write",
+      "Edit(**)",
+      "Write(**)",
       "Bash(supabase *)",
       "Bash(npx supabase *)",
       "Bash(jq *)",
