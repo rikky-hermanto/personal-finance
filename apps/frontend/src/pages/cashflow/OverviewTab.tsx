@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useNavigate } from 'react-router-dom';
 import { getDashboardData } from '@/api/transactionsApi';
 import { DashboardData } from '@/types/Dashboard';
@@ -22,7 +23,7 @@ const OverviewTab = () => {
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [range, setRange] = useState(1);
+  const [range, setRange] = useLocalStorage<number>('pf_overview_range', 1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,17 +55,17 @@ const OverviewTab = () => {
               Upload Statement
             </Button>
             <div className="w-px h-5 bg-border" />
-            <div className="flex items-center p-0 gap-1 rounded-none border-none">
+            <div className="flex items-center gap-0.5">
               {RANGES.map((r) => (
                 <Button
                   key={r.label}
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-8 px-3 text-xs font-medium transition-all rounded-md",
+                    "h-7 px-2.5 text-xs font-medium transition-all rounded-md",
                     range === r.value
-                      ? "bg-secondary text-foreground shadow-none"
-                      : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                      ? "bg-secondary text-foreground hover:bg-secondary"
+                      : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                   )}
                   onClick={() => setRange(r.value)}
                 >

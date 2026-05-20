@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, TrendingUp, TrendingDown, X, LayoutList, LayoutGrid, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,7 +41,7 @@ const AccountCard = ({
         'w-full text-left px-4 py-3 rounded-lg border transition-all duration-150',
         selected
           ? 'border-primary/60 bg-primary/10 text-foreground'
-          : 'border-border bg-card hover:bg-muted/50 text-foreground',
+          : 'border-border bg-card hover:bg-foreground/5/50 text-foreground',
       )}
     >
       <div className="flex items-center justify-between mb-2">
@@ -86,7 +87,7 @@ const AccountCard = ({
 
 const AccountsTab = () => {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('table');
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('pf_accounts_view', 'table');
 
   // Clear stale localStorage key from old custom-wallets system
   useEffect(() => {
@@ -94,8 +95,8 @@ const AccountsTab = () => {
   }, []);
 
   // Statement controls
-  const [range, setRange] = useState(6);
-  const [groupBy, setGroupBy] = useState<'quarterly' | 'monthly'>('quarterly');
+  const [range, setRange] = useLocalStorage<number>('pf_accounts_range', 6);
+  const [groupBy, setGroupBy] = useLocalStorage<'quarterly' | 'monthly'>('pf_accounts_groupby', 'quarterly');
   const [statementData, setStatementData] = useState<CashflowStatement | null>(null);
   const [statementLoading, setStatementLoading] = useState(false);
 
@@ -173,7 +174,7 @@ const AccountsTab = () => {
               'w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-150',
               selectedAccountId === null
                 ? 'border-primary/60 bg-primary/10 text-foreground'
-                : 'border-border bg-card hover:bg-muted/50 text-muted-foreground hover:text-foreground',
+                : 'border-border bg-card hover:bg-foreground/5/50 text-muted-foreground hover:text-foreground',
             )}
           >
             <div className="flex items-center gap-2">
@@ -252,13 +253,20 @@ const AccountsTab = () => {
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-1 rounded-md border border-border bg-muted/30 p-0.5">
+                  <div className="w-px h-5 bg-border" />
+
+                  <div className="flex items-center gap-0.5">
                     {RANGES.map((r) => (
                       <Button
                         key={r.label}
                         variant="ghost"
                         size="sm"
-                        className={btnCls(range === r.value)}
+                        className={cn(
+                          'h-7 px-2.5 text-xs font-medium transition-all rounded-md',
+                          range === r.value
+                            ? 'bg-secondary text-foreground hover:bg-secondary'
+                            : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/5',
+                        )}
                         onClick={() => setRange(r.value)}
                       >
                         {r.label}
