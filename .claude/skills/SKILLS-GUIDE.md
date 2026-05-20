@@ -35,6 +35,37 @@ Optionally saves output to `.claude/plans/pm-{feature}-analysis.md`.
 
 ## Architecture & Design
 
+### `/consult` — Lead Software Architect consultation on any technical decision
+Acts as a **Lead Software Architect from a FAANG-class company**. Gives concrete verdicts on any technical question — "it depends" is not an output. Reads the live codebase and governance rules before answering. Stays in discussion mode after the verdict.
+
+| Mode | Usage |
+|------|-------|
+| *(none)* | Interactive — Claude asks what to consult on |
+| `"question"` | Direct consultation — verdict + landmine + concrete next steps |
+| `design [topic]` | System design deep dive — components, data model, failure modes, evolution path |
+| `review [design]` | Design critique — what's good, what will cause a prod incident, SHIP IT / REDESIGN verdict |
+| `tradeoffs [A vs B]` | Explicit tradeoff matrix — scoring, the deciding factor, conditions that flip the verdict |
+| `adr [decision]` | Architecture Decision Record — context, options, rationale, success criteria |
+| `scale [topic]` | Scale analysis — 10x/100x bottlenecks, scale cliff, pre-scale investments |
+
+```
+/consult                                          # interactive
+/consult "should we add Redis caching here?"      # direct consultation
+/consult design "multi-tenant transaction storage"
+/consult review "our current parser routing design"
+/consult tradeoffs "Supabase vs self-hosted Postgres"
+/consult adr "choosing Supabase over EF Core"
+/consult scale "transaction ingestion pipeline"
+```
+
+**Output:** The Real Question (reframed) · Hidden Assumptions · Decisive Factor · Verdict (PROCEED/DON'T/REDESIGN/NOT YET) · What to Do · The Landmine 💣
+
+After the verdict, enters discussion mode — push back, add constraints (`what if we have 2 engineers?`), request the ADR version, or hand off to `/plan`.
+
+The Architect's principles: a verdict is always required · name the landmine · reversibility over purity · operational burden is part of the design · complexity must justify itself · right-size for the project phase.
+
+---
+
 ### `/arch-review` — Full codebase architecture health report + discussion
 Reads the entire live codebase (not CLAUDE.md summaries — actual source files), produces a structured health report, then enters discussion mode for improvements and new ideas.
 
@@ -228,6 +259,22 @@ Reads every unchecked step in a plan file, implements it, marks it `[x]` immedia
 ---
 
 ## Dev Operations
+
+### `/kanban-sync` — Sync BOARD.md against GitHub Issues
+Pulls closed issues from GitHub, finds which ones are missing from the Done section, appends them, and reports any open issues not yet triaged onto the board. Additive-only — never deletes or reorders rows.
+
+```
+/kanban-sync        # sync Done + report untracked open issues
+```
+
+**What it does:**
+1. `gh issue list --state closed` → finds tickets missing from Done → appends rows
+2. `gh issue list --state open` → reports PF-IDs not anywhere on the board (needs triage)
+3. Updates the `Last synced` date header
+
+For plan-only tickets (PF-090, PF-100 — no GH issue), use the plan completion hook or update manually; those won't appear in the GitHub diff.
+
+---
 
 ### `/docker-up` — Start full stack via Docker Compose
 Runs `docker compose down && docker compose up --build` with correct service ordering.
