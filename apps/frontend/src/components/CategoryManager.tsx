@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { CategoryRule } from '@/types/Transaction';
 import { Plus, Edit2, Trash2, Save, X, Upload, Download, AlignJustify, Layers, FolderPlus } from 'lucide-react';
 import CategoryGroupView from '@/components/CategoryGroupView';
@@ -39,7 +40,7 @@ const CategoryManager = () => {
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newRule, setNewRule] = useState<Omit<CategoryRule, 'id'>>({ keyword: '', category: '', type: 'expense' });
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'keyword' | 'category'>('keyword');
+  const [viewMode, setViewMode] = useLocalStorage<'keyword' | 'category'>('pf_categories_view', 'keyword');
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const { toast } = useToast();
   const [resetOpen, setResetOpen] = useState(false);
