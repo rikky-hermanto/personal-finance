@@ -1,5 +1,6 @@
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Transaction } from '@/types/Transaction';
 import { BankId } from '@/types/Transaction';
 import { mockWalletBalances } from '@/data/mockTransactions';
@@ -34,7 +35,7 @@ const CashFlowDashboard = ({
   selectedWallet: externalWallet,
   onWalletChange,
 }: CashFlowDashboardProps) => {
-  const [internalWallet, setInternalWallet] = useState<WalletFilter>('all');
+  const [internalWallet, setInternalWallet] = useLocalStorage<WalletFilter>('pf_dashboard_wallet', 'all');
 
   const selectedWallet = externalWallet ?? internalWallet;
   const setWallet = (v: WalletFilter) => {

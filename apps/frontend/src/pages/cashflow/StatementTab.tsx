@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocalStorage } from '@/hooks/use-local-storage';
 import { getCashflowStatement } from '@/api/transactionsApi';
 import { CashflowStatement } from '@/types/CashflowStatement';
 import CashflowStatementTable from '@/components/CashflowStatementTable';
@@ -18,8 +19,8 @@ const RANGES = [
 const StatementTab = () => {
   const [data, setData] = useState<CashflowStatement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [range, setRange] = useState(6); // Default to 6M for statement
-  const [groupBy, setGroupBy] = useState<'quarterly' | 'monthly'>('quarterly');
+  const [range, setRange] = useLocalStorage<number>('pf_statement_range', 6);
+  const [groupBy, setGroupBy] = useLocalStorage<'quarterly' | 'monthly'>('pf_statement_groupby', 'quarterly');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,51 +48,53 @@ const StatementTab = () => {
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Period Toggle */}
-            <div className="flex items-center p-0 gap-1 rounded-none border-none">
+            <div className="flex items-center gap-1 rounded-md border border-border bg-muted/30 p-0.5">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-3 text-xs font-medium transition-all gap-1.5 rounded-md",
-                  groupBy === 'quarterly' 
+                  "h-7 px-2.5 text-xs font-medium transition-all gap-1.5 rounded-md",
+                  groupBy === 'quarterly'
                     ? "bg-secondary text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                 )}
                 onClick={() => setGroupBy('quarterly')}
               >
-                <LayoutGrid size={14} />
+                <LayoutGrid size={13} />
                 Quarterly
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "h-8 px-3 text-xs font-medium transition-all gap-1.5 rounded-md",
-                  groupBy === 'monthly' 
+                  "h-7 px-2.5 text-xs font-medium transition-all gap-1.5 rounded-md",
+                  groupBy === 'monthly'
                     ? "bg-secondary text-foreground shadow-none"
                     : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                 )}
                 onClick={() => setGroupBy('monthly')}
               >
-                <Calendar size={14} />
+                <Calendar size={13} />
                 Monthly
               </Button>
             </div>
 
+            <div className="w-px h-5 bg-border" />
+
             {/* Range Selector */}
-            <div className="flex items-center p-0 gap-1 rounded-none border-none">
+            <div className="flex items-center gap-0.5">
               {RANGES.map((r) => (
                 <Button
                   key={r.label}
                   variant="ghost"
                   size="sm"
                   className={cn(
-                    "h-8 px-3 text-xs font-medium transition-all rounded-md",
-                    range === r.value 
-                      ? "bg-secondary text-white shadow-none" 
-                      : "text-muted-foreground hover:text-white hover:bg-white/5"
+                    "h-7 px-2.5 text-xs font-medium transition-all rounded-md",
+                    range === r.value
+                      ? "bg-secondary text-foreground hover:bg-secondary"
+                      : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-foreground/5"
                   )}
                   onClick={() => setRange(r.value)}
                 >
