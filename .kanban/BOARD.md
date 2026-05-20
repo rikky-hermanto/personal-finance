@@ -130,6 +130,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Absorbed into PF-S06 (supabase-csharp handler rewrite — AI results written back directly) |
 | PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | Completed — `providers/{factory,anthropic,gemini}.py` exist; provider abstraction is live |
 | PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Superseded by PF-S08/PF-S09 (Supabase GoTrue replaces Auth0) |
+| PF-116 | _(no issue)_ | Transaction Running Balance View |
 
 ---
 

@@ -181,19 +181,29 @@ apps/
         DefaultCsvParser.cs            # Fallback CSV parser (auto-delimiter, Indonesian decimals)
         LlmPdfParser.cs                # LLM-routed parser for unrecognized PDFs
         BankIdentifier.cs              # Sniffs file content, returns bank code
+        IBankIdentifier.cs             # ⚠ ARCH-02 violation — should be in Application/Interfaces/
       External/
         LlmExtractionClient.cs         # Typed HttpClient → Python AI service /parse-pdf /parse-image
+        LlmCategorizationClient.cs     # Typed HttpClient → Python AI service /categorize
+        LlmSuggestionClient.cs         # Typed HttpClient → Python AI service /suggest-categories
+        PortfolioReviewClient.cs       # Typed HttpClient → Python AI service /portfolio-review
+        JourneyAdvisorClient.cs        # Typed HttpClient → Python AI service /journey/advise
+        LlmExtractionException.cs      # Exception type for LLM failures (transient/non-transient)
       Supabase/
         DependencyInjection.cs         # AddSupabase() extension, registers Supabase.Client + StorageService
         StorageService.cs              # IFileStorageService impl — bank-statements/ bucket
-    tests/PersonalFinance.Tests/       # xUnit + Moq tests
+    tests/PersonalFinance.Tests/       # xUnit + Moq tests (20+ test files across Commands/, Services/, Parsers/, Controllers/)
 services/
   ai-service/                 # Python FastAPI AI service
     app/
-      main.py                 # FastAPI app, health check
+      main.py                 # FastAPI app, 8 endpoints
       services/
         llm_parser.py         # Gemini/Anthropic structured output extraction
         pdf_extractor.py      # PyMuPDF text extraction (pre-LLM)
+        categorizer.py        # LLM-powered transaction categorization
+        merchant_suggester.py # Batch merchant → category suggestion
+        portfolio_reviewer.py # Investment portfolio AI review
+        journey_advisor.py    # Financial journey advice endpoint
       providers/
         base.py               # LlmProvider interface
         factory.py            # ProviderFactory
@@ -317,8 +327,8 @@ cd apps/frontend && npm run dev
 - **Auth**: Not yet wired — API is wide open. Supabase Auth + JwtBearer middleware planned in PF-S08. RLS policies on tables use permissive `USING (true)` placeholder.
 
 ### AI Service (Python FastAPI)
-- **Trigger**: Called directly by the .NET API via `ILlmExtractionClient` (typed HttpClient). Webhook-triggered event-driven pipeline planned in PF-S11 (not yet built).
-- **Endpoints**: `GET /health`, `POST /parse` (text), `POST /parse-pdf` (multipart, optional password), `POST /parse-image` (multipart, 10 MB cap).
+- **Trigger**: Called directly by the .NET API via typed HttpClients. Webhook-triggered event-driven pipeline planned in PF-S11 (not yet built).
+- **Endpoints**: `GET /health`, `POST /parse` (text), `POST /parse-pdf` (multipart, optional password), `POST /parse-image` (multipart, 10 MB cap), `POST /categorize` (single-transaction LLM categorization), `POST /suggest-categories` (batch merchant → category), `POST /portfolio-review` (investment AI review), `POST /journey/advise` (journey advisor).
 - **Structured Output**: Gemini uses JSON mode (`response_mime_type="application/json"`); Anthropic uses `tool_use` forced extraction. No regex parsing of free text.
 - **Provider Abstraction**: `ProviderFactory.create(settings)` returns `GeminiProvider` (default) or `AnthropicProvider`. No supabase-py dependency — results returned to .NET API as JSON.
 - **Observability**: OpenTelemetry tracing + metrics via OTLP; `FastAPIInstrumentor` auto-wraps all routes.
@@ -355,10 +365,12 @@ cd apps/frontend && npm run dev
 **Requires full stack running.** Either `docker compose up -d` (DB + API) or local `dotnet run` + `npm run dev`.
 
 ### Backend — xUnit + Moq
-- **Tests:** `api/tests/PersonalFinance.Tests/` — `UseInMemoryDatabase` per test class, `IDisposable` pattern
-- **Run all:** `cd api && dotnet test`
-- **Single test:** `cd api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
-- **Reference:** `Services/CategoryRuleServiceTests.cs` — canonical example
+- **Tests:** `api/tests/PersonalFinance.Tests/` — 20+ test files across `Commands/`, `Services/`, `Parsers/`, `Controllers/`
+- **Pattern (post-EF Core removal):** Moq for Supabase-dependent services; pure logic tests for validators, parsers, dedup. `UseInMemoryDatabase` is **gone** — EF Core removed in PF-S07.
+- **⚠ Note:** Many `CategoryRuleService` tests are `[Fact(Skip="Requires Supabase integration")]` — they pass in CI but execute no logic. Integration harness tracked in PF-034.
+- **Run all:** `cd apps/api && dotnet test`
+- **Single test:** `cd apps/api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
+- **Reference pattern:** `Commands/CreateAssetCommandHandlerTests.cs` — validator testing (no DB needed); `Services/DeduplicationTests.cs` — pure logic testing
 - Naming: `MethodName_Condition_ExpectedResult`
 
 ### AI Service — pytest
@@ -407,24 +419,24 @@ gh issue create \
 - **Always update `.kanban/BOARD.md`** to reflect the new state
 
 ### Next task ID
-Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-114** → next is **PF-115**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13).
+Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-115** (Transaction Running Balance VIEW, planned) → next is **PF-116**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13); next Supabase task is **PF-S14**.
 
 ---
 
 ## Current Phase
 
 - **Setup phase (PF-001–PF-008):** COMPLETE
-- **Cleanup sprint:** IN PROGRESS (6/18 done)
-  - Done: PF-027, PF-029, PF-030, PF-032, PF-033, PF-041 (Playwright E2E)
-  - Next (pre-Supabase): PF-028 (exception leaks), PF-031 (dashboard extraction), PF-051 (ILogger)
-  - Backlog: PF-034–PF-038, PF-042, PF-043, PF-045, PF-051, PF-052
+- **Cleanup sprint:** IN PROGRESS (8/18 done)
+  - Done: PF-027, PF-028 (exception leaks), PF-029, PF-030, PF-031 (dashboard extraction), PF-032, PF-033, PF-041 (Playwright E2E)
+  - Next: PF-051 (ILogger), PF-052 (TypeScript strict)
+  - Backlog: PF-034–PF-038, PF-042, PF-043, PF-045
 - **AI Ramp-Up:** COMPLETE — Python AI service live with Gemini/Anthropic
 - **Observability:** COMPLETE — LGTM stack (PF-100) and Status Page (PF-101) live
 - **Supabase Migration:** IN PROGRESS — 6 phases, tasks PF-S01–PF-S13
   - Done: PF-S01 through PF-S07 (EF Core removal)
   - See [docs/supabase-migration.md](docs/supabase-migration.md) for full phase breakdown
 - **Feature expansion:** ACTIVE — Investment Portfolio, Spending Analysis (PF-108), Financial Journey Gamification, all shipped
-  - **PF-114 IN PROGRESS** — Living Garden Hero redesign (Journey page visual overhaul): LivingGardenHero.tsx + 5 plant SVG components + GroundBand + CloudAccent + dual-display indicators + journeyLabels.ts
+  - **PF-114 COMPLETE** — Living Garden Hero redesign: LivingGardenHero.tsx + 5 plant SVG components + GroundBand + CloudAccent + dual-display indicators + journeyLabels.ts
 
 ### What's Working
 - Full upload-preview-submit pipeline — BCA CSV, NeoBank PDF (direct parser), Default CSV, any unrecognized PDF (LLM-routed), PNG/JPG/WebP (LLM vision)
@@ -441,7 +453,7 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - Investment portfolio: stocks (IDX), mutual funds, government bonds, crypto, P2P; allocation breakdown + return tracking
 - Spending analysis (PF-108): Safe-to-Spend indicator, variance explainer, monthly category drilldown
 - Financial Journey gamification: 5-tier scoring system (Cashflow → Defense → Growth → Freedom → Legacy), quest cards, streak heatmap, `/journey` page
-  - PF-114 IN PROGRESS: Living Garden Hero (5 animated plant SVGs replacing static pyramid hero, no-decay localStorage, dual-display indicator labels)
+  - PF-114 COMPLETE: Living Garden Hero (5 animated plant SVGs replacing static pyramid hero, no-decay localStorage, dual-display indicator labels)
 - Dark/light theme + zen-mode UX focus toggle (PF-106)
 - Docker Compose full-stack orchestration
 - GitHub Projects v2 board ([Project #4](https://github.com/users/rikky-hermanto/projects/4))
@@ -458,10 +470,14 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 
 ### Known Tech Debt
 - TypeScript strict mode disabled (PF-052)
-- Zero ILogger usage across services, handlers, parsers (PF-051)
-- No backend handler/validator/parser/controller tests (PF-034–PF-037)
+- Partial ILogger coverage (PF-051) — `TransactionsController` and `TransactionService` now use ILogger; `DashboardService`, `SpendingAnalysisService` still missing it
+- Backend test coverage expanded (20+ files) but many core service tests are `[Fact(Skip="Requires Supabase integration")]` — PF-034 integration harness not yet built
 - No frontend unit tests (PF-038)
 - `src/types/Transaction.ts` uses `id: string` but API returns `id: number` — type mismatch
+- `IBankIdentifier` interface in `Infrastructure/Parsers/IBankIdentifier.cs` — ARCH-02 violation (should be in `Application/Interfaces/`)
+- `TransactionService.cs` missing `namespace` declaration — in global namespace, inconsistent with all other services
+- `ex.Message` still leaks in `TransactionsController.upload-preview` general catch block (line 144) — PF-028 was closed but this specific catch was missed
+- `upload-preview-new` experimental endpoint in `TransactionsController` is dead code — async Supabase Storage path never completes (returns 202 then nothing)
 
 ### Sprint Plan
 → Revised sprint plan interleaving AI + Supabase: [docs/supabase-migration.md](docs/supabase-migration.md)
