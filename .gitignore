@@ -68,3 +68,4 @@ dist/
 
 docs/statement-examples/Cashflow 2024 2025.csv
 supabase/seed/assets_seed.sql
+.playwright-mcp/

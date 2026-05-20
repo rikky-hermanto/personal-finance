@@ -34,4 +34,5 @@ export interface DashboardData {
   topCategories: DashboardTopCategory[];
   cashFlow: DashboardCashFlow[];
   lastUpdated: string;
+  dataThrough: string;   // "January 2026" — the baseline transaction date
 }
