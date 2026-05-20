@@ -31,4 +31,5 @@ public record DashboardDto(
     DashboardCurrentMonthDto CurrentMonth,
     List<DashboardTopCategoryDto> TopCategories,
     List<DashboardCashFlowDto> CashFlow,
-    DateTime LastUpdated);
+    DateTime LastUpdated,
+    string DataThrough);

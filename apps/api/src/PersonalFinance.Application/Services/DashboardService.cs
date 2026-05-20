@@ -106,8 +106,15 @@ public class DashboardService : IDashboardService
         var expenseChange = prevExpenses != 0 ? ((currentExpenses - prevExpenses) / prevExpenses) * 100 : 0;
         var netChange = prevNet != 0 ? ((currentNet - prevNet) / Math.Abs(prevNet)) * 100 : 0;
 
+        var investingCategories = CashflowSectionMapping.CategoryToSection
+            .Where(kvp => kvp.Value == CashflowSection.Investing)
+            .Select(kvp => kvp.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var topCategories = currentRangeTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(t.Category))
+            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)
+                     && !string.IsNullOrEmpty(t.Category)
+                     && !investingCategories.Contains(t.Category))
             .GroupBy(t => t.Category)
             .Select(g => new DashboardTopCategoryDto(
                 g.Key,
@@ -138,6 +145,8 @@ public class DashboardService : IDashboardService
             ? baselineDate.ToString("MMMM yyyy")
             : (months == 0 ? $"YTD {baselineDate.Year}" : $"{monthCount} Months ending {baselineDate:MMM yy}");
 
+        var dataThrough = baselineDate.ToString("MMMM yyyy");
+
         return new DashboardDto(
             summaryDto,
             new DashboardCurrentMonthDto(
@@ -146,7 +155,8 @@ public class DashboardService : IDashboardService
                 Math.Round(incomeChange, 1), Math.Round(expenseChange, 1), Math.Round(netChange, 1)),
             topCategories,
             cashFlow,
-            DateTime.Now);
+            DateTime.Now,
+            dataThrough);
     }
 
     public async Task<CashflowStatementDto> GetCashflowStatementAsync(int months, Guid? accountId, string groupBy)

@@ -129,6 +129,33 @@ The full pipeline: takes a raw problem, bug, feature, or refactor request; reads
 
 ---
 
+## Feature Review (Post-Development)
+
+### `/po-review` — Lead PO review of an implemented feature
+Acts as a **Lead Product Owner** reviewing built code against the original spec. Not an architecture review — a product review: does this feature do what it was supposed to do, for the user it was built for?
+
+| Mode | Usage |
+|------|-------|
+| *(none)* | Interactive — Claude asks what feature to review |
+| `PF-XXX` | Full review of a specific ticket's implementation |
+| `PF-XXX quick` | Abbreviated pass — AC scorecard only, no deep UX section |
+| `PF-XXX ux` | UX-focused review — layout, labels, empty/error/loading states |
+| `PF-XXX regression` | Regression-only pass — checks what may have broken around the changes |
+
+```
+/po-review                      # interactive
+/po-review PF-116               # review ticket implementation
+/po-review PF-116 quick         # abbreviated AC check
+/po-review PF-116 ux            # UX-focused
+/po-review PF-116 regression    # regression check only
+```
+
+**Output:** AC Scorecard (Pass/Fail/Partial per criterion) · What Works Well · Blocking Issues · Non-Blocking Issues · UX Observations · Regression Check · **SHIP IT / SEND BACK verdict**
+
+After the report, enters discussion mode — push back on findings, confirm a fix is in, or get direction on how to fix a blocking issue. Optionally saves to `.claude/plans/po-review-{ticket}-{date}.md`.
+
+---
+
 ## Plan Review & Decision-Making
 
 ### `/council` — 5-persona adversarial debate → Chairman verdict
