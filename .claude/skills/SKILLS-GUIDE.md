@@ -287,6 +287,34 @@ Reads every unchecked step in a plan file, implements it, marks it `[x]` immedia
 
 ## Dev Operations
 
+### `/commit` — Safe-commit with secret scan + smart message
+Stages safe files only (hard-block list + inline secret scan), generates a context-aware commit message, then commits. Pass `push` to also push to origin.
+
+| Invocation | Behavior |
+|-----------|----------|
+| `/commit` | Stage → scan → commit (no push) |
+| `/commit push` | Stage → scan → commit → push |
+| `/commit wip` | Quick WIP commit — short message, no push |
+| `/commit amend` | Amend last commit (only if not yet pushed) |
+| `/commit dry-run` | Preview safe-to-stage list + proposed message, no changes |
+
+```
+/commit               # commit only
+/commit push          # commit + push to origin
+/commit wip           # save progress quickly
+/commit amend         # fold staged changes into the last commit
+/commit dry-run       # preview without touching anything
+```
+
+**What it checks:**
+- Hard-block list: `.env`, `appsettings.Development.json`, `*.local`, build artifacts, personal data files
+- Inline secret scan: API keys (`sk-`, `AIza`, `AKIA`, JWT blobs), passwords in code, PEM keys, connection strings with credentials
+- `.gitignore` health check — warns if critical patterns are missing
+
+**Message style:** infers active PF ticket from branch/plan files → `PF-XXX: intent summary`. Falls back to `feat:` / `fix:` / `chore:` conventional commits. Never `git add .`; always stages by explicit file name.
+
+---
+
 ### `/kanban-sync` — Sync BOARD.md against GitHub Issues
 Pulls closed issues from GitHub, finds which ones are missing from the Done section, appends them, and reports any open issues not yet triaged onto the board. Additive-only — never deletes or reorders rows.
 
