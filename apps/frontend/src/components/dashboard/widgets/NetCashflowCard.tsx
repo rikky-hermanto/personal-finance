@@ -1,14 +1,33 @@
-import { TrendingUp, TrendingDown } from 'lucide-react';
-import { DashboardCurrentMonth } from '@/types/Dashboard';
+import { TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { DashboardCurrentMonth, DashboardCashFlow } from '@/types/Dashboard';
 import { formatCurrency, formatMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import MiniSparkline from '@/components/dashboard/MiniSparkline';
+import FinancialChart from '@/components/FinancialChart';
 
 interface NetCashflowCardProps {
   data: DashboardCurrentMonth | null;
   isLoading?: boolean;
+  sparklineData?: number[];
+  chartData?: DashboardCashFlow[] | null;
+  chartExpanded?: boolean;
+  onToggleChart?: () => void;
 }
 
-const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
+const Delta = ({ pct, inverse = false }: { pct: number; inverse?: boolean }) => {
+  if (!pct) return null;
+  const isGood = inverse ? pct < 0 : pct > 0;
+  return (
+    <span className={cn(
+      'ml-1 text-[10px] font-medium tabular-nums',
+      isGood ? 'text-success' : 'text-destructive'
+    )}>
+      {pct > 0 ? '▲' : '▼'}{Math.abs(pct).toFixed(1)}%
+    </span>
+  );
+};
+
+const NetCashflowCard = ({ data, isLoading, sparklineData, chartData, chartExpanded, onToggleChart }: NetCashflowCardProps) => {
   if (isLoading || !data) {
     return (
       <div className="pf-card p-5 animate-pulse">
@@ -34,35 +53,82 @@ const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
     );
   }
 
-  const { income, expenses, net, month } = data;
+  const { income, expenses, net, month, incomeChangePercent, expenseChangePercent, netChangePercent } = data;
   const isPositive = net >= 0;
   const Icon = isPositive ? TrendingUp : TrendingDown;
+  const savingsRate = income > 0 ? (net / income) * 100 : null;
 
   return (
     <div className="pf-card p-5">
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-sm font-medium text-foreground">Net Cashflow</h3>
-        {month && <p className="text-[11px] text-muted-foreground">{formatMonth(month)}</p>}
+        <button
+          onClick={onToggleChart}
+          disabled={!onToggleChart}
+          className={cn(
+            'flex items-center gap-2',
+            onToggleChart ? 'cursor-pointer hover:opacity-70 transition-opacity' : 'cursor-default'
+          )}
+        >
+          {sparklineData && sparklineData.length > 2 && (
+            <MiniSparkline data={sparklineData} positive={isPositive} />
+          )}
+          {month && <p className="text-[11px] text-muted-foreground">{formatMonth(month)}</p>}
+          {onToggleChart && (
+            chartExpanded
+              ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground/50" />
+              : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/50" />
+          )}
+        </button>
       </div>
+
       <div className="grid grid-cols-3">
         <div className="pr-6">
-          <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1">
-            <Icon className={cn("w-3 h-3", isPositive ? "text-success" : "text-destructive")} />
+          <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center">
+            <Icon className={cn('w-3 h-3 mr-1', isPositive ? 'text-success' : 'text-destructive')} />
             Net
+            <Delta pct={netChangePercent} />
           </p>
-          <p className={cn("font-mono text-xl font-semibold tabular-nums", isPositive ? "text-success" : "text-destructive")}>
+          <p className={cn('font-mono text-xl font-semibold tabular-nums', isPositive ? 'text-success' : 'text-destructive')}>
             {isPositive ? '+' : ''}{formatCurrency(net)}
           </p>
         </div>
         <div className="px-6">
-          <p className="text-[11px] text-muted-foreground mb-1.5">Income</p>
+          <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center">
+            Income
+            <Delta pct={incomeChangePercent} />
+          </p>
           <p className="font-mono text-sm tabular-nums text-success">+{formatCurrency(income)}</p>
         </div>
         <div className="pl-6">
-          <p className="text-[11px] text-muted-foreground mb-1.5">Expenses</p>
+          <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center">
+            Expenses
+            <Delta pct={expenseChangePercent} inverse />
+          </p>
           <p className="font-mono text-sm tabular-nums text-destructive">-{formatCurrency(expenses)}</p>
         </div>
       </div>
+
+      {chartExpanded && (
+        <>
+          <div className="mt-4 border-t border-dashed border-border/50" />
+          <div className="pt-4">
+            <FinancialChart data={chartData ?? null} type="composed" height={160} isLoading={isLoading} />
+          </div>
+        </>
+      )}
+
+      {savingsRate !== null && (
+        <div className="mt-4 pt-3.5 border-t border-border flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">Savings rate</span>
+          <span className={cn(
+            'text-xs font-semibold tabular-nums',
+            savingsRate >= 20 ? 'text-success' : savingsRate >= 10 ? 'text-foreground' : 'text-destructive'
+          )}>
+            {savingsRate.toFixed(1)}%
+          </span>
+        </div>
+      )}
     </div>
   );
 };
