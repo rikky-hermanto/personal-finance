@@ -116,7 +116,7 @@ const OverviewTab = () => {
         )}
 
         {/* Top row: net cashflow + top categories */}
-        <div className="grid grid-cols-[1fr_280px] gap-4">
+        <div className="grid grid-cols-[1fr_320px] gap-4">
           <NetCashflowCard data={data?.currentMonth || null} isLoading={isLoading} />
           <TopCategoriesCard 
             data={data?.topCategories || null} 
