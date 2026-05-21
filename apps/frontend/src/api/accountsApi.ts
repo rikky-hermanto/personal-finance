@@ -74,3 +74,33 @@ export async function setAccountCashflowFlag(id: string, include: boolean): Prom
   if (!res.ok) throw new Error('Failed to update cashflow flag');
   return res.json();
 }
+
+export interface AccountBalance {
+  accountId: string;
+  accountName: string;
+  institutionName: string;
+  currency: string;
+  openingBalance: number;
+  currentBalance: number;
+  asOf: string; // ISO date string
+}
+
+export async function getAccountBalances(): Promise<AccountBalance[]> {
+  const res = await fetch(`${BASE}/api/accounts/balances`);
+  if (!res.ok) throw new Error('Failed to fetch account balances');
+  return res.json();
+}
+
+export async function setAccountOpeningBalance(
+  id: string,
+  openingBalance: number,
+  openingDate: string,
+): Promise<Account> {
+  const res = await fetch(`${BASE}/api/accounts/${id}/opening-balance`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ openingBalance, openingDate }),
+  });
+  if (!res.ok) throw new Error('Failed to update opening balance');
+  return res.json();
+}

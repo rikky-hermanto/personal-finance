@@ -14,12 +14,12 @@ Opening balances are already stored on the Account entity; this task wires them 
 
 ## Acceptance Criteria
 
-- [ ] Overview page shows a "Current Balance" number inline (not a card) near the header
-- [ ] Clicking the balance opens a Popover listing each account's name + current balance
-- [ ] Total balance = Σ(account.openingBalance + allTimeCR − allTimeDB) across all active accounts
-- [ ] Settings → Data tab has an "Account Starting Balances" section to edit opening_balance + opening_date per account
-- [ ] Balance is labeled with "as of [latest transaction date]" to communicate data freshness
-- [ ] No new card chrome — strip fits within the existing Overview layout
+- [x] Overview page shows a "Current Balance" number inline (not a card) near the header
+- [x] Clicking the balance opens a Popover listing each account's name + current balance
+- [x] Total balance = Σ(account.openingBalance + allTimeCR − allTimeDB) across all active accounts
+- [x] Settings → Data tab has an "Account Starting Balances" section to edit opening_balance + opening_date per account
+- [x] Balance is labeled with "as of [latest transaction date]" to communicate data freshness
+- [x] No new card chrome — strip fits within the existing Overview layout
 
 ## Approach
 
@@ -45,7 +45,7 @@ migration needed — `opening_balance` and `opening_date` columns already exist.
 
 ## TODO
 
-### [ ] STEP 1 — Add AccountBalanceDto
+### [x] STEP 1 — Add AccountBalanceDto
 
 Create `apps/api/src/PersonalFinance.Application/Dtos/AccountBalanceDto.cs`:
 
@@ -69,7 +69,7 @@ public record AccountBalanceDto(
 
 ---
 
-### [ ] STEP 2 — Add `GET /api/accounts/balances` endpoint
+### [x] STEP 2 — Add `GET /api/accounts/balances` endpoint
 
 Add to `AccountsController.cs` after the existing `GetAccounts()` action:
 
@@ -124,7 +124,7 @@ public async Task<IActionResult> GetAccountBalances()
 
 ---
 
-### [ ] STEP 3 — Add `getAccountBalances()` to frontend API client
+### [x] STEP 3 — Add `getAccountBalances()` to frontend API client
 
 Add to `apps/frontend/src/api/accountsApi.ts` (create if not present, else append):
 
@@ -154,7 +154,7 @@ export async function getAccountBalances(): Promise<AccountBalance[]> {
 
 ---
 
-### [ ] STEP 4 — Create `CurrentBalanceStrip` component
+### [x] STEP 4 — Create `CurrentBalanceStrip` component
 
 Create `apps/frontend/src/components/dashboard/CurrentBalanceStrip.tsx`:
 
@@ -243,7 +243,7 @@ export default CurrentBalanceStrip;
 
 ---
 
-### [ ] STEP 5 — Wire into OverviewTab
+### [x] STEP 5 — Wire into OverviewTab
 
 In `apps/frontend/src/pages/cashflow/OverviewTab.tsx`, add the strip below the page header
 (after the `<h2>Overview</h2>` row, before the staleness badge):
@@ -261,7 +261,7 @@ import CurrentBalanceStrip from '@/components/dashboard/CurrentBalanceStrip';
 
 ---
 
-### [ ] STEP 6 — Account Starting Balances in Settings → Data tab
+### [x] STEP 6 — Account Starting Balances in Settings → Data tab
 
 In `apps/frontend/src/pages/settings/DataTab.tsx`, add a new section above the Danger Zone.
 Fetch accounts via React Query and render an editable table — one row per account with
