@@ -41,4 +41,7 @@ public class Transaction : BaseModel
 
     [Column("statement_balance")]
     public decimal? StatementBalance { get; set; }
+
+    // Transient — populated from Account.Name after fetch, never written to DB
+    public string Wallet { get; set; } = string.Empty;
 }

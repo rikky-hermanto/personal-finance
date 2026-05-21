@@ -60,6 +60,8 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-117 | [#84](https://github.com/rikky-hermanto/personal-finance/issues/84) | Dashboard Overview: Data Accuracy & UX Polish |
 | PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
 | PF-119 | _(no issue)_ | Cashflow Overview UX Polish: trust fixes + minimalism pass |
+| PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights (Phase 1) |
+| PF-121 | _(no issue)_ | AI-Narrated Anomaly Insights + Persistence (Phase 2, blocked by PF-120) |
 
 ---
 

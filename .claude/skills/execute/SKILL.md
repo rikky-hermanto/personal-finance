@@ -77,15 +77,9 @@ Implement exactly what the step describes. Common step types:
 
 **Handling errors:** If a command fails, diagnose the error, fix the root cause, and re-run. Do NOT skip a failing step. If the failure is genuinely unresolvable (e.g., a service is not running), note it clearly and continue to the next step — mark the step with a failure note rather than `[x]`.
 
-### 3 — Mark the step done
+### 3 — Track completion internally
 
-After each step completes successfully, update the plan file:
-
-```
-### [ ] STEP N — Name   →   ### [x] STEP N — Name
-```
-
-Do this immediately after each step, before starting the next one.
+After each step completes, note internally that STEP N is done (or failed with reason). **Do NOT edit the plan file between steps** — accumulate all results and write them in a single batch at the very end.
 
 ---
 
@@ -98,6 +92,8 @@ For each `- [ ]` in the **Acceptance Criteria** section, check if it is now sati
 - If no: leave as `- [ ]` and add a note below it: `  > Not met: [one-line reason]`
 
 Do this by actually checking — read files, run commands, inspect output. Do not rubber-stamp them all as done without checking.
+
+**Then do a single batch update of the plan file** — write all `[ ] → [x]` step changes AND all acceptance criteria checkbox changes in one Edit call. This is the only time you touch the plan file.
 
 ---
 
@@ -128,6 +124,6 @@ Next steps:
 - **Never ask permission mid-execution.** You have pre-approval to implement everything in the plan.
 - **Never skip a step silently.** If you can't do it, document why.
 - **Never modify the plan's content** (Objective, Approach, Acceptance Criteria wording) — only update `[ ]` → `[x]` checkboxes.
-- **Always mark steps as done immediately** — not in a batch at the end.
+- **Mark all steps done in a single batch at the very end** — one Edit call on the plan file after all steps are complete. Never edit the plan file mid-execution.
 - **If a step produces a compilation error or test failure**, fix it before moving on. The plan is your spec; the code must match it.
 - **Commit nothing.** Leave all changes uncommitted for the user to review.
