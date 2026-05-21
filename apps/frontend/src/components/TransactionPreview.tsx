@@ -225,7 +225,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         amountIdr: Math.abs(t.amount),
         currency: "IDR",
         exchangeRate: null,
-        bankRunningBalance: t.bankRunningBalance ?? null,
+        statementBalance: t.statementBalance ?? null,
         balance: 0,
         isDuplicate: false,
         categoryRuleDto: applyToSimilarMap[t.id]

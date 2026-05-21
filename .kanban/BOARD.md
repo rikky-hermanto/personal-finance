@@ -58,6 +58,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | ID | Issue | Title |
 |----|-------|-------|
 | PF-117 | [#84](https://github.com/rikky-hermanto/personal-finance/issues/84) | Dashboard Overview: Data Accuracy & UX Polish |
+| PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
 
 ---
 
