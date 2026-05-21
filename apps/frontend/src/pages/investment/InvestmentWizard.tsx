@@ -132,14 +132,9 @@ const InvestmentWizard = () => {
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate('/investment')}>
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <div>
-            <h1 className="text-base font-semibold">New Portfolio Setup</h1>
-            <p className="text-xs text-muted-foreground">Step {step} of 3 — {steps[step - 1]}</p>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-base font-semibold">New Portfolio Setup</h1>
+          <p className="text-xs text-muted-foreground">Step {step} of 3 — {steps[step - 1]}</p>
         </div>
 
         {/* Progress */}
