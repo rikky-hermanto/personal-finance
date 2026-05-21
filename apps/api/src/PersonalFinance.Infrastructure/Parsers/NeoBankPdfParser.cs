@@ -107,7 +107,7 @@ public class NeoBankPdfParser : IBankStatementParser
                     AmountIdr = Math.Abs(amount),
                     Currency = "IDR",
                     ExchangeRate = null,
-                    BankRunningBalance = TryParseEuropeanDecimal(balance, out var b) ? b : null,
+                    StatementBalance = TryParseEuropeanDecimal(balance, out var b) ? b : null,
                     Balance = TryParseEuropeanDecimal(balance, out var b2) ? b2 : 0
                 };
 

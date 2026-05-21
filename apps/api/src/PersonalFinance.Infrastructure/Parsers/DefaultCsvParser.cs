@@ -63,7 +63,7 @@ public class DefaultCsvParser : IBankStatementParser
             }
 
             string? wallet = GetFieldValue(normalizedDict, "Wallet", "BankAccount", "Bank", "Account");
-            var parsedBalance = ParseNullableDecimal(GetFieldValue(normalizedDict, "Balance", "RunningBalance", "BankRunningBalance"));
+            var parsedBalance = ParseNullableDecimal(GetFieldValue(normalizedDict, "Balance", "RunningBalance", "StatementBalance", "BankRunningBalance"));
             var transaction = new TransactionDto
             {
                 Date = ParseDate(GetFieldValue(normalizedDict, "Date"), dateFormat),
@@ -76,7 +76,7 @@ public class DefaultCsvParser : IBankStatementParser
                 AmountIdr = ParseAmount(GetFieldValue(normalizedDict, "Amount(IDR)", "AmountIDR", "Amount")),
                 Currency = GetFieldValue(normalizedDict, "Currency") ?? "IDR",
                 ExchangeRate = ParseNullableDecimal(GetFieldValue(normalizedDict, "Exc.Rate", "ExchangeRate", "ExcRate")),
-                BankRunningBalance = parsedBalance,
+                StatementBalance = parsedBalance,
                 Balance = parsedBalance ?? 0
             };
 

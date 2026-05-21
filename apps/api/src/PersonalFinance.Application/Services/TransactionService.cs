@@ -125,16 +125,16 @@ public class TransactionService : ITransactionService
 
     private static bool IsMatch(Transaction db, TransactionDto incoming)
     {
-        if (!db.BankRunningBalance.HasValue || !incoming.BankRunningBalance.HasValue)
+        if (!db.StatementBalance.HasValue || !incoming.StatementBalance.HasValue)
             return true;
-        return Math.Abs(db.BankRunningBalance.Value - incoming.BankRunningBalance.Value) < 0.01m;
+        return Math.Abs(db.StatementBalance.Value - incoming.StatementBalance.Value) < 0.01m;
     }
 
     private static bool IsMatch(TransactionDto seen, TransactionDto incoming)
     {
-        if (!seen.BankRunningBalance.HasValue || !incoming.BankRunningBalance.HasValue)
+        if (!seen.StatementBalance.HasValue || !incoming.StatementBalance.HasValue)
             return true;
-        return Math.Abs(seen.BankRunningBalance.Value - incoming.BankRunningBalance.Value) < 0.01m;
+        return Math.Abs(seen.StatementBalance.Value - incoming.StatementBalance.Value) < 0.01m;
     }
 
     private static string GetRegularKey(TransactionDto t)
@@ -343,7 +343,7 @@ public class TransactionService : ITransactionService
         AmountIdr = dto.AmountIdr,
         Currency = dto.Currency,
         ExchangeRate = dto.ExchangeRate,
-        BankRunningBalance = dto.BankRunningBalance
+        StatementBalance = dto.StatementBalance
     };
 
     private async Task<Dictionary<Guid, string>> FetchAccountNameLookupAsync()
@@ -366,6 +366,6 @@ public class TransactionService : ITransactionService
         AmountIdr = t.AmountIdr,
         Currency = t.Currency,
         ExchangeRate = t.ExchangeRate,
-        BankRunningBalance = t.BankRunningBalance
+        StatementBalance = t.StatementBalance
     };
 }

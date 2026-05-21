@@ -168,7 +168,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           bank:               t.wallet,
           accountId:          t.accountId ?? undefined,
           balance:            t.balance,
-          bankRunningBalance: t.bankRunningBalance ?? null,
+          statementBalance: t.statementBalance ?? null,
           isDuplicate:        t.isDuplicate,
         };
       });
