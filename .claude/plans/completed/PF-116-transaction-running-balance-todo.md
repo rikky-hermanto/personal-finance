@@ -1,7 +1,7 @@
 # PF-115 — Transaction Running Balance View
 
 > **GitHub Issue:** TBD
-> **Status:** Planned
+> **Status:** Done
 > **Started:** 2026-05-19
 
 ## Objective

@@ -1,7 +1,7 @@
 # PF-117 — Dashboard Overview: Data Accuracy & UX Polish
 
 > **GitHub Issue:** (to be linked)
-> **Status:** To Do
+> **Status:** Done
 > **Started:** 2026-05-21
 
 ## Objective
