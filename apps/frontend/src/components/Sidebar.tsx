@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Mountain, Settings, Menu, X, PiggyBank, Sun, Moon, Landmark, Bot, TrendingUp,
-  Wallet, Receipt, Shield, Target, Flame, Coins, ScrollText, FileText, Briefcase,
+  Wallet, Receipt, Shield, Target, Flame, Coins, ScrollText, FileText, Briefcase, HeartPulse,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
@@ -22,23 +22,23 @@ const navSections = [
   {
     level: 'L1', label: 'Foundations', color: 'rgb(100 116 139)',
     items: [
-      { id: 'cashflow',    label: 'Cashflow',            icon: PiggyBank,  path: '/cashflow',    matchPrefix: '/cashflow',    live: true  },
-      { id: 'budgeting',   label: 'Budgeting',           icon: Wallet,     path: '/budgeting',   matchPrefix: '/budgeting',   live: false },
-      { id: 'bills',       label: 'Recurring',             icon: Receipt,  path: '/bills',       matchPrefix: '/bills',       live: false },
+      { id: 'cashflow',  label: 'Cashflow',  icon: PiggyBank, path: '/cashflow',  matchPrefix: '/cashflow',  live: true  },
+      { id: 'budgeting', label: 'Budgeting', icon: Wallet,    path: '/budgeting', matchPrefix: '/budgeting', live: false },
+      { id: 'bills',     label: 'Recurring', icon: Receipt,   path: '/bills',     matchPrefix: '/bills',     live: false },
     ],
   },
   {
     level: 'L2', label: 'Defense', color: 'rgb(76 175 80)',
     items: [
-      { id: 'assets',          label: 'Assets',         icon: Landmark, path: '/assets',          matchPrefix: '/assets',          live: true  },
-      { id: 'emergency-fund',  label: 'Emergency Fund', icon: Shield,   path: '/emergency-fund',  matchPrefix: '/emergency-fund',  live: false },
+      { id: 'emergency-fund', label: 'Emergency Fund', icon: Shield,     path: '/emergency-fund', matchPrefix: '/emergency-fund', live: false },
+      { id: 'insurance',      label: 'Insurance',      icon: HeartPulse, path: '/insurance',      matchPrefix: '/insurance',      live: false },
     ],
   },
   {
     level: 'L3', label: 'Growth', color: 'rgb(56 142 60)',
     items: [
-      { id: 'investment',  label: 'Investments',   icon: TrendingUp, path: '/investment',  matchPrefix: '/investment',  live: true  },
-      { id: 'goals',       label: 'Savings Goals', icon: Target,     path: '/goals',       matchPrefix: '/goals',       live: false },
+      { id: 'investment', label: 'Investments',   icon: TrendingUp, path: '/investment', matchPrefix: '/investment', live: true  },
+      { id: 'goals',      label: 'Savings Goals', icon: Target,     path: '/goals',      matchPrefix: '/goals',      live: false },
     ],
   },
   {
@@ -98,7 +98,7 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* Journey hero CTA */}
+      {/* Journey CTA */}
       <div className={cn('px-3 pt-4 pb-2', collapsed && 'flex justify-center')}>
         <button
           onClick={() => navigate('/journey')}
@@ -138,16 +138,45 @@ const Sidebar = () => {
         </button>
       </div>
 
-      {/* Navigation */}
+      {/* Net Worth — floats below Journey, outside the pyramid */}
+      <div className={cn('px-3 pb-1', collapsed && 'flex justify-center')}>
+        {collapsed ? (
+          <button
+            onClick={() => navigate('/assets')}
+            title="Net Worth"
+            className={cn(
+              'w-full flex items-center justify-center rounded-lg transition-all duration-150 group px-2 py-2',
+              location.pathname.startsWith('/assets')
+                ? 'bg-secondary text-foreground'
+                : 'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground'
+            )}
+          >
+            <Landmark className={cn('w-4 h-4 flex-shrink-0 transition-colors', location.pathname.startsWith('/assets') ? 'text-foreground' : 'text-inherit group-hover:text-foreground')} strokeWidth={1.5} />
+          </button>
+        ) : (
+          <button
+            onClick={() => navigate('/assets')}
+            className={cn(
+              'w-full flex items-center justify-start text-left rounded-lg transition-all duration-150 group px-3 py-2 gap-2',
+              location.pathname.startsWith('/assets')
+                ? 'bg-secondary text-foreground'
+                : 'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground'
+            )}
+          >
+            <Landmark className={cn('w-4 h-4 flex-shrink-0 transition-colors', location.pathname.startsWith('/assets') ? 'text-foreground' : 'text-inherit group-hover:text-foreground')} strokeWidth={1.5} />
+            <span className="flex-1 text-xs font-medium tracking-wide">Net Worth</span>
+          </button>
+        )}
+      </div>
+
+      {/* Navigation — pyramid tiers */}
       <nav className="flex-1 pb-4 pt-2 overflow-y-auto">
         {!collapsed ? (
           <div className="px-3">
             {navSections.map((section, sIdx) => {
-              const hasLive = section.items.some(i => i.live);
               const isLast = sIdx === navSections.length - 1;
               return (
                 <div key={section.level} className="flex gap-0">
-                  {/* Left: dot + connecting line */}
                   <div className="flex flex-col items-center w-5 flex-shrink-0 pt-[12px]">
                     <div
                       className="w-[7px] h-[7px] rounded-full flex-shrink-0 relative z-10"
@@ -160,8 +189,6 @@ const Sidebar = () => {
                       />
                     )}
                   </div>
-
-                  {/* Right: section label + items */}
                   <div className="flex-1 min-w-0 pb-2">
                     <div className="pl-2 pt-1 pb-0.5">
                       <span
@@ -191,11 +218,7 @@ const Sidebar = () => {
                               )}
                             >
                               <Icon
-                                className={cn(
-                                  'w-4 h-4 flex-shrink-0 transition-colors',
-                                  isActive ? 'text-foreground' : 'text-inherit',
-                                  item.live && !isActive && 'group-hover:text-foreground'
-                                )}
+                                className={cn('w-4 h-4 flex-shrink-0 transition-colors', isActive ? 'text-foreground' : 'text-inherit', item.live && !isActive && 'group-hover:text-foreground')}
                                 strokeWidth={1.5}
                               />
                               <span className="flex-1 text-xs font-medium tracking-wide">{item.label}</span>
@@ -215,7 +238,6 @@ const Sidebar = () => {
             })}
           </div>
         ) : (
-          /* Collapsed mode — icons only, dividers between sections */
           <div className="px-3 space-y-3">
             {navSections.map((section, sIdx) => (
               <div key={section.level}>
@@ -241,11 +263,7 @@ const Sidebar = () => {
                           )}
                         >
                           <Icon
-                            className={cn(
-                              'w-4 h-4 flex-shrink-0 transition-colors',
-                              isActive ? 'text-foreground' : 'text-inherit',
-                              item.live && !isActive && 'group-hover:text-foreground'
-                            )}
+                            className={cn('w-4 h-4 flex-shrink-0 transition-colors', isActive ? 'text-foreground' : 'text-inherit', item.live && !isActive && 'group-hover:text-foreground')}
                             strokeWidth={1.5}
                           />
                         </button>
