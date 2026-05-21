@@ -133,6 +133,15 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Superseded by PF-S08/PF-S09 (Supabase GoTrue replaces Auth0) |
 | PF-116 | _(no issue)_ | Transaction Running Balance View |
 | PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
+| PF-115 | _(no issue)_ | Integrate Cashflow Wallets → Assets Accounts (Wallet → Bank Account rename) |
+| PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
+| PF-107 | _(no issue)_ | PF-107 Phase 1B — Assets Management: Balance Sheet MVP |
+| PF-116 | _(no issue)_ | Transaction Running Balance View |
+| PF-108 | _(no issue)_ | Safe-to-Spend + Variance Explainer (Spending Analysis MVP) |
+| PF-116 | _(no issue)_ | Transaction Running Balance View |
+| PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
+| PF-S10 | _(no issue)_ | Supabase Storage: bank-statements bucket + StorageService + upload endpoint |
+| PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
 
 ---
 
