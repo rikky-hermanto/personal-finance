@@ -35,6 +35,7 @@ const TopCategoriesCard = ({ data, month, isLoading, onCategoryDrillDown }: TopC
   }
 
   const topCategories = data;
+  const RowEl = onCategoryDrillDown ? 'button' : 'div';
 
   if (!topCategories.length) {
     return (
@@ -54,9 +55,9 @@ const TopCategoriesCard = ({ data, month, isLoading, onCategoryDrillDown }: TopC
         {topCategories.map((cat, i) => {
           const pct = cat.percentage;
           return (
-            <button
+            <RowEl
               key={cat.category}
-              onClick={() => onCategoryDrillDown?.(cat.category, month)}
+              onClick={onCategoryDrillDown ? () => onCategoryDrillDown(cat.category, month) : undefined}
               className={cn(
                 'w-full flex items-center justify-between px-3 py-2.5 rounded-md transition-colors',
                 onCategoryDrillDown ? 'hover:bg-accent cursor-pointer' : 'cursor-default'
@@ -67,7 +68,7 @@ const TopCategoriesCard = ({ data, month, isLoading, onCategoryDrillDown }: TopC
                   className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                   style={{ backgroundColor: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }}
                 />
-                <span className="text-xs text-foreground truncate">{cat.category}</span>
+                <span className="text-xs text-foreground truncate" title={cat.category}>{cat.category}</span>
               </div>
               <div className="text-right flex-shrink-0 ml-2">
                 <div className="font-mono text-xs text-foreground tabular-nums">
@@ -75,7 +76,7 @@ const TopCategoriesCard = ({ data, month, isLoading, onCategoryDrillDown }: TopC
                 </div>
                 <div className="text-[10px] text-muted-foreground">{pct.toFixed(1)}%</div>
               </div>
-            </button>
+            </RowEl>
           );
         })}
       </div>

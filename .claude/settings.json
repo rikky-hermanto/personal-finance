@@ -74,7 +74,10 @@
       "Edit(/.claude/skills/commit/**)",
       "Bash(mkdir -p \"c:\\\\workspaces\\\\personal-finance\\\\.claude\\\\skills\\\\ux-review\")",
       "Edit(/.claude/skills/ux-review/**)",
-      "Edit(/.claude/skills/plan/**)"
+      "Edit(/.claude/skills/plan/**)",
+      "Bash(grep -iE \"\\(sk-|AKIA|eyJ[a-zA-Z0-9]{20,}|AIza|ghp_|ghs_|glpat-|xox[baprs]-|sk-ant-|ANTHROPIC_API_KEY|GEMINI_API_KEY|postgres123|-----BEGIN|password\\\\s*=\\\\s*[\\\\\"'][^\\\\\"']{6,}|secret\\\\s*=\\\\s*[\\\\\"'][^\\\\\"']{6,}|postgresql://[^:]+:[^@]{6,}@\\)\")",
+      "Read(//dev/**)",
+      "Bash(grep -iE \"\\(sk-|AKIA|eyJ[a-zA-Z0-9]{20,}|AIza|ghp_|postgres123|-----BEGIN|password\\\\s*=\\\\s*[\\\\\"']|secret\\\\s*=\\\\s*[\\\\\"']\\)\")"
     ],
     "deny": [
       "Bash(rm -rf *)",

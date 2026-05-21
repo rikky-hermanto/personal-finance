@@ -48,7 +48,7 @@ const OverviewTab = () => {
     <div className="p-8">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-foreground tracking-tight">Overview</h2>
+          <CurrentBalanceStrip />
           <div className="flex items-center gap-3">
             <Button
               size="sm"
@@ -80,8 +80,6 @@ const OverviewTab = () => {
           </div>
         </div>
 
-        <CurrentBalanceStrip />
-
         {/* Error state */}
         {error && !isLoading && (
           <div className="rounded-md bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
@@ -99,7 +97,13 @@ const OverviewTab = () => {
           return isStale ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" />
-              Data through {data.dataThrough} — upload a new statement to sync
+              <span>Data through {data.dataThrough} —{' '}</span>
+              <button
+                onClick={() => navigate('/cashflow/upload')}
+                className="underline underline-offset-2 hover:text-foreground transition-colors"
+              >
+                upload a new statement to sync
+              </button>
             </div>
           ) : null;
         })()}

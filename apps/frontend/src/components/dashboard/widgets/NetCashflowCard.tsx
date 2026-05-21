@@ -30,25 +30,31 @@ const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
 
   return (
     <div className="bg-card border border-border rounded-lg p-5">
-      <div className="flex items-center justify-between mb-4">
+      <div className="mb-4">
         <h3 className="text-sm font-medium text-foreground">Net Cashflow</h3>
-        <span className="text-xs text-muted-foreground">{month ? formatMonth(month) : '—'}</span>
       </div>
       <div className="space-y-3">
-        <div className="flex items-center gap-2.5">
-          {isPositive ? (
-            <TrendingUp className="w-5 h-5 flex-shrink-0 text-success" />
-          ) : (
-            <TrendingDown className="w-5 h-5 flex-shrink-0 text-destructive" />
-          )}
-          <span
-            className={cn(
-              "font-mono text-2xl font-semibold tabular-nums",
-              isPositive ? "text-success" : "text-destructive"
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2.5">
+            {isPositive ? (
+              <TrendingUp className="w-5 h-5 flex-shrink-0 text-success" />
+            ) : (
+              <TrendingDown className="w-5 h-5 flex-shrink-0 text-destructive" />
             )}
-          >
-            {isPositive ? '+' : ''}{formatCurrency(net)}
-          </span>
+            <span
+              className={cn(
+                "font-mono text-2xl font-semibold tabular-nums",
+                isPositive ? "text-success" : "text-destructive"
+              )}
+            >
+              {isPositive ? '+' : ''}{formatCurrency(net)}
+            </span>
+          </div>
+          {month && (
+            <p className="text-[11px] text-muted-foreground pl-7">
+              {formatMonth(month)}
+            </p>
+          )}
         </div>
         <div className="flex gap-8 pt-3 border-t border-border">
           <div>
