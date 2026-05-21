@@ -1,7 +1,7 @@
 # PF-114 — Journey: Financial Hierarchy Dashboard & Light Gamification
 
 > **GitHub Issue:** _to be created_
-> **Status:** Phase 0–3 COMPLETE — awaiting manual smoke test (STEP 21)
+> **Status:** Done
 > **Started:** 2026-05-16
 > **Completed:** 2026-05-16
 > **Spec:** [specs/gamification-engine.md](../../specs/gamification-engine.md)
