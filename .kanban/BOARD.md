@@ -59,6 +59,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 |----|-------|-------|
 | PF-117 | [#84](https://github.com/rikky-hermanto/personal-finance/issues/84) | Dashboard Overview: Data Accuracy & UX Polish |
 | PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
+| PF-119 | _(no issue)_ | Cashflow Overview UX Polish: trust fixes + minimalism pass |
 
 ---
 
@@ -143,6 +144,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
 | PF-S10 | _(no issue)_ | Supabase Storage: bank-statements bucket + StorageService + upload endpoint |
 | PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
+| PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
 | PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
 
 ---

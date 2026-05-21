@@ -7,21 +7,26 @@ import { cn } from '@/lib/utils';
 const fmt = (n: number) =>
   new Intl.NumberFormat('id-ID', { style: 'decimal', minimumFractionDigits: 2 }).format(n);
 
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+
 const CurrentBalanceStrip = () => {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['account-balances'],
     queryFn: getAccountBalances,
     staleTime: 60_000,
   });
 
   const total = data?.reduce((sum, a) => sum + a.currentBalance, 0) ?? 0;
-  const asOf = data?.reduce((latest, a) =>
-    !latest || a.asOf > latest ? a.asOf : latest, '' as string);
-  const asOfLabel = asOf
-    ? new Date(asOf).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-    : '';
 
   if (isLoading) return <Skeleton className="h-5 w-48" />;
+
+  if (error) {
+    return (
+      <span className="text-xs text-destructive/70">Balance unavailable</span>
+    );
+  }
+
   if (!data?.length) return null;
 
   return (
@@ -35,9 +40,6 @@ const CurrentBalanceStrip = () => {
           <span className="text-sm font-semibold text-foreground tabular-nums">
             Rp {fmt(total)}
           </span>
-          {asOfLabel && (
-            <span className="text-xs text-muted-foreground/60">as of {asOfLabel}</span>
-          )}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-72 p-0">
@@ -53,6 +55,9 @@ const CurrentBalanceStrip = () => {
                 <p className="text-sm font-medium text-foreground">{a.accountName}</p>
                 {a.institutionName && (
                   <p className="text-xs text-muted-foreground">{a.institutionName}</p>
+                )}
+                {a.asOf && (
+                  <p className="text-xs text-muted-foreground/60">as of {fmtDate(a.asOf)}</p>
                 )}
                 {a.currency !== 'IDR' && (
                   <p className="text-xs text-muted-foreground/70">shown in {a.currency}</p>
