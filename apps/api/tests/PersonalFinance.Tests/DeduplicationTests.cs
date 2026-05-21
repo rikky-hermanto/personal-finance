@@ -60,11 +60,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", StatementBalance = 1000 }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1100 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", StatementBalance = 1100 }
         };
 
         // Act
@@ -81,11 +81,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", StatementBalance = 1000 }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", StatementBalance = 1000 }
         };
 
         // Act
@@ -102,11 +102,11 @@ public class DeduplicationTests
         var date = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Utc);
         var transactions = new List<TransactionDto>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = 1000 }
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", StatementBalance = 1000 }
         };
         var existing = new List<Transaction>
         {
-            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", BankRunningBalance = null } // Legacy
+            new() { Date = date, AmountIdr = 100, Description = "Kopi", AccountId = TestAccountId, Flow = "DB", StatementBalance = null } // Legacy
         };
 
         // Act

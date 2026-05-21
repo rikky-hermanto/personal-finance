@@ -39,6 +39,6 @@ public class Transaction : BaseModel
     [Column("exchange_rate")]
     public decimal? ExchangeRate { get; set; }
 
-    [Column("bank_running_balance")]
-    public decimal? BankRunningBalance { get; set; }
+    [Column("statement_balance")]
+    public decimal? StatementBalance { get; set; }
 }

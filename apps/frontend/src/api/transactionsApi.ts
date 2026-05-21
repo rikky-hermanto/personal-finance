@@ -16,7 +16,7 @@ export interface TransactionDto {
   amountIdr: number;
   currency: string;
   exchangeRate: number | null;
-  bankRunningBalance: number | null;
+  statementBalance: number | null;
   balance: number;
   isDuplicate: boolean;
   categoryRuleDto: any;

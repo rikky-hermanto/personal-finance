@@ -134,8 +134,8 @@ public class LlmExtractionClient : ILlmExtractionClient
         AmountIdr = (decimal)r.AmountIdr,
         Currency = r.Currency,
         ExchangeRate = r.ExchangeRate.HasValue ? (decimal?)r.ExchangeRate.Value : null,
-        BankRunningBalance = r.BankRunningBalance.HasValue ? (decimal?)r.BankRunningBalance.Value : null,
-        Balance = r.BankRunningBalance.HasValue ? (decimal)r.BankRunningBalance.Value : 0,
+        StatementBalance = r.StatementBalance.HasValue ? (decimal?)r.StatementBalance.Value : null,
+        Balance = r.StatementBalance.HasValue ? (decimal)r.StatementBalance.Value : 0,
     };
 
     // ── Response models (mirror Python ParseResponse / PdfParseResponse) ─────
@@ -165,7 +165,7 @@ public class LlmExtractionClient : ILlmExtractionClient
         public double AmountIdr { get; set; }
         public string Currency { get; set; } = "IDR";
         public double? ExchangeRate { get; set; }
-        public double? BankRunningBalance { get; set; }
+        public double? StatementBalance { get; set; }
         public string Wallet { get; set; } = string.Empty;
         public string Category { get; set; } = "Untracked Expense";
     }

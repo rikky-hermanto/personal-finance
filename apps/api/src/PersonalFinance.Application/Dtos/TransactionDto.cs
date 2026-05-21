@@ -14,7 +14,7 @@ public class TransactionDto
     public decimal AmountIdr { get; set; }
     public string Currency { get; set; } = "IDR";
     public decimal? ExchangeRate { get; set; }
-    public decimal? BankRunningBalance { get; set; }
+    public decimal? StatementBalance { get; set; }
     public decimal Balance { get; set; }
 
     // Flag to indicate if this transaction is already in the database

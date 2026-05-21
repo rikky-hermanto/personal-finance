@@ -129,7 +129,7 @@ public class BcaCsvParser : IBankStatementParser
                 AmountIdr = amount,
                 Currency = "IDR",
                 ExchangeRate = null,
-                BankRunningBalance = balance,
+                StatementBalance = balance,
                 Balance = balance ?? 0
             };
 

@@ -9,29 +9,29 @@ namespace PersonalFinance.Tests.Services;
 /// Unit tests for TransactionService.TagDuplicatesLogic.
 ///
 /// The dedup key is: date|amount|description|accountId|flow
-/// The tie-breaker is BankRunningBalance (BRB):
-///   - Both have BRB → compare values; equal = duplicate
+/// The tie-breaker is StatementBalance (SB):
+///   - Both have SB → compare values; equal = duplicate
 ///   - Either is null → assume match = duplicate (safest default for unknown origin)
 ///
 /// Root-cause regression being protected:
-///   The frontend TransactionDto interface was missing the bankRunningBalance field,
-///   so BRB was stripped from every row during the preview→submit round-trip.
-///   With null BRB on all incoming rows, IsMatch always returned true, causing same-key
+///   The frontend TransactionDto interface was missing the statementBalance field,
+///   so SB was stripped from every row during the preview→submit round-trip.
+///   With null SB on all incoming rows, IsMatch always returned true, causing same-key
 ///   rows (e.g. two NeoBank FEE 2500 charges on the same day) to be incorrectly collapsed
-///   to one. Fix: add bankRunningBalance to the TS interface so the value survives the round-trip.
+///   to one. Fix: add statementBalance to the TS interface so the value survives the round-trip.
 /// </summary>
 public class DeduplicationTests
 {
     private static readonly Guid NeoBankId  = Guid.Parse("3474b203-ceef-4134-91be-a105e79acd21");
     private static readonly Guid BcaId      = Guid.Parse("17d36b26-e3dc-4e3d-ba66-aeabf9a58bf5");
 
-    // ── BankRunningBalance as tie-breaker ─────────────────────────────────────
+    // ── StatementBalance as tie-breaker ─────────────────────────────────────
 
     [Fact]
     public void TagDuplicatesLogic_SameKey_DifferentBrb_NotDuplicate()
     {
         // Scenario: NeoBank charges a 2500 FEE twice on the same day.
-        // Each charge has a different BankRunningBalance, so they are distinct transactions.
+        // Each charge has a different StatementBalance, so they are distinct transactions.
         // The bug: without BRB on the incoming side, the second FEE was always dropped.
         var incoming = new List<TransactionDto>
         {
@@ -42,7 +42,7 @@ public class DeduplicationTests
         var result = TransactionService.TagDuplicatesLogic(incoming, existing: []);
 
         Assert.False(result[0].IsDuplicate, "first FEE should not be a duplicate");
-        Assert.False(result[1].IsDuplicate, "second FEE has different BRB — must not be treated as duplicate");
+        Assert.False(result[1].IsDuplicate, "second FEE has different StatementBalance — must not be treated as duplicate");
     }
 
     [Fact]
@@ -188,7 +188,7 @@ public class DeduplicationTests
         var incoming = new List<TransactionDto>
         {
             new() { Id = 1, Date = Utc(2024, 6, 28), AmountIdr = 5_000m, Flow = "DB",
-                    AccountId = NeoBankId, Description = "FEE", BankRunningBalance = null }
+                    AccountId = NeoBankId, Description = "FEE", StatementBalance = null }
         };
 
         var result = TransactionService.TagDuplicatesLogic(incoming, existing);
@@ -236,7 +236,7 @@ public class DeduplicationTests
         var result = TransactionService.TagDuplicatesLogic(incoming, existing: []);
 
         Assert.False(result[0].IsDuplicate, "first ATM withdrawal is not a duplicate");
-        Assert.False(result[1].IsDuplicate, "second ATM withdrawal on same day must survive when BRB differs");
+        Assert.False(result[1].IsDuplicate, "second ATM withdrawal on same day must survive when StatementBalance differs");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -250,7 +250,7 @@ public class DeduplicationTests
             Flow               = "DB",
             AmountIdr          = 2_500m,
             AccountId          = accountId ?? NeoBankId,
-            BankRunningBalance = bankRunningBalance,
+            StatementBalance = bankRunningBalance,
         };
 
     private static TransactionDto Atm(int id, DateTime date, decimal? bankRunningBalance) =>
@@ -262,7 +262,7 @@ public class DeduplicationTests
             Flow               = "DB",
             AmountIdr          = 200_000m,
             AccountId          = BcaId,
-            BankRunningBalance = bankRunningBalance,
+            StatementBalance = bankRunningBalance,
         };
 
     private static Transaction DbFee(DateTime date, decimal? brb, Guid? accountId = null) =>
@@ -273,7 +273,7 @@ public class DeduplicationTests
             Flow               = "DB",
             AmountIdr          = 2_500m,
             AccountId          = accountId ?? NeoBankId,
-            BankRunningBalance = brb,
+            StatementBalance = brb,
         };
 
     private static DateTime Utc(int year, int month, int day) =>

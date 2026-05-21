@@ -71,7 +71,10 @@
       "Bash(mv c:/workspaces/personal-finance/.claude/plans/completed/PF-090-todo.md c:/workspaces/personal-finance/.claude/plans/completed/PF-090-deduplication-file-hashing-todo.md)",
       "Bash(grep \"\\\\.md$\")",
       "Bash(mkdir -p \"c:\\\\workspaces\\\\personal-finance\\\\.claude\\\\skills\\\\commit\")",
-      "Edit(/.claude/skills/commit/**)"
+      "Edit(/.claude/skills/commit/**)",
+      "Bash(mkdir -p \"c:\\\\workspaces\\\\personal-finance\\\\.claude\\\\skills\\\\ux-review\")",
+      "Edit(/.claude/skills/ux-review/**)",
+      "Edit(/.claude/skills/plan/**)"
     ],
     "deny": [
       "Bash(rm -rf *)",
