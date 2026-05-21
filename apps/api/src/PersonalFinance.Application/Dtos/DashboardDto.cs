@@ -18,7 +18,8 @@ public record DashboardCurrentMonthDto(
 public record DashboardTopCategoryDto(
     string Category,
     decimal Amount,
-    decimal Percentage);
+    decimal Percentage,
+    int TransactionCount);
 
 public record DashboardCashFlowDto(
     string Month,

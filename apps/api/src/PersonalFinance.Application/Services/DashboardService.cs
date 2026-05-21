@@ -119,7 +119,8 @@ public class DashboardService : IDashboardService
             .Select(g => new DashboardTopCategoryDto(
                 g.Key,
                 g.Sum(t => t.AmountIdr),
-                currentExpenses != 0 ? Math.Round(g.Sum(t => t.AmountIdr) / currentExpenses * 100, 1) : 0))
+                currentExpenses != 0 ? Math.Round(g.Sum(t => t.AmountIdr) / currentExpenses * 100, 1) : 0,
+                g.Count()))
             .OrderByDescending(x => x.Amount)
             .Take(5)
             .ToList();

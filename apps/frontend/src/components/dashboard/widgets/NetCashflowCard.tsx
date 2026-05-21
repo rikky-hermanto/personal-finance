@@ -11,12 +11,12 @@ interface NetCashflowCardProps {
 const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
   if (isLoading || !data) {
     return (
-      <div className="bg-card border border-border rounded-lg p-5 animate-pulse">
+      <div className="pf-card p-5 animate-pulse">
         <div className="flex justify-between mb-5">
           <div className="h-4 w-24 bg-muted rounded" />
           <div className="h-4 w-20 bg-muted rounded" />
         </div>
-        <div className="grid grid-cols-3 divide-x divide-border">
+        <div className="grid grid-cols-3">
           <div className="pr-4 space-y-2">
             <div className="h-3 w-8 bg-muted rounded" />
             <div className="h-7 w-36 bg-muted rounded" />
@@ -39,12 +39,12 @@ const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
   const Icon = isPositive ? TrendingUp : TrendingDown;
 
   return (
-    <div className="bg-card border border-border rounded-lg p-5">
+    <div className="pf-card p-5">
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-sm font-medium text-foreground">Net Cashflow</h3>
         {month && <p className="text-[11px] text-muted-foreground">{formatMonth(month)}</p>}
       </div>
-      <div className="grid grid-cols-3 divide-x divide-border">
+      <div className="grid grid-cols-3">
         <div className="pr-6">
           <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1">
             <Icon className={cn("w-3 h-3", isPositive ? "text-success" : "text-destructive")} />
