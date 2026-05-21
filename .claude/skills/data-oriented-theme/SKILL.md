@@ -288,14 +288,19 @@ Labeled region via borders, not a wrapped box:
 
 ### Core Rule: Proportion + Whitespace = Structure
 Use `grid` / `flex` with explicit proportions and `space-y-*` / `gap-*` to create rhythm.
-Cards already scream separation — do NOT add `divide-y` or `border-t` inside a card or between sections that already have a card frame. Dividers are only valid at the page level (e.g. topbar `border-b`, sidebar `border-r`) — never inside a framed container.
+Do NOT add `divide-y` or `border-t` anywhere as decoration — not inside cards, not inside sidebar nav, not between stacked content sections. Content composition + whitespace is the ONLY separator. If you feel the urge to add a divider, use more spacing instead.
 
 **Divider rule (critical):**
-- ✅ `border-b` on topbar, `border-r` on sidebar — page-level structural lines
+- ✅ `border-b` on topbar — page-frame structural edge
+- ✅ `border-r` on the sidebar container — page-frame structural edge
+- ✅ `border-b` on tab bars / page header rows — page-level section boundary
 - ✅ `divide-y` inside a borderless full-bleed table with no surrounding card
+- ✅ Solid `border-t border-border` inside a card — only when two distinct data types have a permanent boundary
+- ✅ Dashed `border-t border-dashed border-border/50` inside a card — only as a collapsible boundary, must collapse WITH the content it introduces
 - ❌ `divide-y divide-border` inside a `.pf-card` — the card border already frames it
-- ❌ `border-t border-border` between list items inside a card — use `space-y-3` instead
-- ❌ Adding a divider line just because items are stacked — whitespace is the separator
+- ❌ `border-t` between nav items or sidebar sections — use `space-y-*` / `pb-*` instead
+- ❌ `border-t` between stacked content blocks — use `pt-*` / `pb-*` instead
+- ❌ Any line "just to add breathing room" — that's what padding is for
 
 ### Standard App Layout
 ```
