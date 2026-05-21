@@ -151,6 +151,12 @@
   }
 }
 
+@layer components {
+  .pf-card {
+    @apply bg-card text-card-foreground border border-border rounded-lg shadow-sm;
+  }
+}
+
 @layer utilities {
   /* ── Functional color helpers ──────────────────────────────────────── */
   .text-success {

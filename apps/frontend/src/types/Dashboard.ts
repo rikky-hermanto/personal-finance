@@ -19,6 +19,7 @@ export interface DashboardTopCategory {
   category: string;
   amount: number;
   percentage: number;
+  transactionCount: number;
 }
 
 export interface DashboardCashFlow {
