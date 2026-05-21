@@ -50,7 +50,7 @@ const NetCashflowCard = ({ data, isLoading }: NetCashflowCardProps) => {
             {isPositive ? '+' : ''}{formatCurrency(net)}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border">
+        <div className="flex gap-8 pt-3 border-t border-border">
           <div>
             <p className="text-[11px] text-muted-foreground mb-1">Income</p>
             <p className="font-mono text-sm tabular-nums text-success">

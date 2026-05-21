@@ -207,16 +207,13 @@ Write the plan in the exact style of `.claude/plans/PF-009-todo.md`. The plan mu
 
 ---
 
-### Step 7 — Save the plan (ask first)
+### Step 7 — Save the plan (automatic)
 
-After outputting the plan, ask:
+After outputting the plan, **always** save it automatically — do not ask:
 
-> "Want me to save this to `.claude/plans/{ticket-or-slug}-todo.md`?"
-
-If yes:
-- Write the file using the plan content from Step 6 only (no scoring tables, no verdict — just the plan)
-- Update `.kanban/BOARD.md` if a new ticket was created: add a row under the appropriate column
-- Ask if the user wants to update the "Current highest ticket" in `MEMORY.md`
+- Write the file to `.claude/plans/{ticket-or-slug}-todo.md` using the plan content from Step 6 only (no scoring tables, no verdict — just the plan)
+- Update `.kanban/BOARD.md`: add a row for the new ticket under the **Ready** column (or appropriate column if status is clear from context)
+- Tell the user where the file was saved: `Saved to .claude/plans/{filename}`
 
 ---
 
