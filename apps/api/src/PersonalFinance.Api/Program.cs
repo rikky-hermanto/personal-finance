@@ -119,6 +119,7 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<INetWorthService, NetWorthService>();
 
             // Journey module
+            builder.Services.AddScoped<IInsightService, InsightService>();
             builder.Services.AddScoped<IJourneyScoringService, JourneyScoringService>();
             builder.Services.AddHttpClient<IJourneyAdvisorClient, JourneyAdvisorClient>(client =>
             {

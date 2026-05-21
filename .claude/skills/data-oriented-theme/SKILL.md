@@ -6,7 +6,7 @@ description: >
   dashboard, tool, artifact, or front-end interface — UNLESS the user explicitly requests a
   different style (e.g., "landing page", "marketing site", "creative/artistic design").
   Enforces: neutral palette, functional color-coding, proportional grid layouts,
-  divider-based structure, monospace data typography, contextual cards, and
+  whitespace-based structure, monospace data typography, contextual cards, and
   progressive disclosure (page function is the hero — everything secondary recedes
   until needed). Inspired by Notion, Linear, Datadog, Robinhood, Bloomberg Terminal.
 ---
@@ -139,6 +139,30 @@ Card spec:
 - Hover: `border-color: var(--border-strong)`, bg `#FAFBFC`
 - Gap between cards in list: `8px`
 
+### Card Content Hierarchy — Primary vs Secondary
+
+When a card contains a primary summary (stats) and a secondary detail (chart, breakdown), the secondary content **must not get its own card wrapper**. It lives inside the primary card, chrome-free.
+
+**Pattern — collapsible detail inside primary card:**
+```
+┌─────────────────────────────────────────────┐  ← one card only
+│  Card Title              [sparkline] period ∨│
+│                                              │
+│  Primary stat    Secondary    Secondary      │  ← summary always visible
+│                                              │
+│──────────── solid border-t ─────────────────│  ← permanent section (e.g. savings rate)
+│  Savings rate                        19.4%  │
+│- - - - - - dashed border-t - - - - - - - - -│  ← collapses WITH detail content
+│  [chart — no bg, no border, no own title]   │  ← detail: inherits card bg
+└─────────────────────────────────────────────┘
+```
+
+**Divider semantics:**
+- `border-t border-border` (solid) — permanent section boundary, always visible
+- `border-t border-dashed border-border/50` — collapsible boundary, collapse it WITH the content it introduces
+
+**What to strip from embedded secondary content:** `bg-card`, `border`, `rounded-lg`, internal `<h3>` heading, card padding. The secondary content is not a card — it's a detail panel.
+
 ### KPI Strip
 ```
 ┌─────────────┬─────────────┬─────────────┬─────────────┐
@@ -262,9 +286,16 @@ Labeled region via borders, not a wrapped box:
 
 ## Layout Patterns
 
-### Core Rule: Proportion + Dividers = Structure
-Use `grid` / `flex` with explicit proportions, `border` lines as delimiters.
-The page is the container. Sections separated by lines, not wrapped in boxes.
+### Core Rule: Proportion + Whitespace = Structure
+Use `grid` / `flex` with explicit proportions and `space-y-*` / `gap-*` to create rhythm.
+Cards already scream separation — do NOT add `divide-y` or `border-t` inside a card or between sections that already have a card frame. Dividers are only valid at the page level (e.g. topbar `border-b`, sidebar `border-r`) — never inside a framed container.
+
+**Divider rule (critical):**
+- ✅ `border-b` on topbar, `border-r` on sidebar — page-level structural lines
+- ✅ `divide-y` inside a borderless full-bleed table with no surrounding card
+- ❌ `divide-y divide-border` inside a `.pf-card` — the card border already frames it
+- ❌ `border-t border-border` between list items inside a card — use `space-y-3` instead
+- ❌ Adding a divider line just because items are stacked — whitespace is the separator
 
 ### Standard App Layout
 ```
@@ -297,7 +328,9 @@ All: `gap: 0`, `border-right` on left pane(s), padding inside each pane.
 | Cluttered topbar (5+ buttons) | Logo + title + icon actions + 1 CTA |
 | Always-visible secondary controls | Hide until needed — hover, collapsed |
 | Multiple primary CTAs on one page | One CTA per page context |
-| Cards as layout containers | Proportion + dividers |
+| Cards as layout containers | Proportion + whitespace |
+| `divide-y` inside a card | `space-y-*` — the card border already frames the list |
+| `border-t` between items inside a framed section | More `padding-y` on each item |
 | Drop shadows | `1px solid var(--border)` only |
 | `border-radius` > 10px on containers | 8–10px cards, 4–6px buttons |
 | Color for decoration | State/delta only |
