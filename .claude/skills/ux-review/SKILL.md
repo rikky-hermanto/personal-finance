@@ -113,6 +113,15 @@ What can be removed without losing function?
 
 **Rule of thumb:** If removing an element requires no explanation to the user, remove it.
 
+**Critical boundary — minimalism must not erase psychological meaning:**
+Minimalism removes visual noise, not semantic content. Before shortening any label, ask: *does the full word carry meaning that an abbreviation loses?*
+
+- **Abbreviate units** — "3M", "1Y", "YTD" are codes users recognize immediately; the full word adds nothing.
+- **Keep words that anchor** — "Last Month" communicates relative recency ("the period just behind me now"), not just a duration. "1M" requires decoding. When a label's value is its *relationship to the user's present moment*, abbreviating it trades comprehension for compactness.
+- **Watch for outlier labels in uniform sets** — if siblings are already short (3M, 6M, 1Y), one longer label that earns its width (Last Month) is not inconsistency — it's honest communication.
+
+The test: would a first-time user pause for even half a second to decode the abbreviation? If yes, the word is the right choice.
+
 ### 2E — Typography & Density
 
 Is the text readable and appropriately dense for the context?
@@ -199,7 +208,13 @@ Observations rooted in user behavior — not aesthetic preference. Include only 
 
 - **[Pattern name]:** [what the current design triggers in users] → [what the fix should trigger instead]
 
-*(Omit if no significant psychology findings.)*
+**Patterns to always check:**
+- **Temporal anchoring:** Does any time label use an abbreviation where the full word communicates relative time ("Last Month", "This Week", "Yesterday")? Abbreviations strip the anchor and force the user to compute the period mentally.
+- **Pre-attentive fragmentation:** Does the visual weight of secondary elements match the primary content, forcing conscious parsing instead of instant scanning?
+- **Silent failure:** Does any error or empty state disappear quietly (`return null`) instead of telling the user what went wrong?
+- **Affordance mismatch:** Are non-interactive rows rendered as `<button>` (tab-order, cursor, screen reader announcement) with no actual action?
+
+*(Omit sections that have no findings.)*
 
 ---
 
