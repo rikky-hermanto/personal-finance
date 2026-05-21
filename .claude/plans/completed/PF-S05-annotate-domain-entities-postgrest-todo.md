@@ -1,7 +1,7 @@
 # PF-S05 — Annotate Domain entities for Supabase PostgREST
 
 > **GitHub Issue:** [#68](https://github.com/rikky-hermanto/personal-finance/issues/68)
-> **Status:** Ready
+> **Status:** Done
 > **Phase:** 2 — Replace EF Core with supabase-csharp
 > **Depends on:** PF-S04 (Supabase NuGet must be installed before this compiles)
 

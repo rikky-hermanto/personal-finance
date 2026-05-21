@@ -54,7 +54,22 @@
       "Bash(.venv/Scripts/pip install *)",
       "Bash(GEMINI_API_KEY=test-key .venv/Scripts/python -m pytest tests/ -v)",
       "mcp__playwright__browser_take_screenshot",
-      "mcp__playwright__browser_navigate"
+      "mcp__playwright__browser_navigate",
+      "Bash(New-Item -ItemType Directory -Path \"c:\\\\workspaces\\\\personal-finance\\\\.claude\\\\plans\\\\completed\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(Write-Host \"Created completed/ folder\")",
+      "Bash(mkdir -p \"c:/workspaces/personal-finance/.claude/plans/completed\" && echo \"Created\")",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/PF-009-todo.md c:/workspaces/personal-finance/.claude/plans/PF-009-anthropic-hello-llm-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/PF-031-todo.md c:/workspaces/personal-finance/.claude/plans/PF-031-dashboard-extraction-to-service-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/PF-046-todo.md c:/workspaces/personal-finance/.claude/plans/PF-046-llm-extraction-client-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/PF-055-todo.md c:/workspaces/personal-finance/.claude/plans/PF-055-url-routing-react-router-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/PF-056-todo.md c:/workspaces/personal-finance/.claude/plans/PF-056-cashflow-workspace-shell-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/completed/PF-009-Gemini-todo.md c:/workspaces/personal-finance/.claude/plans/completed/PF-009-gemini-hello-llm-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/completed/PF-011-todo.md c:/workspaces/personal-finance/.claude/plans/completed/PF-011-fastapi-ai-service-scaffold-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/completed/PF-012-todo.md c:/workspaces/personal-finance/.claude/plans/completed/PF-012-pdf-extraction-pymupdf-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/completed/PF-029-todo.md c:/workspaces/personal-finance/.claude/plans/completed/PF-029-fix-n1-categorize-batch-async-todo.md)",
+      "Bash(mv c:/workspaces/personal-finance/.claude/plans/completed/PF-090-todo.md c:/workspaces/personal-finance/.claude/plans/completed/PF-090-deduplication-file-hashing-todo.md)",
+      "Bash(grep \"\\\\.md$\")"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -87,7 +102,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "py .claude/hooks/plan-complete-sync.py"
+            "command": "py c:/workspaces/personal-finance/.claude/hooks/plan-complete-sync.py"
           }
         ]
       }
