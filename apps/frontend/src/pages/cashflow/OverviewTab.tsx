@@ -6,6 +6,7 @@ import { DashboardData } from '@/types/Dashboard';
 import NetCashflowCard from '@/components/dashboard/widgets/NetCashflowCard';
 import TopCategoriesCard from '@/components/dashboard/widgets/TopCategoriesCard';
 import MonthlyFlowChart from '@/components/dashboard/widgets/MonthlyFlowChart';
+import CurrentBalanceStrip from '@/components/dashboard/CurrentBalanceStrip';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Upload } from 'lucide-react';
@@ -78,6 +79,8 @@ const OverviewTab = () => {
             </div>
           </div>
         </div>
+
+        <CurrentBalanceStrip />
 
         {/* Error state */}
         {error && !isLoading && (

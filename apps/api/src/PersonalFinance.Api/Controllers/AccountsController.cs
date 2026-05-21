@@ -78,6 +78,50 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
         return Ok();
     }
 
+    [HttpGet("balances")]
+    public async Task<IActionResult> GetAccountBalances()
+    {
+        var accounts = await supabase.From<Account>()
+            .Filter("is_active", Operator.Equals, "true")
+            .Filter("include_in_cashflow", Operator.Equals, "true")
+            .Order("name", Ordering.Ascending)
+            .Get();
+
+        if (!accounts.Models.Any())
+            return Ok(Array.Empty<AccountBalanceDto>());
+
+        var txResult = await supabase.From<Transaction>()
+            .Select("account_id,flow,amount_idr,date")
+            .Get();
+
+        var txByAccount = txResult.Models
+            .Where(t => t.AccountId.HasValue)
+            .GroupBy(t => t.AccountId!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        var institutions = await supabase.From<Institution>().Get();
+        var instMap = institutions.Models.ToDictionary(i => i.Id, i => i.Name);
+
+        var balances = accounts.Models.Select(a =>
+        {
+            var txs = txByAccount.GetValueOrDefault(a.Id, []);
+            var totalCR = txs.Where(t => t.Flow == "CR").Sum(t => t.AmountIdr);
+            var totalDB = txs.Where(t => t.Flow == "DB").Sum(t => t.AmountIdr);
+            var asOf = txs.Any() ? txs.Max(t => t.Date) : a.OpeningDate;
+            return new AccountBalanceDto(
+                a.Id,
+                a.Name,
+                a.InstitutionId.HasValue ? instMap.GetValueOrDefault(a.InstitutionId.Value, "") : "",
+                a.Currency,
+                a.OpeningBalance,
+                a.OpeningBalance + totalCR - totalDB,
+                asOf
+            );
+        });
+
+        return Ok(balances);
+    }
+
     [HttpPatch("{id:guid}/cashflow")]
     public async Task<IActionResult> SetCashflowFlag(Guid id, [FromBody] bool include)
     {
@@ -96,6 +140,26 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
         return Ok(ToDto(existing));
     }
 
+    [HttpPatch("{id:guid}/opening-balance")]
+    public async Task<IActionResult> SetOpeningBalance(Guid id, [FromBody] SetOpeningBalanceRequest req)
+    {
+        var existing = await supabase.From<Account>()
+            .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
+            .Single();
+        if (existing == null) return NotFound();
+
+        await supabase.From<Account>()
+            .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
+            .Set(x => x.OpeningBalance, req.OpeningBalance)
+            .Set(x => x.OpeningDate, req.OpeningDate.ToDateTime(TimeOnly.MinValue))
+            .Set(x => x.UpdatedAt, DateTime.UtcNow)
+            .Update();
+
+        existing.OpeningBalance = req.OpeningBalance;
+        existing.OpeningDate = req.OpeningDate.ToDateTime(TimeOnly.MinValue);
+        return Ok(ToDto(existing));
+    }
+
     private static AccountDto ToDto(Account a) => new(
         a.Id,
         a.InstitutionId,
@@ -110,3 +174,5 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
         a.Icon
     );
 }
+
+public record SetOpeningBalanceRequest(decimal OpeningBalance, DateOnly OpeningDate);

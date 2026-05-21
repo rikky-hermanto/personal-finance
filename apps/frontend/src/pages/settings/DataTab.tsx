@@ -13,8 +13,50 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { getTransactionPage, resetAllTransactions } from '@/api/transactionsApi';
+import { getAccounts, setAccountOpeningBalance } from '@/api/accountsApi';
+import { Account } from '@/types/Account';
 
 const CONFIRM_PHRASE = 'delete all';
+
+interface AccountBalanceRowProps {
+  account: Account;
+  onBlur: (account: Account, balance: string, date: string) => void;
+}
+
+const AccountBalanceRow = ({ account, onBlur }: AccountBalanceRowProps) => {
+  const [balance, setBalance] = useState(String(account.openingBalance ?? 0));
+  const [date, setDate] = useState(account.openingDate?.slice(0, 10) ?? '');
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-3">
+      <div className="w-40 shrink-0">
+        <p className="text-sm font-medium text-foreground">{account.name}</p>
+        <p className="text-xs text-muted-foreground">{account.accountType}</p>
+      </div>
+      <div className="flex items-center gap-2 flex-1">
+        <div className="relative flex-1 max-w-[180px]">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+            {account.currency !== 'IDR' ? account.currency : 'Rp'}
+          </span>
+          <Input
+            className="pl-8 text-sm h-8"
+            value={balance}
+            onChange={(e) => setBalance(e.target.value)}
+            onBlur={() => onBlur(account, balance, date)}
+            inputMode="decimal"
+          />
+        </div>
+        <Input
+          type="date"
+          className="text-sm h-8 w-36"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          onBlur={() => onBlur(account, balance, date)}
+        />
+      </div>
+    </div>
+  );
+};
 
 const DataTab = () => {
   const [open, setOpen] = useState(false);
@@ -28,6 +70,23 @@ const DataTab = () => {
     queryFn: () => getTransactionPage({ pageSize: 1 }),
   });
   const count = countData?.total ?? 0;
+
+  const { data: accounts } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: getAccounts,
+  });
+
+  const { mutate: updateOpeningBalance } = useMutation({
+    mutationFn: ({ id, openingBalance, openingDate }: { id: string; openingBalance: number; openingDate: string }) =>
+      setAccountOpeningBalance(id, openingBalance, openingDate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['account-balances'] });
+      queryClient.invalidateQueries({ queryKey: ['accounts'] });
+    },
+    onError: () => {
+      toast({ title: 'Failed to save', description: 'Opening balance could not be updated.', variant: 'destructive' });
+    },
+  });
 
   const { mutate: doReset, isPending } = useMutation({
     mutationFn: resetAllTransactions,
@@ -55,6 +114,12 @@ const DataTab = () => {
     setOpen(next);
   };
 
+  const handleBalanceBlur = (account: Account, newBalance: string, newDate: string) => {
+    const parsed = parseFloat(newBalance.replace(/,/g, ''));
+    if (isNaN(parsed) || !newDate) return;
+    updateOpeningBalance({ id: account.id, openingBalance: parsed, openingDate: newDate });
+  };
+
 
 
   return (
@@ -66,6 +131,27 @@ const DataTab = () => {
             Manage your stored data. Destructive actions cannot be undone.
           </p>
         </div>
+
+        {/* Account Starting Balances */}
+        {accounts && accounts.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-3">
+              <h3 className="text-sm font-semibold text-foreground">Account Starting Balances</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Set the opening balance for each account. This is used to calculate the current balance shown on the Overview.
+              </p>
+            </div>
+            <div className="border rounded-lg divide-y">
+              {accounts.map((account) => (
+                <AccountBalanceRow
+                  key={account.id}
+                  account={account}
+                  onBlur={handleBalanceBlur}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Danger Zone */}
         <div className="rounded-lg border border-destructive/50 bg-destructive/5">
