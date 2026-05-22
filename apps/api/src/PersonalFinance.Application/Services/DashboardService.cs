@@ -148,7 +148,9 @@ public class DashboardService : IDashboardService
             {
                 var monthly = currentRangeTxs.Where(t => t.Date.Year == targetDate.Year && t.Date.Month == targetDate.Month).ToList();
                 var inc = monthly.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
-                var exp = monthly.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
+                var exp = monthly.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)
+                                          && !string.IsNullOrEmpty(t.Category)
+                                          && !investingCategories.Contains(t.Category)).Sum(t => t.AmountIdr);
                 return new DashboardCashFlowDto(targetDate.ToString("MMM yy"), inc, exp, inc - exp);
             })
             .ToList();
