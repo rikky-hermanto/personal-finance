@@ -42,10 +42,26 @@ public class DashboardService : IDashboardService
             baselineDate = latestTx.Models.FirstOrDefault()?.Date ?? DateTime.Now;
         }
 
-        int monthCount = months > 0 ? months : baselineDate.Month;
+        DateTime rangeStartDate;
+        int monthCount;
 
-        // Current Range
-        var rangeStartDate = new DateTime(baselineDate.Year, baselineDate.Month, 1).AddMonths(-monthCount + 1);
+        if (months == -1)
+        {
+            // All Time: start from the earliest transaction in the DB
+            var earliestTx = await _supabase.From<Transaction>()
+                .Order("date", Ordering.Ascending)
+                .Limit(1)
+                .Get();
+            var earliestDate = earliestTx.Models.FirstOrDefault()?.Date ?? baselineDate;
+            rangeStartDate = new DateTime(earliestDate.Year, earliestDate.Month, 1);
+            monthCount = ((baselineDate.Year - rangeStartDate.Year) * 12) + baselineDate.Month - rangeStartDate.Month + 1;
+        }
+        else
+        {
+            monthCount = months > 0 ? months : baselineDate.Month;
+            rangeStartDate = new DateTime(baselineDate.Year, baselineDate.Month, 1).AddMonths(-monthCount + 1);
+        }
+
         var rangeEndDate = new DateTime(baselineDate.Year, baselineDate.Month, DateTime.DaysInMonth(baselineDate.Year, baselineDate.Month), 23, 59, 59);
 
         // Comparison Range (previous period of same length)
@@ -142,9 +158,11 @@ public class DashboardService : IDashboardService
         var summaryDto = new DashboardSummaryDto(currentIncome, currentExpenses, currentNet, currentRangeTxs.Count);
 
         // 4. Build Final DTO
-        var rangeLabel = months == 1
-            ? baselineDate.ToString("MMMM yyyy")
-            : (months == 0 ? $"YTD {baselineDate.Year}" : $"{monthCount} Months ending {baselineDate:MMM yy}");
+        var rangeLabel = months == -1
+            ? "All Time"
+            : months == 1
+                ? baselineDate.ToString("MMMM yyyy")
+                : (months == 0 ? $"YTD {baselineDate.Year}" : $"{monthCount} Months ending {baselineDate:MMM yy}");
 
         var dataThrough = baselineDate.ToString("MMMM yyyy");
 
@@ -171,8 +189,25 @@ public class DashboardService : IDashboardService
             .Get();
         var baselineDate = latestTx.Models.FirstOrDefault()?.Date ?? DateTime.Now;
 
-        int monthCount = months > 0 ? months : baselineDate.Month;
-        var rangeStartDate = new DateTime(baselineDate.Year, baselineDate.Month, 1).AddMonths(-monthCount + 1);
+        DateTime rangeStartDate;
+        int monthCount;
+
+        if (months == -1)
+        {
+            var earliestTx = await _supabase.From<Transaction>()
+                .Order("date", Ordering.Ascending)
+                .Limit(1)
+                .Get();
+            var earliestDate = earliestTx.Models.FirstOrDefault()?.Date ?? baselineDate;
+            rangeStartDate = new DateTime(earliestDate.Year, earliestDate.Month, 1);
+            monthCount = ((baselineDate.Year - rangeStartDate.Year) * 12) + baselineDate.Month - rangeStartDate.Month + 1;
+        }
+        else
+        {
+            monthCount = months > 0 ? months : baselineDate.Month;
+            rangeStartDate = new DateTime(baselineDate.Year, baselineDate.Month, 1).AddMonths(-monthCount + 1);
+        }
+
         var rangeEndDate = new DateTime(baselineDate.Year, baselineDate.Month, DateTime.DaysInMonth(baselineDate.Year, baselineDate.Month), 23, 59, 59);
 
         // 2. Fetch transactions
