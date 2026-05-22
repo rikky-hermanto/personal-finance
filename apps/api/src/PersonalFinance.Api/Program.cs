@@ -124,7 +124,7 @@ namespace PersonalFinance.Api
             builder.Services.AddHttpClient<IJourneyAdvisorClient, JourneyAdvisorClient>(client =>
             {
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
-                client.Timeout = TimeSpan.FromSeconds(30);
+                client.Timeout = TimeSpan.FromSeconds(120);
             });
             builder.Services.AddMediatR(cfg =>
             {
