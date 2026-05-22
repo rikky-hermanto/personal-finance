@@ -22,7 +22,7 @@ export function formatCompact(amount: number): string {
 
 export function formatMonth(monthString: string): string {
   if (!monthString) return '—';
-  
+
   // Try YYYY-MM first
   const parts = monthString.split('-');
   if (parts.length === 2) {
@@ -36,10 +36,15 @@ export function formatMonth(monthString: string): string {
     }
   }
 
-  // Fallback to native Date parsing if possible
-  const d = new Date(monthString);
-  if (!isNaN(d.getTime())) {
-    return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  // Only attempt native Date parsing for strings that look like dates (e.g. "Jan 26", "March 2024").
+  // Reject anything containing spaces beyond a simple "Mon YY/YYYY" pattern to avoid V8's
+  // fuzzy legacy parser producing nonsense dates from label strings like "All Time".
+  const looksLikeDate = /^[A-Za-z]{3,9}\s+\d{2,4}$/.test(monthString.trim());
+  if (looksLikeDate) {
+    const d = new Date(monthString);
+    if (!isNaN(d.getTime())) {
+      return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    }
   }
 
   return monthString;

@@ -65,6 +65,7 @@ const RANGES = [
   { label: '1Y', value: 12 },
   { label: '2Y', value: 24 },
   { label: 'YTD', value: 0 },
+  { label: 'All Time', value: -1 },
 ];
 
 const MOCK_INSIGHTS: Insight[] = [
