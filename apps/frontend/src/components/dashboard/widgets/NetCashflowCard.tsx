@@ -58,6 +58,10 @@ const NetCashflowCard = ({ data, isLoading, sparklineData, chartData, chartExpan
   const Icon = isPositive ? TrendingUp : TrendingDown;
   const savingsRate = income > 0 ? (net / income) * 100 : null;
 
+  const avgMonthlyExpense = chartData && chartData.length > 1
+    ? chartData.reduce((sum, m) => sum + m.expenses, 0) / chartData.length
+    : null;
+
   return (
     <div className="pf-card p-5">
       <div className="flex items-center justify-between mb-5">
@@ -119,14 +123,27 @@ const NetCashflowCard = ({ data, isLoading, sparklineData, chartData, chartExpan
       )}
 
       {savingsRate !== null && (
-        <div className="mt-4 pt-3.5 border-t border-border flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">Savings rate</span>
-          <span className={cn(
-            'text-xs font-semibold tabular-nums',
-            savingsRate >= 20 ? 'text-success' : savingsRate >= 10 ? 'text-foreground' : 'text-destructive'
-          )}>
-            {savingsRate.toFixed(1)}%
-          </span>
+        <div className="mt-4 pt-3.5 border-t border-border flex items-center gap-4">
+          <div className="flex items-center justify-between flex-1">
+            <span className="text-[11px] text-muted-foreground">Savings rate</span>
+            <span className={cn(
+              'text-xs font-semibold tabular-nums',
+              savingsRate >= 20 ? 'text-success' : savingsRate >= 10 ? 'text-foreground' : 'text-destructive'
+            )}>
+              {savingsRate.toFixed(1)}%
+            </span>
+          </div>
+          {avgMonthlyExpense !== null && (
+            <>
+              <div className="w-px h-3 bg-border shrink-0" />
+              <div className="flex items-center justify-between flex-1">
+                <span className="text-[11px] text-muted-foreground">Avg monthly spend</span>
+                <span className="text-xs font-mono tabular-nums text-destructive">
+                  {formatCurrency(avgMonthlyExpense)}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
