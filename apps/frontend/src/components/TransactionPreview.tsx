@@ -142,14 +142,45 @@ const CategoryCombobox = ({ value, options, onChange }: CategoryComboboxProps) =
   );
 };
 
+const formatAmountInput = (v: number): string =>
+  Math.round(Math.abs(v)).toLocaleString('id-ID');
+
+const parseAmountInput = (s: string): number =>
+  parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
+
 const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileName }: TransactionPreviewProps) => {
   const [editedTransactions, setEditedTransactions] = useState<Transaction[]>(transactions);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editSnapshot, setEditSnapshot] = useState<Transaction | null>(null);
+  const [editedIds, setEditedIds] = useState<Set<string>>(new Set());
+  const [invalidIds, setInvalidIds] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [applyToSimilarMap, setApplyToSimilarMap] = useState<Record<string, boolean>>({});
   const [pendingKeywords, setPendingKeywords] = useState<Record<string, string>>({});
   const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [applyPopoverOpenMap, setApplyPopoverOpenMap] = useState<Record<string, boolean>>({});
+
+  const startEdit = (tx: Transaction) => {
+    setEditingId(tx.id);
+    setEditSnapshot({ ...tx });
+  };
+
+  const confirmEdit = (tx: Transaction) => {
+    setEditedIds(prev => new Set([...prev, tx.id]));
+    setEditingId(null);
+    setEditSnapshot(null);
+  };
+
+  const cancelEdit = () => {
+    if (editSnapshot) {
+      setEditedTransactions(prev =>
+        prev.map(t => t.id === editSnapshot.id ? editSnapshot : t)
+      );
+    }
+    setEditingId(null);
+    setEditSnapshot(null);
+  };
 
   const handleFieldChange = (transactionId: string, field: keyof Transaction, value: any) => {
     setEditedTransactions(prev =>
@@ -208,6 +239,14 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       setApiError("No new transactions to submit.");
       return;
     }
+
+    const invalid = newTransactions.filter(t => !t.date || !t.category || !t.description.trim());
+    if (invalid.length > 0) {
+      setInvalidIds(new Set(invalid.map(t => t.id)));
+      setApiError(`${invalid.length} row(s) have missing required fields — fix them before submitting.`);
+      return;
+    }
+    setInvalidIds(new Set());
 
     setIsSubmitting(true);
     setApiError(null);
@@ -272,76 +311,114 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     { key: 'actions', label: '', className: 'w-16' },
   ];
 
+  const categoryBadge = (tx: Transaction) => (
+    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
+      {tx.category}
+    </span>
+  );
+
+  const amountDisplay = (tx: Transaction) => (
+    <div className={cn('font-mono text-xs tabular-nums text-right', tx.flow === 'CR' ? 'text-income/80' : 'text-expense/80')}>
+      {(() => {
+        const absVal = Math.abs(tx.amount);
+        const formatted = formatCurrency(absVal).replace('Rp', '').trim();
+        return tx.flow === 'CR' ? formatted : `(${formatted})`;
+      })()}
+    </div>
+  );
+
+  const amountInput = (tx: Transaction) => (
+    <div className="flex items-center gap-1 justify-end">
+      <span className="text-xs font-medium text-muted-foreground">{tx.flow === 'CR' ? '+' : '−'} Rp</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={formatAmountInput(tx.amount)}
+        onChange={(e) => {
+          const val = parseAmountInput(e.target.value);
+          handleFieldChange(tx.id, 'amount', tx.flow === 'CR' ? val : -val);
+        }}
+        className={cn(selectCls, "w-28 text-right")}
+      />
+    </div>
+  );
+
   const renderRow = (tx: Transaction) => {
     const isEditing = editingId === tx.id;
-    
+    const isEdited = editedIds.has(tx.id);
+    const isInvalid = invalidIds.has(tx.id);
     const categoryOptions = [...new Set([...CORE_CATEGORIES, ...customCategories, tx.category])].sort();
 
     return (
-      <tr key={tx.id} className={cn("hover:bg-accent transition-colors", isEditing && "bg-accent/40")}>
+      <tr key={tx.id} className={cn(
+        "hover:bg-accent transition-colors border-l-2",
+        isEditing  && "bg-accent/40 border-l-primary",
+        isInvalid  && !isEditing && "border-l-destructive",
+        isEdited   && !isEditing && !isInvalid && "border-l-success/60",
+        !isEditing && !isEdited && !isInvalid && "border-l-transparent",
+      )}>
         <td className="px-4 py-2 whitespace-nowrap">
-          {isEditing ? (
-            <input
-              type="date"
-              value={toISODate(tx.date)}
-              onChange={(e) => handleFieldChange(tx.id, 'date', e.target.value)}
-              className={cn(selectCls, "w-32")}
-              autoFocus
-            />
-          ) : (
-            <span className="font-mono text-xs text-muted-foreground tabular-nums">
-              {formatDate(tx.date)}
-            </span>
-          )}
+          {isEditing
+            ? <input type="date" value={toISODate(tx.date)} onChange={(e) => handleFieldChange(tx.id, 'date', e.target.value)} className={cn(selectCls, "w-32")} autoFocus />
+            : <span className="font-mono text-xs text-muted-foreground tabular-nums">{formatDate(tx.date)}</span>}
         </td>
         <td className="px-4 py-2">
-          {isEditing ? (
-            <input
-              type="text"
-              value={tx.description}
-              onChange={(e) => handleFieldChange(tx.id, 'description', e.target.value)}
-              className={selectCls}
-            />
-          ) : (
-            <span className="text-xs text-foreground/70 max-w-xs truncate block">
-              {tx.description}
-            </span>
-          )}
+          {isEditing
+            ? <input type="text" value={tx.description} onChange={(e) => handleFieldChange(tx.id, 'description', e.target.value)} className={selectCls} />
+            : <span className="text-xs text-foreground/70 max-w-xs truncate block">{tx.description}</span>}
         </td>
         <td className="px-4 py-2 whitespace-nowrap">
           {isEditing ? (
-            <div className="space-y-1">
-              <CategoryCombobox
-                value={tx.category}
-                options={categoryOptions}
-                onChange={(cat) => {
-                  if (!CORE_CATEGORIES.includes(cat) && !customCategories.includes(cat)) {
-                    setCustomCategories(prev => [...prev, cat]);
-                  }
-                  handleCategoryChange(tx.id, cat);
-                }}
-              />
-              <div className="flex items-center gap-1.5">
-                <Checkbox
-                  id={`apply-similar-${tx.id}`}
-                  checked={applyToSimilarMap[tx.id] ?? false}
-                  onCheckedChange={(checked) => {
-                    setApplyToSimilarMap(prev => ({ ...prev, [tx.id]: !!checked }));
-                    if (checked) setPendingKeywords(prev => ({ ...prev, [tx.id]: extractKeyword(tx.description) }));
+            <div className="flex items-center gap-1">
+              <div className="flex-1 min-w-0">
+                <CategoryCombobox
+                  value={tx.category}
+                  options={categoryOptions}
+                  onChange={(cat) => {
+                    if (!CORE_CATEGORIES.includes(cat) && !customCategories.includes(cat)) setCustomCategories(p => [...p, cat]);
+                    handleCategoryChange(tx.id, cat);
                   }}
                 />
-                <label htmlFor={`apply-similar-${tx.id}`} className="text-[10px] text-muted-foreground cursor-pointer whitespace-nowrap">
-                  Apply to similar
-                </label>
-                {applyToSimilarMap[tx.id] && (
-                  <input
-                    className="text-[10px] border border-border rounded px-1.5 py-0.5 font-mono bg-muted text-foreground flex-1 min-w-0"
-                    value={pendingKeywords[tx.id] ?? ''}
-                    onChange={e => setPendingKeywords(prev => ({ ...prev, [tx.id]: e.target.value }))}
-                    placeholder="keyword…"
-                  />
-                )}
               </div>
+              <Popover open={applyPopoverOpenMap[tx.id] ?? false} onOpenChange={(v) => setApplyPopoverOpenMap(p => ({ ...p, [tx.id]: v }))}>
+                <PopoverTrigger asChild>
+                  <button
+                    className={cn(
+                      "shrink-0 px-1.5 py-1 rounded text-[10px] border transition-colors",
+                      applyToSimilarMap[tx.id]
+                        ? "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-muted border-border text-muted-foreground hover:text-foreground"
+                    )}
+                    title="Apply to similar"
+                  >⋯</button>
+                </PopoverTrigger>
+                <PopoverContent className="p-3 w-56" align="start" sideOffset={4}>
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-2">Apply to similar</p>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Checkbox
+                      id={`ats-${tx.id}`}
+                      checked={applyToSimilarMap[tx.id] ?? false}
+                      onCheckedChange={(c) => {
+                        setApplyToSimilarMap(p => ({ ...p, [tx.id]: !!c }));
+                        if (c) setPendingKeywords(p => ({ ...p, [tx.id]: extractKeyword(tx.description) }));
+                      }}
+                    />
+                    <label htmlFor={`ats-${tx.id}`} className="text-xs text-foreground cursor-pointer">Apply this category to matching rows</label>
+                  </div>
+                  {applyToSimilarMap[tx.id] && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground mb-1">Match keyword</p>
+                      <input
+                        className="text-xs border border-border rounded px-1.5 py-1 font-mono bg-muted text-foreground w-full"
+                        value={pendingKeywords[tx.id] ?? ''}
+                        onChange={e => setPendingKeywords(p => ({ ...p, [tx.id]: e.target.value }))}
+                        placeholder="e.g. FAST 562"
+                      />
+                      {!pendingKeywords[tx.id] && <p className="text-[10px] text-destructive/70 mt-1">Type a keyword to match</p>}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
             </div>
           ) : (
             <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
@@ -350,68 +427,24 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
           )}
         </td>
         <td className="px-4 py-2 whitespace-nowrap">
-          {isEditing ? (
-            <div className="flex items-center gap-1 justify-end">
-              <span className="text-[10px] text-muted-foreground">{tx.flow === 'CR' ? '+' : '-'}</span>
-              <input
-                type="number"
-                value={Math.abs(tx.amount)}
-                onChange={(e) => {
-                  const val = parseFloat(e.target.value) || 0;
-                  handleFieldChange(tx.id, 'amount', tx.flow === 'CR' ? val : -val);
-                }}
-                className={cn(selectCls, "w-24 text-right")}
-              />
-            </div>
-          ) : (
-            <div className={cn(
-              'font-mono text-xs tabular-nums text-right',
-              tx.flow === 'CR' ? 'text-income/80' : 'text-expense/80'
-            )}>
-              {(() => {
-                const absVal = Math.abs(tx.amount);
-                const formatted = formatCurrency(absVal).replace('Rp', '').trim();
-                return tx.flow === 'CR' ? formatted : `(${formatted})`;
-              })()}
-            </div>
-          )}
+          {isEditing ? amountInput(tx) : amountDisplay(tx)}
         </td>
         <td className="px-4 py-2 whitespace-nowrap">
-          {isEditing ? (
-            <input
-              type="text"
-              value={tx.bank}
-              onChange={(e) => handleFieldChange(tx.id, 'bank', e.target.value)}
-              className={cn(selectCls, "w-32")}
-            />
-          ) : (
-            <span className="text-xs text-muted-foreground">
-              {tx.bank}
-            </span>
-          )}
+          <span className="text-xs text-muted-foreground">{tx.bank}</span>
         </td>
         <td className="px-4 py-2 whitespace-nowrap">
-          {!tx.isDuplicate && (
-            isEditing ? (
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setEditingId(null)}
-                  className="text-success hover:text-success/80 transition-colors p-1"
-                  title="Done"
-                >
-                  <Check className="w-4 h-4" strokeWidth={2} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setEditingId(tx.id)}
-                className="text-muted-foreground hover:text-foreground transition-colors p-1"
-                title="Edit"
-              >
-                <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+          {!tx.isDuplicate && (isEditing ? (
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => confirmEdit(tx)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-semibold bg-success text-white hover:bg-success/90 transition-colors">
+                <Check className="w-3 h-3" strokeWidth={2.5} />Save
               </button>
-            )
-          )}
+              <button onClick={cancelEdit} className="text-muted-foreground hover:text-foreground transition-colors p-1 text-xs">✕</button>
+            </div>
+          ) : (
+            <button onClick={() => startEdit(tx)} className="text-muted-foreground hover:text-foreground transition-colors p-1" title="Edit">
+              <Edit2 className="w-3.5 h-3.5" strokeWidth={1.5} />
+            </button>
+          ))}
         </td>
       </tr>
     );
@@ -429,7 +462,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-3 mb-4 shrink-0">
-        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5">
           <div>
             <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Transactions</p>
             <p className="text-lg font-bold text-foreground tabular-nums">{summary.totalTransactions}</p>
@@ -437,7 +470,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
           <Hash className="w-3.5 h-3.5 text-muted-foreground/50" strokeWidth={2} />
         </div>
 
-        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5">
           <div className="flex-1 min-w-0 pr-2">
             <p className="text-[9px] font-semibold text-income uppercase tracking-widest mb-0.5">Income</p>
             <AutoScalingText className="text-income">
@@ -447,7 +480,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
           <TrendingUp className="w-3.5 h-3.5 text-income/50 shrink-0" strokeWidth={2} />
         </div>
 
-        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5">
           <div className="flex-1 min-w-0 pr-2">
             <p className="text-[9px] font-semibold text-expense uppercase tracking-widest mb-0.5">Expenses</p>
             <AutoScalingText className="text-expense">
@@ -457,7 +490,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
           <TrendingDown className="w-3.5 h-3.5 text-expense/50 shrink-0" strokeWidth={2} />
         </div>
 
-        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5 hover:bg-card/60 transition-colors">
+        <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5">
           <div className="flex-1 min-w-0 pr-2">
             <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Net Balance</p>
             <AutoScalingText className={cn(summary.balance >= 0 ? 'text-income' : 'text-expense')}>
@@ -486,32 +519,31 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
               emptyMessage="No new transactions found."
               renderRow={renderRow}
               footer={(
-                <div className="flex gap-3 justify-center py-1">
-                  <button
-                    onClick={onBack}
-                    className="px-3 py-1.5 rounded-md text-xs font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
-                  >
-                    Back to Files
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting || newTransactions.length === 0}
-                    className="px-3 py-1.5 rounded-md text-xs font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
-                  >
-                    <Send className="w-3 h-3" strokeWidth={1.5} />
-                    {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
-                  </button>
+                <div className="flex flex-col items-center gap-2 py-1">
+                  {apiError && (
+                    <p className="text-xs text-destructive text-center px-4">{apiError}</p>
+                  )}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={onBack}
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-muted border border-border text-foreground hover:bg-accent transition-colors"
+                    >
+                      Back to Files
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting || newTransactions.length === 0}
+                      className="px-3 py-1.5 rounded-md text-xs font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                    >
+                      <Send className="w-3 h-3" strokeWidth={1.5} />
+                      {isSubmitting ? 'Submitting…' : `Submit (${newTransactions.length} new)`}
+                    </button>
+                  </div>
                 </div>
               )}
             />
           </div>
           
-          {/* Error - placed just outside/below the frozen footer if needed, or I could put it inside footer too */}
-          {apiError && (
-            <div className="p-3 rounded bg-destructive/10 border border-destructive/30 text-destructive text-sm shrink-0">
-              {apiError}
-            </div>
-          )}
         </div>
 
         {/* Group 2: Duplicate Transactions (Subtle Text Grid) */}
