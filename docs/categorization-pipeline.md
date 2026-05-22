@@ -277,7 +277,7 @@ BIBIT                Expense       Investment
 
 ### Layer 3: LLM Fallback
 
-**When it runs:** A transaction has survived Layers 0–2b without a category match and is still tagged `"Untracked Expense"` or `"Untracked Income"`.
+**When it runs:** A transaction has survived Layers 0–2b without a category match and is still tagged `"Uncategorized"` or `"Uncategorized"`.
 
 **Orchestrator:** `TransactionPipelineService.ApplyLlmCategorizationAsync()`.
 
@@ -351,7 +351,7 @@ This prevents the system from auto-seeding rules like `keyword="08123456789"`.
 
 ### Layer 4: Manual Review
 
-**When it applies:** The upload preview returns a transaction with category `"Untracked Expense"` or `"Untracked Income"`.
+**When it applies:** The upload preview returns a transaction with category `"Uncategorized"` or `"Uncategorized"`.
 
 **What the user can do:**
 1. Edit the category directly in the preview table.
@@ -440,7 +440,7 @@ Identical schema to `category_rules`. Users cannot modify presets — Layer 2 (u
 ```
 Column     Type          Notes
 ─────────  ────────────  ────────────────────────────────────────────────────
-category   varchar(100)  assigned by the pipeline; "Untracked Expense" = unresolved
+category   varchar(100)  assigned by the pipeline; "Uncategorized" = unresolved
 type       varchar(15)   "Expense", "Income", "Asset Transfer"
 flow       varchar(5)    "CR" (credit) or "DB" (debit)
 ```

@@ -62,6 +62,6 @@ class Categorizer:
         except (KeyError, TypeError, ValueError) as e:
             logger.warning("Failed to parse LLM categorize response: %s — raw=%s", e, raw)
             return CategorizeResponse(
-                category=request.available_categories[0] if request.available_categories else "Untracked Expense",
+                category=request.available_categories[0] if request.available_categories else "Uncategorized",
                 confidence=0.0,
             )

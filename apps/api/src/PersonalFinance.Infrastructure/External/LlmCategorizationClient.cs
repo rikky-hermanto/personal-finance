@@ -40,14 +40,14 @@ public class LlmCategorizationClient : ILlmCategorizationClient
             {
                 var body = await response.Content.ReadAsStringAsync(ct);
                 _logger.LogWarning("LLM categorize returned {Status}: {Body}", (int)response.StatusCode, body);
-                return ("Untracked Expense", 0.0);
+                return ("Uncategorized", 0.0);
             }
 
             var result = await response.Content.ReadFromJsonAsync<CategorizeResponse>(JsonOptions, ct);
             if (result is null || !availableCategories.Contains(result.Category, StringComparer.OrdinalIgnoreCase))
             {
                 _logger.LogWarning("LLM returned unknown category '{Cat}' — discarding.", result?.Category);
-                return ("Untracked Expense", 0.0);
+                return ("Uncategorized", 0.0);
             }
 
             _logger.LogInformation("Layer 3 LLM: '{Desc}' → '{Cat}' (confidence={Conf:P0})",
@@ -56,8 +56,8 @@ public class LlmCategorizationClient : ILlmCategorizationClient
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "LLM categorize call failed — falling back to Untracked Expense.");
-            return ("Untracked Expense", 0.0);
+            _logger.LogWarning(ex, "LLM categorize call failed — falling back to Uncategorized.");
+            return ("Uncategorized", 0.0);
         }
     }
 
@@ -71,7 +71,7 @@ public class LlmCategorizationClient : ILlmCategorizationClient
 
     private sealed class CategorizeResponse
     {
-        public string Category    { get; set; } = "Untracked Expense";
+        public string Category    { get; set; } = "Uncategorized";
         public double Confidence  { get; set; } = 0.0;
     }
 }

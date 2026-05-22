@@ -94,7 +94,7 @@ public class TransactionPipelineService : ITransactionPipelineService
             validTransactions.Add(t);
         }
 
-        // 4.5. Layer 3: LLM fallback for rows still at "Untracked Expense" after parser's Layers 0+1+2.
+        // 4.5. Layer 3: LLM fallback for rows still at "Uncategorized" after parser's Layers 0+1+2.
         await ApplyLlmCategorizationAsync(validTransactions);
 
         // 5. DeduplicateCheck
@@ -109,7 +109,7 @@ public class TransactionPipelineService : ITransactionPipelineService
         // nor Layers 1+2 supplied a category. Type is NEVER overridden here; the LLM only
         // returns a category, and the source-supplied Type is the user's ground truth.
         var uncategorized = transactions
-            .Where(t => t.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+            .Where(t => t.Category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (uncategorized.Count == 0) return;
@@ -148,7 +148,7 @@ public class TransactionPipelineService : ITransactionPipelineService
                     Flow = null
                 });
 
-                foreach (var tx in transactions.Where(t => t.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase) && t.Description.Contains(suggestion.SuggestedKeyword, StringComparison.OrdinalIgnoreCase)))
+                foreach (var tx in transactions.Where(t => t.Category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase) && t.Description.Contains(suggestion.SuggestedKeyword, StringComparison.OrdinalIgnoreCase)))
                 {
                     tx.Category = suggestion.SuggestedCategory;
                     _logger.LogDebug("Categorization layer={Layer} pattern={Pattern} category={Category} confidence={Confidence}",
@@ -158,7 +158,7 @@ public class TransactionPipelineService : ITransactionPipelineService
         }
 
         var stillUncategorized = transactions
-            .Where(t => t.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+            .Where(t => t.Category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         foreach (var tx in stillUncategorized)
@@ -167,7 +167,7 @@ public class TransactionPipelineService : ITransactionPipelineService
                 tx.Description, tx.Remarks, tx.Flow, tx.AmountIdr, tx.Wallet,
                 availableCategories);
 
-            if (category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+            if (category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
                 continue;
 
             tx.Category = category;

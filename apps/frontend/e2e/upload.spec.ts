@@ -83,7 +83,7 @@ test.describe('Cold-start categorization', () => {
       test.skip(true, 'No new transactions in preview — DB may already contain fixture data. Reset with: docker compose down -v');
     }
 
-    const untrackedCount = await page.locator('text=Untracked Expense').count();
+    const untrackedCount = await page.locator('text=Uncategorized').count();
     const categorizedRatio = 1 - untrackedCount / rowCount;
 
     expect(

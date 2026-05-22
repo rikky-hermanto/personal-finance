@@ -20,7 +20,7 @@ class TransactionResult(BaseModel):
     exchange_rate: float | None = None                 # Wise FX only, null for IDR banks
     statement_balance: float | None = None             # balance from bank statement
     wallet: str = ""
-    category: str = "Untracked Expense"               # .NET ICategoryRuleService re-categorizes
+    category: str = "Uncategorized"                    # .NET ICategoryRuleService re-categorizes
     raw_text: str = ""                                 # original bank line (audit trail)
 
 

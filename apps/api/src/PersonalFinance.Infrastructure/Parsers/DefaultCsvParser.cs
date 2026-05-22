@@ -71,7 +71,7 @@ public class DefaultCsvParser : IBankStatementParser
                 Remarks = remarks,
                 Flow = GetFieldValue(normalizedDict, "Flow") ?? "DB",
                 Type = GetFieldValue(normalizedDict, "Type") ?? "Expense",
-                Category = GetFieldValue(normalizedDict, "Category") ?? "Untracked Expense",
+                Category = GetFieldValue(normalizedDict, "Category") ?? "Uncategorized",
                 Wallet = string.IsNullOrEmpty(wallet) ? "-" : wallet,
                 AmountIdr = ParseAmount(GetFieldValue(normalizedDict, "Amount(IDR)", "AmountIDR", "Amount")),
                 Currency = GetFieldValue(normalizedDict, "Currency") ?? "IDR",
