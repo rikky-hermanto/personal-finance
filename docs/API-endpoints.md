@@ -26,7 +26,7 @@ This document is a compact reference for the running .NET API. It lists all avai
   "remarks": "string",
   "flow": "DB",
   "type": "Expense",
-  "category": "Untracked Expense",
+  "category": "Uncategorized",
   "wallet": "BCA",
   "amountIdr": 100000.0,
   "currency": "IDR",

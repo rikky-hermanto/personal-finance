@@ -8,7 +8,7 @@ public class TransactionDto
     public string Remarks { get; set; } = string.Empty;
     public string Flow { get; set; } = "DB";
     public string Type { get; set; } = "Expense";
-    public string Category { get; set; } = "Untracked Expense";
+    public string Category { get; set; } = "Uncategorized";
     public string Wallet { get; set; } = string.Empty; // transient — from AI service, never written to DB
     public Guid? AccountId { get; set; }
     public decimal AmountIdr { get; set; }

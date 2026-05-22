@@ -102,7 +102,7 @@ public class NeoBankPdfParser : IBankStatementParser
                     Remarks = "",
                     Flow = amount > 0 ? "CR" : "DB",
                     Type = amount > 0 ? "Income" : "Expense",
-                    Category = "Untracked Expense",
+                    Category = "Uncategorized",
                     Wallet = "NeoBank",
                     AmountIdr = Math.Abs(amount),
                     Currency = "IDR",

@@ -43,7 +43,7 @@ public class CategorizationLayerTests
             Description = "INTEREST",
             Flow = "CR",
             Type = "Income",
-            Category = "Untracked Expense",
+            Category = "Uncategorized",
         };
 
         // Apply the ordering logic from CategorizeBatchAsync inline for unit testing:
@@ -78,7 +78,7 @@ public class CategorizationLayerTests
             Remarks     = "QRIS (PAYMENT)",
             Flow        = "DB",
             Type        = "Expense",
-            Category    = "Untracked Expense",
+            Category    = "Uncategorized",
         };
 
         bool matched = tx.Description.Contains(rule.Keyword, StringComparison.OrdinalIgnoreCase)
@@ -120,8 +120,8 @@ public class CategorizationLayerTests
             new() { Keyword = "Kartu Halo", Type = "Income", Flow = "CR", Category = "Refund" }
         };
 
-        var expenseTx = new TransactionDto { Description = "Kartu Halo", Remarks = "TOP-UP & BILLS", Flow = "DB", Type = "Expense", Category = "Untracked Expense" };
-        var refundTx = new TransactionDto { Description = "Kartu Halo", Remarks = "TOP-UP & BILLS REFUND", Flow = "CR", Type = "Income", Category = "Untracked Expense" };
+        var expenseTx = new TransactionDto { Description = "Kartu Halo", Remarks = "TOP-UP & BILLS", Flow = "DB", Type = "Expense", Category = "Uncategorized" };
+        var refundTx = new TransactionDto { Description = "Kartu Halo", Remarks = "TOP-UP & BILLS REFUND", Flow = "CR", Type = "Income", Category = "Uncategorized" };
 
         ApplyLayer2Rules(expenseTx, rules);
         ApplyLayer2Rules(refundTx, rules);
@@ -146,7 +146,7 @@ public class CategorizationLayerTests
             Remarks = "BI-FAST DB BIAYA TXN  KE 535 RIKKI H HASIBUAN  M-BCA", 
             Flow = "DB", 
             Type = "Expense", 
-            Category = "Untracked Expense" 
+            Category = "Uncategorized" 
         };
 
         ApplyLayer2Rules(tx, rules);
@@ -169,7 +169,7 @@ public class CategorizationLayerTests
             Remarks = "TRSF E-BANKING DB 0301/FTFVA/WS9503133339/BIBIT.ID    -                 -                 98123488851", 
             Flow = "DB", 
             Type = "Saving", 
-            Category = "Untracked Expense" 
+            Category = "Uncategorized" 
         };
 
         ApplyLayer2Rules(tx, rules);
@@ -192,7 +192,7 @@ public class CategorizationLayerTests
             Remarks = "Received money from K2FLY LTD with reference K2FLY", 
             Flow = "CR", 
             Type = "Income", 
-            Category = "Untracked Expense" 
+            Category = "Uncategorized" 
         };
 
         ApplyLayer2Rules(tx, rules);
@@ -252,7 +252,7 @@ public class CategorizationLayerTests
             Description = "TRANSFER GOPAY/TOPUP",
             Flow        = "DB",
             Type        = "Expense",
-            Category    = "Untracked Expense",
+            Category    = "Uncategorized",
         };
 
         // Act — Layer 2a has no match (empty rules), fall through to Layer 2b
@@ -279,12 +279,12 @@ public class CategorizationLayerTests
             Description = "TRANSFER GOPAY/TOPUP",
             Flow        = "DB",
             Type        = "Expense",
-            Category    = "Untracked Expense",
+            Category    = "Uncategorized",
         };
 
         // Act — user rule (Layer 2a) matches first; Layer 2b never runs
         ApplyLayer2Rules(tx, rules);
-        if (tx.Category == "Untracked Expense")
+        if (tx.Category == "Uncategorized")
             ApplyLayer2bPresets(tx, presets);
 
         // Assert: user rule wins
@@ -307,7 +307,7 @@ public class CategorizationLayerTests
             Description = "GOPAY TRANSFER",
             Flow        = "DB",
             Type        = "Expense",
-            Category    = "Untracked Expense",
+            Category    = "Uncategorized",
         };
 
         ApplyLayer2bPresets(tx, presets);
@@ -316,7 +316,7 @@ public class CategorizationLayerTests
     }
 
     [Fact]
-    public void Layer2b_NoMatchingPreset_LeavesUntrackedExpense()
+    public void Layer2b_NoMatchingPreset_LeavesUncategorized()
     {
         var presets = new List<CategoryPreset>
         {
@@ -327,12 +327,12 @@ public class CategorizationLayerTests
             Description = "WARUNG MAKAN PADANG",
             Flow        = "DB",
             Type        = "Expense",
-            Category    = "Untracked Expense",
+            Category    = "Uncategorized",
         };
 
         ApplyLayer2bPresets(tx, presets);
 
-        Assert.Equal("Untracked Expense", tx.Category);
+        Assert.Equal("Uncategorized", tx.Category);
     }
 
     // ── Layer 3: LLM fallback ─────────────────────────────────────────────────
@@ -342,7 +342,7 @@ public class CategorizationLayerTests
     {
         // Arrange: mock ILlmCategorizationClient returns ("Food", 0.95)
         // mock ICategoryRuleService.GetAllAsync returns [Food, Bill, Groceries]
-        // Transaction: Description="Novel Restaurant", Category="Untracked Expense"
+        // Transaction: Description="Novel Restaurant", Category="Uncategorized"
         // Expected: tx.Category = "Food"
         var mockLlm = new Mock<ILlmCategorizationClient>();
         mockLlm.Setup(x => x.CategorizeAsync(
@@ -379,7 +379,7 @@ public class CategorizationLayerTests
             Description = "Novel Restaurant",
             Flow        = "DB",
             Type        = "Expense",
-            Category    = "Untracked Expense",
+            Category    = "Uncategorized",
             AmountIdr   = 50000,
             Currency    = "IDR",
         };
@@ -424,7 +424,7 @@ public class CategorizationLayerTests
         var tx = new TransactionDto
         {
             Date = DateTime.UtcNow, Description = "Warung Baru", Flow = "DB",
-            Type = "Expense", Category = "Untracked Expense", AmountIdr = 25000, Currency = "IDR",
+            Type = "Expense", Category = "Uncategorized", AmountIdr = 25000, Currency = "IDR",
         };
 
         var result = await svc.ProcessAsync([tx]);
