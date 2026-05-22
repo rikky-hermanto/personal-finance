@@ -80,7 +80,7 @@ public class LlmExtractionClientTests
                 currency = "IDR",
                 exchange_rate = (double?)null,
                 wallet = "",
-                category = "Untracked Expense",
+                category = "Uncategorized",
             }
         ]);
 
@@ -108,7 +108,7 @@ public class LlmExtractionClientTests
                 currency = "USD",
                 exchange_rate = (double?)16000.0,
                 wallet = "Wise",
-                category = "Untracked Expense",
+                category = "Uncategorized",
             }
         ]);
 

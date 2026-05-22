@@ -139,7 +139,7 @@ Expected response:
       "currency": "IDR",
       "exchange_rate": null,
       "wallet": "",
-      "category": "Untracked Expense",
+      "category": "Uncategorized",
       "raw_text": ""
     },
     ...
@@ -213,7 +213,7 @@ Expected response:
       "currency": "IDR",
       "exchange_rate": null,
       "wallet": "",
-      "category": "Untracked Expense",
+      "category": "Uncategorized",
       "raw_text": ""
     }
   ],

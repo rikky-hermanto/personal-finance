@@ -48,7 +48,7 @@ public class CategoryRuleService : ICategoryRuleService
         // The engine must never override a source-supplied Type — it is the user's ground truth.
         var needsCategorization = transactions
             .Where(tx => string.IsNullOrWhiteSpace(tx.Category)
-                || tx.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+                || tx.Category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         if (needsCategorization.Count == 0)
@@ -64,7 +64,7 @@ public class CategoryRuleService : ICategoryRuleService
 
         var categorized = historyResult.Models
             .Where(t => !string.IsNullOrWhiteSpace(t.Category)
-                     && !t.Category.Equals("Untracked Expense", StringComparison.OrdinalIgnoreCase))
+                     && !t.Category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
             .ToList();
 
         var descCache = categorized

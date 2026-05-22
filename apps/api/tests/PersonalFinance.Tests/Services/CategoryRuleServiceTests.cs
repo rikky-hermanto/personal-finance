@@ -205,12 +205,12 @@ public class CategoryRuleServiceTests
     }
 
     [Fact]
-    public async Task CategorizeBatchAsync_WhenCategoryIsUntrackedExpense_StillNeedsCategorization()
+    public async Task CategorizeBatchAsync_WhenCategoryIsUncategorized_StillNeedsCategorization()
     {
-        // Arrange — "Untracked Expense" is the default placeholder; it should NOT be preserved
+        // Arrange — "Uncategorized" is the default placeholder; it should NOT be preserved
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "Some Merchant", Type = "Expense", Category = "Untracked Expense" },
+            new() { Description = "Some Merchant", Type = "Expense", Category = "Uncategorized" },
         };
 
         // Act — Supabase is null so the call will throw, confirming we DID attempt categorization

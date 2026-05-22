@@ -167,6 +167,6 @@ public class LlmExtractionClient : ILlmExtractionClient
         public double? ExchangeRate { get; set; }
         public double? StatementBalance { get; set; }
         public string Wallet { get; set; } = string.Empty;
-        public string Category { get; set; } = "Untracked Expense";
+        public string Category { get; set; } = "Uncategorized";
     }
 }
