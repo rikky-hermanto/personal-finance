@@ -14,7 +14,7 @@ import { DailyPulse } from '@/components/cashflow/DailyPulse';
 import { CashflowQuestStrip } from '@/components/cashflow/CashflowQuestStrip';
 import { InsightStack } from '@/components/cashflow/InsightStack';
 import { Button } from '@/components/ui/button';
-import { Upload, Zap, Shield, Target, ArrowRight, Bell } from 'lucide-react';
+import { Upload, Zap, Shield, Target, ArrowRight, Bell, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CashflowQuest } from '@/components/cashflow/CashflowQuestStrip';
 
@@ -141,6 +141,8 @@ const OverviewTab = () => {
   const [error, setError] = useState<string | null>(null);
   const [range, setRange] = useLocalStorage<number>('pf_overview_range', 1);
   const [chartExpanded, setChartExpanded] = useLocalStorage<boolean>('pf_overview_chart_open', true);
+  const [dismissedPulse, setDismissedPulse] = useState(false);
+  const [dismissedStale, setDismissedStale] = useState(false);
 
   const { data: insights = [], isLoading: insightsLoading } = useQuery({
     queryKey: ['insights'],
@@ -226,7 +228,13 @@ const OverviewTab = () => {
         </div>
 
         {/* Daily Pulse */}
-        <DailyPulse pulse={pulse ?? null} isLoading={pulseLoading} />
+        {!dismissedPulse && (
+          <DailyPulse
+            pulse={pulse ?? null}
+            isLoading={pulseLoading}
+            onDismiss={() => setDismissedPulse(true)}
+          />
+        )}
 
         {/* Quest chips */}
         {quests.length > 0 && <CashflowQuestStrip quests={quests} />}
@@ -246,7 +254,7 @@ const OverviewTab = () => {
             />
 
             {/* Staleness badge */}
-            {!error && data?.dataThrough && (() => {
+            {!error && data?.dataThrough && !dismissedStale && (() => {
               const [monthName, yearStr] = data.dataThrough.split(' ');
               const dateThroughDate = new Date(`${monthName} 1, ${yearStr}`);
               const isStale = !isNaN(dateThroughDate.getTime()) &&
@@ -260,6 +268,13 @@ const OverviewTab = () => {
                     className="underline underline-offset-2 hover:text-foreground transition-colors"
                   >
                     upload a new statement to sync
+                  </button>
+                  <button
+                    onClick={() => setDismissedStale(true)}
+                    className="ml-auto rounded p-0.5 opacity-50 hover:opacity-100 transition-opacity"
+                    aria-label="Dismiss"
+                  >
+                    <X className="h-3 w-3" />
                   </button>
                 </div>
               ) : null;
