@@ -29,7 +29,7 @@ _SUGGEST_SCHEMA = {
 }
 
 _SYSTEM_PROMPT = """You are an expert at categorizing Indonesian bank transactions.
-Given a list of merchant/transaction patterns from Indonesian bank statements, 
+Given a list of merchant/transaction patterns from Indonesian bank statements,
 suggest the most appropriate category for each.
 
 Categories available: {categories}
@@ -47,8 +47,10 @@ suggested_keyword MUST NOT contain:
 - Phone numbers (e.g., "+6281234567890", "081234567890")
 - Transaction reference IDs (e.g., "TRF/123456")
 - Any sequence of 7 or more consecutive digits
-If the pattern only contains personal identifiers with no recognizable merchant name,
-set confidence to 0.0 and suggested_keyword to an empty string.
+If the pattern contains personal identifiers but you can still infer the category
+(e.g. "BI-FAST CR TRANSFER" → Transfer, "KR OTOMATIS" → Transfer, "BYR VIA E-BANKING" → Bills & Utilities),
+still assign the correct category with appropriate confidence, but set suggested_keyword to empty string "".
+Only set confidence to 0.0 if you genuinely cannot determine the category.
 """
 
 # PII validation — dijalankan pada SETIAP keyword yang dikembalikan LLM
@@ -83,16 +85,20 @@ class MerchantSuggester:
             result = await self._provider.extract_structured(system, user, _SUGGEST_SCHEMA)
             raw_suggestions = result.get("suggestions", [])
 
-            # Filter out any suggestion where LLM hallucinated PII into the keyword
-            suggestions = [
-                s for s in raw_suggestions
-                if s.get("suggested_keyword") and not _is_pii_keyword(s["suggested_keyword"])
-            ]
+            # Strip PII from keywords but keep the suggestion (category is still useful)
+            pii_stripped = 0
+            suggestions = []
+            for s in raw_suggestions:
+                keyword = s.get("suggested_keyword", "")
+                if keyword and _is_pii_keyword(keyword):
+                    s = {**s, "suggested_keyword": ""}
+                    pii_stripped += 1
+                suggestions.append(s)
 
-            if len(suggestions) < len(raw_suggestions):
+            if pii_stripped:
                 logger.warning(
-                    "merchant_suggest_pii_filtered",
-                    extra={"dropped": len(raw_suggestions) - len(suggestions)},
+                    "merchant_suggest_pii_stripped",
+                    extra={"stripped": pii_stripped},
                 )
 
             logger.info(

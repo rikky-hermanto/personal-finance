@@ -97,6 +97,29 @@ export async function uploadPreview(
   return res.json();
 }
 
+export interface BulkSuggestResult {
+  description: string;
+  category: string;
+  confidence: number;
+}
+
+export async function suggestCategoriesBulk(
+  descriptions: string[],
+  availableCategories: string[] = []
+): Promise<BulkSuggestResult[]> {
+  const res = await fetch(`${BASE_URL}/categorize-preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ descriptions, availableCategories }),
+  });
+  if (!res.ok) {
+    const error = Object.assign(new Error('AI categorization failed'), { response: res });
+    throw error;
+  }
+  const data = await res.json();
+  return data.results as BulkSuggestResult[];
+}
+
 export async function submitTransactions(
   transactions: TransactionDto[],
   fileHash?: string,

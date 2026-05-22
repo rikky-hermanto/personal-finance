@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-05-21
+> **Last synced:** 2026-05-22
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -62,6 +62,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-119 | _(no issue)_ | Cashflow Overview UX Polish: trust fixes + minimalism pass |
 | PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights (Phase 1) |
 | PF-121 | _(no issue)_ | AI-Narrated Anomaly Insights + Persistence (Phase 2, blocked by PF-120) |
+| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview — "✦ Suggest (N)" button |
 
 ---
 
@@ -148,6 +149,9 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
 | PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
 | PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
+| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
+| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
+| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
 
 ---
 
