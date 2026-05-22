@@ -58,6 +58,18 @@ public class TransactionsController : ControllerBase
     [HttpGet("health")]
     public IActionResult HealthCheck() => Ok(new { status = "Healthy" });
 
+    [HttpPost("categorize-preview")]
+    public async Task<IActionResult> CategorizePreview([FromBody] CategorizePreviewRequest request)
+    {
+        if (request.Descriptions is not { Count: > 0 })
+            return BadRequest(new { Message = "At least one description is required." });
+
+        var results = await _mediator.Send(
+            new CategorizePreviewCommand(request.Descriptions, request.AvailableCategories ?? []));
+
+        return Ok(new { Results = results });
+    }
+
     [HttpGet("supported-types")]
     public IActionResult GetSupportedTypes()
     {
@@ -265,6 +277,10 @@ public class TransactionsController : ControllerBase
         public string? FileHash { get; set; }
         public string? FileName { get; set; }
     }
+
+    public record CategorizePreviewRequest(
+        List<string> Descriptions,
+        List<string>? AvailableCategories);
 
     [HttpGet]
     public async Task<IActionResult> GetTransactions(

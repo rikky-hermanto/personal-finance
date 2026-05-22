@@ -1,6 +1,6 @@
 import { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import { Transaction } from '@/types/Transaction';
-import { Edit2, Check, Send, Hash, TrendingUp, TrendingDown, Wallet, ChevronsUpDown } from 'lucide-react';
+import { Edit2, Check, Send, Hash, TrendingUp, TrendingDown, Wallet, ChevronsUpDown, Loader2, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/format';
 import * as transactionsApi from '@/api/transactionsApi';
@@ -8,6 +8,7 @@ import DataTable, { DataTableColumn } from '@/components/DataTable';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandList, CommandItem, CommandEmpty } from '@/components/ui/command';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { extractKeyword } from '@/utils/keywordExtractor';
 
 interface TransactionPreviewProps {
@@ -160,6 +161,9 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const [pendingKeywords, setPendingKeywords] = useState<Record<string, string>>({});
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [applyPopoverOpenMap, setApplyPopoverOpenMap] = useState<Record<string, boolean>>({});
+  const [aiSuggestedIds, setAiSuggestedIds] = useState<Set<string>>(new Set());
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
 
   const startEdit = (tx: Transaction) => {
     setEditingId(tx.id);
@@ -168,6 +172,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
 
   const confirmEdit = (tx: Transaction) => {
     setEditedIds(prev => new Set([...prev, tx.id]));
+    setAiSuggestedIds(prev => { const next = new Set(prev); next.delete(tx.id); return next; });
     setEditingId(null);
     setEditSnapshot(null);
   };
@@ -180,6 +185,51 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     }
     setEditingId(null);
     setEditSnapshot(null);
+  };
+
+  const handleBulkAiSuggest = async () => {
+    const uncategorized = editedTransactions.filter(
+      t => !t.isDuplicate && t.category === 'Uncategorized'
+    );
+    if (uncategorized.length === 0) return;
+
+    setIsAiLoading(true);
+    setAiNotice(null);
+
+    try {
+      const allCategories = [...new Set([...CORE_CATEGORIES, ...customCategories])].sort();
+      const results = await transactionsApi.suggestCategoriesBulk(
+        uncategorized.map(t => t.description),
+        allCategories
+      );
+
+      if (results.length === 0) {
+        setAiNotice('AI returned no suggestions — try editing manually.');
+        return;
+      }
+
+      const resultMap = new Map(results.map(r => [r.description.toLowerCase(), r]));
+      const newAiIds = new Set<string>();
+
+      setEditedTransactions(prev => prev.map(t => {
+        if (t.isDuplicate || t.category !== 'Uncategorized') return t;
+        const match = resultMap.get(t.description.toLowerCase());
+        if (!match) return t;
+        newAiIds.add(t.id);
+        return { ...t, category: match.category };
+      }));
+
+      setAiSuggestedIds(prev => new Set([...prev, ...newAiIds]));
+      setAiNotice(
+        newAiIds.size > 0
+          ? `✦ ${newAiIds.size} ${newAiIds.size === 1 ? 'category' : 'categories'} suggested — review highlighted rows before submitting.`
+          : 'AI could not determine categories for remaining rows — edit manually.'
+      );
+    } catch {
+      setAiNotice('AI unavailable — categories unchanged. Edit manually.');
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const handleFieldChange = (transactionId: string, field: keyof Transaction, value: any) => {
@@ -233,6 +283,11 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       totalTransactions: newTransactions.length 
     };
   }, [newTransactions]);
+
+  const uncategorizedCount = useMemo(
+    () => newTransactions.filter(t => t.category === 'Uncategorized').length,
+    [newTransactions]
+  );
 
   const handleSubmit = async () => {
     if (newTransactions.length === 0) {
@@ -355,7 +410,8 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         isEditing  && "bg-accent/40 border-l-primary",
         isInvalid  && !isEditing && "border-l-destructive",
         isEdited   && !isEditing && !isInvalid && "border-l-success/60",
-        !isEditing && !isEdited && !isInvalid && "border-l-transparent",
+        aiSuggestedIds.has(tx.id) && !isEditing && !isEdited && !isInvalid && "border-l-violet-400/50",
+        !isEditing && !isEdited && !isInvalid && !aiSuggestedIds.has(tx.id) && "border-l-transparent",
       )}>
         <td className="px-4 py-2 whitespace-nowrap">
           {isEditing
@@ -421,8 +477,16 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
               </Popover>
             </div>
           ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground">
-              {tx.category}
+            <span
+              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground"
+              title={aiSuggestedIds.has(tx.id) ? 'Suggested by AI — tap edit to change' : undefined}
+            >
+              {aiSuggestedIds.has(tx.id) && (
+                <span className="mr-1 text-muted-foreground/50">✦</span>
+              )}
+              {isAiLoading && tx.category === 'Uncategorized'
+                ? <span className="animate-pulse">Uncategorized</span>
+                : tx.category}
             </span>
           )}
         </td>
@@ -510,7 +574,41 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
               <span className="w-2 h-2 rounded-full bg-success"></span>
               Ready to Save ({newTransactions.length})
             </h3>
+            {uncategorizedCount > 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleBulkAiSuggest}
+                    disabled={isAiLoading}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-medium text-muted-foreground hover:text-foreground border border-border hover:border-foreground/30 transition-colors disabled:opacity-50"
+                  >
+                    {isAiLoading ? (
+                      <><Loader2 className="w-3 h-3 animate-spin" />Suggesting…</>
+                    ) : (
+                      <><Sparkles className="w-3 h-3" />Suggest ({uncategorizedCount})</>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="text-xs max-w-48">
+                  AI suggests categories for {uncategorizedCount} uncategorized transaction{uncategorizedCount !== 1 ? 's' : ''} — review before submitting.
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
+          {aiNotice && (
+            <div className={cn(
+              "flex items-center justify-between text-[10px] px-1 py-1",
+              aiNotice.startsWith('AI unavailable') || aiNotice.startsWith('AI could not')
+                ? "text-destructive/70"
+                : "text-muted-foreground"
+            )}>
+              <span>{aiNotice}</span>
+              <button
+                onClick={() => setAiNotice(null)}
+                className="ml-2 text-muted-foreground/50 hover:text-muted-foreground"
+              >×</button>
+            </div>
+          )}
           <div className="flex-1 min-h-0">
             <DataTable
               columns={columns}

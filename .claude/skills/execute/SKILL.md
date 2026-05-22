@@ -93,7 +93,7 @@ For each `- [ ]` in the **Acceptance Criteria** section, check if it is now sati
 
 Do this by actually checking — read files, run commands, inspect output. Do not rubber-stamp them all as done without checking.
 
-**Then do a single batch update of the plan file** — write all `[ ] → [x]` step changes AND all acceptance criteria checkbox changes in one Edit call. This is the only time you touch the plan file.
+**Then do a single batch update of the plan file** — use the `Write` tool to rewrite the entire plan file with all `[ ] → [x]` step changes AND all acceptance criteria checkbox changes applied at once. Do NOT use multiple Edit calls (one per checkbox) — that triggers a permission prompt for every single checkbox. One Write call = one prompt. This is the only time you touch the plan file.
 
 ---
 
@@ -124,6 +124,6 @@ Next steps:
 - **Never ask permission mid-execution.** You have pre-approval to implement everything in the plan.
 - **Never skip a step silently.** If you can't do it, document why.
 - **Never modify the plan's content** (Objective, Approach, Acceptance Criteria wording) — only update `[ ]` → `[x]` checkboxes.
-- **Mark all steps done in a single batch at the very end** — one Edit call on the plan file after all steps are complete. Never edit the plan file mid-execution.
+- **Mark all steps done in a single batch at the very end** — use ONE `Write` call to rewrite the entire plan file with all checkboxes updated. Never use multiple Edit calls (one per checkbox) and never edit the plan file mid-execution.
 - **If a step produces a compilation error or test failure**, fix it before moving on. The plan is your spec; the code must match it.
 - **Commit nothing.** Leave all changes uncommitted for the user to review.
