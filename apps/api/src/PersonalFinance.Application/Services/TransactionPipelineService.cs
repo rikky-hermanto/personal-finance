@@ -14,6 +14,13 @@ public class TransactionPipelineService : ITransactionPipelineService
 
     private const double LlmAutoAcceptThreshold = 0.85;
 
+    private static readonly List<string> DefaultCategories =
+    [
+        "Admin Fee", "Education", "E-Wallet", "Entertainment", "Food & Dining",
+        "Groceries", "Health", "Income", "Investment", "Saving",
+        "Shopping", "Transfer", "Transportation", "Travel", "Utilities", "Withdrawing",
+    ];
+
     public TransactionPipelineService(
         ITransactionService transactionService,
         ILlmCategorizationClient llmCategorizer,
@@ -110,6 +117,7 @@ public class TransactionPipelineService : ITransactionPipelineService
         _logger.LogInformation("Layer 3: {Count} transactions need LLM categorization.", uncategorized.Count);
 
         // Load available categories once for the batch (used to constrain LLM response).
+        // Fall back to the full app category list when the user has no rules yet (cold start).
         var allRules = await _categoryRuleService.GetAllAsync();
         var availableCategories = allRules
             .Select(r => r.Category)
@@ -117,7 +125,8 @@ public class TransactionPipelineService : ITransactionPipelineService
             .Order()
             .ToList();
 
-        if (availableCategories.Count == 0) return;
+        if (availableCategories.Count == 0)
+            availableCategories = DefaultCategories;
 
         var untrackedPatterns = uncategorized
             .Select(tx => SanitizeForLlm(tx.Description))
