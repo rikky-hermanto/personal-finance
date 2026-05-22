@@ -88,7 +88,13 @@
       "Bash(.venvScriptspython.exe -c ' *)",
       "Bash(powershell -Command ' *)",
       "Bash(Remove-Item -Force \"C:\\\\workspaces\\\\personal-finance\\\\apps\\\\api\\\\src\\\\PersonalFinance.Domain\\\\obj\\\\Debug\\\\net10.0\\\\PersonalFinance.Domain.AssemblyInfoInputs.cache\" -ErrorAction SilentlyContinue)",
-      "Bash(rm -f \"/c/workspaces/personal-finance/apps/api/src/PersonalFinance.Domain/obj/Debug/net10.0/PersonalFinance.Domain.AssemblyInfoInputs.cache\")"
+      "Bash(rm -f \"/c/workspaces/personal-finance/apps/api/src/PersonalFinance.Domain/obj/Debug/net10.0/PersonalFinance.Domain.AssemblyInfoInputs.cache\")",
+      "Bash(psql postgresql://postgres:postgres@127.0.0.1:54322/postgres -c ' *)",
+      "Bash(powershell.exe -Command \"& 'C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\\\\psql.exe' 'postgresql://postgres:postgres@127.0.0.1:54322/postgres' -c \\\\\"SELECT category, ROUND\\(SUM\\(amount_idr\\) / 25\\) as avg_monthly, ROUND\\(SUM\\(amount_idr\\)\\) as total, COUNT\\(*\\) as tx_count FROM transactions WHERE type = 'Expense' AND date >= '2024-01-01' AND date <= '2026-01-31' AND category NOT IN \\('Stock','Crypto','Gold','Property','Mutual Fund','Dividend','Bond','P2P Lending'\\) GROUP BY category ORDER BY total DESC;\\\\\"\")",
+      "Bash(powershell.exe -Command \"Get-Command psql -ErrorAction SilentlyContinue | Select-Object Source\")",
+      "Bash(powershell.exe -Command \"npx supabase db execute --sql \\\\\"SELECT category, ROUND\\(SUM\\(amount_idr\\) / 25\\) as avg_monthly, ROUND\\(SUM\\(amount_idr\\)\\) as total, COUNT\\(*\\)::int as tx_count FROM transactions WHERE type = 'Expense' AND date >= '2024-01-01' AND date <= '2026-01-31' AND category NOT IN \\('Stock','Crypto','Gold','Property','Mutual Fund','Dividend','Bond','P2P Lending'\\) GROUP BY category ORDER BY total DESC\\\\\"\")",
+      "Bash(powershell.exe -Command \"npx supabase db query \\\\\"SELECT category, ROUND\\(SUM\\(amount_idr\\) / 25\\) as avg_monthly, ROUND\\(SUM\\(amount_idr\\)\\) as total, COUNT\\(*\\)::int as tx_count FROM transactions WHERE type = 'Expense' AND date >= '2024-01-01' AND date <= '2026-01-31' AND category NOT IN \\('Stock','Crypto','Gold','Property','Mutual Fund','Dividend','Bond','P2P Lending'\\) GROUP BY category ORDER BY total DESC\\\\\"\")",
+      "Bash(grep -iE \"\\(sk-|AKIA|eyJ[a-zA-Z]|AIza|ghp_|ghs_|glpat-|sk-ant-|service_role|password\\\\s*=\\\\s*[\\\\\"'][^\\\\\"']{6,}|BEGIN \\(RSA|EC|PRIVATE\\)|postgresql://[^:]+:[^@]+@\\)\")"
     ],
     "deny": [
       "Bash(rm -rf *)",
