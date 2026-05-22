@@ -38,7 +38,7 @@ public static class CashflowSectionMapping
         { "Household", CashflowSection.OperatingExpense },
         { "Personal Care", CashflowSection.OperatingExpense },
 
-        // INVESTING
+        // INVESTING / SAVINGS
         { "Stock", CashflowSection.Investing },
         { "Crypto", CashflowSection.Investing },
         { "Gold", CashflowSection.Investing },
@@ -47,6 +47,8 @@ public static class CashflowSectionMapping
         { "Dividend", CashflowSection.Investing },
         { "Bond", CashflowSection.Investing },
         { "P2P Lending", CashflowSection.Investing },
+        { "Emergency Fund", CashflowSection.Investing },
+        { "Deposito", CashflowSection.Investing },
 
         // FINANCING
         { "Loan", CashflowSection.Financing },

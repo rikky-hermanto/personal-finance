@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DailyPulse as DailyPulseType } from '@/types/Insight';
 
@@ -10,9 +11,10 @@ const TONE_STYLE = {
 interface Props {
   pulse: DailyPulseType | null;
   isLoading?: boolean;
+  onDismiss?: () => void;
 }
 
-export const DailyPulse = ({ pulse, isLoading }: Props) => {
+export const DailyPulse = ({ pulse, isLoading, onDismiss }: Props) => {
   if (isLoading || !pulse) {
     return <div className="h-9 rounded-md bg-muted animate-pulse" />;
   }
@@ -23,7 +25,16 @@ export const DailyPulse = ({ pulse, isLoading }: Props) => {
       TONE_STYLE[pulse.tone]
     )}>
       <span className="text-base">{pulse.tone === 'positive' ? '✦' : pulse.tone === 'caution' ? '⚠' : '·'}</span>
-      <span className="font-medium">{pulse.headline}</span>
+      <span className="font-medium flex-1">{pulse.headline}</span>
+      {onDismiss && (
+        <button
+          onClick={onDismiss}
+          className="ml-1 rounded p-0.5 opacity-50 hover:opacity-100 transition-opacity"
+          aria-label="Dismiss"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 };
