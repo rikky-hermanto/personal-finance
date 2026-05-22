@@ -1,4 +1,6 @@
+import { useState, useMemo } from 'react';
 import { TrendingUp, TrendingDown, ChevronDown, ChevronUp } from 'lucide-react';
+import { BarChart, Bar, Cell, ReferenceLine, XAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { DashboardCurrentMonth, DashboardCashFlow } from '@/types/Dashboard';
 import { formatCurrency, formatMonth } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -27,7 +29,31 @@ const Delta = ({ pct, inverse = false }: { pct: number; inverse?: boolean }) => 
   );
 };
 
+const fmtShortMonth = (m: string) => {
+  const parts = m.split('-');
+  if (parts.length !== 2) return m;
+  const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1);
+  return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+};
+
 const NetCashflowCard = ({ data, isLoading, sparklineData, chartData, chartExpanded, onToggleChart }: NetCashflowCardProps) => {
+  const [avgExpanded, setAvgExpanded] = useState(false);
+
+  const handleToggleChart = () => {
+    if (avgExpanded) setAvgExpanded(false);
+    onToggleChart?.();
+  };
+
+  const handleToggleAvg = () => {
+    if (!avgExpanded && chartExpanded && onToggleChart) onToggleChart();
+    setAvgExpanded(v => !v);
+  };
+
+  const avgBarData = useMemo(() => {
+    if (!avgExpanded || !chartData?.length) return null;
+    return chartData.map(m => ({ month: m.month, expenses: m.expenses }));
+  }, [avgExpanded, chartData]);
+
   if (isLoading || !data) {
     return (
       <div className="pf-card p-5 animate-pulse">
@@ -67,7 +93,7 @@ const NetCashflowCard = ({ data, isLoading, sparklineData, chartData, chartExpan
       <div className="flex items-center justify-between mb-5">
         <h3 className="text-sm font-medium text-foreground">Net Cashflow</h3>
         <button
-          onClick={onToggleChart}
+          onClick={handleToggleChart}
           disabled={!onToggleChart}
           className={cn(
             'flex items-center gap-2',
@@ -136,14 +162,60 @@ const NetCashflowCard = ({ data, isLoading, sparklineData, chartData, chartExpan
           {avgMonthlyExpense !== null && (
             <>
               <div className="w-px h-3 bg-border shrink-0" />
-              <div className="flex items-center justify-between flex-1">
-                <span className="text-[11px] text-muted-foreground">Avg monthly spend</span>
+              <button
+                onClick={handleToggleAvg}
+                className="flex items-center justify-between flex-1 cursor-pointer"
+              >
+                <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  Avg monthly spend
+                  {avgExpanded
+                    ? <ChevronUp className="h-3 w-3 text-muted-foreground/50" />
+                    : <ChevronDown className="h-3 w-3 text-muted-foreground/50" />}
+                </span>
                 <span className="text-xs font-mono tabular-nums text-destructive">
                   {formatCurrency(avgMonthlyExpense)}
                 </span>
-              </div>
+              </button>
             </>
           )}
+        </div>
+      )}
+
+      {avgExpanded && avgBarData && avgMonthlyExpense !== null && (
+        <div className="mt-3 border-t border-dashed border-border/50 pt-3">
+          <ResponsiveContainer width="100%" height={100}>
+            <BarChart data={avgBarData} barCategoryGap="20%">
+              <XAxis
+                dataKey="month"
+                tickFormatter={fmtShortMonth}
+                tick={{ fontSize: 9, fill: 'var(--muted-foreground)' }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                formatter={(value: number) => [formatCurrency(value), 'Expenses']}
+                labelFormatter={fmtShortMonth}
+                contentStyle={{ fontSize: 11 }}
+              />
+              <ReferenceLine
+                y={avgMonthlyExpense}
+                stroke="var(--muted-foreground)"
+                strokeDasharray="3 3"
+                strokeWidth={1}
+              />
+              <Bar dataKey="expenses" radius={[2, 2, 0, 0]}>
+                {avgBarData.map((entry) => (
+                  <Cell
+                    key={entry.month}
+                    fill={entry.expenses > avgMonthlyExpense
+                      ? 'var(--destructive)'
+                      : 'var(--success, #22c55e)'}
+                    fillOpacity={0.7}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
     </div>
