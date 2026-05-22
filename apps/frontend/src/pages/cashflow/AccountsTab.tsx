@@ -18,6 +18,7 @@ const RANGES = [
   { label: '1Y', value: 12 },
   { label: '2Y', value: 24 },
   { label: 'YTD', value: 0 },
+  { label: 'All Time', value: -1 },
 ];
 
 type ViewMode = 'table' | 'statement';
@@ -123,7 +124,8 @@ const AccountsTab = () => {
     if (viewMode !== 'statement') return;
     let cancelled = false;
     setStatementLoading(true);
-    getCashflowStatement(range, selectedAccountId ?? undefined, groupBy)
+    const effectiveGroupBy = range === -1 ? 'quarterly' : groupBy;
+    getCashflowStatement(range, selectedAccountId ?? undefined, effectiveGroupBy)
       .then((data) => { if (!cancelled) setStatementData(data); })
       .catch(console.error)
       .finally(() => { if (!cancelled) setStatementLoading(false); });

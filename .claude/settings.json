@@ -83,7 +83,12 @@
       "Bash(del \"c:\\\\workspaces\\\\personal-finance\\\\.claude\\\\plans\\\\PF-118-cashflow-command-center-shell-todo.md\" \"c:\\\\workspaces\\\\personal-finance\\\\.claude\\\\plans\\\\PF-119-ai-narrated-insights-persistence-todo.md\")",
       "Bash(rm \"c:/workspaces/personal-finance/.claude/plans/PF-118-cashflow-command-center-shell-todo.md\" \"c:/workspaces/personal-finance/.claude/plans/PF-119-ai-narrated-insights-persistence-todo.md\")",
       "Edit(/.claude/skills/execute/**)",
-      "Edit(/.claude/skills/data-oriented-theme/**)"
+      "Edit(/.claude/skills/data-oriented-theme/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(.venvScriptspython.exe -c ' *)",
+      "Bash(powershell -Command ' *)",
+      "Bash(Remove-Item -Force \"C:\\\\workspaces\\\\personal-finance\\\\apps\\\\api\\\\src\\\\PersonalFinance.Domain\\\\obj\\\\Debug\\\\net10.0\\\\PersonalFinance.Domain.AssemblyInfoInputs.cache\" -ErrorAction SilentlyContinue)",
+      "Bash(rm -f \"/c/workspaces/personal-finance/apps/api/src/PersonalFinance.Domain/obj/Debug/net10.0/PersonalFinance.Domain.AssemblyInfoInputs.cache\")"
     ],
     "deny": [
       "Bash(rm -rf *)",

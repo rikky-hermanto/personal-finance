@@ -14,6 +14,7 @@ const RANGES = [
   { label: '1Y', value: 12 },
   { label: '2Y', value: 24 },
   { label: 'YTD', value: 0 },
+  { label: 'All Time', value: -1 },
 ];
 
 const StatementTab = () => {
@@ -26,7 +27,8 @@ const StatementTab = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const result = await getCashflowStatement(range, undefined, groupBy);
+        const effectiveGroupBy = range === -1 ? 'quarterly' : groupBy;
+        const result = await getCashflowStatement(range, undefined, effectiveGroupBy);
         setData(result);
       } catch (error) {
         console.error('Failed to fetch cashflow statement:', error);
@@ -105,6 +107,11 @@ const StatementTab = () => {
           </div>
         </div>
 
+        {range === -1 && groupBy === 'monthly' && (
+          <p className="text-xs text-muted-foreground mb-3">
+            Quarterly view applied — monthly columns would be too wide for All Time.
+          </p>
+        )}
         <CashflowStatementTable data={data} isLoading={isLoading} />
       </div>
     </div>
