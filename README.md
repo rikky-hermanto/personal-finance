@@ -2,11 +2,19 @@
 
 > **Finance should feel like a game you're winning, not a spreadsheet you're losing.**
 
-A self-hosted personal finance platform built for Indonesian users. The mission: make managing money genuinely enjoyable — through clarity, progress, and a sense of level-up. Not another budgeting tool that guilts you. A system that shows where you stand, what to do next, and celebrates when you move forward.
+A self-hosted personal finance platform built for Indonesian users. The mission: **make managing money genuinely enjoyable** — through clarity, progress, and a sense of level-up. Not another budgeting tool that guilts you. A compass that shows where you stand, what to do next, and celebrates when you move forward.
 
 AI-powered ingestion handles the messy part — getting data out of bank CSVs, PDFs, and screenshots automatically so you spend time on decisions, not data entry.
 
 **Cashflow tracking, assets management, investment portfolio, spending analysis, and financial journey gamification are all live.** Everything else is being built out one level at a time.
+
+## 🧭 Who this is for
+
+Most people aren't financially illiterate — they're **directionally lost**. They know saving is good. They know investing matters. But nobody handed them a map for *in what order* and *how much is enough at each step*.
+
+This app is built for that person. Not the finance nerd with five brokerage accounts. The person who earns a decent salary, vaguely saves, occasionally invests, and still feels like they're not making real progress — because they don't have a framework, not because they lack money.
+
+The Financial Pyramid gives them the framework. The app turns it into a game they can actually win.
 
 ## 🤔 The problem this solves
 
@@ -25,7 +33,9 @@ Let's make finance fun!
 
 ## 🏔️ The Backbone: Financial Pyramid
 
-Every feature in this app is anchored to a single framework — the **financial pyramid hierarchy**. You can't invest well without a safety net. You can't build a safety net without understanding your cashflow. Skipping levels is how people end up with crypto portfolios and no emergency fund.
+Every feature in this app is anchored to a single framework — the **financial pyramid hierarchy**. Think of it as a compass for your financial life: it tells you where you are, where you're headed, and what to do *right now* at your level — not in ten years.
+
+You can't invest well without a safety net. You can't build a safety net without understanding your cashflow. Skipping levels is how people end up with crypto portfolios and no emergency fund. The pyramid makes the *correct order* explicit, so every decision has context.
 
 ```
                  ▲
@@ -41,7 +51,7 @@ Every feature in this app is anchored to a single framework — the **financial 
                                 Cashflow · Budgeting · Recurring
 ```
 
-Each level unlocks naturally from the one below. The app tracks your score across all five tiers and shows exactly where to focus next — no guessing, no overwhelm.
+Each level unlocks naturally from the one below. The app tracks your score across all five tiers and surfaces exactly where to focus next — no guessing, no overwhelm, no shame. Just: **here's your level, here's your next quest.**
 
 ## 🗺️ The Roadmap (by level)
 
@@ -209,6 +219,8 @@ Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview,
 │                       │      │  4. Write results via supabase-py│
 └───────────────────────┘      └────────────────────────────────┘
 ```
+
+**Coming next:** Supabase Auth (PF-S08), event-driven webhook pipeline replacing synchronous AI calls (PF-S11), Realtime status updates (PF-S12). Full target architecture: [docs/architecture-diagram.md](docs/architecture-diagram.md)
 
 | Layer | Technology |
 |---|---|

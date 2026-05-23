@@ -18,7 +18,7 @@ The app has three features that benefit directly from Supabase's architecture:
 
 3. **Unified platform**: Auth, Storage, and Database are integrated at the Postgres level (Row Level Security). This replaces three separate integrations (Auth0 + S3-compatible storage + raw Postgres) with one.
 
-**What does NOT change:** The .NET 9 API remains as the middle tier. Business logic (parsers, validation pipeline, CQRS handlers) stays in .NET. The Python FastAPI AI service stays in Python. Supabase replaces the data persistence and infrastructure layer, not the application layer.
+**What does NOT change:** The .NET 10 API remains as the middle tier. Business logic (parsers, validation pipeline, CQRS handlers) stays in .NET. The Python FastAPI AI service stays in Python. Supabase replaces the data persistence and infrastructure layer, not the application layer.
 
 ---
 
@@ -36,7 +36,7 @@ The app has three features that benefit directly from Supabase's architecture:
             │ direct                       │ via API
             ▼                              ▼
 ┌───────────────────────┐   ┌──────────────────────────────────────┐
-│   Supabase Platform   │   │        .NET 9 Web API (C#)           │
+│   Supabase Platform   │   │        .NET 10 Web API (C#)          │
 │                       │   │  Controllers → MediatR CQRS          │
 │  Auth (GoTrue/JWT)    │   │  FluentValidation                    │
 │  Storage (buckets)  ◄─┼───┤  Infrastructure:                     │
@@ -44,7 +44,7 @@ The app has three features that benefit directly from Supabase's architecture:
 │  Database Webhooks ───┼─┐ │   - StorageService (Supabase Storage)│
 │                       │ │ │   - CSV Parsers (BCA, Wise, Default) │
 │  ┌─────────────────┐  │ │ │   - Validation Pipeline              │
-│  │ PostgreSQL 16   │  │ │ └──────────────────────────────────────┘
+│  │ PostgreSQL 17   │  │ │ └──────────────────────────────────────┘
 │  │ + pgvector      │  │ │
 │  │                 │  │ │       Webhook POST on INSERT
 │  │ transactions    │  │ │         to statement_uploads
@@ -102,7 +102,16 @@ React (subscribed via @supabase/supabase-js) auto-refreshes transaction list
 
 ## Migration Phases
 
-### Phase 1: Supabase Setup + Schema Migration
+| Phase | Description | Status |
+|-------|-------------|--------|
+| 1 | Supabase Setup + Schema Migration | ✅ Done (PF-S01–PF-S03) |
+| 2 | Replace EF Core with supabase-csharp | ✅ Done (PF-S04–PF-S07) |
+| 3 | Supabase Auth (JWT + RLS) | 🔜 Next (PF-S08) |
+| 4 | Supabase Storage + Validation Pipeline | 🔜 Planned (PF-S09–PF-S10) |
+| 5 | Event-Driven AI Pipeline + Realtime | 🔜 Planned (PF-S11–PF-S12) |
+| 6 | RAG + Vector Search | 🔜 Planned (PF-S13) |
+
+### Phase 1: Supabase Setup + Schema Migration ✅ Done
 
 - Initialize Supabase project (`supabase init` via CLI or cloud dashboard)
 - Export current EF Core schema: `dotnet ef migrations script`
@@ -112,7 +121,7 @@ React (subscribed via @supabase/supabase-js) auto-refreshes transaction list
 - Set up Row Level Security policies (permissive initially, tightened in Phase 3)
 - **New:** `supabase/config.toml`, `supabase/migrations/`, `supabase/seed.sql`
 
-### Phase 2: Replace EF Core with supabase-csharp
+### Phase 2: Replace EF Core with supabase-csharp ✅ Done
 
 - Add `Supabase` NuGet package to `PersonalFinance.Infrastructure`
 - Create `SupabaseSettings`, `AddSupabase()` DI extension — replaces `AddPersistence()`
@@ -123,7 +132,7 @@ React (subscribed via @supabase/supabase-js) auto-refreshes transaction list
 - **Modified:** `Domain/Entities/`, `Application/Commands/`, `Application/Services/`, `Program.cs`
 - **Deleted:** entire `Persistence/` project
 
-### Phase 3: Supabase Auth
+### Phase 3: Supabase Auth 🔜 Next (PF-S08)
 
 - Replace planned Auth0 integration with Supabase Auth
 - .NET validates Supabase JWT tokens via `Microsoft.AspNetCore.Authentication.JwtBearer`
@@ -131,7 +140,7 @@ React (subscribed via @supabase/supabase-js) auto-refreshes transaction list
 - React: `@supabase/supabase-js` handles login/signup/session; access token forwarded to .NET API
 - **New:** `Api/Auth/SupabaseAuthMiddleware.cs`, `supabase/migrations/002_auth_rls.sql`, `frontend/src/lib/supabase.ts`, `frontend/src/pages/Login.tsx`
 
-### Phase 4: Supabase Storage + Validation Pipeline
+### Phase 4: Supabase Storage + Validation Pipeline 🔜 Planned (PF-S09–PF-S10)
 
 - Create `bank-statements` bucket with per-user path policies (`{user_id}/{bank}/{filename}`)
 - Modify upload endpoint: files land in Storage before parsing begins
@@ -141,7 +150,7 @@ React (subscribed via @supabase/supabase-js) auto-refreshes transaction list
 - DeduplicateCheck queries via `supabase-csharp` instead of EF Core
 - **New:** `Application/Interfaces/IFileStorageService.cs`, `Infrastructure/Supabase/StorageService.cs`, `Infrastructure/Validation/*.cs`
 
-### Phase 5: Event-Driven AI Pipeline + Realtime
+### Phase 5: Event-Driven AI Pipeline + Realtime 🔜 Planned (PF-S11–PF-S12)
 
 - Create `statement_uploads` table: `id`, `user_id`, `file_path`, `bank_id`, `status` (pending/processing/done/failed)
 - Configure Supabase Database Webhook: INSERT on `statement_uploads` → POST to Python AI service
@@ -150,7 +159,7 @@ React (subscribed via @supabase/supabase-js) auto-refreshes transaction list
 - Wire all three LLM-based parsers (Superbank PDF, NeoBank PDF, Bank Jago screenshot) through the webhook pipeline
 - **New:** `supabase/migrations/004_statement_uploads.sql`, `ai-service/app/routers/webhooks.py`, `frontend/src/hooks/useRealtimeSubscription.ts`
 
-### Phase 6: RAG + Vector Search (Sprint 2+)
+### Phase 6: RAG + Vector Search 🔜 Planned (PF-S13)
 
 - pgvector is available by default in Supabase — no manual extension setup needed
 - Generate embeddings for transaction descriptions via Claude/OpenAI embeddings API
