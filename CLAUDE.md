@@ -419,7 +419,7 @@ gh issue create \
 - **Always update `.kanban/BOARD.md`** to reflect the new state
 
 ### Next task ID
-Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-115** (Transaction Running Balance VIEW, planned) → next is **PF-116**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13); next Supabase task is **PF-S14**.
+Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-117** (Dashboard Overview UX Polish) → next is **PF-118**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13); next Supabase task is **PF-S14**.
 
 ---
 
