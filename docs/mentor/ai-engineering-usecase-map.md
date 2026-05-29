@@ -49,10 +49,12 @@ The entire 12-week build arc on one page. Columns: which week in the [learning p
 | 2 | 4 | Re-ranking | Cohere/FlashRank reranker on top-10 retrieved | Reorder hasil RAG agar dokumen paling relevan muncul di atas | `POST /ask` reranking step | "Reranking lifted MRR from X to Y — named technique + measured delta" | ⚪ |
 | 2 | 4 | Grounded synthesis + citations | "Ask your finances" Q&A with cited answer | Jawab pertanyaan keuangan dengan data transaksi nyata + sitasi sumber | `POST /ask` | "RAG answer with source transactions cited; hallucination rate ~0 on grounded queries" | ⚪ |
 | 2 | 4 | Chunking strategies | Sentence-window + fixed-size on advisory text | Pecah teks narasi panjang tanpa kehilangan konteks antar kalimat | `services/insights.py` | "Named chunking strategies; chose sentence-window for advisory corpus" | ⚪ |
+| 2 | 4–5 | Guardrails: PII + output validation | Guardrail layer on `/ask` (PII scrub, advice disclaimer, output validation) | Cegah kebocoran PII & angka tanpa sumber pada jawaban advisor keuangan | `services/guardrails.py`, `POST /ask` | "Financial advisor can't leak PII or emit an unvalidated number — guardrails first-class, not a Phase-4 afterthought" | ⚪ (PF-122) |
 | 2 | 5 | SSE streaming | Token-by-token streamed chat UI | Chat AI responsif — jawaban muncul token per token, tidak menunggu selesai | `POST /ask` (streaming) + `/chat` React page | "Streaming from FastAPI → React; no buffering, correct SSE error handling" | ⚪ |
 | 2 | 5 | Real-time status (Supabase Realtime) | Replace polling upload status with Realtime | Status proses upload & AI tampil live tanpa polling berulang | Upload wizard + `/status` page | "Eliminated polling; event-driven upload status updates via Realtime" | ⚪ (PF-S12) |
 | 2 | 6 | Advanced RAG: hybrid search | pgvector + `tsvector` full-text hybrid retrieval | Gabungkan pencarian vektor + full-text untuk akurasi retrieval lebih tinggi | `/search` hybrid mode | "Hybrid search beat dense-only by X MRR points — measured, not assumed" | ⚪ |
 | 2 | 6 | Advanced RAG: sentence-window + auto-merging | LlamaIndex-style chunking on advisory corpus | Eksperimen 3 teknik RAG lanjutan; pilih pemenang berdasarkan data eval | Retrieval pipeline | "Three advanced RAG variants benchmarked; winner chosen by eval data" | ⚪ |
+| 2 | 6 / 8 | RAG + agent faithfulness eval | RAGAS faithfulness on `/ask` + tool-call accuracy on agents | Ukur faithfulness jawaban RAG & akurasi tool-call agen, bukan cuma ekstraksi | `evals/eval_rag.py`, `evals/eval_agent.py` | "I eval agents and RAG, not just extraction — faithfulness X, tool-call accuracy Y" | ⚪ |
 | 3 | 7 | Tool-calling loops (smolagents) | Transaction Categorizer Agent | Agen TAO loop yang kategorisasi transaksi dengan reasoning trace di Langfuse | `app/agents/categorizer_agent.py` | "TAO loop: 5 test txns categorized with reasoning trace in Langfuse" | ⚪ |
 | 3 | 7 | Agent with uncertainty handling | Self-correcting Upload Processing Agent | Pipeline upload yang eksplisit soal ketidakpastian & minta konfirmasi user | `app/agents/upload_agent.py`, `POST /agent/process-upload` | "Agent re-routes on low-confidence identification; no silent failures" | ⚪ (PF-119) |
 | 3 | 8 | LangGraph: state + routing + memory | Financial Health Advisor (multi-step) | Saran keuangan multi-langkah berbasis data live user dengan memori sesi | LangGraph graph, tools wired to data layer | "Multi-step agent: analyze → gaps → recommend → drilldown; checkpointer memory; tool-failure fallback" | ⚪ |
@@ -60,6 +62,26 @@ The entire 12-week build arc on one page. Columns: which week in the [learning p
 | 3 | 8 | Autonomous (non-reactive) agent | Monthly Financial Review Agent | Laporan keuangan bulanan otomatis: anomali + narasi + 3 action items | Scheduled run (post auth) | "Autonomous month-end report: anomaly detection + narrative + 3 action items" | ⚪ (PF-120, needs PF-S08) |
 | 3 | 9 | Model Context Protocol | Personal-finance MCP server | Ekspos data keuangan ke Claude Desktop atau MCP client mana pun | MCP server (Python SDK) | "Claude Desktop / any MCP client can query my finance data live" | ⚪ |
 | 3 | 9 | Multi-agent + MCP orchestration | LangGraph agent calling MCP server as a tool | Orkestrasi dua agen via protokol interoperabilitas standar | 2-agent workflow | "Multi-agent orchestration over a standard interop protocol" | ⚪ |
+
+---
+
+## Interview-Ready Minimum (Hero Features)
+
+> **Read this before you schedule anything.** This map is 27 use cases at 3.5 focused hrs/day over 12 weeks. Slippage is expected, not a failure — so decide *now* what "minimum viable interview-ready" means and protect those items first. The market rewards 2–3 deep, well-measured systems over 27 shallow features; this is doubly true for the Staff roles (Grafana #141, Datadog #150).
+
+**The 3 hero features — go deep, measure everything, these carry the interview:**
+
+| # | Hero feature | UCs | Why it's the hero |
+|---|--------------|-----|-------------------|
+| H1 | **Eval harness with published numbers** | UC-2.3 (+2.4) | Answers the #1 screen question: "how do you know it's correct?" The Gemini-vs-Sonnet cost/accuracy table *is* the artifact. |
+| H2 | **`/ask` RAG with *measured* reranking + hybrid lift** | UC-2.6, UC-2.9, UC-2.14 | RAG is the #1 applied skill. The measured MRR delta — not "I added a reranker" — is what separates you. |
+| H3 | **MCP server + one LangGraph agent** | UC-3.6, UC-3.3 | Frontier signal. Few candidates have shipped MCP; it's named in Grafana/Datadog/Anthropic JDs. |
+
+**Must-ship floor (if everything else slips, ship at least this chain):**
+UC-2.1 (Langfuse) → UC-2.3 (eval) → UC-2.6 (retrieval) → UC-2.9 (grounded `/ask`) → UC-2.15 (guardrails) → UC-3.6 (MCP).
+That sequence alone makes you credible for all five target roles. Everything else is depth and differentiation on top.
+
+**Stretch / cut first under time pressure:** UC-1.3, UC-1.4, UC-2.5, UC-2.10, UC-2.13, UC-3.4, UC-3.5, UC-3.7.
 
 ---
 
@@ -312,6 +334,8 @@ Write 10 handwritten test queries with expected matches. Measure MRR.
 
 **Builds on:** Same migration as UC-2.6 (one extra column). `reembed_all.py` script in `evals/` or `scripts/`.
 
+**Staff framing:** This is the judgment-over-coding signal a Staff loop screens for — designing around a failure mode *before* it can occur, not patching it after 50k embeddings exist. Pair it in interviews with your TL track record of catching architectural landmines early.
+
 **Status:** ⚪ idea — 30 minutes, do it in the same migration as UC-2.6. Never skip this.
 
 ---
@@ -342,6 +366,21 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 **Builds on:** `services/portfolio_reviewer.py`, `services/journey_advisor.py`, advice history (if stored). Reused by UC-2.14.
 
 **Status:** ⚪ idea — Week 4 secondary. ~1–2 hours.
+
+---
+
+#### UC-2.15 — Guardrails on the advisory path ⚪
+
+**Feature:** A guardrail layer wrapping `POST /ask` and the advisory endpoints — three checks, all cheap to add once `/ask` exists:
+1. **PII redaction** — scrub account numbers, names, and card fragments from anything sent to the LLM *and* from logged Langfuse spans.
+2. **Output validation** — every numeric claim in the answer must trace to a retrieved transaction or a computed aggregate; reject and regenerate if the model emits a number with no source.
+3. **Financial-advice disclaimer + scope guard** — refuse out-of-scope requests ("should I buy this stock?") and append a standing not-financial-advice disclaimer.
+
+**Pivot proof point:** "My advisor can't leak PII or state a number it can't ground. On a product that gives financial advice, guardrails are first-class — not a Phase-4 afterthought." Directly answers the safety/alignment probe Anthropic (and increasingly every fintech) runs in the loop.
+
+**Builds on:** PF-122 (partial PII work already started), new `services/guardrails.py`, `POST /ask` (UC-2.9), Langfuse redaction hooks (UC-2.1).
+
+**Status:** ⚪ idea (advances PF-122) — Week 4–5, rides on UC-2.9. ~2–3 hours.
 
 ---
 
@@ -407,6 +446,20 @@ Run the eval harness against each variant. Pick the winning combination as the p
 **Builds on:** UC-2.6 retriever + eval harness (UC-2.3), new `tsvector` Postgres column, LlamaIndex utilities for sentence-window/auto-merging (or implement manually — either is defensible).
 
 **Status:** ⚪ idea — Week 6 full week. Numbers go into the blog post.
+
+---
+
+#### UC-2.16 — Faithfulness + agent eval (beyond extraction) ⚪
+
+**Feature:** Extend the Week 2 harness past extraction to cover the generative and agentic paths — the parts this map ships but doesn't yet measure:
+1. **RAG faithfulness (Week 6):** add RAGAS faithfulness + answer-relevancy metrics on `/ask` over a labelled query set. Catches ungrounded synthesis that the MRR retrieval metric can't see.
+2. **Agent eval (Week 8, once UC-3.1 / UC-3.3 exist):** tool-call accuracy (did the agent call the right tool with the right args?) + a trajectory check over 10 fixture scenarios, logged to Langfuse.
+
+**Pivot proof point:** "I eval agents and RAG, not just extraction. Faithfulness X on grounded Q&A; tool-call accuracy Y on the categorizer agent. So when you ask 'how do you eval an agent?' I have a real answer with numbers." Closes the gap between building five agents and measuring none.
+
+**Builds on:** UC-2.3 harness (reuse the runner), `/ask` (UC-2.9), the agents from UC-3.1 / UC-3.3, RAGAS, Langfuse traces.
+
+**Status:** ⚪ idea — RAG faithfulness Week 6 (~2 h); agent eval Week 8 alongside UC-3.3 (~2–3 h).
 
 ---
 
@@ -489,6 +542,8 @@ Test with: "I want to improve my financial health, where should I start?" → ex
 
 **Builds on:** Deepens `services/journey_advisor.py` and the existing `.NET JourneyAdvisorClient`. New LangGraph graph wired to the personal-finance data layer.
 
+**Staff framing:** Don't present this as "I wired a graph." Present the *decision* — why a state machine over a single mega-prompt, where the failure boundaries sit, how memory scope is bounded. That decision-narrative, backed by your 3 consecutive TL roles, is what reads as Staff rather than senior-IC.
+
 **Status:** ⚪ idea — Week 8 core. ~1 day.
 
 ---
@@ -550,6 +605,8 @@ Test from Claude Desktop: connect to the MCP server, list tools, invoke `get_pyr
 
 **Builds on:** New MCP server (`services/mcp-server/` or within `services/ai-service/`), MCP Python SDK (`modelcontextprotocol/python-sdk`), existing data layer + UC-2.6 retriever.
 
+**Staff framing:** Frame this as an interop/platform decision, not a demo — why a standard protocol over a bespoke API, and what it means for a team to expose capabilities once and have any client consume them. That platform-thinking, tied to your architecture/TL background, is the Staff-level read at Grafana and Datadog.
+
 **Status:** ⚪ idea — Week 9 core. ~4–6 hours.
 
 ---
@@ -572,8 +629,8 @@ Test from Claude Desktop: connect to the MCP server, list tools, invoke `get_pyr
 
 These are noted for completeness, not for scheduling:
 
-- **Guardrails** — PII redaction on AI advice output (partial work started in PF-122), output validation, disclaimers for financial advice. Low-effort add once the advisory agents are live.
-- **Eval at scale** — extend UC-2.3/2.5 with RAGAS faithfulness metrics over 100+ fixture set; add drift detection using the UC-2.8 `embedding_model_version` guard. Activates if you're applying to an AI evaluation-heavy role.
+- **Guardrails at scale** — *basic guardrails moved forward to UC-2.15 (Week 4–5).* What remains for Phase 4: adversarial/jailbreak testing, a formal red-team pass, structured PII-leak benchmarking. Activates only for a safety-heavy role.
+- **Eval at scale** — *RAG/agent faithfulness moved forward to UC-2.16.* What remains for Phase 4: extend to a 100+ fixture set, add drift detection using the UC-2.8 `embedding_model_version` guard, and CI-gate the faithfulness metric. Activates if you're applying to an AI evaluation-heavy role.
 - **Fine-tuning (only if a JD asks)** — after sufficient labelled transaction data accumulates, fine-tune a small classification model for the categorizer. The categorizer's RAG fallback (UC-2.7) is good enough for the interview narrative and probably for production.
 - **MLOps / SageMaker / Bedrock** — AWS- or Azure-specific deployment patterns. Defer unless targeting an explicitly cloud-stack company.
 
