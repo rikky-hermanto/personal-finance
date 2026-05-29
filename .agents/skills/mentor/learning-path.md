@@ -5,8 +5,8 @@
 **Primary proof point:** Personal Finance Platform (`C:\workspaces\personal-finance`)
 
 **Companion docs (read together):**
-- [`docs/ai-enginer-learning-path.md`](../../../../docs/ai-enginer-learning-path.md) — Curriculum reference (phases, platforms, courses, cadence)
-- [`docs/learning-tips.md`](../../../../docs/learning-tips.md) — Daily loop, retrieval/interleaving protocol, anti-patterns
+- [`docs/ai-engineer-learning-path.md`](../../../../docs/ai-engineer-learning-path.md) — Curriculum reference (phases, platforms, courses, cadence)
+- [`docs/ai-engineer-learning-tips.md`](../../../../docs/ai-engineer-learning-tips.md) — Daily loop, retrieval/interleaving protocol, anti-patterns
 
 **This file = task-level breakdown.** It's *what to ship today*. The curriculum doc is *what am I learning and why*. The tips doc is *how to study without wasting time*.
 
@@ -28,7 +28,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-## Daily Operating Mode (from learning-tips.md)
+## Daily Operating Mode (from ai-engineer-learning-tips.md)
 
 - **3.5 focused hours/day**, not 8. Quality > quantity. Diminishing returns after 4h.
 - **Project-first:** open the Personal Finance feature you're about to ship. Pull theory only when you hit the wall.
