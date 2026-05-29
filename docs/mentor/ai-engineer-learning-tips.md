@@ -1,6 +1,6 @@
 # Learning Tips — Fastest Path to Mastery
 
-**Companion to:** [`ai-enginer-learning-path.md`](./ai-enginer-learning-path.md)
+**Companion to:** [`ai-engineer-learning-path.md`](./ai-engineer-learning-path.md)
 **Horizon:** 12 weeks. Goal: interview-ready, not exam-ready.
 **Strategy:** Collapse "learn → build → prove" into a single daily loop.
 
