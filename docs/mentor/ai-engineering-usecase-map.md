@@ -1,6 +1,6 @@
 # AI Engineering Use-Case Map — Personal Finance Platform
 
-> **What this doc is:** The companion to [`docs/mentor/ai-enginer-learning-path.md`](../mentor/ai-enginer-learning-path.md).
+> **What this doc is:** The companion to [`docs/mentor/ai-engineer-learning-path.md`](../mentor/ai-engineer-learning-path.md).
 > The curriculum doc is theory-only — phases, platforms, cadence. This doc answers the other half:
 > *for every concept in the curriculum, what feature in the Personal Finance Platform do we build to prove it?*
 >
@@ -29,7 +29,7 @@
 
 ## Helicopter View — Master Table
 
-The entire 12-week build arc on one page. Columns: which week in the [learning path](../ai-enginer-learning-path.md) the concept comes from, what we build in this project, where it lives, and what the pivot proof point is.
+The entire 12-week build arc on one page. Columns: which week in the [learning path](../mentor/ai-engineer-learning-path.md) the concept comes from, what we build in this project, where it lives, and what the pivot proof point is.
 
 | Phase | Week | Concept (from curriculum) | PF Feature | Kegunaan | Endpoint / Artifact | Pivot Proof Point | Status |
 |-------|------|--------------------------|------------|----------|--------------------|--------------------|--------|
@@ -692,6 +692,6 @@ See `/mentor cert Databricks Generative AI Engineer` for full ROI breakdown.
 
 | Doc | Purpose |
 |-----|---------|
-| [`docs/mentor/ai-enginer-learning-path.md`](../mentor/ai-enginer-learning-path.md) | Curriculum: phases, platforms, courses, cadence |
+| [`docs/mentor/ai-engineer-learning-path.md`](../mentor/ai-engineer-learning-path.md) | Curriculum: phases, platforms, courses, cadence |
 | [`.agents/skills/mentor/learning-path.md`](../../.agents/skills/mentor/learning-path.md) | Task-level curriculum: what to ship today |
 | [`docs/mentor/progress.md`](../mentor/progress.md) | Live activity log |
