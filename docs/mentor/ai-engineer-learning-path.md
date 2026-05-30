@@ -46,8 +46,6 @@ The entire path on one screen. Follow the numbers. Phases 1→3 are the active s
 
 **Status:** ✅ Largely covered already (Tier 2 reached). Retain for context and gap-skim only.
 
-### Helicopter View
-
 The mechanics of talking to an LLM programmatically. You've already shipped most of this — tool_use extraction, Gemini JSON mode, the multi-provider factory. Treat the order below as a **checklist to skim**, not a study block: one evening, fill the gaps, move on.
 
 ### Learning Order (skim, top to bottom)
@@ -70,8 +68,6 @@ API setup, system-prompt design, few-shot formatting, multimodal inputs (text, i
 ## Phase 2 — The Application Layer (RAG, Evals & Observability)
 
 **Status:** 🎯 Critical path. Weeks 1–6. This is where most production work happens and where the biggest gaps are.
-
-### Helicopter View
 
 You're going to give an LLM access to your own data (RAG) **and** instrument the whole loop so every claim is a measured number. The order is forced by one rule: **install the measuring tools before the thing you measure.** So observability and the eval harness come first (a few hours each), then RAG is built on top — which means every week of RAG work produces a quotable metric ("reranking lifted MRR from X to Y", "extraction costs $X/doc at Yms p95") instead of a vibe.
 
@@ -123,8 +119,6 @@ Three accuracy techniques, each benchmarked against the Week-3 MRR baseline usin
 
 **Status:** 🎯 Critical path. Weeks 7–10. The Tier 3 → Tier 4 jump.
 
-### Helicopter View
-
 Move from reactive apps (answer a question) to agentic apps (take an action). The order is smallest-surface-first: tool-calling loops in smolagents (grok the Thought→Action→Observation cycle in a day), then LangGraph as "industrial smolagents" (state, routing, memory), then how to *evaluate* an agent, then MCP to expose your tools over a standard protocol. Everything you build here is logged to the Langfuse you installed in Phase 2 — the traces are your demo material.
 
 ### Learning Order (study top to bottom)
@@ -161,8 +155,6 @@ Building specialists/sub-agents, state machines for long-running workflows, MCP 
 ## Phase 4 — Advanced Fine-Tuning & Generative MLOps (Production AI)
 
 **Status:** ⏸️ Deferred to month 4+. Retained for context — none of the target Staff/Senior AI Engineer roles in the current pipeline (Grafana, GitLab, Datadog, Anthropic, Intercom) require fine-tuning or SageMaker. Revisit only if a specific role demands it.
-
-### Helicopter View
 
 The lifecycle of deploying, scaling, evaluating, and fine-tuning models securely in the cloud. There's no Learning Order here on purpose — it's parked. Treat the list below as a *map of what exists* so you can spin one topic up fast if a JD asks for it.
 

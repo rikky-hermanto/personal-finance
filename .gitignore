@@ -69,3 +69,8 @@ dist/
 docs/statement-examples/Cashflow 2024 2025.csv
 supabase/seed/assets_seed.sql
 .playwright-mcp/
+docs/cv_rikkyhermanto.md
+docs/cv_rikkyhermanto_ai-engineering.md
+docs/cv_role1_fintech_backend_ai.md
+docs/cv_role2_ai_platform_engineer.md
+docs/cv_role3_engineering_lead_ai.md
