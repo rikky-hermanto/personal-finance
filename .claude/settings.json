@@ -104,7 +104,11 @@
       "Bash(Write-Host \"done\")",
       "Bash(rm -f \"c:/workspaces/personal-finance/apps/api/src/PersonalFinance.Domain/obj/Debug/net10.0/PersonalFinance.Domain.AssemblyInfoInputs.cache\")",
       "Bash(grep -E \"\\\\.\\(py|cs\\)$\")",
-      "Bash(mv \"c:/workspaces/personal-finance/.claude/plans/PF-105-cold-start-problem-todo.md\" \"c:/workspaces/personal-finance/.claude/plans/completed/PF-105-cold-start-problem-todo.md\" && echo \"moved\")"
+      "Bash(mv \"c:/workspaces/personal-finance/.claude/plans/PF-105-cold-start-problem-todo.md\" \"c:/workspaces/personal-finance/.claude/plans/completed/PF-105-cold-start-problem-todo.md\" && echo \"moved\")",
+      "Bash(grep -iE \"\\(sk-|AKIA|AIza|ghp_|sk-ant-|BEGIN PRIVATE|password\\\\s*=\\\\s*['\\\\\"][^'\\\\\"]{6,}|postgres123|service_role\\)\")",
+      "Bash(psql \"postgresql://postgres:postgres@127.0.0.1:54322/postgres\" -c \"\\\\dt public.*\")",
+      "Bash(not exist *)",
+      "Bash(mkdir -p \"c:/workspaces/personal-finance/docs/ideas\")"
     ],
     "deny": [
       "Bash(rm -rf *)",

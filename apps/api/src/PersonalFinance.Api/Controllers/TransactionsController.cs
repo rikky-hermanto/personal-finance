@@ -157,6 +157,19 @@ public class TransactionsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Stub for the future event-driven upload pipeline (PF-S11).
+    ///
+    /// For PDFs and images: uploads to Supabase Storage and returns 202 Accepted immediately.
+    /// The intent is that a Database Webhook fires on Storage INSERT, triggers the Python AI service
+    /// to extract transactions, and Realtime pushes the result back to the frontend — but that
+    /// webhook pipeline does not exist yet, so the 202 is currently a dead end.
+    ///
+    /// For CSVs: falls back to synchronous parse (upload → download → parse → return), making it
+    /// functionally identical to upload-preview but with an unnecessary Storage round-trip.
+    ///
+    /// Do not call this from the frontend until PF-S11 (Supabase Webhook → AI → Realtime) is wired up.
+    /// </summary>
     [HttpPost("upload-preview-new")]
     [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> UploadPreviewNEW(
