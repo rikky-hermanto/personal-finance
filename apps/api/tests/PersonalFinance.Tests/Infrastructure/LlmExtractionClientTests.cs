@@ -41,7 +41,7 @@ public class LlmExtractionClientTests
                 amount_idr = 150000.0,
                 currency = "IDR",
                 exchange_rate = (double?)null,
-                wallet = "Superbank",
+                account_name = "Superbank",
                 category = "Transfer",
             }
         ]);
@@ -60,7 +60,7 @@ public class LlmExtractionClientTests
         Assert.Equal(150000m, tx.AmountIdr);
         Assert.Equal("IDR", tx.Currency);
         Assert.Null(tx.ExchangeRate);
-        Assert.Equal("Superbank", tx.Wallet);
+        Assert.Equal("Superbank", tx.AccountName);
         Assert.Equal("Transfer", tx.Category);
     }
 
@@ -79,7 +79,7 @@ public class LlmExtractionClientTests
                 amount_idr = 5000000.50,
                 currency = "IDR",
                 exchange_rate = (double?)null,
-                wallet = "",
+                account_name = "",
                 category = "Uncategorized",
             }
         ]);
@@ -107,7 +107,7 @@ public class LlmExtractionClientTests
                 amount_idr = 3200000.0,
                 currency = "USD",
                 exchange_rate = (double?)16000.0,
-                wallet = "Wise",
+                account_name = "Wise",
                 category = "Uncategorized",
             }
         ]);

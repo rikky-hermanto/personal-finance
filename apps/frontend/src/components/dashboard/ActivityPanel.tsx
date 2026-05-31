@@ -20,7 +20,7 @@ const mapApiToTransaction = (t: transactionsApi.TransactionDto): Transaction => 
   type: (t.type.toLowerCase() === 'income' ? 'income' :
          t.type.toLowerCase().includes('transfer') || t.type.toLowerCase().includes('trar') ? 'transfer' : 'expense') as 'income' | 'expense' | 'transfer',
   category: t.category,
-  bank: t.wallet,
+  bank: t.accountName,
 });
 
 const ActivityPanel = ({ selectedMonth, onMonthChange }: ActivityPanelProps) => {

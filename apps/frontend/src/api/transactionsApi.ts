@@ -11,7 +11,7 @@ export interface TransactionDto {
   flow: string;
   type: string;
   category: string;
-  wallet: string;      // transient — from AI service, never in DB
+  accountName: string; // transient — from AI service, never in DB
   accountId: string;   // uuid
   amountIdr: number;
   currency: string;

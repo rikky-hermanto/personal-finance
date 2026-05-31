@@ -124,7 +124,7 @@ public class BcaCsvParser : IBankStatementParser
                 Flow = flowStr,
                 Type = TransactionTypeClassifier.Classify(descStr, flowStr),
                 Category = "Uncategorized",
-                Wallet = "BCA",
+                AccountName = "BCA",
                 AmountIdr = amount,
                 Currency = "IDR",
                 ExchangeRate = null,

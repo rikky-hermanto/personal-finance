@@ -23,7 +23,7 @@ async def test_categorize_happy_path():
             "remarks": "QRIS (PAYMENT)",
             "flow": "DB",
             "amount_idr": 37500,
-            "wallet": "NeoBank",
+            "account_name":"NeoBank",
             "available_categories": ["Food", "Bill", "Groceries"],
         })
     assert response.status_code == 200
@@ -39,7 +39,7 @@ async def test_categorize_empty_categories_returns_422():
             "description": "Netflix",
             "flow": "DB",
             "amount_idr": 46500,
-            "wallet": "SeaBank",
+            "account_name":"SeaBank",
             "available_categories": [],
         })
     assert response.status_code == 422
@@ -53,7 +53,7 @@ async def test_categorize_low_confidence_still_returns_response():
             "description": "Sunset Vet Ubud",
             "flow": "DB",
             "amount_idr": 172000,
-            "wallet": "SeaBank",
+            "account_name":"SeaBank",
             "available_categories": ["Food", "Vet and Dog Supply", "Groceries"],
         })
     assert response.status_code == 200

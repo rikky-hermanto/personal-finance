@@ -9,7 +9,7 @@ public class TransactionDto
     public string Flow { get; set; } = "DB";
     public string Type { get; set; } = "Expense";
     public string Category { get; set; } = "Uncategorized";
-    public string Wallet { get; set; } = string.Empty; // transient — from AI service, never written to DB
+    public string AccountName { get; set; } = string.Empty; // transient — from AI/parser, never written to DB
     public Guid? AccountId { get; set; }
     public decimal AmountIdr { get; set; }
     public string Currency { get; set; } = "IDR";

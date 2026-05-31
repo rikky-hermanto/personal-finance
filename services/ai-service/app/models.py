@@ -19,7 +19,7 @@ class TransactionResult(BaseModel):
     currency: str = "IDR"
     exchange_rate: float | None = None                 # Wise FX only, null for IDR banks
     statement_balance: float | None = None             # balance from bank statement
-    wallet: str = ""
+    account_name: str = ""
     category: str = "Uncategorized"                    # .NET ICategoryRuleService re-categorizes
     raw_text: str = ""                                 # original bank line (audit trail)
 
@@ -54,7 +54,7 @@ class CategorizeRequest(BaseModel):
     remarks: str = ""
     flow: Literal["DB", "CR"]
     amount_idr: Decimal
-    wallet: str = ""
+    account_name: str = ""
     available_categories: list[str]
 
 class CategorizeResponse(BaseModel):

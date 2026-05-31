@@ -165,7 +165,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           amount:             t.flow === 'CR' ? Number(t.amountIdr) : -Number(t.amountIdr),
           type:               mappedType,
           category:           t.category,
-          bank:               t.wallet,
+          bank:               t.accountName,
           accountId:          t.accountId ?? undefined,
           balance:            t.balance,
           statementBalance: t.statementBalance ?? null,
