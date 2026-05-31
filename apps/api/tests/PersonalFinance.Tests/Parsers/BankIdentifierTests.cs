@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
+using PersonalFinance.Infrastructure.Parsers;
 using Xunit;
 
 namespace PersonalFinance.Tests.Parsers;

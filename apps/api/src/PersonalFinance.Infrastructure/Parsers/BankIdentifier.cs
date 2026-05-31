@@ -1,7 +1,9 @@
 using System.Text;
 using UglyToad.PdfPig;
 using Microsoft.Extensions.Logging;
- 
+
+namespace PersonalFinance.Infrastructure.Parsers;
+
 public class BankIdentifier : IBankIdentifier
 {
     private readonly ILogger<BankIdentifier> _logger;
@@ -14,35 +16,34 @@ public class BankIdentifier : IBankIdentifier
     public async Task<string?> IdentifyAsync(Stream stream, string contentType, string? pdfPassword = null)
     {
         _logger.LogInformation("Identifying bank from stream with Content-Type: {ContentType}", contentType);
-        if (contentType == "text/csv")
+        if (contentType.StartsWith("text/csv", StringComparison.OrdinalIgnoreCase))
         {
             stream.Position = 0;
             using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
             var firstFiveLines = new List<string>();
+            var tokenizedLines = new List<HashSet<string>>();
             for (int i = 0; i < 5; i++)
             {
                 var line = await reader.ReadLineAsync();
                 if (line == null) break;
                 firstFiveLines.Add(line);
+                var tokens = CsvTokenizer.Tokenize(line);
+                tokenizedLines.Add(tokens);
 
-                var tokens = Tokenize(line);
-
-                if (tokens.Contains("TANGGAL") && 
-                    tokens.Contains("KETERANGAN") && 
-                    tokens.Contains("JUMLAH") && 
+                if (tokens.Contains("TANGGAL") &&
+                    tokens.Contains("KETERANGAN") &&
+                    tokens.Contains("JUMLAH") &&
                     tokens.Contains("SALDO"))
                 {
                     // Reinforcement: also require NO. REKENING or REKENING token in first 5 lines (mitigates over-match)
-                    bool hasAccountToken = firstFiveLines.Any(l => {
-                        var t = Tokenize(l);
-                        return t.Contains("NO. REKENING") || t.Contains("REKENING") || t.Contains("NO.REKENING");
-                    });
+                    bool hasAccountToken = tokenizedLines.Any(t =>
+                        t.Contains("NO. REKENING") || t.Contains("REKENING") || t.Contains("NO.REKENING"));
 
                     if (hasAccountToken)
                     {
                         stream.Position = 0;
                         _logger.LogDebug("Bank identified as BCA.");
-                        return "BCA";
+                        return BankKeys.Bca;
                     }
                 }
 
@@ -53,12 +54,12 @@ public class BankIdentifier : IBankIdentifier
                 {
                     stream.Position = 0;
                     _logger.LogDebug("Bank identified as STANDARD.");
-                    return "STANDARD";
+                    return BankKeys.Standard;
                 }
             }
             stream.Position = 0;
         }
-        else if (contentType == "application/pdf")
+        else if (contentType.StartsWith("application/pdf", StringComparison.OrdinalIgnoreCase))
         {
             stream.Position = 0;
             try
@@ -73,14 +74,20 @@ public class BankIdentifier : IBankIdentifier
                     ? PdfDocument.Open(ms)
                     : PdfDocument.Open(ms, new ParsingOptions() { Password = pdfPassword });
 
-                var firstPageText = pdf.GetPages().FirstOrDefault()?.Text ?? string.Empty;
+                var firstPageText = pdf.NumberOfPages > 0 ? pdf.GetPage(1).Text : string.Empty;
 
                 // Look for NeoBank-specific markers: NOW Savings
                 if (firstPageText.Contains("NOW Savings", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogDebug("Bank identified as NEOBANK.");
                     stream.Position = 0;
-                    return "NEOBANK";
+                    return BankKeys.NeoBank;
+                }
+                else if (firstPageText.Contains("Superbank", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogDebug("Bank identified as Superbank.");
+                    stream.Position = 0;
+                    return BankKeys.Superbank;
                 }
             }
             catch (UglyToad.PdfPig.Exceptions.PdfDocumentEncryptedException ex)
@@ -92,32 +99,17 @@ public class BankIdentifier : IBankIdentifier
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Error during PDF bank identification.");
+                stream.Position = 0;
+                return null;  // unreadable — reject, don't burn an LLM call
             }
 
             // Fallback: route any unrecognized PDF to the LLM extractor
             _logger.LogDebug("PDF bank unrecognized — routing to LLM extractor.");
             stream.Position = 0;
-            return "LLM_PDF";
+            return BankKeys.LlmPdf;
         }
         _logger.LogDebug("Bank could not be identified.");
         stream.Position = 0;
         return null;
     }
-
-    private static HashSet<string> Tokenize(string line)
-    {
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrWhiteSpace(line)) return result;
-
-        var parts = System.Text.RegularExpressions.Regex.Split(line, "[,;\\t]");
-        foreach (var part in parts)
-        {
-            var token = part.Trim('\"', ' ', '\'').ToUpperInvariant();
-            if (!string.IsNullOrEmpty(token))
-            {
-                result.Add(token);
-            }
-        }
-        return result;
-    }
-}   
+}
