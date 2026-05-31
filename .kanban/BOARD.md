@@ -50,6 +50,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-090 | _(no issue)_ | Robust deduplication & file hashing |
 | PF-100 | _(no issue)_ | LGTM Monitoring Stack (OpenTelemetry) |
 | PF-101 | _(no issue)_ | System Health Status Dashboard |
+| PF-126 | _(no issue)_ | Pre-Open-Source Security Remediation: Purge PII + credentials from git history |
 
 ---
 
@@ -66,7 +67,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-123 | _(no issue)_ | Fix ARCH-02: Move IBankIdentifier to Application/Interfaces |
 | PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) — absorbs PF-123 |
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
-| PF-126 | _(no issue)_ | Pre-Open-Source Security Remediation: Purge PII + credentials from git history | **IN PROGRESS** |
 
 ---
 

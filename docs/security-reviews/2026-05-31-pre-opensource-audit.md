@@ -3,21 +3,31 @@
 **Date:** 2026-05-31
 **Scope:** All tracked and untracked files at time of review
 **Trigger:** Repository being converted from private to public open source
-**Status:** PENDING REMEDIATION
+**Status:** REMEDIATED — 2026-05-31
+**Remediation:** PF-126 — git filter-repo history rewrite + force-push to origin
 
 ---
 
 ## Executive Summary
 
-5 confirmed vulnerabilities found across 3 severity levels. The most critical issues involve real personal financial data (bank statements, credit card number) already committed to git history — these require a **git history rewrite** before the repo can safely go public. A simple file deletion commit is not sufficient.
+6 confirmed vulnerabilities found across 3 severity levels (1 additional finding discovered during remediation execution — see CRITICAL-4). All 6 have been remediated via a single `git filter-repo` history rewrite and force-push. The sensitive files remain on disk (gitignored) for local dev use.
 
 | # | Severity | Finding | Status |
 |---|----------|---------|--------|
-| CRITICAL-1 | Critical | Real bank statement PDFs + screenshot tracked in git history | Open |
-| CRITICAL-2 | Critical | `.playwright-mcp/` YAML snapshots with credit card number + full name tracked in git | Open |
-| CRITICAL-3 | Critical | Real BCA bank statement CSV unprotected by `.gitignore` | Open |
-| HIGH-1 | High | `docs/developer_profile.md` with real name + phone + email tracked in git | Open |
-| MEDIUM-1 | Medium | Hardcoded DB password in `.mcp.json` tracked in git | Open |
+| CRITICAL-1 | Critical | Real bank statement PDFs + screenshot tracked in git history | ✅ Purged from history |
+| CRITICAL-2 | Critical | `.playwright-mcp/` YAML snapshots with credit card number + full name tracked in git | ✅ Purged from history |
+| CRITICAL-3 | Critical | Real BCA bank statement CSV unprotected by `.gitignore` | ✅ Gitignore wildcard added |
+| CRITICAL-4 | Critical | `docs/statement-examples/transaction-template-sample.csv` contained real PII (name + card number + balances) — NOT flagged in initial audit but discovered in STEP 1 verification | ✅ Purged from history |
+| HIGH-1 | High | `docs/developer_profile.md` with real name + phone + email tracked in git | ✅ Purged from history |
+| MEDIUM-1 | Medium | Hardcoded DB password in `.mcp.json` tracked in git | ✅ Redacted + purged + gitignored |
+
+### Post-Remediation Manual Actions Required
+
+- [ ] **GitHub secret scanning:** Repo Settings → Security → Secret scanning. Verify no alerts on new history.
+- [ ] **Branch protection:** Settings → Branches → Add rule for `main` requiring force-push protection.
+- [ ] **BCA credit card reissuance:** The 16-digit BCA credit card number was in `.playwright-mcp/` YAML history. If old history was ever cached/cloned before force-push, consider contacting BCA for card replacement.
+- [ ] **Rotate API keys:** `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGFUSE_SECRET_KEY`, `SUPABASE_SERVICE_ROLE_KEY` are gitignored but consider rotating before going fully public.
+- [ ] **GitHub cache expungement:** GitHub keeps old history cached ~90 days. Use "Remove sensitive data" form for immediate expungement.
 
 ---
 
@@ -89,7 +99,7 @@ git push origin --force --all
 
 ## CRITICAL-3: Real BCA Bank Statement CSV Unprotected by `.gitignore`
 
-**File:** `docs/statement-examples/RIKKIHHA1115_483108282_feb.CSV` *(untracked but unprotected)*
+**File:** `docs/statement-examples/[account-holder]_[account-number]_feb.CSV` *(untracked but unprotected — filename contained account holder abbreviation + account number fragment)*
 
 **Severity:** Critical
 **Category:** Financial PII — unprotected untracked file, one `git add .` away from exposure
@@ -97,7 +107,7 @@ git push origin --force --all
 
 **Description:** This file is currently untracked (`??` in `git status`) but has no `.gitignore` protection. The filename contains an account identifier. The file content includes:
 
-- Real BCA account number: `'8580072390`
+- Real BCA account number (redacted from this doc)
 - Full legal name
 - Complete February transaction history including a Rp 50,000,000 stock investment transfer
 - BCA credit card number embedded in a payment description
