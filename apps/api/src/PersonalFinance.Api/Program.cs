@@ -4,6 +4,7 @@ using PersonalFinance.Application.Services;
 using PersonalFinance.Infrastructure.External;
 using PersonalFinance.Application.Investments;
 using PersonalFinance.Infrastructure.Parsers;
+using PersonalFinance.Infrastructure.Parsers.Signatures;
 using PersonalFinance.Infrastructure.Services;
 using PersonalFinance.Infrastructure.Supabase;
 using FluentValidation;
@@ -107,6 +108,11 @@ namespace PersonalFinance.Api
             });
             builder.Services.AddScoped<ICategoryRuleService, CategoryRuleService>();
             builder.Services.AddScoped<ICategoryPresetService, PersonalFinance.Application.Services.CategoryPresetService>();
+            // Bank identification signatures — order within each content-type group matters (first match wins)
+            builder.Services.AddScoped<IBankSignature, BcaCsvSignature>();
+            builder.Services.AddScoped<IBankSignature, StandardCsvSignature>();
+            builder.Services.AddScoped<IBankSignature, NeoBankPdfSignature>();
+            builder.Services.AddScoped<IBankSignature, SuperbankPdfSignature>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<ITransactionPipelineService, PersonalFinance.Application.Services.TransactionPipelineService>();
