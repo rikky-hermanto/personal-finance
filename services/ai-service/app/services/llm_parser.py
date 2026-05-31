@@ -2,6 +2,7 @@ import logging
 
 from app.providers.base import LlmProvider
 from app.models import ParseImageRequest, ParseRequest, ParseResponse, TransactionResult
+from app.prompts.superbank_v1 import SYSTEM_PROMPT as _SUPERBANK_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +48,26 @@ SYSTEM_PROMPT = (
     "Populate remarks with any secondary description, reference number, or memo field present. "
 )
 
+# Bank-specific prompt overrides keyed by bank_hint value (uppercase).
+# Adding a new bank: one entry here + one new prompts/{bank}_v1.py file.
+_BANK_PROMPTS: dict[str, str] = {
+    "SUPERBANK": _SUPERBANK_PROMPT,
+}
+
+
+def _build_system_prompt(bank_hint: str | None) -> str:
+    hint = (bank_hint or "").upper()
+    if hint in _BANK_PROMPTS:
+        return _BANK_PROMPTS[hint]
+    return SYSTEM_PROMPT + f"Bank context: {bank_hint or 'unknown'}."
+
 
 class LlmParser:
     def __init__(self, provider: LlmProvider) -> None:
         self._provider = provider
 
     async def parse(self, request: ParseRequest) -> ParseResponse:
-        system = SYSTEM_PROMPT + f"Bank context: {request.bank_hint or 'unknown'}."
+        system = _build_system_prompt(request.bank_hint)
 
         try:
             result = await self._provider.extract_structured(
@@ -82,7 +96,7 @@ class LlmParser:
         )
 
     async def parse_image(self, image_bytes: bytes, media_type: str, request: ParseImageRequest) -> ParseResponse:
-        system = SYSTEM_PROMPT + f"Bank context: {request.bank_hint or 'unknown'}."
+        system = _build_system_prompt(request.bank_hint)
         user_text = "Extract all transactions from this bank statement screenshot."
 
         try:
