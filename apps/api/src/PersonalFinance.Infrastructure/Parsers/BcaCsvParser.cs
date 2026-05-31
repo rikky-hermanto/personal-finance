@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
@@ -37,7 +36,7 @@ public class BcaCsvParser : IBankStatementParser
         while ((headerLine = await reader.ReadLineAsync()) != null && scannedLines < 15)
         {
             scannedLines++;
-            headerTokens = Tokenize(headerLine);
+            headerTokens = CsvTokenizer.Tokenize(headerLine);
             if (headerTokens.Contains("TANGGAL") && 
                 headerTokens.Contains("KETERANGAN") && 
                 headerTokens.Contains("JUMLAH") && 
@@ -169,23 +168,6 @@ public class BcaCsvParser : IBankStatementParser
         }
         result.Add(line.Substring(start));
         return result.ToArray();
-    }
-
-    private static HashSet<string> Tokenize(string line)
-    {
-        var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (string.IsNullOrWhiteSpace(line)) return result;
-
-        var parts = Regex.Split(line, "[,;\\t]");
-        foreach (var part in parts)
-        {
-            var token = part.Trim('\"', ' ', '\'').ToUpperInvariant();
-            if (!string.IsNullOrEmpty(token))
-            {
-                result.Add(token);
-            }
-        }
-        return result;
     }
 
     private DateTime ParseBcaDate(string input)

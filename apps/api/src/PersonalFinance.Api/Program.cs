@@ -97,10 +97,11 @@ namespace PersonalFinance.Api
             {
                 var parsers = new Dictionary<string, IBankStatementParser>
                 {
-                    { "BCA", serviceProvider.GetRequiredService<BcaCsvParser>() },
-                    { "NEOBANK", serviceProvider.GetRequiredService<NeoBankPdfParser>() },
-                    { "STANDARD", serviceProvider.GetRequiredService<DefaultCsvParser>() },
-                    { "LLM_PDF", serviceProvider.GetRequiredService<LlmPdfParser>() },
+                    { BankKeys.Bca, serviceProvider.GetRequiredService<BcaCsvParser>() },
+                    { BankKeys.NeoBank, serviceProvider.GetRequiredService<NeoBankPdfParser>() },
+                    { BankKeys.Superbank, serviceProvider.GetRequiredService<LlmPdfParser>() },
+                    { BankKeys.Standard, serviceProvider.GetRequiredService<DefaultCsvParser>() },
+                    { BankKeys.LlmPdf, serviceProvider.GetRequiredService<LlmPdfParser>() },
                 };
                 return new StatementImportService(parsers, serviceProvider.GetRequiredService<ILogger<StatementImportService>>());
             });
