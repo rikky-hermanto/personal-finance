@@ -1,21 +1,21 @@
 Keyword;Type;Category
-TRANSFER OUT TRANSFER KELUAR RIKKI H HASIBUAN 000020617734 Superbank;Asset Transfer;Bank Transfer
-BI-FAST CR TRANSFER   DR 562 RIKKI H HASIBUAN;Asset Transfer;Bank Transfer
-BI-FAST CR TRANSFER   DR 490 RIKKI H HASIBUAN;Asset Transfer;Bank Transfer
-TRANSFER IN TRANSFER MASUK RIKKI H HASIBUAN;Asset Transfer;Bank Transfer
-TRANSFER OUT RIKKI H HASIBUAN 1310013349;Saving;
+TRANSFER OUT TRANSFER KELUAR ACCOUNT_HOLDER 000000000001 Superbank;Asset Transfer;Bank Transfer
+BI-FAST CR TRANSFER   DR 562 ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
+BI-FAST CR TRANSFER   DR 490 ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
+TRANSFER IN TRANSFER MASUK ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
+TRANSFER OUT ACCOUNT_HOLDER 000000001;Saving;
 Transfer dari Pesta Horas Situmora;Asset Transfer;Loan Repayment
 TRANSFER OUT MUHAMMAD IZUDDIN HAN;Expense;Bill
 Transfer ke Pesta Horas Situmora;Asset Transfer;Loan Given
-Sent money to Rikki H Hasibuan;Asset Transfer;Bank Transfer
-Transfer dari RIKKI H HASIBUAN;Asset Transfer;Bank Transfer
-TRANSFER OUT RIKKI H HASIBUAN;Asset Transfer;Bank Transfer
-Transfer ke Rikki H Hasibuan;Asset Transfer;Bank Transfer
-TRANSFER IN RIKKI H HASIBUAN;Asset Transfer;Bank Transfer
-Incoming RIKKI H HASIBUAN;Asset Transfer;Bank Transfer
+Sent money to Account Holder;Asset Transfer;Bank Transfer
+Transfer dari ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
+TRANSFER OUT ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
+Transfer ke Account Holder;Asset Transfer;Bank Transfer
+TRANSFER IN ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
+Incoming ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
 Putu Astri Wulandari Ern;Expense;Vet and Dog Supply
-Top up RIKKI H HASIBUAN;Expense;E-Wallet
-Dnid 08123488851 Top Up;Expense;E-Wallet
+Top up ACCOUNT_HOLDER;Expense;E-Wallet
+Dnid 08000000000 Top Up;Expense;E-Wallet
 TRANSFER IN SYAFTRACO;Asset Transfer;Bank Transfer
 SWITCHING WITHDRAWAL;Expense;Withdrawing
 Yayasan Bali Rescue;Expense;Vet and Dog Supply

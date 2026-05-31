@@ -51,7 +51,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '4',
     date: '2025-04-07',
-    description: 'TRANSFER OUT RIKKI H HASIBUAN 8580072390',
+    description: 'TRANSFER OUT ACCOUNT_HOLDER 0000000001',
     amount: -800000.00,
     type: 'expense',
     category: 'Transfer Out',
@@ -72,7 +72,7 @@ export const mockTransactions: Transaction[] = [
   {
     id: '6',
     date: '2025-02-01',
-    description: 'BI-FAST CR BIF TRANSFER DR 562 RIKKI H HASIBUAN',
+    description: 'BI-FAST CR BIF TRANSFER DR 562 ACCOUNT_HOLDER',
     amount: 800000.00,
     type: 'income',
     category: 'Transfer In',

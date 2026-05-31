@@ -41,7 +41,7 @@ This document is a compact reference for the running .NET API. It lists all avai
 ```json
 {
   "id": 0,
-  "keyword": "TRANSFER OUT RIKKI H",
+  "keyword": "TRANSFER OUT ACCOUNT_HOLDER",
   "type": "Expense",
   "category": "Bill",
   "keywordLength": 0

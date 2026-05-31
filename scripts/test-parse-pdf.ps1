@@ -11,7 +11,7 @@
 .EXAMPLE
     .\scripts\test-parse-pdf.ps1
     .\scripts\test-parse-pdf.ps1 -BankHint superbank
-    .\scripts\test-parse-pdf.ps1 -File "docs\statement-examples\superbank_000020617734-2025-06-statement.pdf"
+    .\scripts\test-parse-pdf.ps1 -File "docs\statement-examples\superbank_000000000001-2025-06-statement.pdf"
     .\scripts\test-parse-pdf.ps1 -File "docs\statement-examples\e-statement_Sep_2025_8851.pdf" -Password yourpassword
 #>
 

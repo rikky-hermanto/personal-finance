@@ -69,7 +69,7 @@ P0	Item non-empty	"Netflix", "BPJS", "Indihome"	Bill
 P0	Item non-empty	"Go Mie Go", "Es Teh", "Roti Goolung"	Food
 P1	Flow=CR + keyword SAVING INTEREST|INTEREST	NeoBank daily interest	Saving Interest
 P1	Flow=DB + keyword TARIKAN ATM	ATM withdrawal	Withdrawing
-P1	Remarks contains RIKKI H HASIBUAN (self)	Inter-bank transfer	Bank Transfer / Asset Transfer
+P1	Remarks contains ACCOUNT_HOLDER (self)	Inter-bank transfer	Bank Transfer / Asset Transfer
 P2	Flow=DB + Remarks contains vendor name	"Roti Goolung - Transfer"	Food (via rules)
 P3	LLM	anything else	context-aware
 Pola ini tidak muncul di kedua plan.
