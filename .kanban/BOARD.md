@@ -68,6 +68,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) — absorbs PF-123 |
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
 | PF-127 | _(no issue)_ | PII Redaction: Tracked Files + Untracked Plan Files (Pre-Open-Source) |
+| PF-128 | _(no issue)_ | Superbank PDF Parser: bank-specific LLM prompt + dispatch map |
 
 ---
 
@@ -160,6 +161,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across the full stack |
 | PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) |
+| PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
 
 ---
 
