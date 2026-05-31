@@ -162,6 +162,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across the full stack |
 | PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) |
 | PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
+| PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
 
 ---
 
