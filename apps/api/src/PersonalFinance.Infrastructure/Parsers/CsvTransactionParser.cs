@@ -31,7 +31,7 @@ public class CsvTransactionParser : IBankStatementParser
                 Flow = record.Flow ?? "DB",
                 Type = record.Type ?? (record.Flow == "CR" ? "Income" : "Expense"),
                 Category = record.Category ?? "Uncategorized",
-                Wallet = record.Wallet ?? "",
+                AccountName = record.Wallet ?? "",
                 AmountIdr = ParseCurrency(record["Amount (IDR)"]),
                 Currency = "IDR", // assuming fixed
                 ExchangeRate = null, // not in your sample

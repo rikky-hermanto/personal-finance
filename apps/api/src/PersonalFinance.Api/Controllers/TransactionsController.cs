@@ -272,10 +272,10 @@ public class TransactionsController : ControllerBase
         if (!string.IsNullOrEmpty(request.FileHash))
             await _transactionService.RegisterFileHashAsync(request.FileHash, request.FileName ?? "uploaded_file");
 
-        // Upsert alias: persist wallet → account_id mapping for future auto-resolution
-        var first = request.Transactions.FirstOrDefault(t => t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.Wallet));
+        // Upsert alias: persist account name → account_id mapping for future auto-resolution
+        var first = request.Transactions.FirstOrDefault(t => t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.AccountName));
         if (first != null)
-            await _transactionService.UpsertAliasAsync(first.Wallet, first.AccountId!.Value);
+            await _transactionService.UpsertAliasAsync(first.AccountName, first.AccountId!.Value);
 
         return Ok(new
         {
@@ -471,16 +471,16 @@ public class TransactionsController : ControllerBase
         return Ok(new { deleted });
     }
 
-    // Resolves account_id per-transaction from each row's Wallet field.
+    // Resolves account_id per-transaction from each row's AccountName field.
     // All three lookups (accounts, institutions, aliases) fire in parallel — one round-trip each.
     // Scoring cascade: alias cache → normalized-contains → token-intersection against account + institution name.
     // Fuzzy matches are auto-learned into WalletAccountAlias so subsequent uploads hit the alias cache.
     private async Task ResolveAccountIdsAsync(List<TransactionDto> transactions)
     {
-        var unlinked = transactions.Where(t => !t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.Wallet)).ToList();
+        var unlinked = transactions.Where(t => !t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.AccountName)).ToList();
         if (!unlinked.Any()) return;
 
-        var distinctWallets = unlinked.Select(t => t.Wallet).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var distinctWallets = unlinked.Select(t => t.AccountName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         var accountsTask      = _supabase.From<Account>().Get();
         var institutionsTask  = _supabase.From<Institution>().Get();
@@ -516,7 +516,7 @@ public class TransactionsController : ControllerBase
 
         foreach (var tx in unlinked)
         {
-            if (walletToAccount.TryGetValue(tx.Wallet, out var id))
+            if (walletToAccount.TryGetValue(tx.AccountName, out var id))
                 tx.AccountId = id;
         }
     }

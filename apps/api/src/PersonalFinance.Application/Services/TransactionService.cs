@@ -362,7 +362,7 @@ public class TransactionService : ITransactionService
         Type = t.Type,
         Category = t.Category,
         AccountId = t.AccountId,
-        Wallet = t.AccountId.HasValue && accountNames != null && accountNames.TryGetValue(t.AccountId.Value, out var name) ? name : string.Empty,
+        AccountName = t.AccountId.HasValue && accountNames != null && accountNames.TryGetValue(t.AccountId.Value, out var name) ? name : string.Empty,
         AmountIdr = t.AmountIdr,
         Currency = t.Currency,
         ExchangeRate = t.ExchangeRate,

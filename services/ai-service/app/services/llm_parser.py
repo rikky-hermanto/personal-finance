@@ -28,7 +28,7 @@ EXTRACT_SCHEMA = {
                     "amount_idr":    {"type": "number"},
                     "currency":      {"type": "string"},
                     "exchange_rate": {"type": "number"},
-                    "wallet":        {"type": "string"},
+                    "account_name":  {"type": "string"},
                     "raw_text":      {"type": "string"},
                 },
                 "required": ["date", "description", "flow", "amount_idr"],

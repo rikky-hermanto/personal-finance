@@ -14,7 +14,7 @@ public interface ILlmCategorizationClient
         string remarks,
         string flow,
         decimal amountIdr,
-        string wallet,
+        string accountName,
         IReadOnlyList<string> availableCategories,
         CancellationToken ct = default);
 }

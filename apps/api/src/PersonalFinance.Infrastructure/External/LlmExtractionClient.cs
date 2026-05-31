@@ -130,7 +130,7 @@ public class LlmExtractionClient : ILlmExtractionClient
         Flow = r.Flow,
         Type = r.Type,
         Category = r.Category,
-        Wallet = r.Wallet,
+        AccountName = r.AccountName,
         AmountIdr = (decimal)r.AmountIdr,
         Currency = r.Currency,
         ExchangeRate = r.ExchangeRate.HasValue ? (decimal?)r.ExchangeRate.Value : null,
@@ -166,7 +166,7 @@ public class LlmExtractionClient : ILlmExtractionClient
         public string Currency { get; set; } = "IDR";
         public double? ExchangeRate { get; set; }
         public double? StatementBalance { get; set; }
-        public string Wallet { get; set; } = string.Empty;
+        public string AccountName { get; set; } = string.Empty;
         public string Category { get; set; } = "Uncategorized";
     }
 }

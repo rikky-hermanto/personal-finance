@@ -314,7 +314,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         flow: t.flow!,
         type: t.type.charAt(0).toUpperCase() + t.type.slice(1),
         category: t.category,
-        wallet: t.bank,
+        accountName: t.bank,
         accountId: t.accountId || undefined,
         amountIdr: Math.abs(t.amount),
         currency: "IDR",

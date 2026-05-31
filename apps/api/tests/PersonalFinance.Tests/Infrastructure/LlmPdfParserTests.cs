@@ -9,8 +9,8 @@ public class LlmPdfParserTests
 {
     private static List<TransactionDto> SampleTransactions() =>
     [
-        new() { Description = "TX1", AmountIdr = 100000m, Flow = "DB", Wallet = "Superbank" },
-        new() { Description = "TX2", AmountIdr = 200000m, Flow = "CR", Wallet = "Superbank" },
+        new() { Description = "TX1", AmountIdr = 100000m, Flow = "DB", AccountName = "Superbank" },
+        new() { Description = "TX2", AmountIdr = 200000m, Flow = "CR", AccountName = "Superbank" },
     ];
 
     [Fact]
