@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-05-22
+> **Last synced:** 2026-05-31
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -63,6 +63,10 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights (Phase 1) |
 | PF-121 | _(no issue)_ | AI-Narrated Anomaly Insights + Persistence (Phase 2, blocked by PF-120) |
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview — "✦ Suggest (N)" button |
+| PF-123 | _(no issue)_ | Fix ARCH-02: Move IBankIdentifier to Application/Interfaces |
+| PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) — absorbs PF-123 |
+| PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
+| PF-126 | _(no issue)_ | Pre-Open-Source Security Remediation: Purge PII + credentials from git history | **IN PROGRESS** |
 
 ---
 
@@ -152,6 +156,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
+| PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
 
 ---
 

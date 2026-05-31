@@ -74,3 +74,23 @@ docs/cv_rikkyhermanto_ai-engineering.md
 docs/cv_role1_fintech_backend_ai.md
 docs/cv_role2_ai_platform_engineer.md
 docs/cv_role3_engineering_lead_ai.md
+docs/statement-examples/RIKKIHHA1115_483108282_feb.CSV
+
+# Bank statement examples — real financial documents must never be committed
+docs/statement-examples/*.pdf
+docs/statement-examples/*.PDF
+docs/statement-examples/*.png
+docs/statement-examples/*.PNG
+docs/statement-examples/*.jpg
+docs/statement-examples/*.JPG
+docs/statement-examples/*.csv
+docs/statement-examples/*.CSV
+
+# Developer identity files
+docs/developer_profile*.md
+docs/cv_*.md
+docs/resume_*.md
+docs/*_profile.md
+
+# MCP server config — contains local DB credentials; use .mcp.json.example for the template
+.mcp.json
