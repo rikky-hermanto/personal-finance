@@ -67,6 +67,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-123 | _(no issue)_ | Fix ARCH-02: Move IBankIdentifier to Application/Interfaces |
 | PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) — absorbs PF-123 |
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
+| PF-127 | _(no issue)_ | PII Redaction: Tracked Files + Untracked Plan Files (Pre-Open-Source) |
 
 ---
 
