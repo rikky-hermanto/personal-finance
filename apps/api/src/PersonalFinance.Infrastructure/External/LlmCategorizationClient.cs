@@ -24,14 +24,14 @@ public class LlmCategorizationClient : ILlmCategorizationClient
     }
 
     public async Task<(string Category, double Confidence)> CategorizeAsync(
-        string description, string remarks, string flow, decimal amountIdr, string wallet,
+        string description, string remarks, string flow, decimal amountIdr, string accountName,
         IReadOnlyList<string> availableCategories,
         CancellationToken ct = default)
     {
         try
         {
             var request = new CategorizeRequest(
-                description, remarks, flow, (double)amountIdr, wallet,
+                description, remarks, flow, (double)amountIdr, accountName,
                 availableCategories.ToList());
 
             var response = await _http.PostAsJsonAsync("/categorize", request, JsonOptions, ct);
@@ -66,7 +66,7 @@ public class LlmCategorizationClient : ILlmCategorizationClient
         string Remarks,
         string Flow,
         double AmountIdr,
-        string Wallet,
+        string AccountName,
         List<string> AvailableCategories);
 
     private sealed class CategorizeResponse

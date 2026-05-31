@@ -4,8 +4,8 @@ import { useLocalStorage } from '@/hooks/use-local-storage';
 import { Transaction } from '@/types/Transaction';
 import { BankId } from '@/types/Transaction';
 import { mockWalletBalances } from '@/data/mockTransactions';
-import WalletTabs from './dashboard/WalletTabs';
-import TopWalletsRow from './dashboard/TopWalletsRow';
+import AccountTabs from './dashboard/AccountTabs';
+import TopAccountsRow from './dashboard/TopAccountsRow';
 import SpendingTreemap from './dashboard/SpendingTreemap';
 import NetCashflowCard from './dashboard/widgets/NetCashflowCard';
 import TopCategoriesCard from './dashboard/widgets/TopCategoriesCard';
@@ -64,8 +64,8 @@ const CashFlowDashboard = ({
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Wallet tabs + net worth strip */}
-      <WalletTabs
+      {/* Account tabs + net worth strip */}
+      <AccountTabs
         selected={selectedWallet}
         onChange={setWallet}
         netWorth={netWorth}
@@ -74,7 +74,7 @@ const CashFlowDashboard = ({
 
       <div className="flex-1 overflow-y-auto">
         {/* Top Bank Accounts Row */}
-        <TopWalletsRow wallets={mockWalletBalances} selected={selectedWallet} />
+        <TopAccountsRow wallets={mockWalletBalances} selected={selectedWallet} />
 
         <div className="p-5 space-y-4">
           {/* Cash Flow chart + Top Categories widgets */}

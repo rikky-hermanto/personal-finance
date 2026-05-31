@@ -114,7 +114,7 @@ public class InsightService(Supabase.Client supabase, ILogger<InsightService> lo
         var cutoff = today.AddDays(-35);
 
         return allTx
-            .GroupBy(t => t.Wallet)
+            .GroupBy(t => t.AccountName)
             .Where(g => !string.IsNullOrEmpty(g.Key))
             .Where(g => g.Max(t => t.Date) < cutoff)
             .Select(g => new InsightDto(
@@ -302,7 +302,7 @@ public class InsightService(Supabase.Client supabase, ILogger<InsightService> lo
             foreach (var tx in all)
             {
                 if (tx.AccountId.HasValue && accountNames.TryGetValue(tx.AccountId.Value, out var name))
-                    tx.Wallet = name;
+                    tx.AccountName = name;
             }
         }
 

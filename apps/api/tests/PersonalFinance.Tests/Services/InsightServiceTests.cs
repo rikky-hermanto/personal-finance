@@ -7,10 +7,10 @@ namespace PersonalFinance.Tests.Services;
 public class InsightServiceTests
 {
     private static Transaction Expense(string cat, decimal amount, DateTime date, string wallet = "BCA") =>
-        new() { Type = "Expense", Category = cat, AmountIdr = amount, Date = date, Wallet = wallet, Description = $"Test {cat}" };
+        new() { Type = "Expense", Category = cat, AmountIdr = amount, Date = date, AccountName = wallet, Description = $"Test {cat}" };
 
     private static Transaction Income(string cat, decimal amount, DateTime date, string wallet = "BCA") =>
-        new() { Type = "Income", Category = cat, AmountIdr = amount, Date = date, Wallet = wallet, Description = $"Test income" };
+        new() { Type = "Income", Category = cat, AmountIdr = amount, Date = date, AccountName = wallet, Description = $"Test income" };
 
     // ── statement_gap ──────────────────────────────────────────────────────
 

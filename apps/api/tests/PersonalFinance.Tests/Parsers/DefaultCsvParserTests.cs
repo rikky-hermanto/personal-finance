@@ -160,7 +160,7 @@ public class DefaultCsvParserTests
         Assert.Equal("CR", tx.Flow);
         Assert.Equal("Income", tx.Type);
         Assert.Equal("Bank Transfer", tx.Category);
-        Assert.Equal("Wise", tx.Wallet);
+        Assert.Equal("Wise", tx.AccountName);
         Assert.Equal("USD", tx.Currency);
         Assert.Equal(15800m, tx.ExchangeRate);
     }

@@ -164,7 +164,7 @@ public class TransactionPipelineService : ITransactionPipelineService
         foreach (var tx in stillUncategorized)
         {
             var (category, confidence) = await _llmCategorizer.CategorizeAsync(
-                tx.Description, tx.Remarks, tx.Flow, tx.AmountIdr, tx.Wallet,
+                tx.Description, tx.Remarks, tx.Flow, tx.AmountIdr, tx.AccountName,
                 availableCategories);
 
             if (category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))

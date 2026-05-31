@@ -37,7 +37,7 @@ class Categorizer:
             f"  Remarks: {request.remarks or '(none)'}\n"
             f"  Flow: {flow_label}\n"
             f"  Amount (IDR): {request.amount_idr:,.0f}\n"
-            f"  Bank/Wallet: {request.wallet or '(unknown)'}\n\n"
+            f"  Bank/Account: {request.account_name or '(unknown)'}\n\n"
             f"Available categories (choose exactly one):\n"
             + "\n".join(f"  - {c}" for c in request.available_categories)
         )

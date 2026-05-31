@@ -185,9 +185,9 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "tx1", Wallet = "BCA" },
-            new() { Description = "tx2", Wallet = "BCA" },
-            new() { Description = "tx3", Wallet = "BCA" },
+            new() { Description = "tx1", AccountName ="BCA" },
+            new() { Description = "tx2", AccountName ="BCA" },
+            new() { Description = "tx3", AccountName ="BCA" },
         };
 
         StampAccountId(transactions, BcaId);
@@ -200,7 +200,7 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "tx1", Wallet = "Unknown", AccountId = null },
+            new() { Description = "tx1", AccountName ="Unknown", AccountId = null },
         };
 
         StampAccountId(transactions, null);
@@ -237,11 +237,11 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "TARIKAN ATM",    Wallet = "BCA", AmountIdr = 300_000, Flow = "DB" },
-            new() { Description = "TRANSFER MASUK", Wallet = "BCA", AmountIdr = 800_000, Flow = "CR" },
+            new() { Description = "TARIKAN ATM",    AccountName ="BCA", AmountIdr = 300_000, Flow = "DB" },
+            new() { Description = "TRANSFER MASUK", AccountName ="BCA", AmountIdr = 800_000, Flow = "CR" },
         };
 
-        var walletText = transactions.First().Wallet;
+        var walletText = transactions.First().AccountName;
         var resolvedId = NameMatchFallback(walletText, SampleAccounts());
         StampAccountId(transactions, resolvedId);
 
@@ -254,10 +254,10 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "DEBIT", Wallet = "Mandiri", AmountIdr = 100_000, Flow = "DB" },
+            new() { Description = "DEBIT", AccountName ="Mandiri", AmountIdr = 100_000, Flow = "DB" },
         };
 
-        var walletText = transactions.First().Wallet;
+        var walletText = transactions.First().AccountName;
         var resolvedId = NameMatchFallback(walletText, SampleAccounts());
         StampAccountId(transactions, resolvedId);
 
@@ -270,17 +270,17 @@ public class AccountIdResolutionTests
 
     private static void ResolveAccountIds(List<TransactionDto> transactions, List<Account> accounts)
     {
-        var unlinked = transactions.Where(t => !t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.Wallet)).ToList();
+        var unlinked = transactions.Where(t => !t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.AccountName)).ToList();
         if (!unlinked.Any()) return;
 
-        var distinctWallets = unlinked.Select(t => t.Wallet).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var distinctWallets = unlinked.Select(t => t.AccountName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var walletToAccount = new Dictionary<string, Guid?>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var wallet in distinctWallets)
             walletToAccount[wallet] = NameMatchFallback(wallet, accounts);
 
         foreach (var tx in unlinked)
-            if (walletToAccount.TryGetValue(tx.Wallet, out var id))
+            if (walletToAccount.TryGetValue(tx.AccountName, out var id))
                 tx.AccountId = id;
     }
 
@@ -289,11 +289,11 @@ public class AccountIdResolutionTests
     [Fact]
     public void ResolveAccountIds_SingleBankCsv_AllRowsStamped()
     {
-        // Standard BCA single-bank CSV: every row has Wallet = "BCA"
+        // Standard BCA single-bank CSV: every row has AccountName ="BCA"
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "KARTU DEBIT", Wallet = "BCA", AccountId = null, AmountIdr = 50_000,  Flow = "DB" },
-            new() { Description = "TRANSFER IN", Wallet = "BCA", AccountId = null, AmountIdr = 100_000, Flow = "CR" },
+            new() { Description = "KARTU DEBIT", AccountName ="BCA", AccountId = null, AmountIdr = 50_000,  Flow = "DB" },
+            new() { Description = "TRANSFER IN", AccountName ="BCA", AccountId = null, AmountIdr = 100_000, Flow = "CR" },
         };
 
         ResolveAccountIds(transactions, SampleAccounts());
@@ -310,9 +310,9 @@ public class AccountIdResolutionTests
         // Master statement with mixed wallets — each row must get its own account_id
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "BCA tx",       Wallet = "BCA",       AccountId = null, AmountIdr = 200_000, Flow = "DB" },
-            new() { Description = "Bank Jago tx",  Wallet = "Bank Jago", AccountId = null, AmountIdr = 150_000, Flow = "CR" },
-            new() { Description = "Wise tx",       Wallet = "Wise",      AccountId = null, AmountIdr =  50_000, Flow = "DB" },
+            new() { Description = "BCA tx",       AccountName ="BCA",       AccountId = null, AmountIdr = 200_000, Flow = "DB" },
+            new() { Description = "Bank Jago tx",  AccountName ="Bank Jago", AccountId = null, AmountIdr = 150_000, Flow = "CR" },
+            new() { Description = "Wise tx",       AccountName ="Wise",      AccountId = null, AmountIdr =  50_000, Flow = "DB" },
         };
 
         ResolveAccountIds(transactions, SampleAccounts());
@@ -329,9 +329,9 @@ public class AccountIdResolutionTests
         // this was the original bug: empty wallet resolved to null → nothing stamped
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "Initial Balance", Wallet = "",    AccountId = null, AmountIdr = 169_338_655, Flow = "CR" },
-            new() { Description = "TARIKAN ATM",     Wallet = "BCA", AccountId = null, AmountIdr =     200_000, Flow = "DB" },
-            new() { Description = "TRANSFER",        Wallet = "BCA", AccountId = null, AmountIdr =     200_000, Flow = "CR" },
+            new() { Description = "Initial Balance", AccountName ="",    AccountId = null, AmountIdr = 169_338_655, Flow = "CR" },
+            new() { Description = "TARIKAN ATM",     AccountName ="BCA", AccountId = null, AmountIdr =     200_000, Flow = "DB" },
+            new() { Description = "TRANSFER",        AccountName ="BCA", AccountId = null, AmountIdr =     200_000, Flow = "CR" },
         };
 
         ResolveAccountIds(transactions, SampleAccounts());
@@ -348,8 +348,8 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "tx1", Wallet = "Bank Jago", AccountId = JagoId, AmountIdr = 10_000, Flow = "DB" },
-            new() { Description = "tx2", Wallet = "Bank Jago", AccountId = null,   AmountIdr = 20_000, Flow = "DB" },
+            new() { Description = "tx1", AccountName ="Bank Jago", AccountId = JagoId, AmountIdr = 10_000, Flow = "DB" },
+            new() { Description = "tx2", AccountName ="Bank Jago", AccountId = null,   AmountIdr = 20_000, Flow = "DB" },
         };
 
         ResolveAccountIds(transactions, SampleAccounts());
@@ -363,7 +363,7 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "tx1", Wallet = "BCA", AccountId = BcaId, AmountIdr = 100_000, Flow = "DB" },
+            new() { Description = "tx1", AccountName ="BCA", AccountId = BcaId, AmountIdr = 100_000, Flow = "DB" },
         };
 
         ResolveAccountIds(transactions, SampleAccounts());
@@ -378,7 +378,7 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "tx1", Wallet = "Mandiri", AccountId = null, AmountIdr = 75_000, Flow = "DB" },
+            new() { Description = "tx1", AccountName ="Mandiri", AccountId = null, AmountIdr = 75_000, Flow = "DB" },
         };
 
         ResolveAccountIds(transactions, SampleAccounts());
@@ -399,8 +399,8 @@ public class AccountIdResolutionTests
     {
         var transactions = new List<TransactionDto>
         {
-            new() { Description = "BCA tx",     Wallet = "BCA",     AccountId = null, AmountIdr = 100_000, Flow = "DB" },
-            new() { Description = "Mandiri tx", Wallet = "Mandiri", AccountId = null, AmountIdr =  50_000, Flow = "DB" },
+            new() { Description = "BCA tx",     AccountName ="BCA",     AccountId = null, AmountIdr = 100_000, Flow = "DB" },
+            new() { Description = "Mandiri tx", AccountName ="Mandiri", AccountId = null, AmountIdr =  50_000, Flow = "DB" },
         };
 
         ResolveAccountIds(transactions, SampleAccounts());

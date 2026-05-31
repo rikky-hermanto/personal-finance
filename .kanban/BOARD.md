@@ -157,6 +157,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
 | PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
+| PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across the full stack |
 
 ---
 
