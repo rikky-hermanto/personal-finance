@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Moq;
 using PersonalFinance.Infrastructure.Parsers;
+using PersonalFinance.Infrastructure.Parsers.Signatures;
 using Xunit;
 
 namespace PersonalFinance.Tests.Parsers;
@@ -15,7 +16,14 @@ public class BankIdentifierTests
     public BankIdentifierTests()
     {
         var loggerMock = new Mock<ILogger<BankIdentifier>>();
-        _identifier = new BankIdentifier(loggerMock.Object);
+        IBankSignature[] signatures =
+        [
+            new BcaCsvSignature(),
+            new StandardCsvSignature(),
+            new NeoBankPdfSignature(),
+            new SuperbankPdfSignature(),
+        ];
+        _identifier = new BankIdentifier(signatures, loggerMock.Object);
     }
 
     [Theory]
