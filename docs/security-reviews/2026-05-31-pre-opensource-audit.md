@@ -35,14 +35,14 @@
 
 **Files:**
 - `docs/statement-examples/e-statement_Sep_2025_8851.pdf`
-- `docs/statement-examples/superbank_000020617734-2025-06-statement.pdf`
+- `docs/statement-examples/superbank_000000000001-2025-06-statement.pdf`
 - `docs/statement-examples/Screenshot_20260209-141329.png`
 
 **Severity:** Critical
 **Category:** Financial PII — real bank statements in git history
 **Confidence:** 10/10
 
-**Description:** Three real bank statement files are actively tracked in git commits `bb7b28bf` (PF-012) and `bf1c9d02`. The filenames contain account number fragments (`8851`, `000020617734`). The files contain full transaction histories, account holder name, account numbers, and balances. No `.gitignore` rules protect `.pdf` or `.png` files in this directory.
+**Description:** Three real bank statement files are actively tracked in git commits `bb7b28bf` (PF-012) and `bf1c9d02`. The filenames contain account number fragments (`8851`, `000000000001`). The files contain full transaction histories, account holder name, account numbers, and balances. No `.gitignore` rules protect `.pdf` or `.png` files in this directory.
 
 **Exploit Scenario:** Making the repository public immediately exposes 2+ months of real personal financial transaction history to anyone who clones the repo, runs `git log`, or browses GitHub. These files exist permanently in git history — deleting them in a new commit is insufficient.
 
@@ -50,7 +50,7 @@
 ```bash
 # Purge each file from all history
 git filter-repo --path docs/statement-examples/e-statement_Sep_2025_8851.pdf --invert-paths
-git filter-repo --path "docs/statement-examples/superbank_000020617734-2025-06-statement.pdf" --invert-paths
+git filter-repo --path "docs/statement-examples/superbank_000000000001-2025-06-statement.pdf" --invert-paths
 git filter-repo --path docs/statement-examples/Screenshot_20260209-141329.png --invert-paths
 
 # Add gitignore protection

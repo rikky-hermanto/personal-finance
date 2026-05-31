@@ -91,7 +91,7 @@ table once per batch into two in-memory dictionaries sharing the same Supabase q
 
 Layer 0 is tried first because Description = merchant name is stable across months. Layer 1 is
 tried only on cache miss and only when `Remarks` is non-empty — bank text like "SAVING INTEREST"
-is invariant but "TARIKAN ATM 14/01 5307952056461149" changes date each month making it unreliable.
+is invariant but "TARIKAN ATM 14/01 4111111111111111" changes date each month making it unreliable.
 Both dictionaries are built from one Supabase round-trip, avoiding N+1 calls.
 
 **LLM integration (Layer 3):** New `POST /categorize` endpoint on the Python AI service. Takes
@@ -302,7 +302,7 @@ public async Task<List<TransactionDto>> CategorizeBatchAsync(List<TransactionDto
 
         // Layer 1: Remarks (bank-generated text) — lower signal; only tried when Remarks is
         // populated AND Description cache missed. Useful for invariant strings like "SAVING INTEREST"
-        // but unreliable for date-embedded strings like "TARIKAN ATM 14/01 5307952056461149".
+        // but unreliable for date-embedded strings like "TARIKAN ATM 14/01 4111111111111111".
         if (!string.IsNullOrWhiteSpace(tx.Remarks))
         {
             var remKey = (tx.Remarks.Trim().ToLowerInvariant(), flow);

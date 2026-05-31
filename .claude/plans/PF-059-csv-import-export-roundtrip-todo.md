@@ -204,7 +204,7 @@ const TEMPLATE_HEADERS = [
 
 const TEMPLATE_ROWS = [
   // BCA — everyday IDR expense
-  ['1/1/24 9:00 AM', 'Kopi Kenangan', 'DEBIT TRANSFER 01/01 5307952056461149', '', 'DB', 'Expense', 'Food & Drinks', 'BCA', '45000', '', '45000', 'IDR'],
+  ['1/1/24 9:00 AM', 'Kopi Kenangan', 'DEBIT TRANSFER 01/01 4111111111111111', '', 'DB', 'Expense', 'Food & Drinks', 'BCA', '45000', '', '45000', 'IDR'],
   // NeoBank — saving interest credit
   ['1/2/24 0:01 AM', 'Saving Interest', 'SAVING INTEREST JAN 2024', '', 'CR', 'Income', 'Saving Interest', 'NeoBank', '931', '', '931', 'IDR'],
   // Wise — USD transfer (shows Exc. Rate column usage)

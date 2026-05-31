@@ -133,7 +133,7 @@ public class CategorizationLayerTests
     [Fact]
     public void Layer2_AssetTransferVsExpense_DistinguishesUsingRemarks()
     {
-        // Based on CSV line 6: 01/01/2024;;BI-FAST DB BIAYA TXN  KE 535 RIKKI H HASIBUAN  M-BCA;DB;Expense;Transfer/Admin Fee
+        // Based on CSV line 6: 01/01/2024;;BI-FAST DB BIAYA TXN  KE 535 ACCOUNT_HOLDER  M-BCA;DB;Expense;Transfer/Admin Fee
         var rules = new List<CategoryRuleDto>
         {
             new() { Keyword = "BIAYA TXN", Type = "Expense", Category = "Transfer/Admin Fee" },
@@ -143,7 +143,7 @@ public class CategorizationLayerTests
         var tx = new TransactionDto 
         { 
             Description = "", 
-            Remarks = "BI-FAST DB BIAYA TXN  KE 535 RIKKI H HASIBUAN  M-BCA", 
+            Remarks = "BI-FAST DB BIAYA TXN  KE 535 ACCOUNT_HOLDER  M-BCA", 
             Flow = "DB", 
             Type = "Expense", 
             Category = "Uncategorized" 
