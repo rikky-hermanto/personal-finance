@@ -1,7 +1,7 @@
 # PF-AI001 — AI Observability: Langfuse Integration
 
 > **Learning Phase:** Phase 1 · Week 1 of 12 · Day 1 of 90
-> **Status:** In Progress (Steps 1–8 complete, Steps 9–14 remaining)
+> **Status:** In Progress (Steps 1–10 complete, Steps 11–14 remaining)
 > **Started:** 2026-05-30
 > **Pivot goal:** Close the "how do you monitor your LLM in production?" gap before any other AI Eng interview question.
 
@@ -23,7 +23,7 @@ Depends on: nothing — standalone addition. Unblocks: Week 2 (eval harness need
 - [x] Every `AnthropicProvider.extract_structured()` call creates a Langfuse generation with the same fields
 - [x] `generate_json()` calls (used by categorizer, portfolio reviewer) are also traced
 - [x] Langfuse `flush()` called on FastAPI app shutdown (no lost buffered traces)
-- [ ] After uploading one bank statement: trace appears in Langfuse UI with correct token counts
+- [x] After uploading one bank statement: trace appears in Langfuse UI with correct token counts
 - [ ] Langfuse dashboard created: cost/day, calls/day, p50/p95 latency, error rate
 - [ ] 3 concrete numbers documented in `docs/ai-observability-metrics.md`
 - [x] `.env.example` updated with Langfuse env vars
@@ -595,7 +595,7 @@ Then open https://cloud.langfuse.com → your project → **Traces**.
 
 ---
 
-### [ ] STEP 10 — Upload a real bank statement and capture the extraction trace
+### [x] STEP 10 — Upload a real bank statement and capture the extraction trace
 
 Upload a real BCA CSV or NeoBank PDF through the frontend upload wizard at http://localhost:8080 → Cashflow → Upload.
 
