@@ -37,7 +37,7 @@ Commit all `.gitignore` hardening and safe file changes first (so protective rul
 | `.mcp.json` | Edit — replace `postgres123` hardcoded value with `${DATABASE_URL}` |
 | `.mcp.json.example` | Create — sanitized copy with all secrets as `${VAR_NAME}` placeholders |
 | `docs/statement-examples/e-statement_Sep_2025_8851.pdf` | Purged from git history (file remains on disk, gitignored) |
-| `docs/statement-examples/superbank_000020617734-2025-06-statement.pdf` | Purged from git history |
+| `docs/statement-examples/superbank_000000000001-2025-06-statement.pdf` | Purged from git history |
 | `docs/statement-examples/Screenshot_20260209-141329.png` | Purged from git history |
 | `docs/statement-examples/transaction-template-sample.csv` | Purged from git history (STEP 1 finding: contained real PII) |
 | `.playwright-mcp/` (21 files) | Purged from git history + untracked |
@@ -165,7 +165,7 @@ git commit -m "security: harden gitignore + redact .mcp.json credential before h
 git filter-repo \
   --path ".playwright-mcp/" \
   --path "docs/statement-examples/e-statement_Sep_2025_8851.pdf" \
-  --path "docs/statement-examples/superbank_000020617734-2025-06-statement.pdf" \
+  --path "docs/statement-examples/superbank_000000000001-2025-06-statement.pdf" \
   --path "docs/statement-examples/Screenshot_20260209-141329.png" \
   --path "docs/statement-examples/transaction-template-sample.csv" \
   --path "docs/developer_profile.md" \
