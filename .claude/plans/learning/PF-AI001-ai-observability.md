@@ -1,7 +1,7 @@
 # PF-AI001 — AI Observability: Langfuse Integration
 
 > **Learning Phase:** Phase 1 · Week 1 of 12 · Day 1 of 90
-> **Status:** Not Started
+> **Status:** In Progress (Steps 1–8 complete, Steps 9–14 remaining)
 > **Started:** 2026-05-30
 > **Pivot goal:** Close the "how do you monitor your LLM in production?" gap before any other AI Eng interview question.
 
@@ -17,16 +17,16 @@ Depends on: nothing — standalone addition. Unblocks: Week 2 (eval harness need
 
 ## Acceptance Criteria
 
-- [ ] `langfuse` added to `pyproject.toml` dependencies
-- [ ] `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` read from env in `config.py`
-- [ ] Every `GeminiProvider.extract_structured()` call creates a Langfuse generation with: model name, input tokens, output tokens, estimated cost
-- [ ] Every `AnthropicProvider.extract_structured()` call creates a Langfuse generation with the same fields
-- [ ] `generate_json()` calls (used by categorizer, portfolio reviewer) are also traced
-- [ ] Langfuse `flush()` called on FastAPI app shutdown (no lost buffered traces)
+- [x] `langfuse` added to `pyproject.toml` dependencies
+- [x] `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` read from env in `config.py`
+- [x] Every `GeminiProvider.extract_structured()` call creates a Langfuse generation with: model name, input tokens, output tokens, estimated cost
+- [x] Every `AnthropicProvider.extract_structured()` call creates a Langfuse generation with the same fields
+- [x] `generate_json()` calls (used by categorizer, portfolio reviewer) are also traced
+- [x] Langfuse `flush()` called on FastAPI app shutdown (no lost buffered traces)
 - [ ] After uploading one bank statement: trace appears in Langfuse UI with correct token counts
 - [ ] Langfuse dashboard created: cost/day, calls/day, p50/p95 latency, error rate
 - [ ] 3 concrete numbers documented in `docs/ai-observability-metrics.md`
-- [ ] `.env.example` updated with Langfuse env vars
+- [x] `.env.example` updated with Langfuse env vars
 
 ## Approach
 
@@ -55,7 +55,7 @@ Out of scope: prompt versioning, A/B testing prompts, Langfuse datasets, evals w
 
 ## TODO
 
-### [ ] STEP 1 — Sign up for Langfuse Cloud and get API keys
+### [x] STEP 1 — Sign up for Langfuse Cloud and get API keys
 
 1. Go to https://cloud.langfuse.com and sign up (free tier, no credit card)
 2. Create a new project: **"personal-finance"**
@@ -69,7 +69,7 @@ Out of scope: prompt versioning, A/B testing prompts, Langfuse datasets, evals w
 
 ---
 
-### [ ] STEP 2 — Add Langfuse to `pyproject.toml`
+### [x] STEP 2 — Add Langfuse to `pyproject.toml`
 
 Edit `services/ai-service/pyproject.toml` — add `langfuse` to the `dependencies` list:
 
@@ -88,7 +88,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.50b0",
     "opentelemetry-instrumentation-logging>=0.50b0",
     "opentelemetry-exporter-otlp>=1.29.0",
-    "langfuse>=3.0",
+    "langfuse>=3.0,<4.0",
 ]
 ```
 
@@ -98,11 +98,26 @@ cd services/ai-service
 pip install -e .
 ```
 
-> **Why `>=3.0`?** Langfuse v3 changed the API significantly — the older `langfuse.generation()` context manager API was removed in favour of `langfuse.start_generation()`. Pinning `>=3.0` avoids accidentally installing v2 (which has different method names). Verify: `pip show langfuse` → should show `3.x.x`.
+**Pre-flight verify** — run this before proceeding to confirm the installed API is what the steps below expect:
+```bash
+python -c "
+import warnings, inspect
+warnings.filterwarnings('ignore')
+from langfuse import Langfuse
+lf = Langfuse(public_key='test', secret_key='test', host='https://cloud.langfuse.com', tracing_enabled=False)
+gen = lf.start_observation(as_type='generation', name='preflight', model='test', input='x')
+gen.update(output='y', usage_details={'input': 1, 'output': 1}, cost_details={'usd': 0.0})
+gen.end()
+print('Langfuse API OK')
+"
+```
+Expected output: `Langfuse API OK`. If you see `AttributeError` or `TypeError`, the installed version has a different API — check `pip show langfuse` and compare against the version these steps were written for (3.15.0).
+
+> **Why `>=3.0,<4.0`?** Upper-bound cap prevents a hypothetical v4 breaking change from silently installing. v3 introduced `start_observation(as_type='generation')` as the canonical API — `start_generation()` still works in 3.x but is deprecated. Pinning the major version is the minimal safety net for a fast-moving SDK.
 
 ---
 
-### [ ] STEP 3 — Add Langfuse config to `app/config.py`
+### [x] STEP 3 — Add Langfuse config to `app/config.py`
 
 Open `services/ai-service/app/config.py` and add the three Langfuse fields to `Settings`:
 
@@ -145,7 +160,7 @@ settings.validate_provider_key()
 
 ---
 
-### [ ] STEP 4 — Create `app/observability.py` — Langfuse singleton
+### [x] STEP 4 — Create `app/observability.py` — Langfuse singleton
 
 Create a new file `services/ai-service/app/observability.py`:
 
@@ -162,7 +177,7 @@ langfuse = Langfuse(
     public_key=settings.langfuse_public_key,
     secret_key=settings.langfuse_secret_key,
     host=settings.langfuse_host,
-    enabled=bool(settings.langfuse_public_key and settings.langfuse_secret_key),
+    tracing_enabled=bool(settings.langfuse_public_key and settings.langfuse_secret_key),
 )
 
 # Gemini 2.5 Flash cost per 1M tokens (as of 2026-05)
@@ -199,7 +214,7 @@ def estimate_cost_usd(model: str, input_tokens: int, output_tokens: int) -> floa
 
 ---
 
-### [ ] STEP 5 — Wrap `GeminiProvider` with Langfuse tracing
+### [x] STEP 5 — Wrap `GeminiProvider` with Langfuse tracing
 
 Open `services/ai-service/app/providers/gemini.py` and modify `extract_structured()` and `generate_json()`:
 
@@ -253,7 +268,8 @@ class GeminiProvider:
 
         client = self._get_client()
 
-        generation = langfuse.start_generation(
+        generation = langfuse.start_observation(
+            as_type="generation",
             name="gemini-extract-structured",
             model=self._model,
             input=user_text[:500],  # truncate — full prompt can be large
@@ -276,20 +292,19 @@ class GeminiProvider:
                 self._model, input_tokens, output_tokens, cost,
             )
 
-            generation.end(
+            generation.update(
                 output=response.text[:500],
-                usage={
-                    "input": input_tokens,
-                    "output": output_tokens,
-                    "unit": "TOKENS",
-                },
-                metadata={"cost_usd": cost},
+                usage_details={"input": input_tokens, "output": output_tokens},
+                cost_details={"usd": cost},
+                metadata={"has_image": image is not None, "cost_usd": cost},
             )
+            generation.end()
 
             return json.loads(response.text)
 
         except Exception as exc:
-            generation.end(level="ERROR", status_message=str(exc))
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
             raise
 
     async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
@@ -301,7 +316,8 @@ class GeminiProvider:
         )
         client = self._get_client()
 
-        generation = langfuse.start_generation(
+        generation = langfuse.start_observation(
+            as_type="generation",
             name="gemini-generate-json",
             model=self._model,
             input=user_prompt[:500],
@@ -315,25 +331,33 @@ class GeminiProvider:
             )
             input_tokens = response.usage_metadata.prompt_token_count
             output_tokens = response.usage_metadata.candidates_token_count
-            generation.end(
+            cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
+            generation.update(
                 output=response.text[:500],
-                usage={"input": input_tokens, "output": output_tokens, "unit": "TOKENS"},
-                metadata={"cost_usd": estimate_cost_usd(self._model, input_tokens, output_tokens)},
+                usage_details={"input": input_tokens, "output": output_tokens},
+                cost_details={"usd": cost},
+                metadata={"cost_usd": cost},
             )
+            generation.end()
             return json.loads(response.text)
 
         except Exception as exc:
-            generation.end(level="ERROR", status_message=str(exc))
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
             raise
 ```
 
-> **Why `generation.end()` in the `except` block?** Langfuse requires every started generation to be ended — including on failure. If you skip the `except` path, the generation stays "open" in Langfuse indefinitely and skews latency metrics. The `level="ERROR"` flag marks it red in the UI so you can filter failures separately.
+> **Why `start_observation(as_type="generation")`?** In Langfuse 3.x, `start_generation()` is deprecated — `start_observation` with `as_type` is the canonical API. Both produce a `LangfuseGeneration` object, but `start_observation` will survive future SDK versions.
 >
-> **Why `input=user_text[:500]`?** Bank statement text can be 5,000+ tokens. Logging the full prompt to Langfuse is expensive (storage) and messy (you see the PDF dump in every trace). Truncate to 500 chars — enough to identify which document was parsed. If you need the full prompt for debugging, use Langfuse's `input` field on the parent `trace` instead.
+> **Why `update()` then `end()` separately?** In Langfuse 3.x, `end()` only accepts `end_time`. All fields — `output`, `usage_details`, `cost_details`, `metadata`, `level`, `status_message` — must go through `update()` first, then call `end()` to close the span. Passing them to `end()` directly throws `TypeError`.
+>
+> **Why `usage_details` and `cost_details`?** The old `usage={"input": N, "output": N, "unit": "TOKENS"}` dict was renamed to `usage_details={"input": N, "output": N}` (no `unit` key). Cost moved to a dedicated `cost_details={"usd": X}` field — Langfuse uses this for the dashboard cost aggregation, not the metadata dict.
+>
+> **Why `input=user_text[:500]`?** Bank statement text can be 5,000+ tokens. Logging the full prompt is expensive (storage) and messy. Truncate to 500 chars — enough to identify which document was parsed.
 
 ---
 
-### [ ] STEP 6 — Wrap `AnthropicProvider` with Langfuse tracing
+### [x] STEP 6 — Wrap `AnthropicProvider` with Langfuse tracing
 
 Open `services/ai-service/app/providers/anthropic.py` and apply the same pattern:
 
@@ -382,12 +406,14 @@ class AnthropicProvider:
         else:
             content = user_text
 
-        generation = langfuse.start_generation(
+        generation = langfuse.start_observation(
+            as_type="generation",
             name="anthropic-extract-structured",
             model=self._model,
             input=user_text[:500] if isinstance(user_text, str) else "[image input]",
             metadata={"has_image": image is not None},
         )
+        _generation_ended = False  # guard against double-end in exception handler
 
         try:
             message = await self._client.messages.create(
@@ -401,7 +427,9 @@ class AnthropicProvider:
             )
 
             if message.stop_reason == "max_tokens":
-                generation.end(level="ERROR", status_message="max_tokens truncation")
+                generation.update(level="ERROR", status_message="max_tokens truncation")
+                generation.end()
+                _generation_ended = True
                 raise RuntimeError(
                     "Response truncated — statement too long. Split into pages before re-extracting."
                 )
@@ -410,7 +438,9 @@ class AnthropicProvider:
                 (b for b in message.content if b.type == "tool_use"), None
             )
             if tool_block is None:
-                generation.end(level="ERROR", status_message="no tool_use block returned")
+                generation.update(level="ERROR", status_message="no tool_use block returned")
+                generation.end()
+                _generation_ended = True
                 raise ValueError("Anthropic did not return a tool_use block")
 
             input_tokens = message.usage.input_tokens
@@ -422,22 +452,21 @@ class AnthropicProvider:
                 self._model, input_tokens, output_tokens, cost,
             )
 
-            generation.end(
+            generation.update(
                 output=str(tool_block.input)[:500],
-                usage={
-                    "input": input_tokens,
-                    "output": output_tokens,
-                    "unit": "TOKENS",
-                },
-                metadata={"cost_usd": cost},
+                usage_details={"input": input_tokens, "output": output_tokens},
+                cost_details={"usd": cost},
+                metadata={"has_image": image is not None, "cost_usd": cost},
             )
+            generation.end()
+            _generation_ended = True
 
             return tool_block.input
 
         except Exception as exc:
-            # Only end if generation wasn't already ended above
-            if not generation.end_time:
-                generation.end(level="ERROR", status_message=str(exc))
+            if not _generation_ended:
+                generation.update(level="ERROR", status_message=str(exc))
+                generation.end()
             raise
 
     async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
@@ -447,7 +476,8 @@ class AnthropicProvider:
             "input_schema": schema,
         }]
 
-        generation = langfuse.start_generation(
+        generation = langfuse.start_observation(
+            as_type="generation",
             name="anthropic-generate-json",
             model=self._model,
             input=user_prompt[:500],
@@ -466,23 +496,27 @@ class AnthropicProvider:
             tool_block = next(b for b in response.content if b.type == "tool_use")
             input_tokens = response.usage.input_tokens
             output_tokens = response.usage.output_tokens
-            generation.end(
+            cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
+            generation.update(
                 output=str(tool_block.input)[:500],
-                usage={"input": input_tokens, "output": output_tokens, "unit": "TOKENS"},
-                metadata={"cost_usd": estimate_cost_usd(self._model, input_tokens, output_tokens)},
+                usage_details={"input": input_tokens, "output": output_tokens},
+                cost_details={"usd": cost},
+                metadata={"cost_usd": cost},
             )
+            generation.end()
             return tool_block.input
 
         except Exception as exc:
-            generation.end(level="ERROR", status_message=str(exc))
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
             raise
 ```
 
-> **Why `not generation.end_time`?** The `max_tokens` and missing `tool_block` branches already call `generation.end()` before raising. If the exception fires after one of those, calling `generation.end()` a second time would double-record. Checking `end_time` (set by the first `end()` call) prevents that.
+> **Why `_generation_ended` boolean flag instead of `generation.end_time`?** In Langfuse 3.x, `LangfuseGeneration` has no `end_time` attribute — that was a v2 property. The `max_tokens` and missing `tool_block` branches call `update()+end()` before raising, and the general `except` below would catch those raises too. A simple boolean flag prevents the double-end without relying on internal SDK state.
 
 ---
 
-### [ ] STEP 7 — Add `langfuse.flush()` to app shutdown
+### [x] STEP 7 — Add `langfuse.flush()` to app shutdown
 
 Open `services/ai-service/app/main.py`. Find the lifespan or shutdown handler and add the flush call:
 
@@ -509,7 +543,7 @@ async def shutdown_event():
 
 ---
 
-### [ ] STEP 8 — Update `.env` and `.env.example`
+### [x] STEP 8 — Update `.env` and `.env.example`
 
 Add to `services/ai-service/.env` (your real keys — never commit this file):
 ```
@@ -529,7 +563,7 @@ LANGFUSE_HOST=https://cloud.langfuse.com
 
 ---
 
-### [ ] STEP 9 — Smoke test: run one extraction, verify trace in Langfuse UI
+### [x] STEP 9 — Smoke test: run one extraction, verify trace in Langfuse UI
 
 ```bash
 # Start the AI service
@@ -675,7 +709,9 @@ Then update `mentor/progress.md` — mark the first 3 Week 1 tasks as done:
 
 ## Notes
 
-- **Langfuse v3 API:** `langfuse.start_generation()` → returns a `StatefulGenerationClient`. Call `.end()` on it to close the span. The older `with langfuse.generation() as g:` context manager was deprecated in v2 and removed in v3.
+- **Langfuse v3 API (verified against 3.15.0):** Use `langfuse.start_observation(as_type="generation", ...)` — returns a `LangfuseGeneration`. `start_generation()` still works but is deprecated. The key v3 change: `end()` only accepts `end_time`. All span data (`output`, `usage_details`, `cost_details`, `metadata`, `level`, `status_message`) must go through `update()` first, then call `end()`. Passing them to `end()` throws `TypeError`.
+- **`usage` → `usage_details`, no `unit` key:** The old `usage={"input": N, "output": N, "unit": "TOKENS"}` dict is gone. Use `usage_details={"input": N, "output": N}`. Cost goes in a separate `cost_details={"usd": X}` field — Langfuse uses this for dashboard aggregation.
+- **`tracing_enabled` (not `enabled`):** The Langfuse constructor parameter to disable tracing when keys are empty is `tracing_enabled`, not `enabled`. Check `inspect.signature(Langfuse.__init__)` if unsure — the constructor signature is the authoritative source.
 - **Gemini cost table:** Gemini 2.5 Flash charges $0.075/1M input tokens and $0.30/1M output tokens (as of 2026-05). These rates change — check https://ai.google.dev/pricing before quoting numbers in an interview.
 - **Thread safety:** The module-level `langfuse` singleton is thread-safe. FastAPI runs on asyncio so multiple concurrent requests safely share it.
 - **`generate_json()` volume:** This method is called by the categorizer (once per uncategorized transaction) and by `portfolio_reviewer` and `journey_advisor`. Categorization is your highest-volume LLM call — probably 10-50x more calls than extraction. Track it separately in Langfuse by filtering on generation name `gemini-generate-json`.

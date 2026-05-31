@@ -4,6 +4,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
+# In the lifespan context manager or @app.on_event("shutdown"):
+from app.observability import langfuse
 from app.config import settings
 from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse
 from app.providers.factory import ProviderFactory
@@ -47,6 +49,7 @@ async def lifespan(app: FastAPI):
     logger.info("AI service starting up | provider=%s | model=%s", settings.ai_provider, settings.ai_model)
     yield
     logger.info("AI service shutting down")
+    langfuse.flush()   # drain buffered traces before process exits
 
 
 # OpenTelemetry Initialization

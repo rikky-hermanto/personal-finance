@@ -1,9 +1,12 @@
+from pathlib import Path
 from typing import Literal
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_ENV_FILE = Path(__file__).parent.parent / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=str(_ENV_FILE), env_file_encoding="utf-8", extra="ignore")
 
     ai_provider: Literal["gemini", "anthropic"] = "gemini"
 
@@ -18,7 +21,11 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:7208"]
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
     otel_service_name: str = "ai-service"
-
+    
+    # Langfuse — AI observability
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
 
     def validate_provider_key(self) -> None:
         if self.ai_provider == "gemini" and not self.gemini_api_key:

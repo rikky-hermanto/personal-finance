@@ -4,6 +4,8 @@ import logging
 from google import genai
 from google.genai import types
 
+from app.observability import langfuse, estimate_cost_usd
+
 logger = logging.getLogger(__name__)
 
 
@@ -19,7 +21,6 @@ class GeminiProvider:
                 raise ValueError("GEMINI_API_KEY is not set.")
             self._client = genai.Client(api_key=self._api_key)
         return self._client
-
 
     async def extract_structured(
         self,
@@ -45,20 +46,45 @@ class GeminiProvider:
             contents = user_text
 
         client = self._get_client()
-        response = await client.aio.models.generate_content(
+
+        generation = langfuse.start_observation(
+            as_type="generation",
+            name="gemini-extract-structured",
             model=self._model,
-            contents=contents,
-            config=config,
+            input=user_text[:500],
+            metadata={"has_image": image is not None},
         )
 
-        logger.info(
-            "Gemini extract complete | model=%s | input_tokens=%d | output_tokens=%d",
-            self._model,
-            response.usage_metadata.prompt_token_count,
-            response.usage_metadata.candidates_token_count,
-        )
+        try:
+            response = await client.aio.models.generate_content(
+                model=self._model,
+                contents=contents,
+                config=config,
+            )
 
-        return json.loads(response.text)
+            input_tokens = response.usage_metadata.prompt_token_count
+            output_tokens = response.usage_metadata.candidates_token_count
+            cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
+
+            logger.info(
+                "Gemini extract complete | model=%s | input_tokens=%d | output_tokens=%d | cost_usd=%.6f",
+                self._model, input_tokens, output_tokens, cost,
+            )
+
+            generation.update(
+                output=response.text[:500],
+                usage_details={"input": input_tokens, "output": output_tokens},
+                cost_details={"usd": cost},
+                metadata={"has_image": image is not None, "cost_usd": cost},
+            )
+            generation.end()
+
+            return json.loads(response.text)
+
+        except Exception as exc:
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
+            raise
 
     async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
         config = types.GenerateContentConfig(
@@ -67,10 +93,38 @@ class GeminiProvider:
             response_schema=schema,
             temperature=0.0,
         )
+
         client = self._get_client()
-        response = await client.aio.models.generate_content(
+
+        generation = langfuse.start_observation(
+            as_type="generation",
+            name="gemini-generate-json",
             model=self._model,
-            contents=user_prompt,
-            config=config,
+            input=user_prompt[:500],
         )
-        return json.loads(response.text)
+
+        try:
+            response = await client.aio.models.generate_content(
+                model=self._model,
+                contents=user_prompt,
+                config=config,
+            )
+
+            input_tokens = response.usage_metadata.prompt_token_count
+            output_tokens = response.usage_metadata.candidates_token_count
+            cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
+
+            generation.update(
+                output=response.text[:500],
+                usage_details={"input": input_tokens, "output": output_tokens},
+                cost_details={"usd": cost},
+                metadata={"cost_usd": cost},
+            )
+            generation.end()
+
+            return json.loads(response.text)
+
+        except Exception as exc:
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
+            raise
