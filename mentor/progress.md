@@ -100,3 +100,41 @@
 ## Activity Log
 
 <!-- Append entries below. Format: ### YYYY-MM-DD -->
+
+### 2026-05-30 — Day 1
+
+**Session: Pivot kickoff + PF-AI001 Langfuse integration (Steps 1–8)**
+
+- Initialized 90-day pivot: created `mentor/progress.md`, confirmed 12-week task breakdown in `mentor/learning-path.md`
+- Signed up for Langfuse Cloud free tier, created "personal-finance" project, obtained API key pair
+- Added `langfuse>=3.0,<4.0` to `services/ai-service/pyproject.toml`
+- Added `langfuse_public_key`, `langfuse_secret_key`, `langfuse_host` to `app/config.py` (pydantic-settings auto-reads env vars)
+- Created `app/observability.py`: Langfuse singleton (disabled gracefully when keys absent), Gemini + Anthropic cost tables, `estimate_cost_usd()` helper
+- Wrapped `GeminiProvider.extract_structured()` and `generate_json()` with `langfuse.start_observation(as_type="generation")` — logs input/output tokens and cost_usd per call
+- Wrapped `AnthropicProvider.extract_structured()` and `generate_json()` with same pattern — `_generation_ended` guard prevents double-end on max_tokens / missing tool_block paths
+- Added `langfuse.flush()` to FastAPI lifespan shutdown hook in `app/main.py`
+- Updated `services/ai-service/.env.example` with Langfuse env var template
+- Created `services/ai-service/docs/langfuse-integration.md` — architecture rationale and key v3 API notes
+
+**Week 1 checklist progress:**
+- [x] Add Langfuse to personal-finance AI service
+- [x] Wrap existing Anthropic and Gemini calls with Langfuse tracing
+- [ ] Create Langfuse dashboard: cost/day, calls/day, latency distribution, error rate ← tomorrow
+- [ ] Extract p50/p95 latency and average cost-per-doc ← tomorrow
+- [ ] Document 3 concrete numbers in article-digest.md ← tomorrow
+
+**Retros (blockers & surprises):**
+- **Langfuse v3 API: `start_generation()` removed:** Expected `langfuse.start_generation(...)` to work — it's deprecated in v3. → **Fix:** Use `langfuse.start_observation(as_type="generation", ...)` which returns the same `LangfuseGeneration` object. The docs for v3 are sparse; found the correct API via `inspect.signature()` on the class.
+- **`end()` accepts only `end_time`:** Tried passing `output=`, `usage_details=`, `cost_details=` directly to `end()` — got `TypeError`. → **Fix:** All span data goes through `update()` first, then call `end()` with no arguments. The split `update() → end()` pattern is unintuitive but required in v3.
+- **`usage` dict renamed, `unit` key removed:** The old `usage={"input": N, "output": N, "unit": "TOKENS"}` no longer works. → **Fix:** Use `usage_details={"input": N, "output": N}` (no `unit`) and a separate `cost_details={"usd": X}` field. Langfuse uses `cost_details` for dashboard cost aggregation — not `metadata`.
+- **`enabled` → `tracing_enabled` constructor param:** Tried `Langfuse(..., enabled=False)` to disable when keys are empty — silently ignored. → **Fix:** The correct param is `tracing_enabled=bool(...)`. Found via `inspect.signature(Langfuse.__init__)`.
+- **Double-end guard in AnthropicProvider:** The max_tokens and missing tool_block branches call `update()+end()` before re-raising. The outer `except` catches those raises too and would call `end()` again → `LangfuseError`. → **Fix:** `_generation_ended = False` boolean flag, set to `True` after every `end()` call; outer except checks it before calling `end()`.
+
+**Remaining for tomorrow (Steps 9–14):**
+- Smoke test: run one extraction, verify trace appears in Langfuse UI
+- Upload a real bank statement, capture extraction trace (cost + latency)
+- Build Langfuse dashboard (4 charts: cost/day, calls/day, latency distribution, error rate)
+- Document 3 concrete numbers in `docs/ai-observability-metrics.md`
+- Commit all changes
+
+**Streak: 1 day**

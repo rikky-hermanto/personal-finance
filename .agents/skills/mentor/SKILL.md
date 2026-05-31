@@ -181,6 +181,34 @@ Steps:
 Current streak: {N} days with at least one log entry
 ```
 
+**Standard daily log entry format in `progress.md`:**
+
+Every `### YYYY-MM-DD` entry must include these sections:
+
+```markdown
+### YYYY-MM-DD — Day N
+
+**Session: {brief title}**
+
+- {bullet: what was done}
+- {bullet: what was done}
+
+**Week N checklist progress:**
+- [x] Task done
+- [ ] Task remaining ← tomorrow
+
+**Retros (blockers & surprises):**
+- **{Issue title}:** {what happened} → **Fix:** {how it was resolved or worked around}
+- {or "None — clean session" if no blockers}
+
+**Remaining for tomorrow:**
+- {concrete next step}
+
+**Streak: N days**
+```
+
+The Retros section is mandatory — if there were no blockers, write "None — clean session". Never skip it. Blockers to log include: API breaking changes, wrong assumptions, unexpected errors, doc/tutorial that was wrong or outdated, anything that took >15 minutes longer than expected.
+
 Always append to `mentor/progress.md` — never overwrite entries.
 
 ---
