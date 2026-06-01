@@ -56,7 +56,7 @@ public class LlmCategorizationClient : ILlmCategorizationClient
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "LLM categorize call failed — falling back to Uncategorized.");
+            _logger.LogError(ex, "LLM categorize call failed — falling back to Uncategorized.");
             return ("Uncategorized", 0.0);
         }
     }
