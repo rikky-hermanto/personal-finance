@@ -220,7 +220,7 @@ Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview,
 └───────────────────────┘      └────────────────────────────────┘
 ```
 
-**Coming next:** Supabase Auth (PF-S08), event-driven webhook pipeline replacing synchronous AI calls (PF-S11), Realtime status updates (PF-S12). Full target architecture: [docs/architecture-diagram.md](docs/architecture-diagram.md)
+**Coming next:** Supabase Auth (PF-S08), event-driven webhook pipeline replacing synchronous AI calls (PF-S11), Realtime status updates (PF-S12). Full target architecture: [docs/architecture/architecture-diagram.md](docs/architecture/architecture-diagram.md)
 
 | Layer | Technology |
 |---|---|

@@ -74,7 +74,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 ## Backlog — Supabase Migration (PF-S series)
 
-> 6 phases. Each phase has a verification milestone in `docs/supabase-migration.md`.
+> 6 phases. Each phase has a verification milestone in `docs/architecture/supabase-migration.md`.
 
 | ID | Issue | Title | Phase |
 |----|-------|-------|-------|
