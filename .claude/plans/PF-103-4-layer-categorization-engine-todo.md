@@ -1,7 +1,7 @@
 # PF-103 — 4-Layer Categorization Engine
 
-> **GitHub Issue:** [create before starting]
-> **Status:** TODO
+> **GitHub Issue:** [no issue created — implemented directly]
+> **Status:** IN PROGRESS — steps 1–12 done; STEP 11b + STEP 12b added from plan review — history-cache helper extraction (AC-11) + missing test paths (AC-12)
 > **Depends on:** PF-S07 (Supabase migration — DONE), PF-050 (AI service Docker — DONE)
 > **Feeds into:** PF-S13 (RAG + natural language querying)
 
@@ -63,16 +63,16 @@ loaded once per batch — the lookup key differs (description vs remarks).
 
 ## Acceptance Criteria
 
-- [ ] `category_rules` table has a nullable `flow` column (`varchar(5)`, NULL = any flow)
-- [ ] Existing 106 seeded rules are unchanged (default to `flow = NULL`)
-- [ ] `CategoryRuleService.CategorizeBatchAsync` tries `Description`-based cache lookup first (Layer 0), then `Remarks`-based cache (Layer 1), before rule matching
-- [ ] Layers 0 and 1 share one in-memory hash map loaded once per batch (no N+1 queries)
-- [ ] Flow-specific rules take priority over flow-agnostic rules in keyword matching (Layer 2)
-- [ ] Keyword matching searches `Description` first, then falls back to `Remarks` (Layer 2)
-- [ ] `TransactionPipelineService` calls LLM for rows still at `"Untracked Expense"` after Layers 0+1+2
-- [ ] LLM-confirmed categories (confidence ≥ 0.85) auto-create a new `CategoryRule`
-- [ ] Python `POST /categorize` endpoint returns `{ category, confidence }` in < 3 seconds
-- [ ] All parsers produce the same or better categorization without changing their signatures
+- [x] `category_rules` table has a nullable `flow` column (`varchar(5)`, NULL = any flow)
+- [x] Existing 106 seeded rules are unchanged (default to `flow = NULL`)
+- [x] `CategoryRuleService.CategorizeBatchAsync` tries `Description`-based cache lookup first (Layer 0), then `Remarks`-based cache (Layer 1), before rule matching
+- [x] Layers 0 and 1 share one in-memory hash map loaded once per batch (no N+1 queries)
+- [x] Flow-specific rules take priority over flow-agnostic rules in keyword matching (Layer 2)
+- [x] Keyword matching searches `Description` first, then falls back to `Remarks` (Layer 2)
+- [x] `TransactionPipelineService` calls LLM for rows still at `"Untracked Expense"` after Layers 0+1+2
+- [x] LLM-confirmed categories (confidence ≥ 0.85) auto-create a new `CategoryRule`
+- [x] Python `POST /categorize` endpoint returns `{ category, confidence }` in < 3 seconds
+- [x] All parsers produce the same or better categorization without changing their signatures
 - [ ] xUnit tests cover: history cache hit, flow-specific priority, Remarks fallback, LLM path
 - [ ] Python tests cover: `/categorize` happy path, low-confidence response, unknown category
 
@@ -970,6 +970,51 @@ async def test_categorize_low_confidence_still_returns_response():
 
 ---
 
+### [ ] STEP 11b — Python test: LLM parse-error fallback (AC-12)
+
+**File:** `services/ai-service/tests/test_categorize.py`
+
+Add after `test_categorize_low_confidence_still_returns_response`. This covers the `except (KeyError, TypeError, ValueError)` fallback path in `categorizer.categorize()` — the one branch not exercised by step 11's three existing tests.
+
+Add imports at the top of the test file if not already present:
+```python
+from decimal import Decimal
+from app.models import CategorizeRequest
+```
+
+Append test:
+```python
+@pytest.mark.anyio
+async def test_categorize_malformed_llm_response():
+    """Categorizer returns fallback (first category, confidence=0.0) when LLM response
+    is missing the required 'category' key — exercises the except branch in categorize()."""
+    from app.providers.base import LlmProvider
+    from app.services.categorizer import Categorizer
+
+    mock_provider = AsyncMock(spec=LlmProvider)
+    mock_provider.generate_json = AsyncMock(return_value={"wrong_key": "not a category"})
+
+    categorizer = Categorizer(provider=mock_provider)
+    result = await categorizer.categorize(
+        CategorizeRequest(
+            description="Mystery Merchant",
+            flow="DB",
+            amount_idr=Decimal("50000"),
+            available_categories=["Food", "Bill"],
+        )
+    )
+
+    assert result.confidence == pytest.approx(0.0)
+    assert result.category == "Food"  # first item in available_categories per fallback logic
+```
+
+Run:
+```bash
+cd services/ai-service && pytest tests/test_categorize.py -v
+```
+
+---
+
 ### [x] STEP 12 — xUnit tests for categorization layers
 
 **New file:** `apps/api/tests/PersonalFinance.Tests/Services/CategorizationLayerTests.cs`
@@ -1155,6 +1200,243 @@ public class CategorizationLayerTests
 Run:
 ```bash
 cd apps/api && dotnet test --filter "FullyQualifiedName~CategorizationLayerTests"
+```
+
+---
+
+### [ ] STEP 12b — Extract testable helper + history-cache tests + LlmCategorizationClient tests (AC-11, AC-12)
+
+#### Part A — Extract `ApplyHistoryCacheLookup` static helper from `CategoryRuleService`
+
+The existing `CategorizeBatchAsync` builds `descCache` / `remCache` inline, making Layer 0/1 untestable without a live Supabase connection. Extract the lookup into an `internal static` method so tests can drive it with plain in-memory dictionaries.
+
+**File:** `apps/api/src/PersonalFinance.Application/Services/CategoryRuleService.cs`
+
+Add this method (can be `private static` if the test project uses `[InternalsVisibleTo]`, or `internal static` with the attribute in the `.csproj`):
+
+```csharp
+/// <summary>
+/// Pure lookup: Layer 0 (description) then Layer 1 (remarks) against pre-built caches.
+/// Returns the cached category, or null on miss. No I/O.
+/// </summary>
+internal static string? ApplyHistoryCacheLookup(
+    IReadOnlyDictionary<(string Key, string? Flow), string> descCache,
+    IReadOnlyDictionary<(string Key, string? Flow), string> remCache,
+    TransactionDto tx)
+{
+    var flow = tx.Flow?.ToUpperInvariant();
+
+    if (!string.IsNullOrWhiteSpace(tx.Description))
+    {
+        var descKey = (tx.Description.Trim().ToLowerInvariant(), flow);
+        if (descCache.TryGetValue(descKey, out var fromDesc))
+            return fromDesc;
+    }
+
+    if (!string.IsNullOrWhiteSpace(tx.Remarks))
+    {
+        var remKey = (tx.Remarks.Trim().ToLowerInvariant(), flow);
+        if (remCache.TryGetValue(remKey, out var fromRem))
+            return fromRem;
+    }
+
+    return null;
+}
+```
+
+Replace the inline Layer 0/1 foreach in `CategorizeBatchAsync` with a call to this helper:
+
+```csharp
+foreach (var tx in needsCategorization)
+{
+    var hit = ApplyHistoryCacheLookup(descCache, remCache, tx);
+    if (hit is not null)
+    {
+        tx.Category = hit;
+        _logger.LogDebug("History cache hit: '{Desc}' → '{Cat}'", tx.Description ?? tx.Remarks, hit);
+        continue;
+    }
+    stillNeeded.Add(tx);
+}
+```
+
+Also fix keyword trim in `TransactionPipelineService.cs` auto-seed (guards against PDF extraction whitespace artifacts):
+
+```csharp
+// In ApplyLlmCategorizationAsync
+Keyword = tx.Description.Trim(),   // was: tx.Description
+```
+
+Expose internals to the test project — add to `PersonalFinance.Application.csproj`:
+
+```xml
+<ItemGroup>
+  <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+    <_Parameter1>PersonalFinance.Tests</_Parameter1>
+  </AssemblyAttribute>
+</ItemGroup>
+```
+
+Build:
+```bash
+cd apps/api && dotnet build PersonalFinance.slnx
+```
+
+#### Part B — History-cache unit tests (replaces AC-11 empty stub)
+
+**File:** `apps/api/tests/PersonalFinance.Tests/Services/CategorizationLayerTests.cs`
+
+**Replace** the empty `CategorizeBatchAsync_HistoryCacheHit_ReturnsCachedCategory` stub with these three tests:
+
+```csharp
+[Fact]
+public void ApplyHistoryCacheLookup_DescriptionHit_ReturnsCachedCategory()
+{
+    // Arrange
+    var descCache = new Dictionary<(string, string?), string>
+        { { ("go mie go", "DB"), "Food" } };
+    var remCache = new Dictionary<(string, string?), string>();
+    var tx = new TransactionDto { Description = "Go Mie Go", Flow = "DB", Category = "Untracked Expense" };
+
+    // Act
+    var result = CategoryRuleService.ApplyHistoryCacheLookup(descCache, remCache, tx);
+
+    // Assert
+    Assert.Equal("Food", result);
+}
+
+[Fact]
+public void ApplyHistoryCacheLookup_DescriptionMiss_FallsBackToRemarks()
+{
+    // Arrange
+    var descCache = new Dictionary<(string, string?), string>();
+    var remCache = new Dictionary<(string, string?), string>
+        { { ("saving interest", "CR"), "Saving Interest" } };
+    var tx = new TransactionDto
+    {
+        Description = "Something Unrelated",
+        Remarks     = "SAVING INTEREST",
+        Flow        = "CR",
+        Category    = "Untracked Expense",
+    };
+
+    // Act
+    var result = CategoryRuleService.ApplyHistoryCacheLookup(descCache, remCache, tx);
+
+    // Assert
+    Assert.Equal("Saving Interest", result);
+}
+
+[Fact]
+public void ApplyHistoryCacheLookup_BothMiss_ReturnsNull()
+{
+    // Arrange — empty caches
+    var descCache = new Dictionary<(string, string?), string>();
+    var remCache  = new Dictionary<(string, string?), string>();
+    var tx = new TransactionDto { Description = "Novel Merchant", Flow = "DB", Category = "Untracked Expense" };
+
+    // Act
+    var result = CategoryRuleService.ApplyHistoryCacheLookup(descCache, remCache, tx);
+
+    // Assert
+    Assert.Null(result);
+}
+```
+
+#### Part C — `LlmCategorizationClient` unit tests (covers AC-12 unknown-category guard)
+
+The unknown-category validation lives in `LlmCategorizationClient.cs` (C#), not in Python. This test class covers that path, plus HTTP error swallowing.
+
+**New file:** `apps/api/tests/PersonalFinance.Tests/Services/LlmCategorizationClientTests.cs`
+
+```csharp
+using System.Net;
+using System.Text;
+using System.Text.Json;
+using Microsoft.Extensions.Logging.Abstractions;
+using PersonalFinance.Infrastructure.External;
+
+public class LlmCategorizationClientTests
+{
+    [Fact]
+    public async Task CategorizeAsync_LlmReturnsUnknownCategory_ReturnsFallback()
+    {
+        // Arrange: LLM returns a hallucinated category not in availableCategories
+        var handler = new MockHttpMessageHandler(
+            JsonSerializer.Serialize(new { category = "Hallucinated Category", confidence = 0.97 }));
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:8000") };
+        var client = new LlmCategorizationClient(http, NullLogger<LlmCategorizationClient>.Instance);
+
+        // Act
+        var (category, confidence) = await client.CategorizeAsync(
+            "Netflix", "", "DB", 46500m, "SeaBank",
+            new[] { "Food", "Bill", "Subscriptions" });
+
+        // Assert
+        Assert.Equal("Untracked Expense", category);
+        Assert.Equal(0.0, confidence);
+    }
+
+    [Fact]
+    public async Task CategorizeAsync_HttpError_ReturnsFallbackWithoutThrowing()
+    {
+        // Arrange: AI service is unavailable
+        var handler = new MockHttpMessageHandler(statusCode: HttpStatusCode.ServiceUnavailable);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:8000") };
+        var client = new LlmCategorizationClient(http, NullLogger<LlmCategorizationClient>.Instance);
+
+        // Act — must not throw
+        var (category, confidence) = await client.CategorizeAsync(
+            "Netflix", "", "DB", 46500m, "SeaBank", new[] { "Bill" });
+
+        // Assert
+        Assert.Equal("Untracked Expense", category);
+        Assert.Equal(0.0, confidence);
+    }
+
+    [Fact]
+    public async Task CategorizeAsync_KnownCategory_ReturnsCategory()
+    {
+        // Arrange: LLM returns a valid known category
+        var handler = new MockHttpMessageHandler(
+            JsonSerializer.Serialize(new { category = "Food", confidence = 0.95 }));
+        var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:8000") };
+        var client = new LlmCategorizationClient(http, NullLogger<LlmCategorizationClient>.Instance);
+
+        // Act
+        var (category, confidence) = await client.CategorizeAsync(
+            "Go Mie Go", "QRIS (PAYMENT)", "DB", 37500m, "NeoBank",
+            new[] { "Food", "Bill" });
+
+        // Assert
+        Assert.Equal("Food", category);
+        Assert.Equal(0.95, confidence, precision: 2);
+    }
+
+    private sealed class MockHttpMessageHandler : HttpMessageHandler
+    {
+        private readonly string _json;
+        private readonly HttpStatusCode _statusCode;
+
+        public MockHttpMessageHandler(string json = "", HttpStatusCode statusCode = HttpStatusCode.OK)
+        {
+            _json       = json;
+            _statusCode = statusCode;
+        }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(_statusCode)
+            {
+                Content = new StringContent(_json, Encoding.UTF8, "application/json"),
+            });
+    }
+}
+```
+
+Run all new tests:
+```bash
+cd apps/api && dotnet test --filter "FullyQualifiedName~CategorizationLayerTests|FullyQualifiedName~LlmCategorizationClientTests"
 ```
 
 ---

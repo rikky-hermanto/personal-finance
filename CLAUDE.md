@@ -77,7 +77,7 @@ Each bank is defined by a configuration profile (JSON/YAML). Adding a new bank =
 | Wise | CSV | Direct parser | Multi-currency, FX rate conversion to IDR |
 | Bank Jago | Screenshot | LLM extraction (vision) | Mobile app screenshots, OCR via vision API |
 
-→ Full profile YAML examples and field schema: [docs/bank-profiles-reference.md](docs/bank-profiles-reference.md)
+→ Full profile YAML examples and field schema: [docs/design/bank-profiles-reference.md](docs/design/bank-profiles-reference.md)
 
 ### Validation Pipeline
 
@@ -93,14 +93,14 @@ The validation layer runs on ALL parsed output regardless of source parser:
 
 All banks converge to this unified schema before persisting. Key fields: `date` (ISO 8601), `description`, `amount_idr` (decimal), `currency` (ISO 4217), `type` (DEBIT|CREDIT), `bank_id`, `category`, `fx_rate?`.
 
-→ Full schema definition and C# DTO details: [docs/validation-pipeline.md](docs/validation-pipeline.md)
+→ Full schema definition and C# DTO details: [docs/design/validation-pipeline.md](docs/design/validation-pipeline.md)
 
 ## Architecture
 
 React 18 frontend → .NET 10 API (supabase-csharp) → Supabase (PostgreSQL 17 + pgvector, Auth, Storage, Realtime, Webhooks). PDF/image uploads are event-driven: Storage upload → Database Webhook → Python FastAPI AI service → results written back to Supabase → Realtime notifies frontend.
 
-→ Full architecture diagram and event flow: [docs/architecture-diagram.md](docs/architecture-diagram.md)
-→ Supabase migration rationale and phases: [docs/supabase-migration.md](docs/supabase-migration.md)
+→ Full architecture diagram and event flow: [docs/architecture/architecture-diagram.md](docs/architecture/architecture-diagram.md)
+→ Supabase migration rationale and phases: [docs/architecture/supabase-migration.md](docs/architecture/supabase-migration.md)
 
 ## Tech Stack
 
@@ -143,14 +143,14 @@ React 18 frontend → .NET 10 API (supabase-csharp) → Supabase (PostgreSQL 17 
 - **Cloud Target:** Supabase Cloud (database + platform), Azure (API + AI service hosting)
 
 For detailed docs (read on demand — not auto-imported):
-- [docs/API-endpoints.md](docs/API-endpoints.md) — all REST endpoints with curl examples
-- [docs/API-backend.md](docs/API-backend.md) — backend architecture details
-- [docs/Front-End.md](docs/Front-End.md) — frontend architecture details
+- [docs/architecture/API-endpoints.md](docs/architecture/API-endpoints.md) — all REST endpoints with curl examples
+- [docs/architecture/API-backend.md](docs/architecture/API-backend.md) — backend architecture details
+- [docs/architecture/Front-End.md](docs/architecture/Front-End.md) — frontend architecture details
 - [docs/SETUP.md](docs/SETUP.md) — Docker and local setup
-- [docs/architecture-diagram.md](docs/architecture-diagram.md) — full architecture diagram + event flow
-- [docs/supabase-migration.md](docs/supabase-migration.md) — Supabase migration phases and rationale
-- [docs/bank-profiles-reference.md](docs/bank-profiles-reference.md) — bank profile YAML schemas
-- [docs/validation-pipeline.md](docs/validation-pipeline.md) — validation pipeline + master schema
+- [docs/architecture/architecture-diagram.md](docs/architecture/architecture-diagram.md) — full architecture diagram + event flow
+- [docs/architecture/supabase-migration.md](docs/architecture/supabase-migration.md) — Supabase migration phases and rationale
+- [docs/design/bank-profiles-reference.md](docs/design/bank-profiles-reference.md) — bank profile YAML schemas
+- [docs/design/validation-pipeline.md](docs/design/validation-pipeline.md) — validation pipeline + master schema
 - [docs/sprint-plan.md](docs/sprint-plan.md) — Sprint 1-4 full breakdown
 
 ## Project Layout
@@ -434,7 +434,7 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - **Observability:** COMPLETE — LGTM stack (PF-100) and Status Page (PF-101) live
 - **Supabase Migration:** IN PROGRESS — 6 phases, tasks PF-S01–PF-S13
   - Done: PF-S01 through PF-S07 (EF Core removal)
-  - See [docs/supabase-migration.md](docs/supabase-migration.md) for full phase breakdown
+  - See [docs/architecture/supabase-migration.md](docs/architecture/supabase-migration.md) for full phase breakdown
 - **Feature expansion:** ACTIVE — Investment Portfolio, Spending Analysis (PF-108), Financial Journey Gamification, all shipped
   - **PF-114 COMPLETE** — Living Garden Hero redesign: LivingGardenHero.tsx + 5 plant SVG components + GroundBand + CloudAccent + dual-display indicators + journeyLabels.ts
 
@@ -480,5 +480,5 @@ Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-h
 - `upload-preview-new` experimental endpoint in `TransactionsController` is dead code — async Supabase Storage path never completes (returns 202 then nothing)
 
 ### Sprint Plan
-→ Revised sprint plan interleaving AI + Supabase: [docs/supabase-migration.md](docs/supabase-migration.md)
+→ Revised sprint plan interleaving AI + Supabase: [docs/architecture/supabase-migration.md](docs/architecture/supabase-migration.md)
 → Original Sprint 1-4 AI breakdown: [docs/sprint-plan.md](docs/sprint-plan.md)
