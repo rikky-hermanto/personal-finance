@@ -64,9 +64,12 @@ Full detail: [`.agents/skills/mentor/learning-path.md`](../.agents/skills/mentor
 ## Files
 
 ```
-mentor/
+docs/mentor/
   README.md       ← you are here
   progress.md     ← your live log (the skill reads and writes this)
+  ai-engineer-learning-path.md
+  ai-engineer-learning-tips.md
+  ai-engineering-usecase-map.md
 
 .agents/skills/mentor/
   SKILL.md        ← skill brain (modes, rules, prompts)
@@ -76,13 +79,13 @@ mentor/
   SKILL.md        ← redirect (makes /mentor work in Claude Code)
 ```
 
-**Also installed in:** `C:\workspaces\personal-finance\` — same structure, works from either project.
+**Also installed in:** `C:\workspaces\career-ops\` — progress tracked in `docs/mentor/progress.md` there too.
 
 ---
 
 ## The Progress Log
 
-`mentor/progress.md` is your source of truth. The skill reads it every time you run `/mentor` to figure out where you are and what's next.
+`docs/mentor/progress.md` is your source of truth. The skill reads it every time you run `/mentor` to figure out where you are and what's next.
 
 **Keep it alive by logging regularly:**
 

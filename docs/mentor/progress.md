@@ -33,12 +33,13 @@
 
 ## Phase 1 Task Checklist (Days 1–30)
 
-### Week 1: AI Observability + Real Metrics
-- [ ] Add Langfuse SDK to `services/ai-service` (Python)
-- [ ] Wrap Anthropic and Gemini calls with Langfuse tracing
-- [ ] Create Langfuse dashboard: cost/day, calls/day, latency distribution, error rate
-- [ ] Extract and document p50/p95 latency and avg cost-per-doc
-- [ ] Add 3 concrete numbers to `article-digest.md`
+### Week 1: AI Observability + Real Metrics ✅ DONE (2026-06-01)
+- [x] Add Langfuse SDK to `services/ai-service` (Python)
+- [x] Wrap existing Anthropic and Gemini calls with Langfuse tracing
+- [x] Verify trace appears in Langfuse UI with correct token counts (end-to-end smoke test)
+- [x] Create Langfuse dashboard: cost/day, calls/day, latency distribution, error rate
+- [x] Extract p50/p95 latency and average cost-per-doc
+- [x] Document 3 concrete numbers in `docs/performances/ai-observability-metrics.md`
 
 ### Week 2: LLM Evaluation Framework
 - [ ] Create `services/ai-service/evals/` directory with 20 anonymized fixture statements
@@ -123,3 +124,13 @@
 - Personal Finance is the sole implementation vehicle for all AI Engineer curriculum topics
 - Rikky is compiling own AI Engineer learning path (roadmap.sh as reference, not the source)
 - T2 on AI Engineering spectrum today (multi-provider extraction, failure mode handling, OTel); T3 after RAG + evals shipped
+
+### 2026-06-01 — Day 5
+**Session: Week 1 complete — Langfuse dashboard live**
+- Langfuse SDK integrated into Python AI service (`services/ai-service`)
+- Anthropic and Gemini calls wrapped with tracing — cost, latency, token counts visible in Langfuse UI
+- Langfuse dashboard created: cost/day, calls/day, p50/p95 latency distribution, error rate
+- 3 concrete numbers documented in `docs/performances/ai-observability-metrics.md`
+- Week 1 ✅ DONE — AI Observability gap closed
+
+**Streak: 5 days**

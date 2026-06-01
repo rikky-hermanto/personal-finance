@@ -377,6 +377,34 @@ Mirrors the GitHub Actions pipeline: build → test → lint → tsc → secret 
 
 ---
 
+### `/chores` — Project housekeeping sweep
+Audits plans for archival, scans for dead code and tech debt markers, checks folder structure violations, and reports outdated dependencies. Always reports before acting — no files are moved or deleted without confirmation.
+
+| Invocation | Scope |
+|-----------|-------|
+| `/chores` | Full sweep — all 5 categories |
+| `/chores plans` | Plan audit + archive to `completed/` only |
+| `/chores codebase` | Dead code, orphaned files, build artifacts |
+| `/chores debt` | Tech debt markers status report |
+| `/chores structure` | ARCH-02/03 folder/namespace violations |
+
+```
+/chores               # full sweep
+/chores plans         # archive completed plans only
+/chores debt          # check known tech debt items
+```
+
+**What it checks:**
+- Plans: scans `*-todo.md` for all-done checkboxes + GitHub issue state → moves verified-complete to `completed/`
+- Codebase: `Console.Write`, TODO/FIXME, skipped tests, dead endpoints, orphaned plan files
+- Tech debt: verifies each item in CLAUDE.md's Known Tech Debt section is still open or fixed
+- Structure: ARCH-02 interfaces in wrong layer, ARCH-03 namespace mismatches, frontend file placement
+- Dependencies: `dotnet list --outdated`, `npm outdated`, `pip list --outdated`
+
+Never auto-deletes. Never commits. Always runs `/kanban-sync` after archiving plans.
+
+---
+
 ## UI Themes (auto-applied)
 
 These are applied **automatically** — you don't need to invoke them manually.
