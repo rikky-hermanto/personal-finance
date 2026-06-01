@@ -1,7 +1,7 @@
 # PF-AI001 — AI Observability: Langfuse Integration
 
 > **Learning Phase:** Phase 1 · Week 1 of 12 · Day 1 of 90
-> **Status:** In Progress (Steps 1–10 complete, Steps 11–14 remaining)
+> **Status:** COMPLETE (all 14 steps done — 2026-06-01)
 > **Started:** 2026-05-30
 > **Pivot goal:** Close the "how do you monitor your LLM in production?" gap before any other AI Eng interview question.
 
@@ -24,8 +24,8 @@ Depends on: nothing — standalone addition. Unblocks: Week 2 (eval harness need
 - [x] `generate_json()` calls (used by categorizer, portfolio reviewer) are also traced
 - [x] Langfuse `flush()` called on FastAPI app shutdown (no lost buffered traces)
 - [x] After uploading one bank statement: trace appears in Langfuse UI with correct token counts
-- [ ] Langfuse dashboard created: cost/day, calls/day, p50/p95 latency, error rate
-- [ ] 3 concrete numbers documented in `docs/ai-observability-metrics.md`
+- [x] Langfuse dashboard created: cost/day, calls/day, p50/p95 latency, error rate
+- [x] 3 concrete numbers documented in `docs/ai-observability-metrics.md`
 - [x] `.env.example` updated with Langfuse env vars
 
 ## Approach
@@ -609,7 +609,7 @@ After the upload completes, go back to Langfuse → Traces. You should now see a
 
 ---
 
-### [ ] STEP 11 — Build Langfuse dashboard: cost + latency metrics
+### [x] STEP 11 — Build Langfuse dashboard: cost + latency metrics
 
 In Langfuse Cloud:
 
@@ -632,7 +632,7 @@ From the cost chart, calculate:
 
 ---
 
-### [ ] STEP 12 — Document 3 concrete numbers
+### [x] STEP 12 — Document 3 concrete numbers
 
 Create `docs/ai-observability-metrics.md`:
 
@@ -674,7 +674,7 @@ Fill in the `X` values from your Langfuse dashboard.
 
 ---
 
-### [ ] STEP 13 — Commit the changes
+### [x] STEP 13 — Commit the changes
 
 ```bash
 cd c:\workspaces\personal-finance
@@ -694,7 +694,7 @@ git commit -m "PF-AI001: add Langfuse tracing to Gemini and Anthropic providers"
 
 ---
 
-### [ ] STEP 14 — Log progress and advance the Week 1 checklist
+### [x] STEP 14 — Log progress and advance the Week 1 checklist
 
 ```
 /mentor log Added Langfuse to AI service — GeminiProvider and AnthropicProvider both traced. Verified traces appear in Langfuse UI. Extraction costs $X.XXX/doc, p95 latency Xms.
