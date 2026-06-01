@@ -405,7 +405,7 @@ public class JourneyScoringService(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to upsert achievement {Code}", code);
+                logger.LogError(ex, "Failed to upsert achievement {Code}", code);
             }
         }
 
@@ -466,7 +466,7 @@ public class JourneyScoringService(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to persist snapshot for {Indicator}", indicator.Code);
+                logger.LogError(ex, "Failed to persist snapshot for {Indicator}", indicator.Code);
             }
         }
     }

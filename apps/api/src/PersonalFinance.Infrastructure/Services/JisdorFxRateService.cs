@@ -81,7 +81,7 @@ public class JisdorFxRateService(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to refresh FX rate for {Currency}", currency);
+                logger.LogError(ex, "Failed to refresh FX rate for {Currency}", currency);
             }
         }
     }
