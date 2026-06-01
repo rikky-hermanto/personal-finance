@@ -2,7 +2,7 @@
 
 Full-stack monorepo: React 18 + Vite frontend (`apps/frontend/`), .NET 10 Clean Architecture API (`apps/api/`), Python FastAPI AI service (`services/ai-service/`), all backed by **Supabase** (PostgreSQL 17 + pgvector, Auth, Storage, Realtime, Webhooks).
 
-→ Migration rationale and phase breakdown: [docs/supabase-migration.md](supabase-migration.md)
+→ Migration rationale and phase breakdown: [docs/architecture/supabase-migration.md](supabase-migration.md)
 
 ## System Architecture
 

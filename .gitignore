@@ -89,3 +89,4 @@ docs/*_profile.md
 
 # MCP server config — contains local DB credentials; use .mcp.json.example for the template
 .mcp.json
+docs/cv/

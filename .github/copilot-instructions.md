@@ -182,6 +182,6 @@ cd services/ai-service && pytest
 
 See also:
 - [CLAUDE.md](../CLAUDE.md) — Full project guide for Claude Code
-- [docs/API-backend.md](../docs/API-backend.md) — Backend architecture details
-- [docs/Front-End.md](../docs/Front-End.md) — Frontend architecture details
+- [docs/API-backend.md](../docs/architecture/API-backend.md) — Backend architecture details
+- [docs/Front-End.md](../docs/architecture/Front-End.md) — Frontend architecture details
 - [docs/SETUP.md](../docs/SETUP.md) — Docker and local setup guide

@@ -180,6 +180,60 @@ Incoming transaction:
 
 ---
 
+### History Cache — How the Two Dicts Are Built and Queried
+
+```
+BATCH ENTRY — CategorizeBatchAsync(transactions)
+│
+├── Pre-gate: tx already has Category AND it's not "Uncategorized"?
+│     → keep as-is, skip entire engine (source-supplied ground truth)
+│
+├── [ONE Supabase round-trip]
+│     SELECT description, remarks, flow, category
+│     FROM transactions
+│     WHERE category IS NOT NULL AND category != 'Uncategorized'
+│                │
+│         split into two dicts (one pass over the result set)
+│                │
+│     ┌──────────┴──────────┐
+│     ▼                     ▼
+│  descCache              remCache
+│  key: (Squash(desc),    key: (Squash(remarks),
+│        flow.upper())          flow.upper())
+│  val: category          val: category
+│
+│  Squash() = collapse whitespace + lowercase
+│  "BI-FAST CR TRANSFER   DR" → "bi-fast cr transfer dr"
+│
+│  GroupBy + First() used instead of ToDictionary to handle
+│  duplicate keys safely (same merchant categorised differently
+│  across months — takes whichever row appears first).
+│
+└── for each tx still at "Uncategorized":
+      │
+      ├── [Layer 0] Description non-empty?
+      │     lookup key = (Squash(tx.Description), tx.Flow)
+      │     ──── HIT ────► tx.Category = cached value, continue ✓
+      │     ──── MISS ───► try Layer 1
+      │
+      ├── [Layer 1] Remarks non-empty?
+      │     lookup key = (Squash(tx.Remarks), tx.Flow)
+      │     ──── HIT ────► tx.Category = cached value, continue ✓
+      │     ──── MISS ───► add to stillNeeded[]
+      │
+      └── stillNeeded[] → Layer 2 (rule engine) → Layer 2b → Layer 3 (LLM)
+```
+
+**Why two separate dicts instead of one:**
+- `descCache` key = merchant name — stable across months ("Go Mie Go" is always "Go Mie Go")
+- `remCache` key = bank-generated text — variable strings like `"TARIKAN ATM 14/01…"` won't hit because the date changes, but invariant strings like `"SAVING INTEREST"` hit reliably every month
+- Merging them into one dict would require a tag to distinguish which field the key came from; two dicts is simpler and lets Layer 1 be skipped entirely when `Remarks` is empty
+
+**First upload:** both caches are empty → all transactions fall to Layer 2/3
+**Second upload of same bank:** recurring merchant names already in `transactions` → most rows hit Layer 0, LLM call rate drops near zero
+
+---
+
 ### Layer 2: Rule Engine (User Rules)
 
 Rules are stored in the `category_rules` table. Each rule has:
