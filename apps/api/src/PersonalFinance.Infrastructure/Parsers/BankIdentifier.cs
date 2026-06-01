@@ -44,7 +44,7 @@ public sealed class BankIdentifier(
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Error during bank identification.");
+            logger.LogError(ex, "Error during bank identification.");
             return null;
         }
         finally

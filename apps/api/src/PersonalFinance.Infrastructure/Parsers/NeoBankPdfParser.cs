@@ -115,7 +115,7 @@ public class NeoBankPdfParser : IBankStatementParser
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Skipped entry due to exception. Raw: {RawEntry}", entry.Substring(0, Math.Min(100, entry.Length)));
+                _logger.LogError(ex, "Skipped entry due to exception. Raw: {RawEntry}", entry.Substring(0, Math.Min(100, entry.Length)));
             }
         }
 
