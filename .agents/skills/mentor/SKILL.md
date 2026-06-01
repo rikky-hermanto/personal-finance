@@ -42,7 +42,7 @@ Edit **both** when changing the curriculum. The companion task file (`learning-p
 
 Before doing anything else, read these files silently:
 
-1. **`mentor/progress.md`** (project root) — Rikky's live progress log. If it doesn't exist, create it from the template at the end of this file.
+1. **`docs/mentor/progress.md`** — Rikky's live progress log. If it doesn't exist, create it from the template at the end of this file.
 2. **`mentor/learning-path.md`** (same dir as this SKILL.md) — The 30/60/90 day task-level curriculum.
 3. **`docs/ai-engineer-learning-path.md`** (project root, in both career-ops and personal-finance) — The compiled curriculum reference (phases, platforms, cadence, execution rules). Load when the user asks about overall plan, phase context, or which courses to take.
 4. **`cv.md`** (project root, if exists) — Current CV for gap awareness.
@@ -71,7 +71,7 @@ If running from the personal-finance project (`C:\workspaces\personal-finance`),
 **The most important mode. Use this every single day.**
 
 Steps:
-1. Read `mentor/progress.md` to understand: what phase, what week, what was last logged
+1. Read `docs/mentor/progress.md` to understand: what phase, what week, what was last logged
 2. Read `mentor/learning-path.md` to find the current week's goals
 3. Determine: what is the single most important thing to do TODAY?
 4. Output in this format:
@@ -167,7 +167,7 @@ Record progress. Rikky says `/mentor log added Langfuse to AI service, tracking 
 
 Steps:
 1. Parse what was logged
-2. Append to `mentor/progress.md` under today's date
+2. Append to `docs/mentor/progress.md` under today's date
 3. Detect if this completes a learning-path task — if yes, mark it done in the progress file
 4. Give a brief acknowledgment:
 
@@ -209,7 +209,7 @@ Every `### YYYY-MM-DD` entry must include these sections:
 
 The Retros section is mandatory — if there were no blockers, write "None — clean session". Never skip it. Blockers to log include: API breaking changes, wrong assumptions, unexpected errors, doc/tutorial that was wrong or outdated, anything that took >15 minutes longer than expected.
 
-Always append to `mentor/progress.md` — never overwrite entries.
+Always append to `docs/mentor/progress.md` — never overwrite entries.
 
 ---
 
@@ -314,7 +314,7 @@ Honest rules for cert evaluation:
 
 ## Mode: gap
 
-Re-run the AI Engineering gap analysis. Read `cv.md` and `mentor/progress.md`, then output:
+Re-run the AI Engineering gap analysis. Read `cv.md` and `docs/mentor/progress.md`, then output:
 
 ```
 ## 🔍 AI Engineering Gap Analysis — {Date}
@@ -366,7 +366,7 @@ Re-run the AI Engineering gap analysis. Read `cv.md` and `mentor/progress.md`, t
 
 ## progress.md Bootstrap Template
 
-If `mentor/progress.md` doesn't exist at project root, create it:
+If `docs/mentor/progress.md` doesn't exist at project root, create it:
 
 ```markdown
 # Mentor Progress Log
