@@ -1,10 +1,11 @@
 import pytest
+from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
 from httpx import AsyncClient, ASGITransport
 
 from app.main import app
 from app.services.categorizer import Categorizer
-from app.models import CategorizeResponse
+from app.models import CategorizeRequest, CategorizeResponse
 
 
 def _mock_categorizer(category: str = "Food", confidence: float = 0.95) -> Categorizer:
@@ -58,3 +59,26 @@ async def test_categorize_low_confidence_still_returns_response():
         })
     assert response.status_code == 200
     assert response.json()["confidence"] == pytest.approx(0.40)
+
+
+@pytest.mark.anyio
+async def test_categorize_malformed_llm_response():
+    """Categorizer returns fallback (first category, confidence=0.0) when LLM response
+    is missing the required 'category' key — exercises the except branch in categorize()."""
+    from app.providers.base import LlmProvider
+
+    mock_provider = AsyncMock(spec=LlmProvider)
+    mock_provider.generate_json = AsyncMock(return_value={"wrong_key": "not a category"})
+
+    categorizer = Categorizer(provider=mock_provider)
+    result = await categorizer.categorize(
+        CategorizeRequest(
+            description="Mystery Merchant",
+            flow="DB",
+            amount_idr=Decimal("50000"),
+            available_categories=["Food", "Bill"],
+        )
+    )
+
+    assert result.confidence == pytest.approx(0.0)
+    assert result.category == "Food"  # first item in available_categories per fallback logic

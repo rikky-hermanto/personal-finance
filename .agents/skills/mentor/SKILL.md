@@ -85,6 +85,20 @@ Steps:
 
 ---
 
+### 📋 Since last time
+
+{Extract the most recent 1–2 log entries from progress.md and summarise as a compact bullet list:}
+- {what was done — one line per completed item}
+- {what was done}
+
+{If the last entry was more than 2 days ago, add:}
+⚠️ No log entry for {N} days. If you did work, run `/mentor log <what you did>` first.
+
+{If nothing is logged yet:}
+Nothing logged yet. Run `/mentor log <what you did>` to record your first win.
+
+---
+
 ### 🎯 Your focus for today
 
 **{Task title}**
@@ -95,7 +109,7 @@ Steps:
 ---
 
 ### Quick context
-- Last logged: {last entry from progress.md, or "nothing yet — log your first win with /mentor log <what you did>"}
+- Last logged: {date of last entry}
 - Week goal progress: {X of Y tasks done this week}
 - Next milestone: {next phase/week unlock}
 

@@ -9,18 +9,59 @@ namespace PersonalFinance.Tests.Services;
 
 public class CategorizationLayerTests
 {
-    // ── Layer 1: History cache ────────────────────────────────────────────────
+    // ── Layer 0+1: History cache ──────────────────────────────────────────────
 
     [Fact]
-    public async Task CategorizeBatchAsync_HistoryCacheHit_ReturnsCachedCategory()
+    public void ApplyHistoryCacheLookup_DescriptionHit_ReturnsCachedCategory()
     {
-        // Arrange: history has "Go Mie Go" DB → "Food"
-        // Incoming: same description + flow
-        // Expected: Category = "Food", no rule query fired
+        // Arrange: cache has "go mie go" / DB → "Food" (squashed key)
+        var descCache = new Dictionary<(string, string?), string>
+            { { ("go mie go", "DB"), "Food" } };
+        var remCache = new Dictionary<(string, string?), string>();
+        var tx = new TransactionDto { Description = "Go Mie Go", Flow = "DB", Category = "Uncategorized" };
 
-        // Implementation note: mock Supabase.Client to return a Transaction list
-        // with ("Go Mie Go", "DB", "Food"), verify rules query is never called.
-        // Skipped here — full implementation in integration test suite.
+        // Act
+        var result = CategoryRuleService.ApplyHistoryCacheLookup(descCache, remCache, tx);
+
+        // Assert
+        Assert.Equal("Food", result);
+    }
+
+    [Fact]
+    public void ApplyHistoryCacheLookup_DescriptionMiss_FallsBackToRemarks()
+    {
+        // Arrange: description not in cache, remarks matches
+        var descCache = new Dictionary<(string, string?), string>();
+        var remCache = new Dictionary<(string, string?), string>
+            { { ("saving interest", "CR"), "Saving Interest" } };
+        var tx = new TransactionDto
+        {
+            Description = "Something Unrelated",
+            Remarks     = "SAVING INTEREST",
+            Flow        = "CR",
+            Category    = "Uncategorized",
+        };
+
+        // Act
+        var result = CategoryRuleService.ApplyHistoryCacheLookup(descCache, remCache, tx);
+
+        // Assert
+        Assert.Equal("Saving Interest", result);
+    }
+
+    [Fact]
+    public void ApplyHistoryCacheLookup_BothMiss_ReturnsNull()
+    {
+        // Arrange: both caches empty
+        var descCache = new Dictionary<(string, string?), string>();
+        var remCache  = new Dictionary<(string, string?), string>();
+        var tx = new TransactionDto { Description = "Novel Merchant", Flow = "DB", Category = "Uncategorized" };
+
+        // Act
+        var result = CategoryRuleService.ApplyHistoryCacheLookup(descCache, remCache, tx);
+
+        // Assert
+        Assert.Null(result);
     }
 
     // ── Layer 2: Flow-aware rule matching ─────────────────────────────────────

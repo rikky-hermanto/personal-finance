@@ -73,8 +73,8 @@ loaded once per batch — the lookup key differs (description vs remarks).
 - [x] LLM-confirmed categories (confidence ≥ 0.85) auto-create a new `CategoryRule`
 - [x] Python `POST /categorize` endpoint returns `{ category, confidence }` in < 3 seconds
 - [x] All parsers produce the same or better categorization without changing their signatures
-- [ ] xUnit tests cover: history cache hit, flow-specific priority, Remarks fallback, LLM path
-- [ ] Python tests cover: `/categorize` happy path, low-confidence response, unknown category
+- [x] xUnit tests cover: history cache hit, flow-specific priority, Remarks fallback, LLM path
+- [x] Python tests cover: `/categorize` happy path, low-confidence response, unknown category
 
 ## Approach
 
@@ -970,7 +970,7 @@ async def test_categorize_low_confidence_still_returns_response():
 
 ---
 
-### [ ] STEP 11b — Python test: LLM parse-error fallback (AC-12)
+### [x] STEP 11b — Python test: LLM parse-error fallback (AC-12)
 
 **File:** `services/ai-service/tests/test_categorize.py`
 
@@ -1204,7 +1204,7 @@ cd apps/api && dotnet test --filter "FullyQualifiedName~CategorizationLayerTests
 
 ---
 
-### [ ] STEP 12b — Extract testable helper + history-cache tests + LlmCategorizationClient tests (AC-11, AC-12)
+### [x] STEP 12b — Extract testable helper + history-cache tests + LlmCategorizationClient tests (AC-11, AC-12)
 
 #### Part A — Extract `ApplyHistoryCacheLookup` static helper from `CategoryRuleService`
 

@@ -182,7 +182,7 @@ public class TransactionPipelineService : ITransactionPipelineService
 
                 await _categoryRuleService.AddAsync(new CategoryRuleDto
                 {
-                    Keyword  = tx.Description,
+                    Keyword  = tx.Description.Trim(),
                     Type     = tx.Type,
                     Flow     = tx.Flow,
                     Category = category
