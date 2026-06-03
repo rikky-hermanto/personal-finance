@@ -134,3 +134,38 @@
 - Week 1 ✅ DONE — AI Observability gap closed
 
 **Streak: 5 days**
+
+### 2026-06-01 — Day 5 (evening session)
+
+**Session: Week 2 planned — extraction eval harness walkthrough compiled**
+
+- Compiled `.claude/plans/learning/PF-AI002-llm-evaluation-framework.md` — a 13-step build walkthrough modeled on PF-AI001, grounded in the real interfaces (`LlmParser.parse`, `ProviderFactory`, `TransactionResult`, `EXTRACT_SCHEMA`)
+- Designed the scorer: two-axis metrics — row-level precision/recall/F1 (alignment on `date+amount`, mirroring the .NET dedup key) + field-level accuracy, with critical fields (`date`, `amount_idr`, `flow`) scored separately from cosmetic ones
+- Curated a by-concept resource list (Hamel, Eugene Yan, Zheng et al. LLM-as-judge, Langfuse datasets, Promptfoo) + a learning-strategy section mapped to the daily-loop tips
+- Scoped 20 fixtures (with deliberate edge cases: refund, FX, multi-currency) — fixtures will be reused as the Week-3 RAG retrieval test set
+
+**Week 2 checklist progress:** (planning only — no build tasks ticked yet)
+- [ ] Create `services/ai-service/evals/` dir with 20 fixtures ← starts today
+- [ ] Ground-truth JSON, scorer, runner, benchmark ← this week
+
+**Retros (blockers & surprises):**
+- **Cost measurement gap:** providers' `extract_structured()` returns only the parsed dict, not token usage — so the harness couldn't compute cost-per-doc. **Fix:** non-breaking `self.last_usage` attribute on each provider, read by the harness and fed to the Week-1 `estimate_cost_usd()`. Honors PF-AI001's note to not delete that function.
+- **Scoring alignment trap:** positional comparison of two transaction lists silently reports correct extractions as 0% when row order differs. **Fix:** match on natural key (`date+amount`) first, then field-compare matched pairs — unmatched = misses/phantoms.
+
+**Remaining for tomorrow:**
+- Begin PF-AI002 Step 1–2: read Hamel's evals essay (active retrieval), scaffold `evals/` dir, seed first 5 fixtures from existing test text
+
+**Streak: 5 days**
+
+### 2026-06-02 — Day 6
+
+**Session: Learning infrastructure — Indonesian translations + tooling**
+
+- Translated `ai-engineer-learning-tips.md` to Indonesian → `docs/mentor/ai-engineer-learning-tips-id.md` — studying in primary language for better retention
+- Translated `PF-AI002-llm-evaluation-framework.md` to Indonesian → `.claude/plans/learning/PF-AI002-llm-evaluation-framework-id.md`
+- Created `/braindump` skill for quick idea capture
+- Reorganized feature ideas into `docs/ideas/` (`journey-quest-ideas.md`, `money-tracing.md`)
+
+**Note:** PF-AI002 build has not started yet. Day 6 was planning/tooling overhead. Build starts Day 7.
+
+**Streak: 6 days**
