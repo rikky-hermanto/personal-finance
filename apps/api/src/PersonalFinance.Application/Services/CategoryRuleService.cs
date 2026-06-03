@@ -80,35 +80,13 @@ public class CategoryRuleService : ICategoryRuleService
         var stillNeeded = new List<TransactionDto>();
         foreach (var tx in needsCategorization)
         {
-            var flow = tx.Flow?.ToUpperInvariant();
-
-            // Layer 0: Description — squashed so whitespace drift between bank format versions
-            // ("BI-FAST CR TRANSFER   DR" vs "BI-FAST CR TRANSFER DR") still hits the cache.
-            if (!string.IsNullOrWhiteSpace(tx.Description))
+            var hit = ApplyHistoryCacheLookup(descCache, remCache, tx);
+            if (hit is not null)
             {
-                var descKey = (Squash(tx.Description), flow);
-                if (descCache.TryGetValue(descKey, out var fromDesc))
-                {
-                    tx.Category = fromDesc;
-                    _logger.LogDebug("Categorization layer={Layer} description={Description} category={Category}",
-                        "history", tx.Description, tx.Category);
-                    continue;
-                }
+                tx.Category = hit;
+                _logger.LogDebug("History cache hit: '{Desc}' → '{Cat}'", tx.Description ?? tx.Remarks, hit);
+                continue;
             }
-
-            // Layer 1: Remarks — same squash treatment.
-            if (!string.IsNullOrWhiteSpace(tx.Remarks))
-            {
-                var remKey = (Squash(tx.Remarks), flow);
-                if (remCache.TryGetValue(remKey, out var fromRem))
-                {
-                    tx.Category = fromRem;
-                    _logger.LogDebug("Categorization layer={Layer} description={Description} category={Category}",
-                        "history", tx.Remarks, tx.Category);
-                    continue;
-                }
-            }
-
             stillNeeded.Add(tx);
         }
 
@@ -258,9 +236,37 @@ public class CategoryRuleService : ICategoryRuleService
         }
     }
 
+    /// <summary>
+    /// Pure lookup: Layer 0 (description) then Layer 1 (remarks) against pre-built caches.
+    /// Returns the cached category, or null on miss. No I/O.
+    /// </summary>
+    internal static string? ApplyHistoryCacheLookup(
+        IReadOnlyDictionary<(string Key, string? Flow), string> descCache,
+        IReadOnlyDictionary<(string Key, string? Flow), string> remCache,
+        TransactionDto tx)
+    {
+        var flow = tx.Flow?.ToUpperInvariant();
+
+        if (!string.IsNullOrWhiteSpace(tx.Description))
+        {
+            var descKey = (Squash(tx.Description), flow);
+            if (descCache.TryGetValue(descKey, out var fromDesc))
+                return fromDesc;
+        }
+
+        if (!string.IsNullOrWhiteSpace(tx.Remarks))
+        {
+            var remKey = (Squash(tx.Remarks), flow);
+            if (remCache.TryGetValue(remKey, out var fromRem))
+                return fromRem;
+        }
+
+        return null;
+    }
+
     // Collapses any whitespace run to a single space and lowercases — applied symmetrically
     // on both stored descriptions and incoming ones so format drift doesn't break matching.
-    private static string Squash(string? input) =>
+    internal static string Squash(string? input) =>
         string.IsNullOrWhiteSpace(input)
             ? string.Empty
             : string.Join(' ', input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
