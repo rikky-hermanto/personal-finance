@@ -1,0 +1,14 @@
+Rekening Koran Digital
+NeoBank
+Nomor Rekening : 8801-234-5678
+Nama Nasabah   : ADITYA PRATAMA
+Periode        : 01 April 2024 s/d 30 April 2024
+
+Tanggal          Deskripsi                               Debit (Rp)      Kredit (Rp)     Saldo (Rp)
+01 Apr 2024      Saldo Awal                                                               6.062.500,00
+04 Apr 2024      Pembelian Pulsa Telkomsel               100.000,00                      5.962.500,00
+10 Apr 2024      Transfer Masuk Gaji April                               5.000.000,00   10.962.500,00
+15 Apr 2024      Belanja Tokopedia ORD456789              629.000,00                    10.333.500,00
+18 Apr 2024      Refund Tokopedia ORD456789                               629.000,00    10.962.500,00
+22 Apr 2024      Makan GrabFood GFID88765                 88.000,00                    10.874.500,00
+27 Apr 2024      Tagihan Listrik PLN 456789               375.000,00                    10.499.500,00

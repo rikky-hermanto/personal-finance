@@ -1,0 +1,15 @@
+BANK CENTRAL ASIA
+Rekening Koran
+No. Rekening  : 0881-234-567
+Nama          : ADITYA PRATAMA
+Periode       : 01/05/2024 - 31/05/2024
+
+Tanggal    Keterangan                                                Debit           Kredit          Saldo
+           Saldo Awal                                                                                24.472.500,00
+03/05/2024 TRANSFER KE REKENING SEKURITAS INDO                      5.000.000,00                    19.472.500,00
+08/05/2024 BIAYA ASURANSI JIWA PRUDENTIAL MEI                       500.000,00                      18.972.500,00
+10/05/2024 TRANSFER MASUK GAJI MEI 2024                                             15.000.000,00   33.972.500,00
+15/05/2024 SHOPEE PAY ORDER 8765432                                  355.000,00                      33.617.500,00
+18/05/2024 QRIS KOPI KENANGAN SUDIRMAN                              45.000,00                       33.572.500,00
+22/05/2024 PEMBAYARAN SPOTIFY PREMIUM                               79.000,00                       33.493.500,00
+29/05/2024 PEMBAYARAN TAGIHAN PLN 123456789                         450.000,00                      33.043.500,00

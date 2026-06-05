@@ -1,0 +1,13 @@
+WISE MULTI-CURRENCY ACCOUNT
+Account Statement
+Account ID: WISE-7654321
+Name      : ADITYA PRATAMA
+Period    : 01 April 2024 - 30 April 2024
+
+Date         Description                                    Amount          Exchange Rate   Amount IDR      Balance IDR
+03 Apr 2024  Transfer received - EUR Consulting Client       +EUR 100.00     16.890          +1.689.000      22.258.116
+07 Apr 2024  Payment - Notion Premium Annual                 -USD 96.00      15.480          -1.486.080      20.772.036
+10 Apr 2024  Wise Fee - EUR to IDR conversion                -IDR 0,00       -               -0              20.772.036
+15 Apr 2024  Transfer received - SGD Consulting Fee          +SGD 150.00     11.520          +1.728.000      22.500.036
+20 Apr 2024  Payment - Namecheap Domain Renewal              -USD 18.99      15.510          -294.595        22.205.441
+28 Apr 2024  Refund - Overpayment Tax Q1 2024               +IDR 75.000     -               +75.000         22.280.441

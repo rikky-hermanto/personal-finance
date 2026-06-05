@@ -1,0 +1,16 @@
+Tabungan Utama - 000012345678
+
+Tanggal    Deskripsi                            Uang Keluar        Uang Masuk    Saldo
+
+1 Agu 2025  Saldo awal                                                            Rp14.962.376,00
+4 Agu       Pembayaran Asuransi Jiwa AXA        -Rp550.000,00                    Rp14.412.376,00
+09:00 AM
+10 Agu      Transfer Masuk Gaji Agustus                          +Rp12.000.000,00 Rp26.412.376,00
+08:45 AM
+15 Agu      Belanja Online Shopee SPX654321     -Rp189.000,00                    Rp26.223.376,00
+14:20 PM
+20 Agu      Pembayaran Tagihan Telkomsel        -Rp215.000,00                    Rp26.008.376,00
+11:15 AM
+27 Agu      Bunga Tabungan Agustus                               +Rp15.234,00    Rp26.023.610,00
+00:01 AM
+            -Rp954.000,00                      +Rp12.015.234,00   Rp26.023.610,00

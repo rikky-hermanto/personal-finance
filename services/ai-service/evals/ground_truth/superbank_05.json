@@ -1,0 +1,10 @@
+{
+  "transactions": [
+    {"date": "2025-10-03", "description": "Pembayaran Angsuran KPR BRI", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 3500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-10-10", "description": "Transfer Masuk Gaji Oktober", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 12000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-10-14", "description": "Pembelian Tiket Pesawat Garuda", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 2150000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-10-17", "description": "Belanja Groceries Hypermart", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 785000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-10-23", "description": "Transfer ke Dana Pendidikan", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 2000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-10-30", "description": "Bunga Tabungan Oktober", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 18956.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"}
+  ]
+}

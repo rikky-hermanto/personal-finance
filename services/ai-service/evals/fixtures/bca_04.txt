@@ -1,0 +1,17 @@
+BANK CENTRAL ASIA
+Rekening Koran
+No. Rekening  : 0881-234-567
+Nama          : ADITYA PRATAMA
+Periode       : 01/06/2024 - 30/06/2024
+
+Tanggal    Keterangan                                                Debit           Kredit          Saldo
+           Saldo Awal                                                                                33.043.500,00
+03/06/2024 TRANSFER MASUK GAJI JUNI 2024                                            15.000.000,00   48.043.500,00
+05/06/2024 QRIS TRANSMART CEMPAKA MAS                               875.000,00                      47.168.500,00
+09/06/2024 GOFOOD AYAM GEPREK BENSU JKT                             78.000,00                       47.090.500,00
+12/06/2024 QRIS GRAMEDIA MATRAMAN                                   250.000,00                      46.840.500,00
+14/06/2024 LINKAJA TAGIHAN TELKOMSEL                                150.000,00                      46.690.500,00
+18/06/2024 QRIS KFC MANGGA DUA SQUARE                               95.500,00                       46.595.000,00
+21/06/2024 NETFLIX INDONESIA MONTHLY                                186.000,00                      46.409.000,00
+25/06/2024 TRANSFER DEBET SEWA BULANAN                              1.500.000,00                    44.909.000,00
+27/06/2024 SHOPEE ORDER SPX987654321                                425.000,00                      44.484.000,00

@@ -1,0 +1,9 @@
+{
+  "transactions": [
+    {"date": "2025-09-05", "description": "Transfer ke Rekening Tabungan", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 5000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-09-08", "description": "Refund Lazada LZD-20250908", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 320000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-09-12", "description": "Transfer Masuk Gaji September", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 12000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-09-19", "description": "QRIS Kopi Tuku Menteng", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 42000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-09-25", "description": "Pembayaran Netflix", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 186000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"}
+  ]
+}

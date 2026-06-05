@@ -1,0 +1,9 @@
+{
+  "transactions": [
+    {"date": "2024-05-05", "description": "Tarik Tunai", "remarks": "Melalui ATM Bersama", "flow": "DB", "type": "Expense", "amount_idr": 500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-05-08", "description": "Terima Transfer", "remarks": "Dari: PT ABC Indonesia (Gaji Mei)", "flow": "CR", "type": "Income", "amount_idr": 8500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-05-15", "description": "Bayar QRIS Golekso Kopi", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 38000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-05-22", "description": "Belanja Online Shopee", "remarks": "Order: SPX-2024-9876543", "flow": "DB", "type": "Expense", "amount_idr": 167500.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-05-30", "description": "Bunga Tabungan", "remarks": "Bunga Harian Mei 2024", "flow": "CR", "type": "Income", "amount_idr": 9250.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"}
+  ]
+}

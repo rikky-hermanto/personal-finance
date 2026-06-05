@@ -1,0 +1,9 @@
+{
+  "transactions": [
+    {"date": "2024-06-04", "description": "Transfer Keluar", "remarks": "Ke: Koperasi Simpan Pinjam ABC", "flow": "DB", "type": "Expense", "amount_idr": 1200000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-06-10", "description": "Gajian", "remarks": "Dari: PT ABC Indonesia", "flow": "CR", "type": "Income", "amount_idr": 8500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-06-16", "description": "Belanja QRIS Warung Makan Padang Sederhana", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 35000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-06-23", "description": "Tagihan PLN Online 567890123", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 450000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-06-28", "description": "Transfer Masuk", "remarks": "Dari: FADHILAH S (Titipan)", "flow": "CR", "type": "Income", "amount_idr": 200000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"}
+  ]
+}

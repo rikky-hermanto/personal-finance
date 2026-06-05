@@ -1,0 +1,16 @@
+Tabungan Utama - 000012345678
+
+Tanggal    Deskripsi                            Uang Keluar        Uang Masuk    Saldo
+
+1 Sep 2025  Saldo awal                                                            Rp26.023.610,00
+5 Sep       Transfer ke Rekening Tabungan       -Rp5.000.000,00                  Rp21.023.610,00
+10:30 AM
+8 Sep       Refund Lazada LZD-20250908                           +Rp320.000,00   Rp21.343.610,00
+13:45 PM
+12 Sep      Transfer Masuk Gaji September                        +Rp12.000.000,00 Rp33.343.610,00
+09:01 AM
+19 Sep      QRIS Kopi Tuku Menteng             -Rp42.000,00                      Rp33.301.610,00
+08:20 AM
+25 Sep      Pembayaran Netflix                 -Rp186.000,00                     Rp33.115.610,00
+18:00 PM
+            -Rp5.228.000,00                    +Rp12.320.000,00   Rp33.115.610,00

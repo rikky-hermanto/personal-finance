@@ -1,0 +1,35 @@
+Mutasi Rekening
+Bank Jago - Your Life-Centered Bank
+Periode: 01 Apr 2024 - 30 Apr 2024
+Nomor Rekening: 1180-1234-5678
+
+02 Apr 2024
+Keluar - Transfer ke Sesama Jago
+Dikirim ke: Dana M.
+Jumlah: Rp 750.000
+Saldo: Rp 4.250.000
+
+08 Apr 2024
+Masuk - Terima Transfer
+Dari: PT ABC Indonesia (Gaji April)
+Jumlah: Rp 8.500.000
+Saldo: Rp 12.750.000
+
+14 Apr 2024
+Keluar - Bayar Tagihan
+Tagihan: PLN 123456789
+Jumlah: Rp 450.000
+Saldo: Rp 12.300.000
+
+20 Apr 2024
+Keluar - Belanja Online
+Merchant: Tokopedia
+Order ID: TKP-2024-7891234
+Jumlah: Rp 299.000
+Saldo: Rp 12.001.000
+
+25 Apr 2024
+Masuk - Bunga Tabungan
+Bunga Harian April 2024
+Jumlah: Rp 8.750
+Saldo: Rp 12.009.750

@@ -1,0 +1,48 @@
+{
+  "transactions": [
+    {
+      "date": "2025-06-05",
+      "description": "Transfer ke Budi Santoso",
+      "remarks": "",
+      "flow": "DB",
+      "type": "Expense",
+      "amount_idr": 350000.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    },
+    {
+      "date": "2025-06-12",
+      "description": "Top Up dari Saldo Utama",
+      "remarks": "",
+      "flow": "CR",
+      "type": "Income",
+      "amount_idr": 5000000.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    },
+    {
+      "date": "2025-06-19",
+      "description": "Belanja Online Tokopedia",
+      "remarks": "",
+      "flow": "DB",
+      "type": "Expense",
+      "amount_idr": 875500.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    },
+    {
+      "date": "2025-06-28",
+      "description": "Bunga Tabungan",
+      "remarks": "",
+      "flow": "CR",
+      "type": "Income",
+      "amount_idr": 9876.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    }
+  ]
+}

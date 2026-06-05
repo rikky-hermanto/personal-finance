@@ -1,0 +1,10 @@
+{
+  "transactions": [
+    {"date": "2024-04-04", "description": "Pembelian Pulsa Telkomsel", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 100000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-04-10", "description": "Transfer Masuk Gaji April", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 5000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-04-15", "description": "Belanja Tokopedia ORD456789", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 629000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-04-18", "description": "Refund Tokopedia ORD456789", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 629000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-04-22", "description": "Makan GrabFood GFID88765", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 88000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-04-27", "description": "Tagihan Listrik PLN 456789", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 375000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"}
+  ]
+}

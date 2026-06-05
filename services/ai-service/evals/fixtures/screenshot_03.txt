@@ -1,0 +1,25 @@
+Mutasi Rekening
+Bank Jago
+Jun 2024
+
+[Halaman 1 dari 1]
+
+04 Jun - Transfer Keluar
+  Ke: Koperasi Simpan Pinjam ABC
+  Rp 1.200.000
+
+10 Jun - Gajian
+  Dari: PT ABC Indonesia
+  Rp 8.500.000
+
+16 Jun - Belanja
+  QRIS - Warung Makan Padang Sederhana
+  Rp 35.000
+
+23 Jun - Tagihan
+  PLN Online 567890123
+  Rp 450.000
+
+28 Jun - Transfer Masuk
+  Dari: FADHILAH S (Titipan)
+  Rp 200.000

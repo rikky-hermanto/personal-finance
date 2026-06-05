@@ -1,0 +1,48 @@
+{
+  "transactions": [
+    {
+      "date": "2025-07-03",
+      "description": "Pembayaran Tagihan PLN",
+      "remarks": "",
+      "flow": "DB",
+      "type": "Expense",
+      "amount_idr": 450000.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    },
+    {
+      "date": "2025-07-08",
+      "description": "Refund Shopee - SPX123456",
+      "remarks": "",
+      "flow": "CR",
+      "type": "Income",
+      "amount_idr": 128000.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    },
+    {
+      "date": "2025-07-15",
+      "description": "Gaji Bulan Juli",
+      "remarks": "",
+      "flow": "CR",
+      "type": "Income",
+      "amount_idr": 12000000.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    },
+    {
+      "date": "2025-07-22",
+      "description": "Transfer ke Rekening Tabungan",
+      "remarks": "",
+      "flow": "DB",
+      "type": "Expense",
+      "amount_idr": 3000000.0,
+      "currency": "IDR",
+      "exchange_rate": null,
+      "wallet": "Superbank"
+    }
+  ]
+}

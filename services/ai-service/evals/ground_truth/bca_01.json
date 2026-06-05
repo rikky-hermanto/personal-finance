@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {"date": "2024-03-04", "description": "PEMBAYARAN TAGIHAN PLN 123456789", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 450000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-03-07", "description": "QRIS INDOMARET PEMUDA RYD", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 125000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-03-14", "description": "GOFOOD GEPREK BENSU GADING", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 85000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-03-15", "description": "TRANSFER MASUK GAJI MARET 2024", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 15000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-03-20", "description": "TOKOPEDIA PEMBAYARAN ORDER TKP-20240320", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1250000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-03-25", "description": "TRANSFER DEBET SEWA BULANAN", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-03-28", "description": "GRABFOOD ORDER 7FHJS8", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 62500.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"}
+  ]
+}

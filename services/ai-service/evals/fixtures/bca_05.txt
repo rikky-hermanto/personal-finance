@@ -1,0 +1,15 @@
+BANK CENTRAL ASIA
+Rekening Koran
+No. Rekening  : 0881-234-567
+Nama          : ADITYA PRATAMA
+Periode       : 01/07/2024 - 31/07/2024
+
+Tanggal    Keterangan                                                Debit           Kredit          Saldo
+           Saldo Awal                                                                                44.484.000,00
+05/07/2024 TRANSFER MASUK GAJI JULI 2024                                            15.000.000,00   59.484.000,00
+08/07/2024 PEMBAYARAN KOPERASI KARYAWAN JULI                        1.000.000,00                    58.484.000,00
+11/07/2024 TARIK TUNAI ATM BCA TENDEAN                              500.000,00                      57.984.000,00
+15/07/2024 PEMBAYARAN TAGIHAN BPJS KESEHATAN                        165.000,00                      57.819.000,00
+19/07/2024 QRIS MATAHARI DEPT STORE BLOK M                          750.000,00                      57.069.000,00
+22/07/2024 GOJEK GOCAR ORDER 3KHJD2                                 45.000,00                       57.024.000,00
+29/07/2024 PEMBAYARAN TAGIHAN PLN 123456789                         450.000,00                      56.574.000,00
