@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {"date": "2024-04-02", "description": "PEMBAYARAN TIKET GARUDA 1234567890", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 2350000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-04-05", "description": "TRANSFER MASUK GAJI APRIL 2024", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 15000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-04-10", "description": "PEMBAYARAN HOTEL GRAND HYATT BALI", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 3500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-04-12", "description": "MAKAN MALAM RESTORAN BLUE JASMINE", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 485000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-04-15", "description": "TARIK TUNAI ATM BCA NGURAH RAI", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-04-20", "description": "QRIS ALFAMART NGURAH RAI BALI", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 95000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-04-25", "description": "PEMBAYARAN TAGIHAN PDAM 789012345", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 125000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"}
+  ]
+}

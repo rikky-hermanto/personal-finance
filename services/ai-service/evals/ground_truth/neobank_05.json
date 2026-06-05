@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {"date": "2024-07-05", "description": "Transfer Masuk Gaji Juli", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 5000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-07-08", "description": "Pembayaran KPR BRI Bulan Juli", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 2800000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-07-11", "description": "Qris Kopi Janji Jiwa Kuningan", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 37000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-07-14", "description": "Belanja Hypermart Casablanca", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 520000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-07-18", "description": "Transfer ke Dompet Investasi Bibit", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-07-23", "description": "Tagihan Internet Indihome", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 350000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-07-29", "description": "Biaya Admin Bulanan", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 2500.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"}
+  ]
+}

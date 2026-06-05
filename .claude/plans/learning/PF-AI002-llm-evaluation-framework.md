@@ -64,7 +64,7 @@ Out of scope: prompt A/B optimization, regression gating in CI, RAG retrieval me
 
 ## TODO
 
-### [ ] STEP 1 — Learn the eval mental model before writing a line (90-min deep block)
+### [x] STEP 1 — Learn the eval mental model before writing a line (90-min deep block)
 
 This is the **theory-on-demand** anchor for the week. Don't binge a course — read the two canonical pieces, then close the tab and write the answer from memory (active retrieval).
 
@@ -112,7 +112,7 @@ hand-labeled golden dataset. NOT part of pytest/CI — it makes real, paid API c
 
 ---
 
-### [ ] STEP 3 — Seed fixtures from existing sanitized test text
+### [x] STEP 3 — Seed fixtures from existing sanitized test text
 
 Don't start from a blank page. Your own test suite already contains sanitized statement strings — mine them first.
 
@@ -166,7 +166,7 @@ Rules for labeling (these become your scoring contract):
 
 ---
 
-### [ ] STEP 5 — Build `evals/scoring.py` — the metrics engine
+### [x] STEP 5 — Build `evals/scoring.py` — the metrics engine
 
 This is the intellectual core. Create `services/ai-service/evals/scoring.py`:
 
@@ -268,6 +268,121 @@ def score_fixture(name: str, predicted: list[dict], truth: list[dict]) -> Fixtur
     return s
 ```
 
+**C# equivalent** (faithful port — Python `dataclass` → a class with computed properties; `dict` → `Dictionary`; `Decimal` → `decimal`. Python passes rows as `dict`, so this uses `IDictionary<string, object?>`; in idiomatic .NET you'd more likely score a typed `TransactionDto` and read fields by name):
+
+```csharp
+// evals/Scoring.cs — align predicted rows to truth on (date, amount), then
+// field-compare matched pairs. decimal (not double) for money, same reason the
+// Python uses Decimal: avoid IEEE-754 noise.
+
+public static class ScoredFields
+{
+    public static readonly string[] Critical = { "date", "amount_idr", "flow" };
+    public static readonly string[] Cosmetic =
+        { "description", "remarks", "type", "currency", "exchange_rate" };
+    public static readonly string[] All = Critical.Concat(Cosmetic).ToArray();
+}
+
+public sealed class FixtureScore
+{
+    public string Name { get; init; } = "";
+    public int Matched { get; set; }
+    public int Missed { get; set; }   // in truth, not predicted -> recall hit
+    public int Phantom { get; set; }  // predicted, not in truth -> precision hit
+
+    public Dictionary<string, int> FieldCorrect { get; } =
+        ScoredFields.All.ToDictionary(f => f, _ => 0);
+    public Dictionary<string, int> FieldTotal { get; } =
+        ScoredFields.All.ToDictionary(f => f, _ => 0);
+
+    public double Precision { get { var d = Matched + Phantom; return d > 0 ? (double)Matched / d : 0.0; } }
+    public double Recall    { get { var d = Matched + Missed;  return d > 0 ? (double)Matched / d : 0.0; } }
+    public double F1
+    {
+        get { var (p, r) = (Precision, Recall); return (p + r) > 0 ? 2 * p * r / (p + r) : 0.0; }
+    }
+
+    public double FieldAccuracy(IEnumerable<string>? fields = null)
+    {
+        var fs = (fields ?? ScoredFields.All).ToArray();
+        var c = fs.Sum(f => FieldCorrect[f]);
+        var t = fs.Sum(f => FieldTotal[f]);
+        return t > 0 ? (double)c / t : 0.0;
+    }
+}
+
+public static class Scorer
+{
+    // whole-rupiah tolerance; -1 sentinel on parse failure (mirrors Python Decimal("-1"))
+    private static decimal NormAmount(object? v) =>
+        decimal.TryParse(v?.ToString(), out var d) ? Math.Round(d, 0) : -1m;
+
+    private static (string, decimal) RowKey(IDictionary<string, object?> tx) =>
+        (tx.GetValueOrDefault("date")?.ToString()?.Trim() ?? "",
+         NormAmount(tx.GetValueOrDefault("amount_idr")));
+
+    private static string Collapse(object? s) =>
+        string.Join(" ", (s?.ToString() ?? "")
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    private static bool FieldEqual(string field, object? a, object? b)
+    {
+        if (field == "amount_idr")
+            return NormAmount(a) == NormAmount(b);
+
+        if (field is "description" or "remarks")
+        {
+            var sa = Collapse(a).ToLowerInvariant();
+            var sb = Collapse(b).ToLowerInvariant();
+            return sa == sb || sa.Contains(sb) || sb.Contains(sa);
+        }
+
+        if (field == "exchange_rate")
+        {
+            bool aEmpty = a is null or "", bEmpty = b is null or "";
+            if (aEmpty && bEmpty) return true;
+            return NormAmount(a) == NormAmount(b);
+        }
+
+        return (a?.ToString()?.Trim().ToUpperInvariant() ?? "")
+            == (b?.ToString()?.Trim().ToUpperInvariant() ?? "");
+    }
+
+    public static FixtureScore ScoreFixture(
+        string name,
+        List<IDictionary<string, object?>> predicted,
+        List<IDictionary<string, object?>> truth)
+    {
+        var s = new FixtureScore { Name = name };
+        var truthByKey = truth.ToDictionary(RowKey, t => t);  // assumes unique keys, like the Python dict
+        var used = new HashSet<(string, decimal)>();
+
+        foreach (var p in predicted)
+        {
+            var key = RowKey(p);
+            if (truthByKey.TryGetValue(key, out var t) && !used.Contains(key))
+            {
+                used.Add(key);
+                s.Matched++;
+                foreach (var f in ScoredFields.All)
+                {
+                    s.FieldTotal[f]++;
+                    if (FieldEqual(f, p.GetValueOrDefault(f), t.GetValueOrDefault(f)))
+                        s.FieldCorrect[f]++;
+                }
+            }
+            else
+            {
+                s.Phantom++;
+            }
+        }
+
+        s.Missed = truth.Count - used.Count;
+        return s;
+    }
+}
+```
+
 > **Why match on `date + amount`, not position?** Models return rows in arbitrary order and occasionally split/merge them. Index-based comparison would report a perfectly-correct extraction as 0% the moment one row shifts position. The natural-key match is the same insight behind your three-tier dedup — reuse it.
 
 > **Why whole-rupiah tolerance on amount?** `500000.0` vs `500000` vs `"500000.00"` are the same money. Decimal-quantize collapses representation noise so you measure *extraction* errors, not *formatting* noise. (THINK-03: amounts are a `number` in the schema — but the model sometimes returns them as strings; the scorer must be robust to that, the pipeline shouldn't.)
@@ -276,7 +391,7 @@ def score_fixture(name: str, predicted: list[dict], truth: list[dict]) -> Fixtur
 
 ---
 
-### [ ] STEP 6 — Expose token usage on both providers (non-breaking)
+### [x] STEP 6 — Expose token usage on both providers (non-breaking)
 
 To compute cost locally via the Week-1 `estimate_cost_usd()`, the harness needs token counts. Add a single attribute to each provider, set after a successful call. Existing callers ignore it.
 
@@ -284,6 +399,18 @@ In `app/providers/gemini.py`, in `__init__` add `self.last_usage: dict | None = 
 
 ```python
 self.last_usage = {"input": input_tokens, "output": output_tokens}
+```
+
+**C# equivalent** (Python's dynamically-added instance attribute → a declared nullable property on the provider class; `dict` → a small `record`):
+
+```csharp
+public sealed record Usage(int Input, int Output);
+
+// On GeminiProvider / AnthropicProvider:
+public Usage? LastUsage { get; private set; }
+
+// inside ExtractStructuredAsync, after computing the token counts:
+LastUsage = new Usage(inputTokens, outputTokens);
 ```
 
 Do the identical thing in `app/providers/anthropic.py` (`self.last_usage = {"input": input_tokens, "output": output_tokens}` after reading `message.usage`).
@@ -294,7 +421,7 @@ Do the identical thing in `app/providers/anthropic.py` (`self.last_usage = {"inp
 
 ---
 
-### [ ] STEP 7 — Build `evals/eval_extraction.py` — the benchmark runner
+### [x] STEP 7 — Build `evals/eval_extraction.py` — the benchmark runner
 
 Create the CLI runner. It calls the **real** extraction path (`LlmParser` + a real provider), times it, scores it, and computes cost.
 
@@ -409,6 +536,130 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
+**C# equivalent** (this would be its own console project, e.g. `PersonalFinance.Evals`. `argparse` → manual arg parsing or `System.CommandLine`; `asyncio.run(main())` → `async Task Main`; Python `time.perf_counter()` → `Stopwatch`; tuple-of-dicts return → a `record`):
+
+```csharp
+// evals/EvalRunner.cs
+public sealed record AggregateResult(
+    string Provider, string Model, int Fixtures,
+    double RowF1, double Recall, double Precision,
+    double CriticalFieldAcc, double AllFieldAcc,
+    double P50LatencyMs, double P95LatencyMs,
+    double AvgCostUsd, double TotalCostUsd);
+
+public static class EvalRunner
+{
+    private static readonly string EvalsDir =
+        Path.GetDirectoryName(typeof(EvalRunner).Assembly.Location)!;
+    private static readonly string Fixtures = Path.Combine(EvalsDir, "fixtures");
+    private static readonly string Truth = Path.Combine(EvalsDir, "ground_truth");
+
+    private static ILlmProvider MakeProvider(string name, string? model) => name switch
+    {
+        "gemini"    => new GeminiProvider(Settings.GeminiApiKey,    model ?? "gemini-2.5-flash"),
+        "anthropic" => new AnthropicProvider(Settings.AnthropicApiKey, model ?? "claude-sonnet-4-6"),
+        _ => throw new ArgumentException(name),
+    };
+
+    private static string BankHint(string fixtureName) => fixtureName.Split('_')[0];  // bca_01 -> bca
+
+    public static async Task<AggregateResult> RunProviderAsync(string name, string? model)
+    {
+        var provider = MakeProvider(name, model);
+        var parser = new LlmParser(provider);
+        var scores = new List<FixtureScore>();
+        var latencies = new List<double>();
+        var costs = new List<double>();
+
+        foreach (var fx in Directory.GetFiles(Fixtures, "*.txt").OrderBy(f => f))
+        {
+            var stem = Path.GetFileNameWithoutExtension(fx);
+            var truthJson = File.ReadAllText(Path.Combine(Truth, $"{stem}.json"));
+            var truth = JsonSerializer.Deserialize<GroundTruth>(truthJson)!.Transactions;
+            var text = File.ReadAllText(fx);
+
+            var sw = Stopwatch.StartNew();
+            var resp = await parser.ParseAsync(new ParseRequest(text, BankHint(stem)));
+            var latencyMs = sw.Elapsed.TotalMilliseconds;
+
+            var predicted = resp.Transactions.Select(t => t.ToDict()).ToList();
+            var s = Scorer.ScoreFixture(stem, predicted, truth);
+            scores.Add(s);
+            latencies.Add(latencyMs);
+
+            var usage = provider.LastUsage ?? new Usage(0, 0);
+            var cost = Observability.EstimateCostUsd(model ?? provider.Model, usage.Input, usage.Output);
+            costs.Add(cost);
+
+            Console.WriteLine(
+                $"  {stem,-24}  F1={s.F1,5:F2}  crit={s.FieldAccuracy(ScoredFields.Critical),5:F2}  " +
+                $"all={s.FieldAccuracy(),5:F2}  {latencyMs,7:F0}ms  ${cost:F5}");
+        }
+
+        return Aggregate(name, model, scores, latencies, costs);
+    }
+
+    private static AggregateResult Aggregate(
+        string name, string? model,
+        List<FixtureScore> scores, List<double> latencies, List<double> costs)
+    {
+        var n = scores.Count;
+        var latSorted = latencies.OrderBy(x => x).ToList();
+        var p95 = n > 0 ? latSorted[(int)(0.95 * (n - 1))] : 0;
+        return new AggregateResult(
+            Provider: name,
+            Model: model ?? "default",
+            Fixtures: n,
+            RowF1: scores.Average(s => s.F1),
+            Recall: scores.Average(s => s.Recall),
+            Precision: scores.Average(s => s.Precision),
+            CriticalFieldAcc: scores.Average(s => s.FieldAccuracy(ScoredFields.Critical)),
+            AllFieldAcc: scores.Average(s => s.FieldAccuracy()),
+            P50LatencyMs: n > 0 ? latSorted[n / 2] : 0,
+            P95LatencyMs: p95,
+            AvgCostUsd: n > 0 ? costs.Average() : 0,
+            TotalCostUsd: costs.Sum());
+    }
+
+    private static void PrintSummary(AggregateResult a)
+    {
+        Console.WriteLine($"\n=== {a.Provider} ({a.Model}) — {a.Fixtures} fixtures ===");
+        Console.WriteLine($"  Row F1            : {a.RowF1:F3}  (precision {a.Precision:F3} / recall {a.Recall:F3})");
+        Console.WriteLine($"  Critical fields   : {a.CriticalFieldAcc:F3}  (date, amount_idr, flow)");
+        Console.WriteLine($"  All fields        : {a.AllFieldAcc:F3}");
+        Console.WriteLine($"  Latency p50 / p95 : {a.P50LatencyMs:F0}ms / {a.P95LatencyMs:F0}ms");
+        Console.WriteLine($"  Cost / doc        : ${a.AvgCostUsd:F5}  (total ${a.TotalCostUsd:F4})");
+    }
+
+    public static async Task Main(string[] args)
+    {
+        // --provider gemini | --provider anthropic --model X | --compare
+        var compare = args.Contains("--compare");
+        var provider = GetArg(args, "--provider");
+        var model = GetArg(args, "--model");
+
+        if (compare)
+        {
+            foreach (var (prov, m) in new[] { ("gemini", "gemini-2.5-flash"), ("anthropic", "claude-sonnet-4-6") })
+            {
+                Console.WriteLine($"\n--- Running {prov} ---");
+                PrintSummary(await RunProviderAsync(prov, m));
+            }
+        }
+        else
+        {
+            PrintSummary(await RunProviderAsync(provider ?? Settings.AiProvider, model));
+        }
+    }
+
+    private static string? GetArg(string[] args, string name)
+    {
+        var i = Array.IndexOf(args, name);
+        return i >= 0 && i + 1 < args.Length ? args[i + 1] : null;
+    }
+}
+```
+
 > **Why go through `LlmParser`, not call the provider directly?** `LlmParser.parse()` is the *real production path* — it applies the bank-specific system prompt (`_build_system_prompt`), runs the `EXTRACT_SCHEMA`, and does the Pydantic row-skip. Benchmarking the production path means your numbers reflect what users actually get, not a synthetic shortcut. (Bonus: `skipped_rows` surfaces silent validation failures.)
 
 > **Why wall-clock latency here but Langfuse latency in PF-AI001?** Langfuse latency is the *generation* span (model time). The harness wall-clock includes prompt building + Pydantic parsing — the end-to-end number. Quote the Langfuse number for "model latency" and this one for "pipeline latency"; knowing the difference is itself a signal.
@@ -417,7 +668,7 @@ if __name__ == "__main__":
 
 ---
 
-### [ ] STEP 8 — Unit-test the scorer itself (this one IS in CI)
+### [x] STEP 8 — Unit-test the scorer itself (this one IS in CI)
 
 The harness's numbers are only trustworthy if the scorer is correct. Create `tests/test_eval_scoring.py`:
 
@@ -464,6 +715,72 @@ def test_flow_flip_caught_as_critical_error():
     assert s.field_accuracy(("flow",)) == 0.0   # but flow is wrong
 ```
 
+**C# equivalent** (`pytest` functions → xUnit `[Fact]` methods; module-level `TRUTH` → a static field; `assert x == y` → `Assert.Equal(y, x)` — note xUnit puts *expected first*. Test names follow the project's `Method_Condition_ExpectedResult` convention):
+
+```csharp
+public class EvalScoringTests
+{
+    private static readonly List<IDictionary<string, object?>> Truth = new()
+    {
+        new Dictionary<string, object?> { ["date"]="2024-03-14", ["description"]="GOPAY",  ["flow"]="DB", ["amount_idr"]=500000.0,  ["type"]="Expense" },
+        new Dictionary<string, object?> { ["date"]="2024-03-15", ["description"]="SALARY", ["flow"]="CR", ["amount_idr"]=9000000.0, ["type"]="Income"  },
+    };
+
+    [Fact]
+    public void ScoreFixture_PerfectExtraction_ScoresOne()
+    {
+        var s = Scorer.ScoreFixture("t", Truth, Truth);
+        Assert.Equal(1.0, s.F1);
+        Assert.Equal(1.0, s.FieldAccuracy(ScoredFields.Critical));
+    }
+
+    [Fact]
+    public void ScoreFixture_MissedRow_DropsRecall()
+    {
+        var s = Scorer.ScoreFixture("t", Truth.Take(1).ToList(), Truth);  // predicted only 1 of 2
+        Assert.Equal(0.5, s.Recall);
+        Assert.Equal(1.0, s.Precision);
+        Assert.Equal(1, s.Missed);
+    }
+
+    [Fact]
+    public void ScoreFixture_PhantomRow_DropsPrecision()
+    {
+        var extra = new List<IDictionary<string, object?>>(Truth)
+        {
+            new Dictionary<string, object?> { ["date"]="2024-03-16", ["description"]="GHOST", ["flow"]="DB", ["amount_idr"]=1.0 },
+        };
+        var s = Scorer.ScoreFixture("t", extra, Truth);
+        Assert.Equal(1.0, s.Recall);
+        Assert.True(s.Precision < 1.0);
+        Assert.Equal(1, s.Phantom);
+    }
+
+    [Fact]
+    public void ScoreFixture_AmountFormatting_IsTolerated()
+    {
+        var pred = new List<IDictionary<string, object?>>
+        {
+            new Dictionary<string, object?> { ["date"]="2024-03-14", ["description"]="GOPAY", ["flow"]="DB", ["amount_idr"]="500000.00" },
+        };
+        var s = Scorer.ScoreFixture("t", pred, Truth.Take(1).ToList());
+        Assert.Equal(1, s.Matched);  // string "500000.00" matches double 500000.0
+    }
+
+    [Fact]
+    public void ScoreFixture_FlowFlip_CaughtAsCriticalError()
+    {
+        var pred = new List<IDictionary<string, object?>>
+        {
+            new Dictionary<string, object?> { ["date"]="2024-03-14", ["description"]="GOPAY", ["flow"]="CR", ["amount_idr"]=500000.0 },
+        };
+        var s = Scorer.ScoreFixture("t", pred, Truth.Take(1).ToList());
+        Assert.Equal(1, s.Matched);                            // same date+amount -> matched
+        Assert.Equal(0.0, s.FieldAccuracy(new[] { "flow" }));  // but flow is wrong
+    }
+}
+```
+
 ```bash
 pytest tests/test_eval_scoring.py -q
 ```
@@ -472,18 +789,48 @@ pytest tests/test_eval_scoring.py -q
 
 ---
 
-### [ ] STEP 9 — Run the benchmark: Gemini 2.5 Flash vs Claude Sonnet 4.6
+### [~] STEP 9 — Run the benchmark: Gemini 2.5 Flash vs Claude Sonnet 4.6
+
+**Status: PARTIAL — 15/20 fixtures ran (superbank_01–05 hit free-tier daily quota). Re-run tomorrow to get the full 20.**
 
 ```bash
 cd services/ai-service
-# ensure .env has both GEMINI_API_KEY and ANTHROPIC_API_KEY
-python evals/eval_extraction.py --compare
+PYTHONPATH=. python evals/eval_extraction.py --provider gemini
 ```
 
-Capture the two summary blocks. Expect (illustrative — your real numbers go in the doc):
-- Gemini cheaper per doc, possibly slightly lower on the nasty edge fixtures.
-- Claude often stronger on `flow` for refund/FX rows.
-- Both should be high on critical fields for clean statements; the spread shows up on the edge cases (which is why Step 3 mattered).
+**Bug found and fixed during this run (THINK-04 in action):**
+
+The scorer was reporting `crit=0.67` on every fixture. Root cause: `TransactionResult.flow` is typed as `FlowType(str, Enum)`. In Python 3.11+, `str(FlowType.DB)` returns `"FlowType.DB"` not `"DB"`, so the scorer's `_field_equal("flow", FlowType.DB, "DB")` always returned False.
+
+Fix applied in `eval_extraction.py` line 49: changed `t.model_dump()` → `t.model_dump(mode='json')`. This serializes enum members to their string values before comparison. The scorer unit tests confirm the fix is clean (5/5 passing).
+
+**Partial Gemini 2.5 Flash results (15 fixtures, pre-corrected numbers will need re-run):**
+
+| Fixture | F1 | crit (raw/buggy) | all (raw/buggy) | Latency | Cost |
+|---------|----|----|-----|---------|------|
+| bca_01  | 1.00 | 0.67 | 0.88 | 14779ms | $0.00034 |
+| bca_02  | 1.00 | 0.67 | 0.88 | 12183ms | $0.00034 |
+| bca_03  | 1.00 | 0.67 | 0.88 | 13851ms | $0.00033 |
+| bca_04  | 1.00 | 0.67 | 0.88 | 13913ms | $0.00041 |
+| bca_05  | 1.00 | 0.67 | 0.88 | 9928ms  | $0.00033 |
+| edge_01 | 1.00 | 0.67 | 0.88 | 8959ms  | $0.00026 |
+| edge_02 | 1.00 | 0.67 | 0.83 | 11694ms | $0.00035 |
+| neobank_01 | 1.00 | 0.67 | 0.88 | 9506ms | $0.00023 |
+| neobank_02 | 1.00 | 0.67 | 0.88 | 8417ms | $0.00027 |
+| neobank_03 | 1.00 | 0.67 | 0.88 | 14215ms | $0.00030 |
+| neobank_04 | 1.00 | 0.67 | 0.88 | 10198ms | $0.00033 |
+| neobank_05 | 1.00 | 0.67 | 0.88 | 9681ms  | $0.00030 |
+| screenshot_01 | 1.00 | 0.67 | 0.88 | 7184ms | $0.00022 |
+| screenshot_02 | 1.00 | 0.67 | 0.85 | 6555ms | $0.00023 |
+| screenshot_03 | 1.00 | 0.67 | 0.88 | 5350ms  | $0.00016 |
+
+Note: crit and all_field_acc numbers above are from the buggy scorer. After the enum fix, expect crit → 1.00 for rows where only `flow` was wrong. The `all=0.83` on edge_02 and `all=0.85` on screenshot_02 suggest additional field mismatches to investigate after re-run.
+
+**Re-run command (after quota reset — free tier: 20 RPD):**
+```bash
+cd services/ai-service
+PYTHONPATH=. python evals/eval_extraction.py --provider gemini
+```
 
 > **The interleaving move (from the tips doc):** while the 40 calls run (a few minutes), switch context — open the Week 3 RAG reading or skim the pgvector docs. Don't watch the progress bar. Interleaving beats blocked practice for transfer.
 

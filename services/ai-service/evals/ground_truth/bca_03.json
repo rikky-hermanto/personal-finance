@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {"date": "2024-05-03", "description": "TRANSFER KE REKENING SEKURITAS INDO", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 5000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-05-08", "description": "BIAYA ASURANSI JIWA PRUDENTIAL MEI", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-05-10", "description": "TRANSFER MASUK GAJI MEI 2024", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 15000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-05-15", "description": "SHOPEE PAY ORDER 8765432", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 355000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-05-18", "description": "QRIS KOPI KENANGAN SUDIRMAN", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 45000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-05-22", "description": "PEMBAYARAN SPOTIFY PREMIUM", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 79000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-05-29", "description": "PEMBAYARAN TAGIHAN PLN 123456789", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 450000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"}
+  ]
+}

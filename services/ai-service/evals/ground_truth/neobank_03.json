@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {"date": "2024-05-05", "description": "Transfer Masuk Gaji Mei", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 5000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-05-09", "description": "Belanja Alfamart 0023 Kelapa Gading", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 87500.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-05-12", "description": "Pembayaran ShopeePay ORD345123", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 450000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-05-17", "description": "Top Up GoPay via Transfer", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-05-21", "description": "Tagihan Internet Indihome", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 350000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-05-26", "description": "Reward Cashback Voucher Neo", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 25000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-05-30", "description": "Biaya Admin Bulanan", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 2500.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"}
+  ]
+}

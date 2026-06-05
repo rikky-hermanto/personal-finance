@@ -1,0 +1,18 @@
+Tabungan Utama - 000012345678
+
+Tanggal    Deskripsi                            Uang Keluar        Uang Masuk    Saldo
+
+1 Okt 2025  Saldo awal                                                            Rp33.115.610,00
+3 Okt       Pembayaran Angsuran KPR BRI         -Rp3.500.000,00                  Rp29.615.610,00
+08:00 AM
+10 Okt      Transfer Masuk Gaji Oktober                          +Rp12.000.000,00 Rp41.615.610,00
+09:00 AM
+14 Okt      Pembelian Tiket Pesawat Garuda      -Rp2.150.000,00                  Rp39.465.610,00
+19:45 PM
+17 Okt      Belanja Groceries Hypermart         -Rp785.000,00                    Rp38.680.610,00
+16:30 PM
+23 Okt      Transfer ke Dana Pendidikan         -Rp2.000.000,00                  Rp36.680.610,00
+10:00 AM
+30 Okt      Bunga Tabungan Oktober                               +Rp18.956,00    Rp36.699.566,00
+00:01 AM
+            -Rp8.435.000,00                    +Rp12.018.956,00   Rp36.699.566,00

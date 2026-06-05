@@ -12,6 +12,7 @@ class AnthropicProvider:
     def __init__(self, api_key: str, model: str = "claude-sonnet-4-6") -> None:
         self._client = AsyncAnthropic(api_key=api_key)
         self._model = model
+        self.last_usage: dict | None = None
 
     async def extract_structured(
         self,
@@ -81,6 +82,7 @@ class AnthropicProvider:
 
             input_tokens = message.usage.input_tokens
             output_tokens = message.usage.output_tokens
+            self.last_usage = {"input": input_tokens, "output": output_tokens}
             cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
 
             logger.info(

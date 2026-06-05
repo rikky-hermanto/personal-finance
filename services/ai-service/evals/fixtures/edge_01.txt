@@ -1,0 +1,12 @@
+WISE MULTI-CURRENCY ACCOUNT
+Account Statement
+Account ID: WISE-1234567
+Name      : ADITYA PRATAMA
+Period    : 01 March 2024 - 31 March 2024
+
+Date         Description                                    Amount          Exchange Rate   Amount IDR      Balance IDR
+05 Mar 2024  Transfer received - Freelance Client USD        +USD 150.00     15.485          +2.322.750      17.572.750
+08 Mar 2024  Refund - Cancelled Service Order #SVC-7891      +IDR 350.000    -               +350.000        17.922.750
+12 Mar 2024  Payment - AWS Cloud Services March              -USD 29.99      15.510          -465.120        17.457.630
+20 Mar 2024  Wise Fee - Balance Conversion IDR               -IDR 12.500     -               -12.500         17.445.130
+25 Mar 2024  Transfer received - Client Invoice #INV-82      +USD 200.00     15.620          +3.124.000      20.569.130

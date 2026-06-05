@@ -1,0 +1,9 @@
+{
+  "transactions": [
+    {"date": "2025-08-04", "description": "Pembayaran Asuransi Jiwa AXA", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 550000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-08-10", "description": "Transfer Masuk Gaji Agustus", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 12000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-08-15", "description": "Belanja Online Shopee SPX654321", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 189000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-08-20", "description": "Pembayaran Tagihan Telkomsel", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 215000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"},
+    {"date": "2025-08-27", "description": "Bunga Tabungan Agustus", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 15234.0, "currency": "IDR", "exchange_rate": null, "wallet": "Superbank"}
+  ]
+}
