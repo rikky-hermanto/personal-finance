@@ -1,0 +1,10 @@
+{
+  "transactions": [
+    {"date": "2024-04-03", "description": "Transfer received - EUR Consulting Client", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 1689000.0, "currency": "EUR", "exchange_rate": 16.890, "wallet": "Wise"},
+    {"date": "2024-04-07", "description": "Payment - Notion Premium Annual", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1486080.0, "currency": "USD", "exchange_rate": 15.480, "wallet": "Wise"},
+    {"date": "2024-04-10", "description": "Wise Fee - EUR to IDR conversion", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 0.0, "currency": "IDR", "exchange_rate": null, "wallet": "Wise"},
+    {"date": "2024-04-15", "description": "Transfer received - SGD Consulting Fee", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 1728000.0, "currency": "SGD", "exchange_rate": 11.520, "wallet": "Wise"},
+    {"date": "2024-04-20", "description": "Payment - Namecheap Domain Renewal", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 294595.0, "currency": "USD", "exchange_rate": 15.510, "wallet": "Wise"},
+    {"date": "2024-04-28", "description": "Refund - Overpayment Tax Q1 2024", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 75000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Wise"}
+  ]
+}

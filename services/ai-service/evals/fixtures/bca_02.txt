@@ -1,0 +1,15 @@
+BANK CENTRAL ASIA
+Rekening Koran
+No. Rekening  : 0881-234-567
+Nama          : ADITYA PRATAMA
+Periode       : 01/04/2024 - 30/04/2024
+
+Tanggal    Keterangan                                                Debit           Kredit          Saldo
+           Saldo Awal                                                                                17.027.500,00
+02/04/2024 PEMBAYARAN TIKET GARUDA 1234567890                       2.350.000,00                    14.677.500,00
+05/04/2024 TRANSFER MASUK GAJI APRIL 2024                                           15.000.000,00   29.677.500,00
+10/04/2024 PEMBAYARAN HOTEL GRAND HYATT BALI                        3.500.000,00                    26.177.500,00
+12/04/2024 MAKAN MALAM RESTORAN BLUE JASMINE                        485.000,00                      25.692.500,00
+15/04/2024 TARIK TUNAI ATM BCA NGURAH RAI                           1.000.000,00                    24.692.500,00
+20/04/2024 QRIS ALFAMART NGURAH RAI BALI                            95.000,00                       24.597.500,00
+25/04/2024 PEMBAYARAN TAGIHAN PDAM 789012345                        125.000,00                      24.472.500,00

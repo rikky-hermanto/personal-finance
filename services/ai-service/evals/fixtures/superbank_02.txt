@@ -1,0 +1,14 @@
+Tabungan Utama - 000012345678
+
+Tanggal    Deskripsi                            Uang Keluar        Uang Masuk    Saldo
+
+1 Jul 2025  Saldo awal                                                            Rp6.284.376,00
+3 Jul       Pembayaran Tagihan PLN               -Rp450.000,00                   Rp5.834.376,00
+07:30 AM
+8 Jul       Refund Shopee - SPX123456                             +Rp128.000,00   Rp5.962.376,00
+11:42 AM
+15 Jul      Gaji Bulan Juli                                       +Rp12.000.000,00 Rp17.962.376,00
+09:00 AM
+22 Jul      Transfer ke Rekening Tabungan       -Rp3.000.000,00                  Rp14.962.376,00
+16:55 PM
+            -Rp3.450.000,00                    +Rp12.128.000,00  Rp14.962.376,00

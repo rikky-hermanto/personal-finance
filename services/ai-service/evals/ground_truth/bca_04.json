@@ -1,0 +1,13 @@
+{
+  "transactions": [
+    {"date": "2024-06-03", "description": "TRANSFER MASUK GAJI JUNI 2024", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 15000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-05", "description": "QRIS TRANSMART CEMPAKA MAS", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 875000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-09", "description": "GOFOOD AYAM GEPREK BENSU JKT", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 78000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-12", "description": "QRIS GRAMEDIA MATRAMAN", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 250000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-14", "description": "LINKAJA TAGIHAN TELKOMSEL", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 150000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-18", "description": "QRIS KFC MANGGA DUA SQUARE", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 95500.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-21", "description": "NETFLIX INDONESIA MONTHLY", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 186000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-25", "description": "TRANSFER DEBET SEWA BULANAN", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-06-27", "description": "SHOPEE ORDER SPX987654321", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 425000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"}
+  ]
+}

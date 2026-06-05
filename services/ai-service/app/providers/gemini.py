@@ -14,6 +14,7 @@ class GeminiProvider:
         self._api_key = api_key
         self._model = model
         self._client = None
+        self.last_usage: dict | None = None
 
     def _get_client(self) -> genai.Client:
         if self._client is None:
@@ -64,6 +65,7 @@ class GeminiProvider:
 
             input_tokens = response.usage_metadata.prompt_token_count
             output_tokens = response.usage_metadata.candidates_token_count
+            self.last_usage = {"input": input_tokens, "output": output_tokens}
             cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
 
             logger.info(

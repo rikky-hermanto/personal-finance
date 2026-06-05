@@ -1,0 +1,9 @@
+{
+  "transactions": [
+    {"date": "2024-03-05", "description": "Transfer received - Freelance Client USD", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 2322750.0, "currency": "USD", "exchange_rate": 15.485, "wallet": "Wise"},
+    {"date": "2024-03-08", "description": "Refund - Cancelled Service Order #SVC-7891", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 350000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Wise"},
+    {"date": "2024-03-12", "description": "Payment - AWS Cloud Services March", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 465120.0, "currency": "USD", "exchange_rate": 15.510, "wallet": "Wise"},
+    {"date": "2024-03-20", "description": "Wise Fee - Balance Conversion IDR", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 12500.0, "currency": "IDR", "exchange_rate": null, "wallet": "Wise"},
+    {"date": "2024-03-25", "description": "Transfer received - Client Invoice #INV-82", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 3124000.0, "currency": "USD", "exchange_rate": 15.620, "wallet": "Wise"}
+  ]
+}

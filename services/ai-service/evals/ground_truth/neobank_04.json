@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {"date": "2024-06-03", "description": "Transfer Masuk Gaji Juni", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 5000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-06-07", "description": "Pembayaran KPR BRI Bulan Juni", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 2800000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-06-12", "description": "Belanja Superindo Bendungan Hilir", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 195000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-06-16", "description": "Dana Darurat Tambahan Tabungan", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-06-20", "description": "Nonton Bioskop CGV Aeon Mall", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 125000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-06-24", "description": "Tagihan Listrik PLN 456789", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 375000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"},
+    {"date": "2024-06-28", "description": "Top Up e-Toll", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "NeoBank"}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "transactions": [
+    {"date": "2024-04-02", "description": "Transfer ke Sesama Jago", "remarks": "Dikirim ke: Dana M.", "flow": "DB", "type": "Expense", "amount_idr": 750000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-04-08", "description": "Terima Transfer", "remarks": "Dari: PT ABC Indonesia (Gaji April)", "flow": "CR", "type": "Income", "amount_idr": 8500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-04-14", "description": "Bayar Tagihan PLN 123456789", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 450000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-04-20", "description": "Belanja Online Tokopedia", "remarks": "Order ID: TKP-2024-7891234", "flow": "DB", "type": "Expense", "amount_idr": 299000.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"},
+    {"date": "2024-04-25", "description": "Bunga Tabungan", "remarks": "Bunga Harian April 2024", "flow": "CR", "type": "Income", "amount_idr": 8750.0, "currency": "IDR", "exchange_rate": null, "wallet": "Bank Jago"}
+  ]
+}

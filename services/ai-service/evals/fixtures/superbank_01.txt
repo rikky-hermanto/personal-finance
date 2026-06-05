@@ -1,0 +1,14 @@
+Tabungan Utama - 000012345678
+
+Tanggal    Deskripsi                            Uang Keluar        Uang Masuk    Saldo
+
+1 Jun 2025  Saldo awal                                                            Rp2.500.000,00
+5 Jun       Transfer ke Budi Santoso            -Rp350.000,00                    Rp2.150.000,00
+09:14 AM
+12 Jun      Top Up dari Saldo Utama                              +Rp5.000.000,00  Rp7.150.000,00
+14:27 PM
+19 Jun      Belanja Online Tokopedia            -Rp875.500,00                    Rp6.274.500,00
+20:05 PM
+28 Jun      Bunga Tabungan                                       +Rp9.876,00      Rp6.284.376,00
+00:01 AM
+            -Rp1.225.500,00                    +Rp5.009.876,00   Rp6.284.376,00

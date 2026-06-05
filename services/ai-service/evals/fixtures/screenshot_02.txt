@@ -1,0 +1,35 @@
+Mutasi Rekening
+Bank Jago - Your L1fe-Centered Bank
+Periode: 01 Mei 2024 - 31 Mei 2024
+Nomor Rekening: 1180-1234-5678
+
+05 Mei 2024
+Keluar - Tarik Tunai
+Melalui ATM Bersama
+Jumlah: Rp 500.000
+Saldo: Rp 11.509.750
+
+08 Mei 2024
+Masuk - Terima Transfer
+Dari: PT ABC lndonesia (Gaji Mei)
+Jumlah: Rp 8.500.000
+Saldo: Rp 20.009.750
+
+15 Mei 2024
+Keluar - Bayar QRIS
+Merchant: Golekso Kopi
+Jumlah: Rp 38.000
+Saldo: Rp 19.971.750
+
+22 Mei 2024
+Keluar - Belanja Online
+Merchant: Shopee
+Order: SPX-2024-9876543
+Jumlah: Rp 167.500
+Saldo: Rp 19.804.250
+
+30 Mei 2024
+Masuk - Bunga Tabungan
+Bunga Harian Mei 2024
+Jumlah: Rp 9.250
+Saldo: Rp 19.813.500

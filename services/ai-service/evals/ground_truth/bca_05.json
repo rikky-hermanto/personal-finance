@@ -1,0 +1,11 @@
+{
+  "transactions": [
+    {"date": "2024-07-05", "description": "TRANSFER MASUK GAJI JULI 2024", "remarks": "", "flow": "CR", "type": "Income", "amount_idr": 15000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-07-08", "description": "PEMBAYARAN KOPERASI KARYAWAN JULI", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 1000000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-07-11", "description": "TARIK TUNAI ATM BCA TENDEAN", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 500000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-07-15", "description": "PEMBAYARAN TAGIHAN BPJS KESEHATAN", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 165000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-07-19", "description": "QRIS MATAHARI DEPT STORE BLOK M", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 750000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-07-22", "description": "GOJEK GOCAR ORDER 3KHJD2", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 45000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"},
+    {"date": "2024-07-29", "description": "PEMBAYARAN TAGIHAN PLN 123456789", "remarks": "", "flow": "DB", "type": "Expense", "amount_idr": 450000.0, "currency": "IDR", "exchange_rate": null, "wallet": "BCA"}
+  ]
+}

@@ -1,0 +1,14 @@
+Rekening Koran Digital
+NeoBank
+Nomor Rekening : 8801-234-5678
+Nama Nasabah   : ADITYA PRATAMA
+Periode        : 01 Maret 2024 s/d 31 Maret 2024
+
+Tanggal          Deskripsi                               Debit (Rp)      Kredit (Rp)     Saldo (Rp)
+01 Mar 2024      Saldo Awal                                                               3.250.000,00
+03 Mar 2024      Pembayaran Kartu Kredit BCA             1.500.000,00                    1.750.000,00
+08 Mar 2024      Transfer Masuk Gaji Maret                               5.000.000,00    6.750.000,00
+14 Mar 2024      Belanja Supermarket Transmart            385.000,00                      6.365.000,00
+18 Mar 2024      Tagihan Internet Indihome                350.000,00                      6.015.000,00
+22 Mar 2024      Cashback Promo Maret                                       50.000,00     6.065.000,00
+28 Mar 2024      Biaya Admin Bulanan                        2.500,00                      6.062.500,00
