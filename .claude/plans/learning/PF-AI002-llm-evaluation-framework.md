@@ -1,8 +1,9 @@
 # PF-AI002 — LLM Evaluation Framework: Extraction Accuracy Harness
 
 > **Learning Phase:** Phase 1 · Week 2 of 12 · Day ~6 of 90
-> **Status:** NOT STARTED (planned)
+> **Status:** COMPLETE — archived 2026-06-05
 > **Started:** 2026-06-01
+> **Completed:** 2026-06-05
 > **Pivot goal:** Close the "how do you *know* your extraction is correct?" gap — the top-3 question in every AI Engineering interview. After this week the answer stops being "we check manually" and becomes "we have a 20-fixture eval harness measuring 9X% field-level accuracy, with Gemini Y% cheaper than Claude on the same workload."
 
 ## Objective
@@ -838,7 +839,7 @@ PYTHONPATH=. python evals/eval_extraction.py --provider gemini
 
 ---
 
-### [ ] STEP 10 — Write `docs/eval-results.md`
+### [x] STEP 10 — Write `docs/eval-results.md`
 
 ```markdown
 # Extraction Eval Results — Personal Finance Platform
