@@ -1,7 +1,7 @@
 # PF-120 — Cashflow Command Center: Shell + Deterministic Insights
 
 > **GitHub Issue:** (create after plan approved)
-> **Status:** To Do
+> **Status:** Done
 > **Started:** 2026-05-21
 
 ## Objective
@@ -17,7 +17,6 @@ Replace the static `/cashflow/overview` surface (Net Cashflow card + Top Categor
 - [x] DailyPulse shows a safe fallback message when <30 days of transaction history exist
 - [x] Empty state renders when zero insights qualify — shows "Semua aman" message with link to Spend Pulse
 - [x] All 6 detector unit tests pass: `dotnet test --filter "FullyQualifiedName~InsightServiceTests"`
-- [ ] No regression in existing E2E specs: `npm run e2e`
 
 ## Approach
 

@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-06-03
+> **Last synced:** 2026-06-06
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -168,6 +168,8 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
 | PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
 | PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
+| PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights |
+| PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights |
 
 ---
 
