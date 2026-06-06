@@ -997,4 +997,99 @@ Map this week's steps onto the daily loop — *learn → build → prove* in one
 - **Frozen contract (THINK-05):** ground-truth field names mirror the `TransactionResult` / `TransactionDto` contract. If that contract ever changes, the fixtures and scorer's `SCORED_FIELDS` change with it — in the same commit.
 - **Next week (Week 3 — RAG):** this exact harness pattern (golden set → run → score → table) returns, but the metric becomes **MRR/NDCG on retrieval** instead of field accuracy. The 20 fixtures you label this week get *embedded* and reused as the retrieval test set. Label them well.
 - **Deferred:** automated cost pull via the Langfuse query API, CI regression gating on eval scores, RAGAS integration — all later. v1 = a runnable benchmark + a documented table.
-```
+
+---
+
+## 📝 Knowledge Check
+
+> Original practice questions modeled on the published exam domains of official AI Engineering certifications (Databricks Generative AI Engineer Associate, Azure AI Engineer AI-102, AWS Certified ML Engineer – Associate, Google Cloud Professional ML Engineer). They match the style and topic areas of those exams — not verbatim exam items. Each question is tagged to the certification domain(s) it maps to. Answers are hidden — recall first, then reveal.
+
+### 1. The right first step before swapping models (Databricks · Azure AI-102)
+
+*Scenario:* You want to move extraction from Claude to Gemini to cut cost, but you're worried about silent accuracy regressions.
+
+*Question:* What should you do first?
+
+- **A.** Swap in production and watch for user complaints
+- **B.** Trust the vendors' published benchmark numbers
+- **C.** Raise temperature to make extraction more robust
+- **D.** Build an eval set of labeled statements with ground-truth output and an automated scorer, then benchmark both models on it
+
+<details>
+<summary>Show answer</summary>
+
+**D** — eval-driven development: a labeled golden set + automated scorer lets you compare models objectively before shipping.
+*Maps to: Databricks GenAI Engineer Associate · Evaluation & Monitoring; Azure AI-102 · Evaluate generative AI solutions*
+</details>
+
+### 2. What makes a good golden dataset (Databricks · Google Cloud PMLE)
+
+*Scenario:* You're labeling 20 bank statements as ground truth for the harness.
+
+*Question:* The most important property of this dataset is that it:
+
+- **A.** Is as large as possible regardless of label quality
+- **B.** Is accurately labeled and representative of the real input distribution (all 5 banks, plus edge cases like FX and multi-page statements)
+- **C.** Contains only the easiest statements
+- **D.** Is entirely synthetic
+
+<details>
+<summary>Show answer</summary>
+
+**B** — eval quality depends on accurate, representative labels that cover real edge cases — not raw size.
+*Maps to: Databricks GenAI Engineer Associate · Data Preparation / Evaluation; Google Cloud PMLE · Dataset design*
+</details>
+
+### 3. Metric strictness by field (Databricks)
+
+*Scenario:* A wrong `amount_idr` corrupts the ledger; a slightly-off `remarks` is harmless.
+
+*Question:* How should the scorer treat these two fields?
+
+- **A.** Apply strict exact-match to financially critical fields (amount, date, flow) and looser/semantic matching to fuzzy text fields (remarks, description)
+- **B.** Exact-match every field equally
+- **C.** Ignore the amount because it's "just a number"
+- **D.** Only score the fields the model happened to get right
+
+<details>
+<summary>Show answer</summary>
+
+**A** — metric strictness should track financial criticality — exact for amount/date/flow, fuzzy for free text (exactly the split in `scoring.py`).
+*Maps to: Databricks GenAI Engineer Associate · Evaluation & Monitoring*
+</details>
+
+### 4. Scoring semantic equivalence (Databricks · Azure AI-102)
+
+*Scenario:* You need to score whether an extracted `description` "means the same thing" as the ground truth, where exact string match is too strict.
+
+*Question:* A sound approach is to:
+
+- **A.** Mark all fuzzy fields correct by default
+- **B.** Use a regex and hope for the best
+- **C.** Use a second LLM as a judge with a clear rubric, calibrated against some human labels and run at temperature 0
+- **D.** Drop that field from evaluation permanently
+
+<details>
+<summary>Show answer</summary>
+
+**C** — LLM-as-a-judge with a rubric (validated against human labels, temp 0 for consistency) is the standard way to score semantic equivalence.
+*Maps to: Databricks GenAI Engineer Associate · Evaluation; Azure AI-102 · Evaluate generative AI solutions*
+</details>
+
+### 5. Presenting the accuracy/cost tradeoff (AWS ML Engineer · Databricks)
+
+*Scenario:* Gemini scores 89% at 38% lower cost; Claude scores 92% at higher cost.
+
+*Question:* The correct way to make the call is to:
+
+- **A.** Always pick the cheaper model
+- **B.** Always pick the higher-accuracy model
+- **C.** Pick whichever SDK is easier to use
+- **D.** Report both accuracy and cost-per-document and choose by the task's error tolerance (financial extraction may justify paying for higher accuracy)
+
+<details>
+<summary>Show answer</summary>
+
+**D** — it's a documented accuracy-vs-cost tradeoff scoped to the task's error tolerance, not a blanket rule.
+*Maps to: AWS Certified ML Engineer – Associate · Cost optimization; Databricks GenAI Engineer Associate · Model selection & evaluation*
+</details>

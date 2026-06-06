@@ -718,3 +718,99 @@ Then update `mentor/progress.md` — mark the first 3 Week 1 tasks as done:
 - **OTel vs Langfuse:** OTel captures HTTP-level metrics (request latency, status codes, DB query time). Langfuse captures LLM-specific metrics (token cost, prompt content, generation quality). They're complementary. OTel → Grafana for infra dashboards. Langfuse → Langfuse UI for AI-specific dashboards. Don't try to merge them.
 - **Next week (Week 2):** The eval harness will reuse the `estimate_cost_usd()` function from `observability.py` to compute benchmark cost-per-doc across providers. Don't delete or rename it.
 - **Deferred:** Langfuse datasets, prompt versioning, A/B test prompts — all Week 2+. Don't scope-creep this week.
+
+---
+
+## 📝 Knowledge Check
+
+> Original practice questions modeled on the published exam domains of official AI Engineering certifications (Databricks Generative AI Engineer Associate, Azure AI Engineer AI-102, AWS Certified ML Engineer – Associate, Google Cloud Professional ML Engineer). They match the style and topic areas of those exams — not verbatim exam items. Each question is tagged to the certification domain(s) it maps to. Answers are hidden — recall first, then reveal.
+
+### 1. Why LLM-specific observability? (Databricks · Azure AI-102)
+
+*Scenario:* Your FastAPI service already has standard APM — request latency, error rate, throughput — but you can't answer "which extractions cost the most" or "is output quality drifting?"
+
+*Question:* What does LLM-specific observability (e.g., Langfuse) add that traditional APM does not?
+
+- **A.** Lower request latency
+- **B.** Automatic horizontal autoscaling of the service
+- **C.** Per-call token usage, cost, captured prompt/response, and quality signals attached to each generation
+- **D.** Database query execution plans
+
+<details>
+<summary>Show answer</summary>
+
+**C** — APM measures the HTTP/infra layer; LLM observability captures token count, cost, prompt/response content, and quality per *generation*.
+*Maps to: Databricks GenAI Engineer Associate · Deployment & Monitoring; Azure AI-102 · Monitor generative AI solutions*
+</details>
+
+### 2. Reporting cost per document (AWS ML Engineer · Databricks)
+
+*Scenario:* One extraction uses ~8,000 input + ~1,200 output tokens against a model priced per 1M tokens.
+
+*Question:* The most reliable way to report cost-per-document is to:
+
+- **A.** Multiply each call's actual input/output token counts by the model's per-token price and log it on the trace
+- **B.** Estimate it from wall-clock latency
+- **C.** Divide the monthly invoice by the number of API keys
+- **D.** Assume a flat cost regardless of statement length
+
+<details>
+<summary>Show answer</summary>
+
+**A** — cost-per-doc must come from per-call token usage × price, recorded at trace time (exactly what `estimate_cost_usd()` does).
+*Maps to: AWS Certified ML Engineer – Associate · Monitoring & cost optimization; Databricks GenAI Engineer Associate · Monitoring*
+</details>
+
+### 3. Percentiles vs the mean (Azure AI-102 · Google Cloud PMLE)
+
+*Scenario:* Mean extraction latency is a healthy 900 ms, yet some users report slow uploads.
+
+*Question:* Why track p50 and p95 latency instead of the mean alone?
+
+- **A.** The mean can't be computed for LLM calls
+- **B.** p95 always equals the mean for LLMs
+- **C.** Percentiles reduce token cost
+- **D.** Percentiles expose the tail latency the mean hides — p95 reflects the experience of the slowest 5% of calls
+
+<details>
+<summary>Show answer</summary>
+
+**D** — the mean smooths over tail behavior; p95 captures worst-case user experience, which is what users actually complain about.
+*Maps to: Azure AI-102 · Optimize & monitor solutions; Google Cloud PMLE · Monitor ML solutions*
+</details>
+
+### 4. Structuring a trace (Databricks · LLMOps)
+
+*Scenario:* A single upload runs PDF text extraction → LLM extraction → categorization.
+
+*Question:* The cleanest way to model this in an observability tool is:
+
+- **A.** One log line with everything concatenated
+- **B.** One trace for the upload with nested spans/generations (pdf-extract, llm-extract, categorize) so cost and latency are attributable per step
+- **C.** A separate database table per request
+- **D.** Log only the final result, nothing intermediate
+
+<details>
+<summary>Show answer</summary>
+
+**B** — a trace with nested spans/generations makes per-step cost and latency attributable and debuggable.
+*Maps to: Databricks GenAI Engineer Associate · Deployment & Monitoring (LLMOps)*
+</details>
+
+### 5. Catching silent quality drift (Databricks · AWS ML Engineer)
+
+*Scenario:* The extraction model is unchanged, but accuracy on new uploads quietly degrades over a month.
+
+*Question:* Which is the most practical production signal to catch this?
+
+- **A.** Input-distribution drift (e.g., a new bank format) plus output-quality proxies and user-correction/feedback rates
+- **B.** The LLM's training loss
+- **C.** The number of GPUs in the cluster
+- **D.** The Docker image size
+
+<details>
+<summary>Show answer</summary>
+
+**A** — you don't train the LLM, so you monitor input drift + quality proxies + user-correction feedback, not training internals.
+*Maps to: Databricks GenAI Engineer Associate · Monitoring; AWS Certified ML Engineer – Associate · Monitoring & data/model drift*
+</details>

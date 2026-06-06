@@ -378,6 +378,77 @@ Re-run the AI Engineering gap analysis. Read `cv.md` and `docs/mentor/progress.m
 
 ---
 
+## Learning Plan Files (PF-AIxxx) — Required Knowledge Check Quiz
+
+The detailed weekly learning plans live in `.claude/plans/learning/PF-AIxxx-*.md` (e.g.
+`PF-AI001-ai-observability.md`). Their section order is: title + metadata blockquote →
+Objective → Acceptance Criteria → Approach → Affected Files → TODO (steps) → Resources /
+Theory to Learn → Learning Strategy → Notes.
+
+**Every learning plan you generate or revise MUST end with a Knowledge Check quiz** — placed
+*after* `## Notes`, as the final section of the file. This is mandatory, not optional.
+
+Rules:
+- **Coverage:** 5–6 multiple-choice questions, each covering one load-bearing concept from
+  that plan's Resources/Theory + TODO steps (the "why" callouts and interview frames are the
+  best sources). Quiz the ideas that matter, not trivia.
+- **Source framing:** Write *original* questions modeled on the **published exam domains** of
+  official AI Engineering certifications — primarily **Databricks Generative AI Engineer
+  Associate** and **Microsoft Azure AI Engineer Associate (AI-102)** (the two certs this plan
+  recommends), plus **AWS Certified Machine Learning Engineer – Associate**, **Google Cloud
+  Professional ML Engineer**, or any other relevant AI Engineering cert where a topic fits
+  better. NEVER copy verbatim exam items (copyright + unverifiable) — match the *style and
+  topic area*, and tag each question to the certification domain(s) it genuinely maps to.
+- **Format:** four options A–D, exactly one best answer. Hide the answer in a collapsible
+  `<details>` block so the reader recalls before revealing (consistent with the
+  active-retrieval pedagogy the plans already use). The answer block holds the letter, a 1–2
+  sentence rationale, and a `*Maps to: <Cert> · <Domain>*` line.
+- **Answer position — vary it.** Put the correct option in a different slot each question and
+  spread the key roughly evenly across A–D. Never default to one letter: a column of all-`B`
+  answers is guessable without reading the questions, which defeats the point. Reorder the
+  *actual option text* when you place the correct one — don't just relabel.
+- **Language:** match the file. English plans → English quiz (heading `## 📝 Knowledge
+  Check`). Indonesian (`-id`) plans → natural Indonesian quiz (heading `## 📝 Cek Pemahaman`,
+  `*Skenario:*`, `*Pertanyaan:*`, summary `Lihat jawaban`, `*Jawaban:*` / `*Domain:*`),
+  keeping technical terms and certification names in English. (This is scoped to learning-plan
+  files; coaching output — daily/status/weekly — stays English per Writing Rules.)
+
+Template (English):
+
+```markdown
+---
+
+## 📝 Knowledge Check
+
+> Original practice questions modeled on the published exam domains of official AI Engineering
+> certifications (Databricks Generative AI Engineer Associate, Azure AI Engineer AI-102, AWS
+> Certified ML Engineer – Associate, Google Cloud Professional ML Engineer). They match the
+> style and topic areas of those exams — not verbatim exam items. Each question is tagged to
+> the certification domain(s) it maps to. Answers are hidden — recall first, then reveal.
+
+### 1. {Concept} ({Cert focus})
+
+*Scenario:* {1–2 sentence realistic scenario from this project}
+
+*Question:* {the question}
+
+- **A.** {option}
+- **B.** {option}
+- **C.** {option}
+- **D.** {option}
+
+<details>
+<summary>Show answer</summary>
+
+**{correct letter — vary it per question, see "Answer position" rule above}** — {1–2 sentence rationale: why it's right, why the others are wrong}.
+*Maps to: {Cert} · {Domain area}*
+</details>
+
+### 2. … (repeat for 5–6 questions covering the plan's concepts)
+```
+
+---
+
 ## progress.md Bootstrap Template
 
 If `docs/mentor/progress.md` doesn't exist at project root, create it:
