@@ -188,3 +188,25 @@
 **Interview-ready answer (new):** "I built a 20-fixture extraction eval harness; Gemini 2.5 Flash hit 100% row F1 on BCA/NeoBank/screenshot fixtures. The eval caught a Python enum serialization bug that mocked unit tests never would — `flow` was always serializing as `FlowType.DB` instead of `DB` until `model_dump(mode='json')` was applied."
 
 **Streak: 9 days**
+
+### 2026-06-06 — Day 10
+
+**Session: Learning infrastructure — Knowledge Check quizzes added to all plans**
+
+- Added `## 📝 Knowledge Check` quiz sections to all 4 active learning plan files: `PF-AI001` (AI observability), `PF-AI002` EN + ID (eval framework), `PF-AI003` (RAG/embeddings)
+- Each quiz: 5–6 multiple-choice questions modeled on Databricks GenAI Engineer Associate + Azure AI-102 + AWS ML Engineer exam domains — cert style, not trivia
+- Answer position rotated per question (A/B/C/D varied) + `<details>` collapsible blocks for active-retrieval recall before reveal
+- Updated mentor `SKILL.md` with the quiz generation rules — now enforced: every new or revised learning plan file MUST end with a Knowledge Check
+
+**Week 3 checklist progress:**
+- [ ] Complete DeepLearning.AI "LangChain for LLM Application Development" ← next
+- [ ] Complete "Functions, Tools and Agents with LangChain"
+- [ ] Build LangGraph "Transaction Categorizer Agent"
+
+**Retros (blockers & surprises):**
+- None — clean session. Tooling/infrastructure day; no build tasks, no API calls.
+
+**Remaining for tomorrow:**
+- Start Week 3 build: LangChain for LLM Application Development course (free, ~4h) + begin LangGraph proof-of-concept planning
+
+**Streak: 10 days**

@@ -1404,3 +1404,117 @@ Organized by concept — read the one tied to what you're building; skip the res
 - **THINK-05 (frozen contract):** the `/search` response fields (`transaction_id`, `similarity`, `description`, `date`, `amount_idr`, `flow`, `wallet`) are now a cross-service contract between Python and .NET. Rename on one side → update the other in the same commit.
 - **Next week (Week 4 — Re-ranking + Generation):** the `eval_retrieval.py` you write in Step 13 becomes the baseline. Week 4 adds a re-ranker on top of the top-10 results and measures MRR lift. The delta ("re-ranking improved MRR@5 from 0.XX to 0.YY") is an interview-ready number. Set up the harness to make that measurement easy.
 - **Deferred:** connection pooling, hybrid BM25+vector search (Week 6), re-ranking (Week 4), LLM synthesis / `/ask` endpoint (Week 4), Supabase RPC alternative for .NET-side search (Week 6 consideration).
+
+---
+
+## 📝 Knowledge Check
+
+> Original practice questions modeled on the published exam domains of official AI Engineering certifications (Databricks Generative AI Engineer Associate, Azure AI Engineer AI-102, AWS Certified ML Engineer – Associate, Google Cloud Professional ML Engineer). They match the style and topic areas of those exams — not verbatim exam items. Each question is tagged to the certification domain(s) it maps to. Answers are hidden — recall first, then reveal.
+
+### 1. Troubleshooting a RAG pipeline (Databricks · AWS ML Engineer)
+
+*Scenario:* Your "ask your finances" RAG feature frequently misses relevant transactions or makes up answers not grounded in the data.
+
+*Question:* What's the best first step to troubleshoot?
+
+- **A.** Raise the LLM's temperature so it's more creative
+- **B.** Switch to a larger closed-source model
+- **C.** Inspect the retrieval step first — what text you embed, your chunking/enrichment, and retrieval params (e.g., increase `top_k`, add re-ranking) so relevant context actually reaches the LLM
+- **D.** Delete the vector store and re-embed in a different modality
+
+<details>
+<summary>Show answer</summary>
+
+**C** — missing-context and hallucination in RAG are usually a *retrieval* problem first; fix what's retrieved before touching the generator.
+*Maps to: Databricks GenAI Engineer Associate · Assembling & Evaluating RAG Applications; AWS Certified ML Engineer – Associate · Generative AI / RAG*
+</details>
+
+### 2. What to embed (Databricks · Google Cloud PMLE)
+
+*Scenario:* A BCA row has `description = "DEBIT"` but the rule engine set `category = "Food & Dining"`. A query for "food spending in March" returns nothing.
+
+*Question:* The most effective fix is to:
+
+- **A.** Embed an enriched string (`description + remarks + category + wallet`) so the semantic signal the terse text lacks gets into the vector
+- **B.** Embed only the raw `description`
+- **C.** Lowercase the description before embedding
+- **D.** Increase the vector dimension to 3072
+
+<details>
+<summary>Show answer</summary>
+
+**A** — enriching the embedded text adds the semantic context that terse bank codes lack, which is what makes the search match.
+*Maps to: Databricks GenAI Engineer Associate · Data Preparation (chunking/enrichment); Google Cloud PMLE · Vector Search & Embeddings*
+</details>
+
+### 3. Cosine distance vs similarity (Google Cloud PMLE · Databricks)
+
+*Scenario:* pgvector's `<=>` operator returns a value where 0 means identical.
+
+*Question:* Which statement is correct?
+
+- **A.** `<=>` returns similarity, so `ORDER BY ... DESC` gives the most similar first
+- **B.** Cosine distance ranges from 0 to 100
+- **C.** Distance and similarity are the same value
+- **D.** `<=>` returns cosine *distance* (0 = identical); compute similarity as `1 - distance` and `ORDER BY distance ASC` for most-similar-first
+
+<details>
+<summary>Show answer</summary>
+
+**D** — `<=>` is cosine distance; similarity = `1 - distance`; order by distance ascending to get the most similar rows first.
+*Maps to: Google Cloud PMLE · Vector Search & Embeddings; Databricks GenAI Engineer Associate · Retrieval*
+</details>
+
+### 4. Choosing a vector index (Databricks · Azure AI-102)
+
+*Scenario:* Your embeddings table has a few thousand rows today but may grow significantly.
+
+*Question:* Choosing between pgvector's `ivfflat` and `hnsw`:
+
+- **A.** `ivfflat` always outperforms `hnsw`
+- **B.** `ivfflat` has faster build time and lower memory and is fine for small/medium datasets; `hnsw` gives better recall at high query volume and scale — switch as the table grows (~100k+ rows)
+- **C.** `hnsw` only runs on GPUs
+- **D.** Index type affects neither recall nor latency
+
+<details>
+<summary>Show answer</summary>
+
+**B** — `ivfflat` is cheaper to build and lighter on memory for smaller sets; `hnsw` gives better recall at scale; choose by dataset size and query volume.
+*Maps to: Databricks GenAI Engineer Associate · Vector stores; Azure AI-102 · Configure a vector index (Azure AI Search)*
+</details>
+
+### 5. Query vs document embedding (Databricks · Google Cloud PMLE)
+
+*Scenario:* Documents are embedded as `description + category + wallet`; now you embed the query "food in March".
+
+*Question:* Which is correct?
+
+- **A.** Embed the query with the same enrichment (add a category/wallet) as the documents
+- **B.** Any embedding model works for the query as long as the dimensions match
+- **C.** Re-embed all documents on every query
+- **D.** Embed the query as natural language as-is, but always use the SAME embedding model that produced the stored vectors — different models live in different vector spaces and aren't comparable
+
+<details>
+<summary>Show answer</summary>
+
+**D** — the query stays natural language (intentionally asymmetric to the enriched docs), but the embedding *model* must match storage; mixing models breaks similarity.
+*Maps to: Databricks GenAI Engineer Associate · Retrieval; Google Cloud PMLE · Embeddings*
+</details>
+
+### 6. The retrieval metric (Databricks · AWS ML Engineer)
+
+*Scenario:* For 10 test queries you know the correct transaction IDs, and you want one number for "how high up is the first correct result, on average."
+
+*Question:* The appropriate metric is:
+
+- **A.** MRR@k (Mean Reciprocal Rank) — the average of `1/rank` of the first relevant result across queries; MRR = 1.0 means the right answer is always rank 1
+- **B.** Training accuracy
+- **C.** BLEU score
+- **D.** The generator's F1
+
+<details>
+<summary>Show answer</summary>
+
+**A** — MRR@k measures the rank of the first relevant hit, the canonical retrieval-quality metric (and exactly what `eval_retrieval.py` computes).
+*Maps to: Databricks GenAI Engineer Associate · Evaluating RAG Applications; AWS Certified ML Engineer – Associate · Model evaluation*
+</details>
