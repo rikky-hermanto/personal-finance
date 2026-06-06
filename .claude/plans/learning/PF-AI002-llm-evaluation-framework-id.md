@@ -651,3 +651,99 @@ Petakan langkah-langkah minggu ini ke daily loop — *learn → build → prove*
 - **Kontrak beku (THINK-05):** nama field di ground truth ngikutin kontrak `TransactionResult` / `TransactionDto`. Kalau kontrak itu berubah, fixture sama `SCORED_FIELDS` di scorer ikut berubah — di commit yang sama.
 - **Minggu depan (Week 3 — RAG):** pola harness yang sama persis (golden set → run → score → tabel) balik lagi, tapi metriknya ganti jadi **MRR/NDCG buat retrieval**, bukan field accuracy. 20 fixture yang kamu labelin minggu ini bakal di-*embed* dan dipake ulang sebagai retrieval test set. Labelin yang bener.
 - **Ditunda:** narik biaya otomatis lewat Langfuse query API, regression gating di CI buat skor eval, integrasi RAGAS — semua nanti aja. v1 = benchmark yang bisa dijalanin + tabel yang udah didokumentasiin.
+
+---
+
+## 📝 Cek Pemahaman
+
+> Soal latihan orisinal yang dibikin ngikutin domain ujian resmi dari sertifikasi AI Engineering (Databricks Generative AI Engineer Associate, Azure AI Engineer AI-102, AWS Certified ML Engineer – Associate, Google Cloud Professional ML Engineer). Soal-soal ini nyontoh *gaya dan cakupan topik* ujian aslinya — bukan salinan persis soal ujian. Tiap soal ditandain ke domain sertifikasi yang nyambung. Jawabannya disembunyiin — coba inget-inget dulu, baru buka.
+
+### 1. Langkah pertama yang bener sebelum ganti model (Databricks · Azure AI-102)
+
+*Skenario:* Kamu pengen mindahin extraction dari Claude ke Gemini biar lebih murah, tapi takut akurasinya diam-diam turun.
+
+*Pertanyaan:* Apa yang mesti kamu lakuin duluan?
+
+- **A.** Langsung ganti di production, terus pantau ada komplain user atau nggak
+- **B.** Percaya aja sama angka benchmark dari vendornya
+- **C.** Naikin temperature biar extraction-nya lebih tahan banting
+- **D.** Bikin eval set isinya statement yang udah dilabelin sama ground-truth-nya, plus scorer otomatis, baru benchmark dua model itu di situ
+
+<details>
+<summary>Lihat jawaban</summary>
+
+**D** — eval-driven development: golden set yang udah dilabelin + scorer otomatis bikin kamu bisa banding-bandingin model secara objektif sebelum dirilis.
+*Domain: Databricks GenAI Engineer Associate · Evaluation & Monitoring; Azure AI-102 · Evaluate generative AI solutions*
+</details>
+
+### 2. Apa yang bikin golden dataset bagus (Databricks · Google Cloud PMLE)
+
+*Skenario:* Kamu lagi nge-label 20 bank statement jadi ground truth buat harness-nya.
+
+*Pertanyaan:* Properti paling penting dari dataset ini adalah:
+
+- **A.** Sebanyak mungkin, nggak peduli kualitas label-nya
+- **B.** Dilabelin dengan akurat dan mewakili distribusi input yang asli (5 bank semua, plus kasus pinggiran kayak FX sama statement multi-halaman)
+- **C.** Cuma berisi statement yang paling gampang
+- **D.** Sepenuhnya data sintetis
+
+<details>
+<summary>Lihat jawaban</summary>
+
+**B** — kualitas eval itu gantung ke label yang akurat dan representatif yang nutup kasus pinggiran beneran — bukan ke jumlahnya doang.
+*Domain: Databricks GenAI Engineer Associate · Data Preparation / Evaluation; Google Cloud PMLE · Dataset design*
+</details>
+
+### 3. Ketegasan metrik per field (Databricks)
+
+*Skenario:* `amount_idr` yang salah ngerusak ledger; `remarks` yang meleng dikit nggak masalah.
+
+*Pertanyaan:* Scorer-nya mesti nge-treat dua field ini gimana?
+
+- **A.** Exact-match ketat buat field yang kritis secara finansial (amount, date, flow), dan matching yang lebih longgar/semantik buat field teks yang fuzzy (remarks, description)
+- **B.** Exact-match semua field sama rata
+- **C.** Cuekin amount-nya karena "cuma angka"
+- **D.** Skor field yang kebetulan bener doang
+
+<details>
+<summary>Lihat jawaban</summary>
+
+**A** — ketegasan metrik mesti ngikutin seberapa kritis field-nya secara finansial — ketat buat amount/date/flow, longgar buat teks bebas (persis pembagian yang ada di `scoring.py`).
+*Domain: Databricks GenAI Engineer Associate · Evaluation & Monitoring*
+</details>
+
+### 4. Nge-skor kesamaan makna (Databricks · Azure AI-102)
+
+*Skenario:* Kamu perlu nge-skor apakah `description` hasil extract "artinya sama" kayak ground truth, di mana exact string match terlalu ketat.
+
+*Pertanyaan:* Pendekatan yang masuk akal adalah:
+
+- **A.** Anggap semua field fuzzy bener secara default
+- **B.** Pake regex aja sambil berharap
+- **C.** Pake LLM kedua sebagai judge dengan rubrik yang jelas, dikalibrasi ke sebagian label manusia, dan dijalanin di temperature 0
+- **D.** Buang field itu dari evaluasi selamanya
+
+<details>
+<summary>Lihat jawaban</summary>
+
+**C** — LLM-as-a-judge dengan rubrik (divalidasi ke label manusia, temp 0 biar konsisten) itu cara standar buat nge-skor kesamaan makna.
+*Domain: Databricks GenAI Engineer Associate · Evaluation; Azure AI-102 · Evaluate generative AI solutions*
+</details>
+
+### 5. Nyajiin tradeoff akurasi vs biaya (AWS ML Engineer · Databricks)
+
+*Skenario:* Gemini skornya 89% dengan biaya 38% lebih murah; Claude 92% tapi lebih mahal.
+
+*Pertanyaan:* Cara yang bener buat ngambil keputusannya:
+
+- **A.** Selalu pilih yang lebih murah
+- **B.** Selalu pilih yang akurasinya lebih tinggi
+- **C.** Pilih SDK yang paling gampang dipake
+- **D.** Laporin akurasi DAN cost-per-document-nya, terus pilih berdasarkan toleransi error tugasnya (extraction finansial mungkin pantas bayar lebih buat akurasi lebih tinggi)
+
+<details>
+<summary>Lihat jawaban</summary>
+
+**D** — ini tradeoff akurasi-vs-biaya yang terdokumentasi dan disesuaikan sama toleransi error, bukan aturan pukul rata.
+*Domain: AWS Certified ML Engineer – Associate · Cost optimization; Databricks GenAI Engineer Associate · Model selection & evaluation*
+</details>
