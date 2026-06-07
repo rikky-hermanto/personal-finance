@@ -4,6 +4,24 @@ Custom slash commands for this project. Type `/skill-name [args]` in Claude Code
 
 ---
 
+## Idea Capture
+
+### `/braindump` — Capture a rough idea before it evaporates
+Converts an unstructured brain dump into a lightweight idea file in `docs/ideas/`. This is a **capture tool, not an analysis tool** — no Fit Scores, no Competitive Scan, no Verdict. Just saves the idea exactly as stated, in the user's own words.
+
+```
+/braindump                                          # Claude captures whatever you describe
+/braindump money tracing dari QRIS biar ga ribet    # inline dump
+```
+
+**Output:** `docs/ideas/{slug}.md` with: Core Idea · Context & Pain (in your words) · Rough Notes · Related Ideas · Next Step (points to `/pm-brainstorm` or `/plan` when ready).
+
+**When to use:** mid-session shower thought, parking an idea without losing flow, anything you'd otherwise lose in Slack.
+
+**NOT for:** full PM analysis → use `/pm-brainstorm analyze`. Planning → use `/plan`. Building → use `/execute`.
+
+---
+
 ## Product Management & Brainstorming
 
 ### `/pm-brainstorm` — Feature ideation and PM analysis
@@ -131,6 +149,32 @@ The full pipeline: takes a raw problem, bug, feature, or refactor request; reads
 
 ## Feature Review (Post-Development)
 
+### `/ux-review` — Lead UX Designer review of a component, page, or flow
+Acts as a **Lead UX Designer** grounded in user psychology (Fitts's Law, Hick's Law, cognitive load theory) and minimalism principles. Reviews the actual implementation files — not just screenshots. Gives a concrete **SHIP IT / REFINE / RETHINK** verdict with specific, actionable design notes.
+
+| Mode | Usage |
+|------|-------|
+| *(none)* | Interactive — Claude asks what to review |
+| `ComponentName` | Review a specific component (reads all connected files) |
+| `/route/path` | Review a page or flow end-to-end |
+| `PF-XXX` | Review the UI shipped for a specific ticket |
+| `ComponentName quick` | Abbreviated pass — AC scorecard only |
+| `flow [name]` | End-to-end flow review (multiple screens) |
+
+```
+/ux-review                              # interactive
+/ux-review TransactionPreview           # component review
+/ux-review /cashflow/upload             # page flow review
+/ux-review PF-116                       # ticket implementation review
+/ux-review TransactionPreview quick     # abbreviated pass
+```
+
+**Output:** User's goal + emotional context · Visual Hierarchy & Attention Flow · Cognitive Load · Interaction Feedback & Trust · Minimalism Audit · Typography & Density · Empty/Loading/Error state coverage · Psychology Notes · **SHIP IT / REFINE / RETHINK verdict**
+
+After the report, enters discussion mode — push back on findings, request a layout alternative in words, or ask it to implement a fix directly. Optionally saves to `.claude/plans/ux-review-{target}-{YYYY-MM-DD}.md`.
+
+---
+
 ### `/po-review` — Lead PO review of an implemented feature
 Acts as a **Lead Product Owner** reviewing built code against the original spec. Not an architecture review — a product review: does this feature do what it was supposed to do, for the user it was built for?
 
@@ -153,6 +197,44 @@ Acts as a **Lead Product Owner** reviewing built code against the original spec.
 **Output:** AC Scorecard (Pass/Fail/Partial per criterion) · What Works Well · Blocking Issues · Non-Blocking Issues · UX Observations · Regression Check · **SHIP IT / SEND BACK verdict**
 
 After the report, enters discussion mode — push back on findings, confirm a fix is in, or get direction on how to fix a blocking issue. Optionally saves to `.claude/plans/po-review-{ticket}-{date}.md`.
+
+---
+
+## Writing & Documentation
+
+### `/tech-write` — Senior Technical Writer — write, rewrite, audit, or scaffold any doc
+Acts as a **Senior Staff Technical Writer** (FAANG-equivalent). Reads the live codebase and project context before writing anything. Applies Diátaxis principles (tutorial / how-to / reference / explanation), Stripe-level clarity, and Google's documentation style guide.
+
+| Mode | Usage |
+|------|-------|
+| *(none)* | Interactive — asks what to write and for whom |
+| `sync-status` | Sync project state across README, CLAUDE.md, STATUS.md, INDEX.md, MEMORY.md |
+| `readme` | Write or rewrite the project README |
+| `api [endpoint or file]` | Document a specific API endpoint or set of endpoints |
+| `runbook [scenario]` | Write an operational runbook |
+| `migration [from] [to]` | Write a migration guide |
+| `adr [decision]` | Produce an Architecture Decision Record |
+| `onboarding` | Write a developer onboarding guide |
+| `audit [file or section]` | Audit an existing doc for quality, gaps, and structure |
+| `rewrite [file]` | Rewrite an existing doc to production standard |
+| `explain [concept or file]` | Write a conceptual explanation / architecture narrative |
+
+```
+/tech-write                                             # interactive
+/tech-write sync-status                                 # sync all status-tracking docs
+/tech-write readme                                      # rewrite README
+/tech-write api TransactionsController                  # document an endpoint group
+/tech-write runbook "AI service unreachable"            # incident runbook
+/tech-write migration "EF Core" "supabase-csharp"       # migration guide
+/tech-write adr "choosing pgvector over a vector DB"    # ADR
+/tech-write audit docs/STATUS.md                        # doc quality audit
+/tech-write rewrite docs/architecture/API-endpoints.md  # rewrite to production standard
+/tech-write explain "hybrid parser routing"             # conceptual explanation
+```
+
+**`sync-status` touches:** `docs/STATUS.md` (always) · `CLAUDE.md` next-ticket-ID line · `README.md` features section (if present) · `docs/INDEX.md` (new docs only) · `MEMORY.md` project state section. Never touches `.kanban/BOARD.md` — use `/kanban-sync` for that.
+
+**Doc audit output:** Diátaxis classification · Grade (A–F) · Issue table (🔴 blocking / 🟡 reduces usefulness / 🟢 polish) · Missing content · **PUBLISH / REVISE / REWRITE verdict**
 
 ---
 
@@ -415,6 +497,46 @@ These are applied **automatically** — you don't need to invoke them manually.
 | `data-oriented-zenmode` | When you ask for "zen", "minimal", "clean", "focus mode" UI |
 
 To override: explicitly request a different style ("landing page", "marketing design").
+
+---
+
+## Learning & Development
+
+### `/mentor` — AI Engineering pivot coach (90-day structured learning path)
+Tracks and drives Rikky's pivot from .NET Backend Engineer to **AI Engineering / Backend AI Engineering** — targeting async-first remote companies (Grafana, Supabase, GitLab, PostHog archetype). Reads live progress from `docs/mentor/progress.md` and the task-level curriculum at `mentor/learning-path.md` before every response.
+
+| Mode | Usage |
+|------|-------|
+| *(none)* or `today` | **Daily focus** — what to work on today, calibrated to progress |
+| `status` | **Progress dashboard** — phase, week, gap scorecard, streak |
+| `log [what you did]` | **Record progress** — appends to `progress.md`, marks tasks done |
+| `weekly` | **Weekly review + next-week plan** — what shipped, what slipped, day-by-day plan |
+| `plan` | **Full 30/60/90 roadmap** — all phases and weeks, marked by status |
+| `cert [name]` | **Certification ROI eval** — signal value, gap coverage, WORTH IT / SKIP / DEFER |
+| `gap` | **Gap re-assessment** — current match score vs AI Eng JD landscape |
+
+```
+/mentor                                             # today's focus
+/mentor status                                      # full progress dashboard
+/mentor log added RAG retrieval endpoint with MRR eval
+/mentor weekly                                      # Sunday/Monday review + next-week plan
+/mentor plan                                        # see full 30/60/90 roadmap
+/mentor cert "Databricks Generative AI Engineer"    # evaluate a cert
+/mentor gap                                         # re-run gap analysis vs JD landscape
+```
+
+**Learning path (3 phases, 12 weeks):**
+- Phase 1 (Days 1–30): AI Observability · LLM Evals · RAG embeddings · RAG re-ranking
+- Phase 2 (Days 31–60): Streaming + Production UX · Advanced RAG · smolagents · LangGraph multi-agent
+- Phase 3 (Days 61–90): Public presence + blog post · Certifications · Interview prep · Active applications
+
+**Rules:**
+- Implementation happens **same day** as theory — no "study first, build later"
+- Every concept is implemented in `c:\workspaces\personal-finance` — no toy scripts
+- Daily output scannable in 10 seconds — no walls of text
+- All learning plans (`PF-AIxxx-*.md`) must end with a **Knowledge Check quiz** (5–6 MCQs, cert-style)
+
+**Files it reads:** `docs/mentor/progress.md` (live log) · `mentor/learning-path.md` (week-by-week tasks) · `docs/mentor/ai-engineer-learning-path.md` (curriculum map)
 
 ---
 
