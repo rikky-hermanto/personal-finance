@@ -61,6 +61,7 @@ Each level unlocks naturally from the one below. The app tracks your score acros
 |---|---|
 | Cashflow tracking (upload, categorize, review) | ✅ Live |
 | Spending analysis (Safe-to-Spend, variance) | ✅ Live |
+| RAG — semantic search over transactions | 🔄 In Progress |
 | Budgeting (50/30/20, zero-based, envelope) | 🔜 Soon |
 | Recurring (bills, subscriptions, due dates) | 🔜 Soon |
 
@@ -99,8 +100,10 @@ Each level unlocks naturally from the one below. The app tracks your score acros
 
 Upload bank statements from BCA, Superbank, NeoBank, Wise, or Bank Jago — CSV, PDF, or screenshot — and get a unified transaction history across all accounts.
 
-- Hybrid parser: CSV files parsed directly (fast, zero AI cost); PDFs and screenshots go through Gemini / Claude for structured extraction
-- 106-rule auto-categorization engine, longest-match priority, fully configurable from Settings
+- Hybrid parser: CSV files parsed directly (fast, zero AI cost); PDFs and screenshots go through Gemini / Claude for structured extraction; Superbank PDF uses bank-specific LLM prompt
+- IBankSignature registry (Chain of Responsibility) detects the bank from file content and dispatches to the correct parser — adding a new bank = adding one class
+- 4-layer auto-categorization: rule-match (106 rules) → category presets → history cache → LLM fallback (Gemini). Cold-start safe — preset seed covers new users.
+- Bulk AI categorization in upload preview — select uncategorized rows and hit ✦ Suggest for batch Gemini classification
 - 4-step upload wizard — drag/drop, file picker, or clipboard paste; PDF password support; inline editing before save
 - Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly)
 - Three-tier deduplication so nothing gets imported twice
@@ -149,6 +152,14 @@ The gamification layer that ties everything together. Progress through the five 
 - The journey page is the home screen — it always shows where you are in the pyramid and what to do next
 
 ![alt text](image-7.png)
+
+### 🤖 AI Learning & Evaluation
+
+The platform doubles as the implementation vehicle for a 90-day AI Engineering learning path.
+
+- **Langfuse AI observability** — cost/day, calls/day, p50/p95 latency, and token counts per LLM call; Gemini and Anthropic provider traces visible in Langfuse dashboard (PF-AI001)
+- **20-fixture extraction eval harness** — benchmarks Gemini 2.5 Flash vs Claude Sonnet 4.6 on real anonymized bank statement fixtures; row-level F1 + field-level accuracy; results auto-saved to `evals/results/YYYYMMDD.json` (PF-AI002 — Gemini 2.5 Flash 100% row F1 confirmed)
+- **RAG pipeline in progress** — pgvector embeddings + semantic search (`POST /embed-transactions` + `POST /search`); re-ranking + `/ask` endpoint to follow (PF-AI003/AI004)
 
 ### 🖥️ Platform
 
@@ -220,7 +231,7 @@ Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview,
 └───────────────────────┘      └────────────────────────────────┘
 ```
 
-**Coming next:** Supabase Auth (PF-S08), event-driven webhook pipeline replacing synchronous AI calls (PF-S11), Realtime status updates (PF-S12). Full target architecture: [docs/architecture/architecture-diagram.md](docs/architecture/architecture-diagram.md)
+**Coming next:** Supabase Auth (PF-S08), RAG Phase 1 embeddings + semantic search (PF-AI003), event-driven webhook pipeline replacing synchronous AI calls (PF-S11), Realtime status updates (PF-S12). Full target architecture: [docs/architecture/architecture-diagram.md](docs/architecture/architecture-diagram.md)
 
 | Layer | Technology |
 |---|---|
