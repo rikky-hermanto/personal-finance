@@ -80,6 +80,7 @@
 
 | Feature | File | Status |
 |---------|------|--------|
+| Cashflow ingestion — parser, bank profiles, validation pipeline, master schema | [features/cashflow-ingestion.md](features/cashflow-ingestion.md) | Reference doc |
 | Cashflow Statement tab | [features/cashflow-statement-tab.md](features/cashflow-statement-tab.md) | Design spec |
 | Spending Analysis (PF-108) | [design/PF-108-spending-analysis-verdict.md](design/PF-108-spending-analysis-verdict.md) | Verdict — implemented |
 | Investment Portfolio (PF-113) | [design/PF-113-INVESTMENT-Portfolio-builder-thin-MVP.md](design/PF-113-INVESTMENT-Portfolio-builder-thin-MVP.md) | Thin MVP spec |
