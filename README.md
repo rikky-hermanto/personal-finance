@@ -108,6 +108,8 @@ Upload bank statements from BCA, Superbank, NeoBank, Wise, or Bank Jago — CSV,
 - Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly)
 - Three-tier deduplication so nothing gets imported twice
 
+→ **Engineering details:** parser routing, bank detection (IBankSignature chain), validation pipeline, and master schema — [docs/features/cashflow-ingestion.md](docs/features/cashflow-ingestion.md)
+
 ![alt text](image-4.png)
 
 ![alt text](image-3.png)
