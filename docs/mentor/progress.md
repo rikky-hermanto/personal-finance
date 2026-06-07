@@ -226,14 +226,43 @@
 - Updated mentor `SKILL.md` with the quiz generation rules — now enforced: every new or revised learning plan file MUST end with a Knowledge Check
 
 **Chapter 3 checklist progress:**
-- [ ] Complete DeepLearning.AI "LangChain for LLM Application Development" ← next
-- [ ] Complete "Functions, Tools and Agents with LangChain"
-- [ ] Build LangGraph "Transaction Categorizer Agent"
+- [ ] Supabase migration: `transaction_embeddings` table + ivfflat index ← starts next
+- [ ] `app/services/embedder.py`: EmbeddingService (OpenAI text-embedding-3-small, batched)
+- [ ] `app/services/retriever.py`: RetrievalService (pgvector cosine similarity via asyncpg)
+- [ ] `POST /embed-transactions` + `POST /search` endpoints
+- [ ] `.NET` LlmSearchClient wired after upload
+- [ ] `evals/eval_retrieval.py`: MRR@5 benchmark runner — target ≥ 0.60
 
 **Retros (blockers & surprises):**
 - None — clean session. Tooling/infrastructure day; no build tasks, no API calls.
 
 **Remaining for tomorrow:**
-- Start Chapter 3 build: LangChain for LLM Application Development course (free, ~4h) + begin LangGraph proof-of-concept planning
+- Start Chapter 3 Step 1: write and apply `transaction_embeddings` Supabase migration (pgvector ivfflat index)
 
 **Streak: 10 days**
+
+### 2026-06-07 — Day 11
+
+**Session: Curriculum restructure + docs housekeeping**
+
+- Restructured learning plan: renamed "weeks" to "chapters" throughout `mentor/learning-path.md` and `docs/mentor/ai-engineer-learning-path.md` for clearer framing
+- Chapter 3 plan finalized as RAG Phase 1 — Embeddings + Semantic Search (PF-AI003); Chapter 4 = RAG Phase 2 — Chunking, Re-ranking, Generation (PF-AI004)
+- Docs sync: `README.md` + `CLAUDE.md` updated to reflect current project state (Supabase migration Phase 2 done 7/13, etc.)
+- Added PF-129 skill: slim context load — governance quick-ref, STATUS.md, `docs/INDEX.md`, sync-status skill
+- Documented 4 new skills in SKILLS-GUIDE
+
+**Chapter 3 checklist progress:**
+- [ ] Supabase migration: `transaction_embeddings` table + ivfflat index ← starts next
+- [ ] `app/services/embedder.py`: EmbeddingService (OpenAI text-embedding-3-small, batched)
+- [ ] `POST /embed-transactions` + `POST /search` endpoints
+- [ ] `.NET` LlmSearchClient wired after upload
+- [ ] MRR@5 ≥ 0.60 eval benchmark
+
+**Retros (blockers & surprises):**
+- None — clean session. Planning/docs day; no build tasks.
+
+**Remaining for tomorrow:**
+- Start Chapter 3 Step 1: write and apply `transaction_embeddings` Supabase migration (pgvector ivfflat index)
+- Read OpenAI text-embedding-3-small API docs to confirm batching limits before coding EmbeddingService
+
+**Streak: 11 days**
