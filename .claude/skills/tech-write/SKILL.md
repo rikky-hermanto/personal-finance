@@ -21,6 +21,7 @@ You have opinions. You apply them. You push back when the user asks for a bad do
 
 ```
 /tech-write                                      # interactive — Claude asks what to write
+/tech-write sync-status                          # sync project state across README, CLAUDE.md, STATUS.md, INDEX.md, MEMORY.md
 /tech-write readme                               # write or rewrite the project README
 /tech-write api <endpoint or file>               # document a specific API endpoint or set of endpoints
 /tech-write runbook <scenario>                   # write an operational runbook
@@ -40,6 +41,7 @@ You have opinions. You apply them. You push back when the user asks for a bad do
 
 1. Determine the mode from `$ARGUMENTS`:
    - Empty → **Interactive** mode (ask what to write, then proceed)
+   - `sync-status` → **Sync Status** mode (sync project state across all status-tracking docs)
    - `readme` → **README** mode
    - `api [target]` → **API Reference** mode
    - `runbook [scenario]` → **Runbook** mode
@@ -53,6 +55,7 @@ You have opinions. You apply them. You push back when the user asks for a bad do
 2. Read project context (always — a writer who doesn't know the product writes fiction):
    - `CLAUDE.md` — project overview, tech stack, current phase, what's built vs. planned
    - `C:\Users\rikky\.claude\projects\c--workspaces-personal-finance\memory\MEMORY.md` — current project state, active work
+   - `docs/STATUS.md` — volatile sprint state (for sync-status mode or any doc that references current phase)
 
 3. If the target document touches a specific layer, also read:
    - `.claude/rules/backend.md` — if documenting API, parsers, or backend patterns
@@ -61,6 +64,122 @@ You have opinions. You apply them. You push back when the user asks for a bad do
    - `.claude/rules/governance.md` — if writing a document that should reference project rules
 
 4. If a specific file or path is named in `$ARGUMENTS`, read that file completely before writing.
+
+---
+
+## Mode: Sync Status
+
+*Triggered by: `sync-status`*
+
+Use after finishing a sprint, closing a batch of tickets, or landing a significant feature. Syncs "what's currently true" across every doc that tracks project state. One command keeps five files consistent instead of the developer manually editing each one.
+
+### Files this mode touches
+
+| File | What to update | Condition |
+|------|---------------|-----------|
+| `docs/STATUS.md` | Current Phase, What's Working, What's Not Built Yet, Known Tech Debt | **Always** — this is the primary ledger |
+| `CLAUDE.md` | "Next task ID" line in Task Management section only | When new tickets were created since last sync |
+| `README.md` | Features / "What's built" section | **Only if** README contains such a section; skip otherwise |
+| `docs/INDEX.md` | Add rows for any new docs files created since last sync | **Only if** new `.md` files were added under `docs/` |
+| `MEMORY.md` (`C:\Users\rikky\.claude\projects\c--workspaces-personal-finance\memory\MEMORY.md`) | "Project State" section — phase, completed milestones, active tasks | **Always** |
+
+**Do NOT touch in this mode:**
+- `.kanban/BOARD.md` — use `/kanban-sync` for that; it has its own skill
+- `CLAUDE.md` stable sections (Tech Stack, Key Patterns, Architecture, Project Layout) — these only change during actual architectural work, not sprint syncs
+- `docs/architecture/` — architecture docs are updated alongside the features they describe, not in bulk syncs
+- `docs/mentor/progress.md` — AI learning log is updated day-by-day during learning sessions, not during syncs
+
+---
+
+### Step 1 — Orient: read current state in parallel
+
+Run these together before writing anything:
+
+1. `git log --oneline -25` — understand what shipped since last sync
+2. Read `docs/STATUS.md` — the current state to diff against
+3. Read `CLAUDE.md` Task Management section — check current "Next task ID"
+4. Read `README.md` — check whether it has a status/features section
+5. Check `docs/INDEX.md` — see what's already indexed
+6. Read `MEMORY.md` "Project State" section
+
+---
+
+### Step 2 — Clarify what changed (if not obvious from git log)
+
+If the git log tells the full story (ticket numbers, clear feature descriptions), proceed directly. If not, ask:
+
+> "What changed since the last sync? List completed tasks, new in-progress items, newly discovered tech debt, or paste recent commit hashes."
+
+Do not guess at completion status. If a ticket appears in git history as "COMPLETE" in the commit message, mark it done. If ambiguous, ask.
+
+---
+
+### Step 3 — Update `docs/STATUS.md` (always)
+
+Rewrite all four volatile sections to reflect current reality:
+
+- **Current Phase:** Mark newly completed items with `COMPLETE`, add new `IN PROGRESS` / `PLANNED` items, remove items that are now obsolete. Keep the sprint progress counters accurate (e.g., `8/18 done` → update the fraction).
+- **What's Working:** Add newly shipped features. Do not remove working features unless they were removed from the product.
+- **What's Not Built Yet:** Remove items that shipped. Add newly planned items. Update in-progress items if their scope changed.
+- **Known Tech Debt:** Add new debt introduced since last sync. Remove items that were resolved. Do not add speculative debt — only debt that actually exists in the code.
+- Update the `> **Updated:** YYYY-MM-DD` header to today's date.
+
+---
+
+### Step 4 — Update `CLAUDE.md` Task Management section (conditional)
+
+Only if new PF/PF-S/PF-AI tickets were created since last sync: update the "Next task ID" line to reflect the new highest number.
+
+Find this line:
+```
+Current highest: **PF-XXX** (description) → next is **PF-YYY**
+```
+
+Update only the ticket numbers. Touch nothing else in CLAUDE.md.
+
+---
+
+### Step 5 — Update `README.md` (conditional)
+
+Read README.md. If it contains a "Features", "What's built", "Current status", or similar section: update it to match the current `docs/STATUS.md` "What's Working" section — same features, condensed to README-appropriate brevity (bullet list, no PF ticket numbers, plain language).
+
+If README contains no such section, skip this step entirely. Do not add a new section to README in sync mode — that's a separate `/tech-write readme` task.
+
+---
+
+### Step 6 — Update `docs/INDEX.md` (conditional)
+
+Run a glob of `docs/**/*.md` and compare against the files already listed in INDEX.md. For each file present in `docs/` but absent from INDEX.md:
+
+1. Determine which section it belongs to (architecture, design, ADR, learning, features, etc.)
+2. Add a row to the correct table: `| [Short title](relative-path) | One-phrase description |`
+
+Do not remove rows from INDEX.md for files that still exist, even if they look stale — removal is a deliberate cleanup, not a sync task.
+
+---
+
+### Step 7 — Update `MEMORY.md` (always)
+
+Update the "Project State (updated YYYY-MM-DD)" section to reflect:
+- Current phase and which sub-phases are done vs. in-progress
+- Any newly completed milestone entries (e.g., `PF-129 COMPLETE — ...`)
+- Current next tasks
+
+Do not rewrite the full MEMORY.md — surgical update to the project state section and the task ID quick-ref at the bottom.
+
+---
+
+### After syncing
+
+Report what was changed in a table:
+
+| File | Changes made |
+|------|-------------|
+| `docs/STATUS.md` | [summary — e.g., "marked PF-129 complete, updated AI learning path status"] |
+| `CLAUDE.md` | [summary or "no change"] |
+| `README.md` | [summary or "skipped — no status section"] |
+| `docs/INDEX.md` | [summary or "skipped — no new docs"] |
+| `MEMORY.md` | [summary — e.g., "updated project state, marked PF-129 done"] |
 
 ---
 
