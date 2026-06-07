@@ -479,35 +479,41 @@ If `docs/mentor/progress.md` doesn't exist at project root, create it:
 - [ ] Benchmark Gemini 2.5 Flash vs Claude Sonnet 4.6 (accuracy + cost)
 - [ ] Write up findings as a table
 
-### Week 3: Agentic Frameworks Entry
-- [ ] Complete DeepLearning.AI "LangChain for LLM Application Development" (free)
-- [ ] Complete "Functions, Tools and Agents with LangChain" (free)
-- [ ] Build small LangGraph proof-of-concept in personal-finance
+### Week 3: RAG Phase 1 — Embeddings + Semantic Search
+- [ ] transaction_embeddings migration (pgvector)
+- [ ] EmbeddingService (OpenAI text-embedding-3-small, batched, Langfuse traced)
+- [ ] RetrievalService (asyncpg + pgvector cosine similarity)
+- [ ] POST /embed-transactions + POST /search endpoints
+- [ ] .NET LlmSearchClient wired after upload
+- [ ] MRR@5 eval harness — ≥ 0.60 baseline
 
-### Week 4: Demo + Documentation
-- [ ] Record 2-min Loom: upload → extraction → journey score → Grafana trace
-- [ ] Write one-pager case study (decisions + metrics)
-- [ ] Update cv.md with new metrics and Langfuse/eval story
-- [ ] Update article-digest.md
+### Week 4: RAG Phase 2 — Re-ranking + Generation
+- [ ] Re-ranker (Cohere Rerank or FlashRank)
+- [ ] LLM synthesis: POST /ask — grounded answer with citations
+- [ ] Re-run MRR harness — measure lift, log delta
+- [ ] RAGAS faithfulness scoring
 
 ## Phase 2 Task Checklist (Days 31–60)
 
-### Week 5–6: Full RAG Pipeline
-- [ ] Embed transactions on insert (choose: OpenAI text-embedding-3-small or nomic-embed via Ollama)
-- [ ] Build retrieval endpoint with pgvector similarity search
-- [ ] Add reranker (Cohere Rerank or cross-encoder)
-- [ ] Build simple "Ask your finances" chat UI in React
-- [ ] Measure retrieval quality (MRR or NDCG on 10 test queries)
+### Week 5: Streaming + Production UX
+- [ ] SSE streaming in FastAPI (StreamingResponse / sse-starlette)
+- [ ] React EventSource consumption for chat
+- [ ] Replace upload polling with Supabase Realtime
 
-### Week 7: Streaming + Advanced Patterns
-- [ ] Implement SSE streaming in FastAPI AI service
-- [ ] Wire streaming to React chat frontend
-- [ ] Replace polling-based upload status with Realtime/SSE
+### Week 6: Advanced RAG
+- [ ] Sentence-window retrieval
+- [ ] Auto-merging retrieval
+- [ ] Hybrid search (pgvector + tsvector BM25)
+- [ ] Eval harness — measure MRR lift per variant, pick winner
+
+### Week 7: First Agent — smolagents
+- [ ] Hugging Face Agents Course (smolagents units)
+- [ ] Transaction Categorizer Agent (2–3 tools, Langfuse traced)
 
 ### Week 8: LangGraph Multi-Agent
-- [ ] Design "Financial Health Advisor" agent (analyze → identify gaps → recommend)
-- [ ] Implement with LangGraph: tools for searching transactions, computing ratios
-- [ ] Test multi-step reasoning on 5 financial scenarios
+- [ ] LangGraph quickstart
+- [ ] Financial Health Advisor agent (state, tools, routing, checkpointer)
+- [ ] Agent eval: tool-call accuracy + trajectory on 5 scenarios
 
 ## Phase 3 Task Checklist (Days 61–90)
 
