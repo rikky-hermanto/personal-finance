@@ -5,7 +5,7 @@
 **Primary proof point:** Personal Finance Platform (`C:\workspaces\personal-finance`)
 
 **Companion docs (read together):**
-- [`docs/ai-engineer-learning-path.md`](../../../../docs/ai-engineer-learning-path.md) — Curriculum reference (phases, platforms, courses, cadence)
+- [`docs/mentor/ai-engineer-learning-path.md`](../../../../docs/mentor/ai-engineer-learning-path.md) — Curriculum reference (phases, platforms, courses, cadence)
 - [`docs/ai-engineer-learning-tips.md`](../../../../docs/ai-engineer-learning-tips.md) — Daily loop, retrieval/interleaving protocol, anti-patterns
 
 **This file = task-level breakdown.** It's *what to ship today*. The curriculum doc is *what am I learning and why*. The tips doc is *how to study without wasting time*.
@@ -41,10 +41,10 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ## Phase 1 — Foundation + RAG (Days 1–30)
 
-### Week 1: AI Observability + Real Metrics
+### Chapter 1: AI Observability + Real Metrics
 **Theme:** You can't quote numbers you haven't measured.
 
-**Why it matters:** Every AI Eng interview asks "how do you monitor your LLM in production?" You have OTel — but no AI-specific layer. Adding Langfuse gives you: per-call cost, latency, prompt versioning, accuracy trending. After this week, you can quote: "extraction costs $0.0X per document, p95 latency is Xms."
+**Why it matters:** Every AI Eng interview asks "how do you monitor your LLM in production?" You have OTel — but no AI-specific layer. Adding Langfuse gives you: per-call cost, latency, prompt versioning, accuracy trending. After this chapter, you can quote: "extraction costs $0.0X per document, p95 latency is Xms."
 
 **Tasks:**
 - Add [Langfuse](https://langfuse.com) SDK to `services/ai-service` (Python) — 1-2 hours
@@ -62,10 +62,10 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 2: LLM Evaluation Framework
+### Chapter 2: LLM Evaluation Framework
 **Theme:** Know your accuracy. Own your benchmark.
 
-**Why it matters:** "How do you know your extraction is correct?" is a top-3 AI Eng interview question. Right now the answer is "we check manually." After this week, the answer is "we have an eval harness with 20 fixtures, measured at 92% field-level accuracy, with Gemini 38% cheaper on structured extraction workloads."
+**Why it matters:** "How do you know your extraction is correct?" is a top-3 AI Eng interview question. Right now the answer is "we check manually." After this chapter, the answer is "we have an eval harness with 20 fixtures, measured at 92% field-level accuracy, with Gemini 38% cheaper on structured extraction workloads."
 
 **Tasks:**
 - Create `services/ai-service/evals/` directory
@@ -86,10 +86,10 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 3: RAG — Embeddings + Retrieval
+### Chapter 3: RAG — Embeddings + Retrieval
 **Theme:** Turn the database into a retrieval engine.
 
-**Why it matters:** RAG is the #1 applied AI skill in the market. pgvector is already in your schema — this is build, not research. After this week, semantic search over your own transactions works end-to-end.
+**Why it matters:** RAG is the #1 applied AI skill in the market. pgvector is already in your schema — this is build, not research. After this chapter, semantic search over your own transactions works end-to-end.
 
 **Tasks:**
 - Choose embedding model: `text-embedding-3-small` (OpenAI, ~$0.02/1M tokens) or `nomic-embed-text` (Ollama, free/local)
@@ -108,17 +108,17 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 4: RAG — Chunking, Re-ranking, Generation
+### Chapter 4: RAG — Chunking, Re-ranking, Generation
 **Theme:** Make retrieval *good*, not just *working*.
 
-**Why it matters:** Naive top-K is the toy version. Hiring managers ask about chunking strategy, re-ranking, and grounded synthesis. This week turns the toy into something defensible.
+**Why it matters:** Naive top-K is the toy version. Hiring managers ask about chunking strategy, re-ranking, and grounded synthesis. This chapter turns the toy into something defensible.
 
 **Tasks:**
 - Apply chunking strategy to longer-form artifacts (e.g., statement narratives, notes): fixed-size with overlap, then sentence-window
 - Add a re-ranker: Cohere Rerank API (free tier) or FlashRank (local, free) — top-10 retrieved → top-3 reranked
 - Build LLM synthesis step: pass top-3 chunks + question → grounded answer with citations
 - Add metadata filtering (account, date range, category)
-- Re-run the Week 3 MRR test — measure the lift from reranking. Document the delta.
+- Re-run the Chapter 3 MRR test — measure the lift from reranking. Document the delta.
 - First demo-able RAG endpoint: `POST /ask`
 
 **Definition of done:** Ask "how much did I spend on food in March?" → correct, cited answer. MRR improvement from reranking is measured and logged.
@@ -132,7 +132,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ## Phase 2 — Streaming + Agents (Days 31–60)
 
-### Week 5: Streaming + Production UX
+### Chapter 5: Streaming + Production UX
 **Theme:** Token-by-token streaming. The pattern every AI product needs.
 
 **Why it matters:** Every modern AI product streams. Knowing how to implement SSE in FastAPI + consume in React is a concrete technical differentiator. Also replaces your current polling-based upload status with a real improvement.
@@ -154,10 +154,10 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 6: Advanced RAG Patterns
+### Chapter 6: Advanced RAG Patterns
 **Theme:** Sentence-window, auto-merging, hybrid search. The patterns that actually move accuracy.
 
-**Why it matters:** "What advanced RAG techniques have you used?" comes up in every serious AI Eng loop. After this week you can name three, with measured impact on your own fixtures.
+**Why it matters:** "What advanced RAG techniques have you used?" comes up in every serious AI Eng loop. After this chapter you can name three, with measured impact on your own fixtures.
 
 **Tasks:**
 - Implement **sentence-window retrieval** (small chunks indexed, expanded window returned)
@@ -176,7 +176,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 7: First Agent — Hugging Face Course + smolagents
+### Chapter 7: First Agent — Hugging Face Course + smolagents
 **Theme:** Grok the agent concept on the smallest possible API surface.
 
 **Why it matters:** "Agentic systems" is the hardest gap to close on paper. Start with smolagents — you'll grok tool-use loops in one day, then learn LangGraph as "industrial smolagents."
@@ -200,10 +200,10 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 8: LangGraph — State, Routing, Multi-Step
+### Chapter 8: LangGraph — State, Routing, Multi-Step
 **Theme:** Build the "Financial Health Advisor." Handle state. Handle failures.
 
-**Why it matters:** LangGraph is the dominant agent framework in current JDs. After this week, you have a multi-step agent with tool use, conditional routing, state management, and error handling. That's a real AI Eng credential.
+**Why it matters:** LangGraph is the dominant agent framework in current JDs. After this chapter, you have a multi-step agent with tool use, conditional routing, state management, and error handling. That's a real AI Eng credential.
 
 **Tasks:**
 - Complete LangGraph quickstart: https://langchain-ai.github.io/langgraph/tutorials/introduction/
@@ -227,10 +227,10 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ## Phase 3 — MCP + Positioning + Apply (Days 61–90)
 
-### Week 9: Model Context Protocol (MCP)
+### Chapter 9: Model Context Protocol (MCP)
 **Theme:** Ship an MCP server. Wire it to a client. Signal you live on the frontier.
 
-**Why it matters:** MCP is Anthropic's tool/agent interop standard, adopted across the industry in 2025. Roles at Anthropic, Grafana, Datadog explicitly mention it. After this week, you have a personal-finance MCP server that Claude Desktop (or any MCP client) can call — a uniquely demonstrable artifact.
+**Why it matters:** MCP is Anthropic's tool/agent interop standard, adopted across the industry in 2025. Roles at Anthropic, Grafana, Datadog explicitly mention it. After this chapter, you have a personal-finance MCP server that Claude Desktop (or any MCP client) can call — a uniquely demonstrable artifact.
 
 **Tasks:**
 - Complete Anthropic MCP quickstart (~30 min, server up first, spec later)
@@ -238,7 +238,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 - Build a personal-finance MCP server exposing:
   - `get_transactions` (with date/category filters)
   - `get_pyramid_scores`
-  - `search_transactions_semantic` (uses your Week 3-4 RAG retriever)
+  - `search_transactions_semantic` (uses your Chapter 3-4 RAG retriever)
   - `get_cashflow_summary`
 - Test from Claude Desktop or another MCP client
 - Stretch: build a 2-agent workflow where one agent calls your MCP server as a tool
@@ -252,7 +252,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 10: Public Presence + Certification
+### Chapter 10: Public Presence + Certification
 **Theme:** Make your work findable. Add the credential if ROI is there.
 
 **Tasks:**
@@ -281,7 +281,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 11: Interview Prep
+### Chapter 11: Interview Prep
 **Theme:** Translate the build into interview-ready stories.
 
 **Tasks:**
@@ -306,7 +306,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Week 12: Active Applications
+### Chapter 12: Active Applications
 **Theme:** Ship applications like you ship code — deliberate, not spam.
 
 **Tasks:**
@@ -328,12 +328,12 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 | Course | Provider | Time | Slot |
 |---|---|---|---|
-| Hugging Face Agents Course | Hugging Face | ~6h | Week 7 |
-| Functions, Tools and Agents with LangChain | DeepLearning.AI | 3h | Week 7 stretch |
-| LangChain for LLM Application Development | DeepLearning.AI | 4h | Week 8 |
-| LangGraph: Multi-Agent Workflows | DeepLearning.AI | 3h | Week 8 |
-| Building Agentic RAG with LlamaIndex | DeepLearning.AI | 3h | Week 6 |
-| Anthropic MCP Series | Anthropic Academy | ~4h | Week 9 |
+| Hugging Face Agents Course | Hugging Face | ~6h | Chapter 7 |
+| Functions, Tools and Agents with LangChain | DeepLearning.AI | 3h | Chapter 7 stretch |
+| LangChain for LLM Application Development | DeepLearning.AI | 4h | Chapter 8 |
+| LangGraph: Multi-Agent Workflows | DeepLearning.AI | 3h | Chapter 8 |
+| Building Agentic RAG with LlamaIndex | DeepLearning.AI | 3h | Chapter 6 |
+| Anthropic MCP Series | Anthropic Academy | ~4h | Chapter 9 |
 | Generative AI with Large Language Models | Coursera/DeepLearning.AI | 16h | optional Phase 4 background |
 
 ### Tier 2 — Pick One (Paid, High Signal)
