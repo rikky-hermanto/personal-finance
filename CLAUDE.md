@@ -6,9 +6,37 @@ Personal Finance is a full-stack web application built with .NET 10 and React 18
 
 ## Background Problem
 
-### Managing Cashflow
+### The Real Problem: Clarity and Direction
 
-The owner manages 5 Indonesian bank accounts that each produce monthly statements in different formats. Currently this is a painful manual workflow:
+Most people aren't financially illiterate — they're **directionally lost**. They earn, they spend, they occasionally invest, but without a coherent picture of where they stand or a framework for what to do next. Every financial tool answers a different slice of the question in isolation: a budgeting app here, a broker app there, a bank statement downloaded once a month that nobody reads. Plenty of data, no map.
+
+The result: someone maxing out investments while carrying high-interest debt. Someone diligently saving without knowing whether their emergency fund is adequate. Good intentions, wrong order.
+
+**This platform is built around the Financial Pyramid** — a five-tier hierarchy that makes the correct order explicit. Each level has prerequisites; you can't defend what you haven't built, and you can't grow what you haven't defended.
+
+```
+                 ▲
+               ████             L5 · Legacy       — Estate planning, succession, tax
+             ████████           L4 · Freedom      — FIRE, passive income
+           ████████████         L3 · Growth       — Investing ≥15%, savings goals
+         ████████████████       L2 · Defense      — Emergency fund, debt-to-income < 20%
+       ████████████████████     L1 · Foundations  — Spending < income, bills paid
+```
+
+A `JourneyScoringService` reads across all data sources — transactions, assets, investments — and computes indicator scores per tier. Score recalculation is event-driven: `TransactionCreatedEvent` and asset mutations auto-trigger recalculation via MediatR domain event handlers. This scoring engine is the product's core, not a feature.
+
+**Five modules feed the pyramid:**
+- `/journey` — Home page. 5-tier scoring engine, quest cards, achievements, Living Garden Hero visualization.
+- `/cashflow` — Transactions, upload (LLM + CSV hybrid parsing), spending analysis, Safe-to-Spend.
+- `/assets` — Properties, vehicles, savings accounts, liabilities, live net worth balance sheet.
+- `/investment` — IDX stocks, mutual funds, SBN/ORI bonds, crypto, P2P; AI portfolio review.
+- `/settings` — Categories (106 rules), appearance, regional, banks, data reset.
+
+### Data Infrastructure: Managing Cashflow
+
+The owner manages 5 Indonesian bank accounts that each produce monthly statements in different formats. This is the data plumbing that keeps the pyramid scores grounded in reality — without accurate cashflow data, L1 scores are guesses.
+
+Before automation, the workflow was entirely manual:
 
 ```
 INPUT (5 sources, 3 format types)
@@ -19,7 +47,7 @@ INPUT (5 sources, 3 format types)
 └── Bank Jago  → Screenshot → LLM extract → validate  → Master Cashflow
 ```
 
-**Pain points mapped to workflow:**
+**Pain points that automation eliminates:**
 
 ```
 [Source Format Chaos]     [Manual Conversion]     [Manual Validation]     [Scale Problem]
@@ -30,70 +58,28 @@ INPUT (5 sources, 3 format types)
      └─── Repeats x5 banks ────┴──── Repeats monthly ───┴── Data grows ─────┘
 ```
 
-**Two core goals:**
-1. **Automate the process** — eliminate manual extraction, validation, and mapping
-2. **Make it scalable** — replace Excel with PostgreSQL, adding a new bank = config file, not new code
+**Two goals for the data layer:**
+1. **Automate ingestion** — eliminate manual extraction, validation, and mapping
+2. **Make it scalable** — replace Excel with PostgreSQL; adding a new bank = config file, not new code
 
-### Solution: Hybrid Parser Architecture
+The solution uses a **hybrid parser strategy** — direct CSV parsing for deterministic formats (BCA, Wise) and LLM extraction (Gemini/Anthropic) for unstructured formats (PDFs, screenshots). An `IBankSignature` Chain of Responsibility registry detects the bank from file content and routes to the correct parser. All paths converge at a five-stage validation pipeline (DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck) before persisting to PostgreSQL.
 
-The project uses a **hybrid parser strategy** — direct CSV parsing for structured sources, LLM extraction for unstructured sources (PDF, screenshots). This is the most efficient approach because:
+→ Full cashflow ingestion design — parser routing, bank profiles, validation pipeline, master schema: [docs/features/cashflow-ingestion.md](docs/features/cashflow-ingestion.md)
 
-- **CSV banks (BCA, Wise):** Deterministic column mapping. Zero LLM cost, 100% accuracy, fast. A per-bank config file defines column positions, date format, decimal convention.
-- **PDF/image banks (Superbank, NeoBank, Bank Jago):** LLM-powered extraction using Gemini/Anthropic structured output (JSON mode or tool_use). The LLM extracts directly to the master schema — no intermediate "formatted CSV" step.
+## Features
 
-Both paths converge at a **validation pipeline** before persisting to PostgreSQL:
+Five modules feed the Financial Pyramid scoring engine via `JourneyScoringService`. The Journey module is the home screen — it always shows where you are in the pyramid and what to do next.
 
-```
-Upload → Bank Identifier → Route to parser
-                              │
-                    ┌─────────┴──────────┐
-                    ▼                    ▼
-             Direct CSV Parser     LLM Extractor
-             (BCA, Wise)           (Superbank, NeoBank, Jago)
-                    │                    │
-                    └─────────┬──────────┘
-                              ▼
-                    Validation Pipeline
-                    (DateNormalizer → DecimalFixer →
-                     CurrencyStandardizer → SchemaValidator →
-                     DeduplicateCheck)
-                              │
-                              ▼
-                    Master Cashflow Schema
-                              │
-                              ▼
-                        PostgreSQL
-```
+| Module | Route | What it tracks | Detailed doc |
+|--------|-------|----------------|--------------|
+| Journey | `/journey` | Pyramid tier scores, quest cards, achievements, Living Garden Hero | — |
+| Cashflow | `/cashflow` | Bank statement ingestion, transactions, spending analysis, Safe-to-Spend | [docs/features/cashflow-ingestion.md](docs/features/cashflow-ingestion.md) |
+| Assets | `/assets` | Properties, vehicles, savings accounts, liabilities, net worth balance sheet | — |
+| Investment | `/investment` | IDX stocks, mutual funds, SBN/ORI bonds, crypto, P2P; AI portfolio review | — |
+| Settings | `/settings` | Category rules (106), banks, appearance, regional, data reset | — |
 
-### Bank Profiles
-
-Each bank is defined by a configuration profile (JSON/YAML). Adding a new bank = adding a config file, not writing code.
-
-| Bank | Format | Parser Strategy | Special Handling |
-|------|--------|----------------|-----------------|
-| BCA | CSV | Direct parser | Column mapping, DD/MM/YYYY dates |
-| Superbank | PDF | LLM extraction | Multi-page statement, structured tables |
-| NeoBank | PDF | LLM extraction | Colored/styled PDF, less structured |
-| Wise | CSV | Direct parser | Multi-currency, FX rate conversion to IDR |
-| Bank Jago | Screenshot | LLM extraction (vision) | Mobile app screenshots, OCR via vision API |
-
-→ Full profile YAML examples and field schema: [docs/design/bank-profiles-reference.md](docs/design/bank-profiles-reference.md)
-
-### Validation Pipeline
-
-The validation layer runs on ALL parsed output regardless of source parser:
-
-1. **DateNormalizer** — converts any date format to ISO 8601 (YYYY-MM-DD)
-2. **DecimalFixer** — detects and normalizes decimal/thousands separators (Indonesian: 1.000.000,50 → 1000000.50)
-3. **CurrencyStandardizer** — ensures consistent currency codes, handles Wise multi-currency → IDR conversion
-4. **SchemaValidator** — validates against master cashflow schema (required fields, types, ranges)
-5. **DeduplicateCheck** — detects duplicate transactions across uploads (same date + amount + description hash)
-
-### Master Cashflow Schema
-
-All banks converge to this unified schema before persisting. Key fields: `date` (ISO 8601), `description`, `amount_idr` (decimal), `currency` (ISO 4217), `type` (DEBIT|CREDIT), `bank_id`, `category`, `fx_rate?`.
-
-→ Full schema definition and C# DTO details: [docs/design/validation-pipeline.md](docs/design/validation-pipeline.md)
+→ Feature design specs and brainstorms: [docs/features/](docs/features/)
+→ Full feature roadmap by pyramid level: [README.md](README.md#the-roadmap-by-level)
 
 ## Architecture
 
