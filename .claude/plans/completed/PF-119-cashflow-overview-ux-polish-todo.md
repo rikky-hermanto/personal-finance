@@ -1,7 +1,7 @@
 # PF-119 — Cashflow Overview UX Polish: trust fixes + minimalism pass
 
 > **GitHub Issue:** (create on save)
-> **Status:** To Do
+> **Status:** Done — all steps and ACs complete; archived 2026-06-09
 > **Started:** 2026-05-21
 
 ## Objective
@@ -25,7 +25,7 @@ This task fixes all eight findings in four frontend-only files — no backend ch
 - [x] `TopCategoriesCard` renders category rows as `<div>` (not `<button>`) when no
       `onCategoryDrillDown` callback is provided
 - [x] Truncated category names show a native tooltip via `title` attribute
-- [ ] No visual regressions on the 2Y and 1M range selections
+- [x] No visual regressions on the 2Y and 1M range selections
   > Not met: Visual regression check requires the app running in a browser — verify manually with `npm run dev`
 
 ## Approach

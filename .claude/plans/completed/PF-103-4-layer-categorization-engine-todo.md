@@ -1,7 +1,7 @@
 # PF-103 — 4-Layer Categorization Engine
 
 > **GitHub Issue:** [no issue created — implemented directly]
-> **Status:** IN PROGRESS — steps 1–12 done; STEP 11b + STEP 12b added from plan review — history-cache helper extraction (AC-11) + missing test paths (AC-12)
+> **Status:** Done — all steps complete (1–14, 11b, 12b); archived 2026-06-09
 > **Depends on:** PF-S07 (Supabase migration — DONE), PF-050 (AI service Docker — DONE)
 > **Feeds into:** PF-S13 (RAG + natural language querying)
 
