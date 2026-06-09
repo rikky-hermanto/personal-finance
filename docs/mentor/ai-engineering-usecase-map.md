@@ -31,7 +31,7 @@
 
 The entire 12-week build arc on one page. Columns: which week in the [learning path](../mentor/ai-engineer-learning-path.md) the concept comes from, what we build in this project, where it lives, and what the pivot proof point is.
 
-| Phase | Week | Concept (from curriculum) | PF Feature | Kegunaan | Endpoint / Artifact | Pivot Proof Point | Status |
+| Phase | Chapter | Concept (from curriculum) | PF Feature | Kegunaan | Endpoint / Artifact | Pivot Proof Point | Status |
 |-------|------|--------------------------|------------|----------|--------------------|--------------------|--------|
 | 1 | — | Structured output: tool_use + JSON mode | Multi-provider extraction factory | Ekstrak transaksi bank otomatis dari berbagai format file | `providers/factory.py`, `/parse-pdf` | "Function-calling parity across 2 providers, temp=0, max_tokens hard error" | ✅ |
 | 1 | — | Multimodal (vision) inputs | Bank Jago screenshot extraction | Parsing screenshot HP menjadi transaksi terstruktur | `main.py /parse-image` | "Multimodal pipeline handling PNG/WebP input" | ✅ |
@@ -95,15 +95,15 @@ Phase 1 (already done) ───────────────────
   vision inputs                →  /parse-image            ✅
   [polish: prompt caching, XML structuring]               ⚪
 
-Phase 2, Week 1 ─────────────────────────────────────────────────────────
+Phase 2, Chapter 1 ─────────────────────────────────────────────────────────
   Langfuse tracing             →  quote real numbers in interviews
 
-Phase 2, Week 2 ─────────────────────────────────────────────────────────
+Phase 2, Chapter 2 ─────────────────────────────────────────────────────────
   eval harness (fixtures)      →  accuracy + cost benchmark published
   ↓ feeds
-  Phase 2 Week 6 (advanced RAG evals), Phase 3 agent evals
+  Phase 2 Chapter 6 (advanced RAG evals), Phase 3 agent evals
 
-Phase 2, Weeks 3–4 ─────────────────────────────────────────────────────
+Phase 2, Chapters 3–4 ─────────────────────────────────────────────────────
   embeddings + pgvector        →  /search (natural-language txn search)
   ↓
   reranker added               →  /ask  (grounded Q&A with citations)
@@ -113,26 +113,26 @@ Phase 2, Weeks 3–4 ───────────────────�
   UC-3.1 smolagents (lookup_similar_transactions tool)
   UC-3.6 MCP (search_transactions_semantic tool)
 
-Phase 2, Week 5 ─────────────────────────────────────────────────────────
+Phase 2, Chapter 5 ─────────────────────────────────────────────────────────
   SSE streaming                →  /ask streams token-by-token to React /chat
   Supabase Realtime            →  upload status no longer polls
 
-Phase 2, Week 6 ─────────────────────────────────────────────────────────
+Phase 2, Chapter 6 ─────────────────────────────────────────────────────────
   advanced RAG variants        →  eval harness measures the lift; winner ships
 
-Phase 3, Weeks 7–8 ─────────────────────────────────────────────────────
+Phase 3, Chapters 7–8 ─────────────────────────────────────────────────────
   smolagents (TAO loop, simple) →  Categorizer Agent + Upload Agent
   ↓
   LangGraph (state machine)    →  Financial Health Advisor + Quest Agent
   ↓
   both logged to Langfuse      →  traces are demo material
 
-Phase 3, Week 9 ─────────────────────────────────────────────────────────
+Phase 3, Chapter 9 ─────────────────────────────────────────────────────────
   MCP server                   →  wraps data layer + /search retriever
   ↓
   2-agent + MCP workflow        →  LangGraph agent uses MCP as tool (stretch)
 
-Weeks 10–12 ─────────────────────────────────────────────────────────────
+Chapters 10–12 ─────────────────────────────────────────────────────────────
   blog post + Loom             →  proof artifacts go public
   cert (Databricks / AI-102)   →  signal booster
   applications                 →  5–10 high-fit roles
@@ -166,7 +166,7 @@ Weeks 10–12 ──────────────────────
 
 **Builds on:** `providers/factory.py`, `providers/anthropic.py`, `providers/gemini.py`, `services/llm_parser.py`, `config.py`.
 
-**Status:** ✅ done — document in case study, add benchmark numbers from Week 2 eval.
+**Status:** ✅ done — document in case study, add benchmark numbers from Chapter 2 eval.
 
 ---
 
@@ -196,11 +196,11 @@ Weeks 10–12 ──────────────────────
 
 ### UC-1.4 — XML-tag prompt structuring ⚪
 
-**Feature:** Refactor bank extraction prompts to use XML tags (`<statement>`, `<examples>`, `<output_format>`) for clearer boundary demarcation. Run the Week 2 eval harness before and after — quantify accuracy delta.
+**Feature:** Refactor bank extraction prompts to use XML tags (`<statement>`, `<examples>`, `<output_format>`) for clearer boundary demarcation. Run the Chapter 2 eval harness before and after — quantify accuracy delta.
 
 **Pivot proof point:** "Prompt engineering is not intuition — I ran a controlled experiment with an eval harness and measured the accuracy impact of restructuring."
 
-**Builds on:** Future `prompts/{bank}_v1.py` files; pattern from `prompts/journey_advisor_v1.py`; Week 2 eval harness (UC-2.3) to measure effect.
+**Builds on:** Future `prompts/{bank}_v1.py` files; pattern from `prompts/journey_advisor_v1.py`; Chapter 2 eval harness (UC-2.3) to measure effect.
 
 **Status:** ⚪ idea — implement after UC-2.3 eval harness exists so the improvement is measurable.
 
@@ -208,11 +208,11 @@ Weeks 10–12 ──────────────────────
 
 ## Phase 2 — Application Layer: Observability, Eval, RAG, Streaming 🎯
 
-**Weeks 1–6. The critical path. Every gap the market cares about.**
+**Chapters 1–6. The critical path. Every gap the market cares about.**
 
 ---
 
-### Week 1 — AI-Specific Observability
+### Chapter 1 — AI-Specific Observability
 
 > "You can't quote numbers you haven't measured." — curriculum
 
@@ -230,23 +230,23 @@ Create a Langfuse dashboard with: cost/day, calls/day, latency p50/p95 per endpo
 
 **Note:** Run Langfuse self-hosted via Docker — add to `docker-compose.yml`. Works with the existing LGTM stack on separate ports.
 
-**Status:** ⚪ idea — ~1–2 hours. First task of Week 1.
+**Status:** ⚪ idea — ~1–2 hours. First task of Chapter 1.
 
 ---
 
 #### UC-2.2 — Prompt versioning in Langfuse ⚪
 
-**Feature:** Register bank extraction prompts in the Langfuse prompt registry. Pull from Langfuse at runtime (rather than hard-coded files) so prompt changes are tracked with version, author, and timestamp. Trend accuracy across prompt versions using the Week 2 eval results.
+**Feature:** Register bank extraction prompts in the Langfuse prompt registry. Pull from Langfuse at runtime (rather than hard-coded files) so prompt changes are tracked with version, author, and timestamp. Trend accuracy across prompt versions using the Chapter 2 eval results.
 
 **Pivot proof point:** "Prompt lifecycle management — I can show you how accuracy changed across 3 prompt versions, and roll back a bad prompt in 30 seconds."
 
 **Builds on:** `prompts/journey_advisor_v1.py` (existing pattern), Langfuse prompt management API.
 
-**Status:** ⚪ idea — implement in Week 1 alongside UC-2.1. ~1 hour.
+**Status:** ⚪ idea — implement in Chapter 1 alongside UC-2.1. ~1 hour.
 
 ---
 
-### Week 2 — LLM Evaluation Framework
+### Chapter 2 — LLM Evaluation Framework
 
 > "How do you know your extraction is correct?" — top-3 AI Eng interview question
 
@@ -266,7 +266,7 @@ Write findings to `docs/eval-results.md`.
 
 **Builds on:** `models.py` (frozen `TransactionDto` contract defines the fields to eval), `llm_parser.py`, `providers/*.py`. The eval uses the same code paths as production — no special test mode needed.
 
-**Status:** ⚪ idea — Week 2 core task. ~3–4 hours for harness + fixtures.
+**Status:** ⚪ idea — Chapter 2 core task. ~3–4 hours for harness + fixtures.
 
 ---
 
@@ -278,7 +278,7 @@ Write findings to `docs/eval-results.md`.
 
 **Builds on:** `services/categorizer.py`, existing category preset seed data (`supabase/migrations/20260510000002_seed_category_presets.sql`).
 
-**Status:** ⚪ idea — Week 2 secondary task. ~1–2 hours.
+**Status:** ⚪ idea — Chapter 2 secondary task. ~1–2 hours.
 
 ---
 
@@ -290,11 +290,11 @@ Write findings to `docs/eval-results.md`.
 
 **Builds on:** UC-2.3 eval harness, `.github/workflows/`, CI-01 gate policy from `governance.md`.
 
-**Status:** ⚪ idea — stretch for Week 2. ~1 hour to wire once the harness exists.
+**Status:** ⚪ idea — stretch for Chapter 2. ~1 hour to wire once the harness exists.
 
 ---
 
-### Weeks 3–4 — RAG: Embeddings, Retrieval, Reranking, Generation
+### Chapters 3–4 — RAG: Embeddings, Retrieval, Reranking, Generation
 
 > pgvector is already in your schema. RAG is the #1 applied AI skill in current JDs.
 
@@ -310,7 +310,7 @@ Write 10 handwritten test queries with expected matches. Measure MRR.
 
 **Builds on:** New Supabase migration (vector col + HNSW index + `embedding_model_version` — the landmine fix from day one). Hook into `TransactionCreatedEvent` for online embedding. New typed client in `Infrastructure/External/EmbeddingSearchClient.cs`. `main.py` new `/search` endpoint.
 
-**Status:** ⚪ idea (PF-S13) — Week 3 core. ~1 day.
+**Status:** ⚪ idea (PF-S13) — Chapter 3 core. ~1 day.
 
 ---
 
@@ -322,7 +322,7 @@ Write 10 handwritten test queries with expected matches. Measure MRR.
 
 **Builds on:** `services/categorizer.py` + pgvector query reused from UC-2.6. No new migration needed — vectors already exist.
 
-**Status:** ⚪ idea (PF-118) — implement Week 3 after UC-2.6 vectors are stored. ~2–3 hours.
+**Status:** ⚪ idea (PF-118) — implement Chapter 3 after UC-2.6 vectors are stored. ~2–3 hours.
 
 ---
 
@@ -353,7 +353,7 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 
 **Builds on:** `services/journey_advisor.py` (proto-RAG, extend it), new `services/insights.py`, reranker (Cohere free tier or FlashRank local), UC-2.6 retriever for the lookup path.
 
-**Status:** ⚪ idea — Week 4 core. ~1 day.
+**Status:** ⚪ idea — Chapter 4 core. ~1 day.
 
 ---
 
@@ -365,7 +365,7 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 
 **Builds on:** `services/portfolio_reviewer.py`, `services/journey_advisor.py`, advice history (if stored). Reused by UC-2.14.
 
-**Status:** ⚪ idea — Week 4 secondary. ~1–2 hours.
+**Status:** ⚪ idea — Chapter 4 secondary. ~1–2 hours.
 
 ---
 
@@ -380,11 +380,11 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 
 **Builds on:** PF-122 (partial PII work already started), new `services/guardrails.py`, `POST /ask` (UC-2.9), Langfuse redaction hooks (UC-2.1).
 
-**Status:** ⚪ idea (advances PF-122) — Week 4–5, rides on UC-2.9. ~2–3 hours.
+**Status:** ⚪ idea (advances PF-122) — Chapter 4–5, rides on UC-2.9. ~2–3 hours.
 
 ---
 
-### Week 5 — Streaming + Production UX
+### Chapter 5 — Streaming + Production UX
 
 > Every modern AI product streams. This is the pattern, not a feature.
 
@@ -398,7 +398,7 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 
 **Builds on:** `main.py` `/ask` → convert to `StreamingResponse`; `apps/frontend/src/pages/` new `Chat.tsx`; `apps/frontend/src/App.tsx` new route.
 
-**Status:** ⚪ idea — Week 5 core. ~3–4 hours.
+**Status:** ⚪ idea — Chapter 5 core. ~3–4 hours.
 
 ---
 
@@ -410,7 +410,7 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 
 **Builds on:** Upload wizard component, `/status` page, Supabase Realtime (PF-S12 partially). `@supabase/supabase-js` planned for PF-S09 but can be installed earlier.
 
-**Status:** ⚪ idea (advances PF-S12) — Week 5 secondary. ~2–3 hours.
+**Status:** ⚪ idea (advances PF-S12) — Chapter 5 secondary. ~2–3 hours.
 
 ---
 
@@ -422,11 +422,11 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 
 **Builds on:** `services/portfolio_reviewer.py`, `services/journey_advisor.py`; frontend Investment and Journey pages consume the stream.
 
-**Status:** ⚪ idea — Week 5 after UC-2.11 proves the pattern. ~2 hours.
+**Status:** ⚪ idea — Chapter 5 after UC-2.11 proves the pattern. ~2 hours.
 
 ---
 
-### Week 6 — Advanced RAG Patterns
+### Chapter 6 — Advanced RAG Patterns
 
 > "What advanced RAG techniques have you used?" — Comes up in every serious AI Eng loop.
 
@@ -434,7 +434,7 @@ All paths converge on grounded synthesis: top-3 context chunks → LLM → cited
 
 #### UC-2.14 — Hybrid + sentence-window + auto-merging retrieval ⚪
 
-**Feature:** Three experiments, each measured against the Week 3 MRR baseline:
+**Feature:** Three experiments, each measured against the Chapter 3 MRR baseline:
 1. **Hybrid search:** combine pgvector cosine similarity with Postgres `tsvector` full-text search (BM25-style). Weighted fusion score.
 2. **Sentence-window retrieval:** index small chunks (single sentences) but return the surrounding window at query time for richer context.
 3. **Auto-merging retrieval:** hierarchical chunks; when ≥N child chunks of the same parent are retrieved, replace them with the parent.
@@ -445,31 +445,31 @@ Run the eval harness against each variant. Pick the winning combination as the p
 
 **Builds on:** UC-2.6 retriever + eval harness (UC-2.3), new `tsvector` Postgres column, LlamaIndex utilities for sentence-window/auto-merging (or implement manually — either is defensible).
 
-**Status:** ⚪ idea — Week 6 full week. Numbers go into the blog post.
+**Status:** ⚪ idea — Chapter 6 full week. Numbers go into the blog post.
 
 ---
 
 #### UC-2.16 — Faithfulness + agent eval (beyond extraction) ⚪
 
-**Feature:** Extend the Week 2 harness past extraction to cover the generative and agentic paths — the parts this map ships but doesn't yet measure:
-1. **RAG faithfulness (Week 6):** add RAGAS faithfulness + answer-relevancy metrics on `/ask` over a labelled query set. Catches ungrounded synthesis that the MRR retrieval metric can't see.
-2. **Agent eval (Week 8, once UC-3.1 / UC-3.3 exist):** tool-call accuracy (did the agent call the right tool with the right args?) + a trajectory check over 10 fixture scenarios, logged to Langfuse.
+**Feature:** Extend the Chapter 2 harness past extraction to cover the generative and agentic paths — the parts this map ships but doesn't yet measure:
+1. **RAG faithfulness (Chapter 6):** add RAGAS faithfulness + answer-relevancy metrics on `/ask` over a labelled query set. Catches ungrounded synthesis that the MRR retrieval metric can't see.
+2. **Agent eval (Chapter 8, once UC-3.1 / UC-3.3 exist):** tool-call accuracy (did the agent call the right tool with the right args?) + a trajectory check over 10 fixture scenarios, logged to Langfuse.
 
 **Pivot proof point:** "I eval agents and RAG, not just extraction. Faithfulness X on grounded Q&A; tool-call accuracy Y on the categorizer agent. So when you ask 'how do you eval an agent?' I have a real answer with numbers." Closes the gap between building five agents and measuring none.
 
 **Builds on:** UC-2.3 harness (reuse the runner), `/ask` (UC-2.9), the agents from UC-3.1 / UC-3.3, RAGAS, Langfuse traces.
 
-**Status:** ⚪ idea — RAG faithfulness Week 6 (~2 h); agent eval Week 8 alongside UC-3.3 (~2–3 h).
+**Status:** ⚪ idea — RAG faithfulness Chapter 6 (~2 h); agent eval Chapter 8 alongside UC-3.3 (~2–3 h).
 
 ---
 
 ## Phase 3 — Specialization: Agents, Orchestration, MCP 🎯
 
-**Weeks 7–9. The Tier 3 → Tier 4 jump.**
+**Chapters 7–9. The Tier 3 → Tier 4 jump.**
 
 ---
 
-### Week 7 — First Agent (smolagents)
+### Chapter 7 — First Agent (smolagents)
 
 > Start with the smallest API surface. smolagents in one day → LangGraph as "industrial smolagents."
 
@@ -488,7 +488,7 @@ Input: uncategorized transaction description. Output: suggested category + confi
 
 **Builds on:** New `app/agents/` directory, new optional endpoint in `main.py`, `services/categorizer.py`, UC-2.6 pgvector search.
 
-**Status:** ⚪ idea — Week 7 core. ~3–4 hours.
+**Status:** ⚪ idea — Chapter 7 core. ~3–4 hours.
 
 ---
 
@@ -517,11 +517,11 @@ Human-in-the-loop preview stays. The agent improves pre-processing with explicit
 
 **Builds on:** New `app/agents/upload_agent.py`, new `POST /agent/process-upload` endpoint in `main.py`; `Infrastructure/Parsers/BankIdentifier.cs` stays, confidence scoring is new.
 
-**Status:** ⚪ idea (PF-119) — Week 7 secondary. ~4 hours.
+**Status:** ⚪ idea (PF-119) — Chapter 7 secondary. ~4 hours.
 
 ---
 
-### Week 8 — LangGraph: State, Routing, Multi-Step
+### Chapter 8 — LangGraph: State, Routing, Multi-Step
 
 > "LangGraph is in the dominant position in current AI Eng JDs." — curriculum
 
@@ -544,7 +544,7 @@ Test with: "I want to improve my financial health, where should I start?" → ex
 
 **Staff framing:** Don't present this as "I wired a graph." Present the *decision* — why a state machine over a single mega-prompt, where the failure boundaries sit, how memory scope is bounded. That decision-narrative, backed by your 3 consecutive TL roles, is what reads as Staff rather than senior-IC.
 
-**Status:** ⚪ idea — Week 8 core. ~1 day.
+**Status:** ⚪ idea — Chapter 8 core. ~1 day.
 
 ---
 
@@ -561,7 +561,7 @@ Test with: "I want to improve my financial health, where should I start?" → ex
 
 **Builds on:** Existing quest generation logic + `JourneyScoringService.cs`. New `app/agents/quest_agent.py`. The existing `/journey/advise` endpoint is a proto-agent — extend its loop depth rather than building from scratch. Ticket PF-121 depends on PF-119 (Upload Agent).
 
-**Status:** ⚪ idea (PF-121) — Week 8 secondary. ~3 hours.
+**Status:** ⚪ idea (PF-121) — Chapter 8 secondary. ~3 hours.
 
 ---
 
@@ -585,7 +585,7 @@ Test with: "I want to improve my financial health, where should I start?" → ex
 
 ---
 
-### Week 9 — Model Context Protocol
+### Chapter 9 — Model Context Protocol
 
 > "MCP is Anthropic's tool/agent interop standard, adopted across the industry." — curriculum
 
@@ -607,7 +607,7 @@ Test from Claude Desktop: connect to the MCP server, list tools, invoke `get_pyr
 
 **Staff framing:** Frame this as an interop/platform decision, not a demo — why a standard protocol over a bespoke API, and what it means for a team to expose capabilities once and have any client consume them. That platform-thinking, tied to your architecture/TL background, is the Staff-level read at Grafana and Datadog.
 
-**Status:** ⚪ idea — Week 9 core. ~4–6 hours.
+**Status:** ⚪ idea — Chapter 9 core. ~4–6 hours.
 
 ---
 
@@ -619,7 +619,7 @@ Test from Claude Desktop: connect to the MCP server, list tools, invoke `get_pyr
 
 **Builds on:** UC-3.3 (LangGraph agent) + UC-3.6 (MCP server). Anthropic MCP Series from Academy.
 
-**Status:** ⚪ idea — Week 9 stretch. ~2 hours after both UC-3.3 and UC-3.6 are working.
+**Status:** ⚪ idea — Chapter 9 stretch. ~2 hours after both UC-3.3 and UC-3.6 are working.
 
 ---
 
@@ -629,14 +629,14 @@ Test from Claude Desktop: connect to the MCP server, list tools, invoke `get_pyr
 
 These are noted for completeness, not for scheduling:
 
-- **Guardrails at scale** — *basic guardrails moved forward to UC-2.15 (Week 4–5).* What remains for Phase 4: adversarial/jailbreak testing, a formal red-team pass, structured PII-leak benchmarking. Activates only for a safety-heavy role.
+- **Guardrails at scale** — *basic guardrails moved forward to UC-2.15 (Chapter 4–5).* What remains for Phase 4: adversarial/jailbreak testing, a formal red-team pass, structured PII-leak benchmarking. Activates only for a safety-heavy role.
 - **Eval at scale** — *RAG/agent faithfulness moved forward to UC-2.16.* What remains for Phase 4: extend to a 100+ fixture set, add drift detection using the UC-2.8 `embedding_model_version` guard, and CI-gate the faithfulness metric. Activates if you're applying to an AI evaluation-heavy role.
 - **Fine-tuning (only if a JD asks)** — after sufficient labelled transaction data accumulates, fine-tune a small classification model for the categorizer. The categorizer's RAG fallback (UC-2.7) is good enough for the interview narrative and probably for production.
 - **MLOps / SageMaker / Bedrock** — AWS- or Azure-specific deployment patterns. Defer unless targeting an explicitly cloud-stack company.
 
 ---
 
-## Weeks 10–12 — Positioning & Proof
+## Chapters 10–12 — Positioning & Proof
 
 **These weeks don't add features — they convert the built features into interview-ready artifacts.**
 
@@ -665,7 +665,7 @@ Platform: dev.to (free, good SEO) or personal blog. Link from GitHub README.
 
 ---
 
-### STAR Stories (5 prepared before Week 11 interviews)
+### STAR Stories (5 prepared before Chapter 11 interviews)
 
 | Story | Draws on |
 |-------|----------|
@@ -677,7 +677,7 @@ Platform: dev.to (free, good SEO) or personal blog. Link from GitHub README.
 
 ---
 
-### Certification (Week 10 — pick one)
+### Certification (Chapter 10 — pick one)
 
 | Option | Cost | Signal |
 |--------|------|--------|

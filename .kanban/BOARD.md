@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-06-07
+> **Last synced:** 2026-06-09
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -52,6 +52,9 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-101 | _(no issue)_ | System Health Status Dashboard |
 | PF-126 | _(no issue)_ | Pre-Open-Source Security Remediation: Purge PII + credentials from git history |
 | PF-129 | _(no issue)_ | Context Architecture: Slim & Optimize Claude Context Loading |
+| PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
+| PF-114 | _(no issue)_ | Journey Redesign — Living Garden Hero (Visual-Only MVP) |
+| PF-119 | _(no issue)_ | Cashflow Overview UX Polish: trust fixes + minimalism pass |
 
 ---
 
@@ -61,7 +64,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 |----|-------|-------|
 | PF-117 | [#84](https://github.com/rikky-hermanto/personal-finance/issues/84) | Dashboard Overview: Data Accuracy & UX Polish |
 | PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
-| PF-119 | _(no issue)_ | Cashflow Overview UX Polish: trust fixes + minimalism pass |
 | PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights (Phase 1) |
 | PF-121 | _(no issue)_ | AI-Narrated Anomaly Insights + Persistence (Phase 2, blocked by PF-120) |
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview — "✦ Suggest (N)" button |
@@ -146,30 +148,15 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-116 | _(no issue)_ | Transaction Running Balance View |
 | PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
 | PF-115 | _(no issue)_ | Integrate Cashflow Wallets → Assets Accounts (Wallet → Bank Account rename) |
-| PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
 | PF-107 | _(no issue)_ | PF-107 Phase 1B — Assets Management: Balance Sheet MVP |
-| PF-116 | _(no issue)_ | Transaction Running Balance View |
 | PF-108 | _(no issue)_ | Safe-to-Spend + Variance Explainer (Spending Analysis MVP) |
-| PF-116 | _(no issue)_ | Transaction Running Balance View |
-| PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
 | PF-S10 | _(no issue)_ | Supabase Storage: bank-statements bucket + StorageService + upload endpoint |
 | PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
 | PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
-| PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
 | PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
-| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
-| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
-| PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across the full stack |
 | PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) |
 | PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
-| PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
-| PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
-| PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
-| PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
-| PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
-| PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
-| PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights |
 | PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights |
 
 ---

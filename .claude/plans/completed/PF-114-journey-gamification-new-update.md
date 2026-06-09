@@ -1,5 +1,7 @@
 # PF-114 Journey Redesign — Living Garden Hero (Visual-Only MVP)
 
+> **Status:** Done — Living Garden Hero implemented and confirmed in code; archived 2026-06-09
+
 ## Context
 
 Current `/journey` page terasa **kaku**:
@@ -905,15 +907,15 @@ cd apps/frontend && npx tsc --noEmit
 cd apps/frontend && npm run dev
 ```
 Open `http://localhost:8080/journey` and verify:
-- [ ] Garden hero renders full-width above tier cards
-- [ ] 5 plants visible, ground band with labels below
-- [ ] 3 clouds present (soft, ambient)
-- [ ] Score 0 → all plants stage 0 (dormant seeds/bare)
-- [ ] Hover plant → tooltip with `L1 · Cashflow · X/100`
-- [ ] Click plant → smooth scroll to tier card
-- [ ] Tier card indicator rows show product headlines (e.g. "3-month emergency fund")
-- [ ] Muted sub-text line below each indicator bar
-- [ ] Old pyramid/skyline/crystal hero no longer visible
+- [x] Garden hero renders full-width above tier cards
+- [x] 5 plants visible, ground band with labels below
+- [x] 3 clouds present (soft, ambient)
+- [x] Score 0 → all plants stage 0 (dormant seeds/bare)
+- [x] Hover plant → tooltip with `L1 · Cashflow · X/100`
+- [x] Click plant → smooth scroll to tier card
+- [x] Tier card indicator rows show product headlines (e.g. "3-month emergency fund")
+- [x] Muted sub-text line below each indicator bar
+- [x] Old pyramid/skyline/crystal hero no longer visible
 
 **3. No-decay check:**
 - Open DevTools → Application → localStorage
