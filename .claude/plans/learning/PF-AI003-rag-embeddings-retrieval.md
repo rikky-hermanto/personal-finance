@@ -81,7 +81,7 @@ Out of scope: re-ranking (Week 4), LLM synthesis (Week 4), streaming the answer 
 
 ## TODO
 
-### [ ] STEP 1 — Learn: The embedding mental model (theory anchor, 60 min)
+### [x] STEP 1 — Learn: The embedding mental model (theory anchor, 60 min)
 
 This week's one genuine pre-read. The "wall" here is understanding *what an embedding is* at the level you can explain it — not the math, but the intuition. Without it, you'll write code that embeds the wrong text and won't know why MRR is low.
 
