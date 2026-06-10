@@ -48,21 +48,21 @@
 - [x] Benchmark Gemini 2.5 Flash vs Claude Sonnet 4.6 (accuracy + cost + latency)
 - [x] Write findings to `docs/eval-results.md`
 
-### Chapter 3: RAG Phase 1 — Embeddings + Semantic Search (PF-AI003)
-- [ ] Supabase migration: `transaction_embeddings` table + ivfflat index
-- [ ] `app/config.py`: add `openai_api_key`, `embedding_model`, `database_url`
-- [ ] `app/services/embedder.py`: `EmbeddingService.embed_and_store()` (OpenAI text-embedding-3-small, batched)
-- [ ] `app/observability.py`: `estimate_embed_cost_usd()` + cost table
-- [ ] `app/models.py`: `EmbedItem`, `EmbedTransactionsRequest/Response`, `SearchRequest/Result/Response`
-- [ ] `app/services/retriever.py`: `RetrievalService` (pgvector cosine similarity via asyncpg)
-- [ ] `app/main.py`: `POST /embed-transactions` + `POST /search` endpoints
-- [ ] `.NET` `ILlmSearchClient` interface + `LlmSearchClient` typed HttpClient
-- [ ] Wire embed call (fire-and-forget) after `UploadTransactionsCommandHandler` insert
-- [ ] Backfill script: `scripts/backfill_embeddings.py`
-- [ ] Unit tests: `test_embedder.py` + `test_retriever.py`
-- [ ] `evals/search_queries.json`: 10 handwritten test queries
-- [ ] `evals/eval_retrieval.py`: MRR@5 benchmark runner
-- [ ] MRR@5 ≥ 0.60 on test set, cost/doc documented
+### Chapter 3: RAG Phase 1 — Embeddings + Semantic Search (PF-AI003) 🔄 IN PROGRESS
+- [x] Supabase migration: `transaction_embeddings` table + ivfflat index
+- [x] `app/config.py`: add `openai_api_key`, `embedding_model`, `database_url`
+- [x] `app/services/embedder.py`: `EmbeddingService.embed_and_store()` (OpenAI text-embedding-3-small, batched)
+- [x] `app/observability.py`: `estimate_embed_cost_usd()` + cost table
+- [x] `app/models.py`: `EmbedItem`, `EmbedTransactionsRequest/Response`, `SearchRequest/Result/Response`
+- [x] `app/services/retriever.py`: `RetrievalService` (pgvector cosine similarity via asyncpg)
+- [x] `app/main.py`: `POST /embed-transactions` + `POST /search` endpoints
+- [x] `.NET` `ILlmSearchClient` interface + `LlmSearchClient` typed HttpClient
+- [x] Wire embed call (fire-and-forget) after `TransactionsController.SubmitTransactions` insert
+- [x] Backfill script: `scripts/backfill_embeddings.py`
+- [x] Unit tests: `test_embedder.py` (7 tests pass) + `test_retriever.py` (4 tests pass)
+- [x] `evals/search_queries.json`: 10 handwritten test queries (placeholder IDs — fill from Supabase Studio)
+- [x] `evals/eval_retrieval.py`: MRR@5 benchmark runner
+- [ ] MRR@5 ≥ 0.60 on test set, cost/doc documented ← fill IDs + run backfill first
 
 ### Chapter 4: RAG Phase 2 — Chunking, Re-ranking, Generation (PF-AI004)
 - [ ] Chunking strategy: fixed-size with overlap + sentence-window
@@ -266,3 +266,43 @@
 - Read OpenAI text-embedding-3-small API docs to confirm batching limits before coding EmbeddingService
 
 **Streak: 11 days**
+
+### 2026-06-09 — Day 13
+
+**Session: Chapter 3 shipped — RAG Phase 1 complete (all code, all tests)**
+
+- Built `EmbeddingService.embed_and_store()` in `app/services/embedder.py` — OpenAI `text-embedding-3-small`, batched API call, upsert to `transaction_embeddings` via asyncpg, Langfuse generation tracing with cost via `estimate_embed_cost_usd()`
+- Built `RetrievalService.search()` in `app/services/retriever.py` — embeds query, runs pgvector `<=>` cosine-distance SQL with `LEFT JOIN accounts` (for wallet name), returns ranked `SearchResult` list
+- Added `POST /embed-transactions` + `POST /search` to FastAPI `main.py`; services wired in lifespan
+- Added `EmbedItem`, `EmbedTransactionsRequest/Response`, `SearchRequest/Result/Response` Pydantic models
+- Added `OPENAI_EMBED_COST` table + `estimate_embed_cost_usd()` to `app/observability.py`
+- Created `.NET` `ILlmSearchClient` interface (Application layer) + `LlmSearchClient` typed HttpClient (Infrastructure)
+- Registered `ILlmSearchClient` in `Program.cs`; wired fire-and-forget embed call in `TransactionsController.SubmitTransactions` after `AddTransactionsAsync`
+- Created `scripts/backfill_embeddings.py` (batch, `--dry-run` flag, joins accounts for wallet name)
+- Created `evals/search_queries.json` (10 queries, placeholder IDs) + `evals/eval_retrieval.py` (MRR@5 benchmark)
+- Added embedding mental model section to `evals/README.md`
+- Added `openai>=1.30`, `asyncpg>=0.29`, `pgvector>=0.3` to `pyproject.toml`; installed in venv
+- 11 new unit tests pass: 7 in `test_embedder.py`, 4 in `test_retriever.py` (all mocked)
+- .NET `dotnet build`: 0 errors
+
+**Chapter 3 checklist progress:**
+- [x] Migration, config, embedder, observability, models, retriever, endpoints ← all done
+- [x] .NET client + wire-up, backfill script, tests, eval harness ← all done
+- [ ] MRR@5 ≥ 0.60 ← pending: fill `evals/search_queries.json` with real IDs, run `python scripts/backfill_embeddings.py`, then `python evals/eval_retrieval.py`
+
+**Embedding cost/doc (interview-ready number):** ~$0.000002/doc (100 tokens × $0.02/1M). Full 5,000-transaction backfill ≈ $0.01.
+
+**Architecture note documented:** retriever `LEFT JOIN accounts` because `transactions` has no `wallet` column — `account_name` is transient. Same query pattern used in backfill script.
+
+**Retros (blockers & surprises):**
+- **No `UploadTransactionsCommandHandler.cs`:** Plan named a file that doesn't exist. Fix: wired the embed call in `TransactionsController.SubmitTransactions` instead — the actual transaction commit point in the upload flow.
+- **`t.wallet` column doesn't exist:** Plan's retriever SQL used `t.wallet` but the `transactions` table has no such column (it was renamed to `account_name` in PF-125 and is transient). Fix: `LEFT JOIN accounts a ON a.id = t.account_id` + `COALESCE(a.name, '')`. Applied same fix in backfill script.
+- **pyproject.toml exit code 1 from pip:** pip returned exit code 1 due to "new pip available" notice, not a real error. All three packages (openai, asyncpg, pgvector) installed successfully — confirmed by import check.
+
+**Remaining for tomorrow:**
+- Open Supabase Studio → get real transaction IDs → fill `evals/search_queries.json`
+- Run `PYTHONPATH=. python scripts/backfill_embeddings.py --dry-run` (check count), then without `--dry-run`
+- Run `PYTHONPATH=. python evals/eval_retrieval.py` — record MRR@5 + p50/p95 latency in `docs/performances/ai-observability-metrics.md`
+- Commit PF-AI003: `git add` all new files + `git commit -m "PF-AI003: RAG Phase 1 — transaction embeddings + pgvector semantic search"`
+
+**Streak: 13 days**

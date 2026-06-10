@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     langfuse_secret_key: str = ""
     langfuse_host: str = "https://cloud.langfuse.com"
 
+    # OpenAI (embeddings only — extraction still uses Gemini/Anthropic)
+    openai_api_key: str = ""
+    embedding_model: str = "text-embedding-3-small"
+
+    # Direct Postgres URL for asyncpg (pgvector operations bypass PostgREST)
+    # Local Supabase: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    # Supabase Cloud: from Project Settings → Database → Connection string → URI
+    database_url: str = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
     def validate_provider_key(self) -> None:
         if self.ai_provider == "gemini" and not self.gemini_api_key:
             print("WARNING: GEMINI_API_KEY is not set. AI features will fail.")

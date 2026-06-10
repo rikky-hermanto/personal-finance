@@ -1,0 +1,52 @@
+[
+  {
+    "query": "belanja makan siang GoFood GrabFood",
+    "expected_top5_ids": [],
+    "note": "Indonesian food delivery — should match Food & Dining transactions. Replace IDs with real transaction IDs from Supabase Studio."
+  },
+  {
+    "query": "tagihan listrik PLN bulan Maret",
+    "expected_top5_ids": [],
+    "note": "PLN electricity bill — Bills & Utilities. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "gaji bulanan salary income",
+    "expected_top5_ids": [],
+    "note": "Monthly salary credit — Income / CR transactions. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "transfer ke teman Gopay Dana OVO",
+    "expected_top5_ids": [],
+    "note": "P2P transfers to e-wallets. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "bensin BBM Pertamina Shell",
+    "expected_top5_ids": [],
+    "note": "Transportation fuel — Transport category. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "belanja Indomaret Alfamart minimarket",
+    "expected_top5_ids": [],
+    "note": "Convenience store shopping. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "Netflix Spotify Vidio langganan streaming",
+    "expected_top5_ids": [],
+    "note": "Subscription services. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "coffee kedai kopi Starbucks",
+    "expected_top5_ids": [],
+    "note": "Coffee shops. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "investasi saham BBCA BBRI reksa dana",
+    "expected_top5_ids": [],
+    "note": "Investment transactions. Replace IDs with real transaction IDs."
+  },
+  {
+    "query": "cicilan kredit kartu hutang angsuran",
+    "expected_top5_ids": [],
+    "note": "Loan / credit card repayments. Replace IDs with real transaction IDs."
+  }
+]
