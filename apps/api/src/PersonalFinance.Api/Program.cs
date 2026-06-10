@@ -133,6 +133,11 @@ namespace PersonalFinance.Api
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
                 client.Timeout = TimeSpan.FromSeconds(120);
             });
+            builder.Services.AddHttpClient<ILlmSearchClient, LlmSearchClient>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+                client.Timeout = TimeSpan.FromSeconds(60);
+            });
             builder.Services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssemblyContaining<Program>();

@@ -37,3 +37,17 @@ def estimate_cost_usd(model: str, input_tokens: int, output_tokens: int) -> floa
         input_tokens  * pricing["input"]  / 1_000_000
         + output_tokens * pricing["output"] / 1_000_000
     )
+
+
+# OpenAI embedding pricing per 1M tokens (as of 2026-05)
+# Source: https://openai.com/pricing
+OPENAI_EMBED_COST: dict[str, float] = {
+    "text-embedding-3-small": 0.02,   # $/1M tokens
+    "text-embedding-3-large": 0.13,
+    "text-embedding-ada-002":  0.10,
+}
+
+
+def estimate_embed_cost_usd(model: str, total_tokens: int) -> float:
+    price = OPENAI_EMBED_COST.get(model, 0.0)
+    return total_tokens * price / 1_000_000
