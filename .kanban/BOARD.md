@@ -117,6 +117,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-130 | _(no issue)_ | Extract SubmitTransactions logic into SubmitTransactionsCommandHandler (ARCH-04) |
 | PF-034 | [#42](https://github.com/rikky-hermanto/personal-finance/issues/42) | Backend test suite — Command handlers & validators |
 | PF-035 | [#43](https://github.com/rikky-hermanto/personal-finance/issues/43) | Backend test suite — Bank statement parsers |
 | PF-036 | [#44](https://github.com/rikky-hermanto/personal-finance/issues/44) | Backend test suite — TransactionService |
