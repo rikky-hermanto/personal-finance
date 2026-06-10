@@ -150,3 +150,47 @@ class PortfolioReviewResponse(BaseModel):
     resilience_test: dict
     decision_tree: dict
     recommended_portfolio: dict
+
+
+# ── RAG: Embeddings + Search ──────────────────────────────────────────────────
+
+class EmbedItem(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    transaction_id: int
+    description: str
+    remarks: str = ""
+    category: str = ""
+    wallet: str = ""
+
+
+class EmbedTransactionsRequest(BaseModel):
+    items: list[EmbedItem]
+
+
+class EmbedTransactionsResponse(BaseModel):
+    embedded: int
+    skipped: int
+    model: str
+
+
+class SearchRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    query: str = Field(..., min_length=1, max_length=500)
+    top_k: int = Field(default=5, ge=1, le=50)
+    min_similarity: float = Field(default=0.0, ge=0.0, le=1.0)
+
+
+class SearchResult(BaseModel):
+    transaction_id: int
+    similarity: float          # 1 - cosine_distance (0..1, higher = more similar)
+    description: str
+    date: str                  # ISO 8601
+    amount_idr: float
+    flow: str
+    wallet: str
+
+
+class SearchResponse(BaseModel):
+    results: list[SearchResult]
+    query: str
+    total_found: int

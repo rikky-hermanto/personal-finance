@@ -7,7 +7,9 @@ from fastapi.middleware.cors import CORSMiddleware
 # In the lifespan context manager or @app.on_event("shutdown"):
 from app.observability import langfuse
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse
+from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
+from app.services.retriever import RetrievalService
 from app.providers.factory import ProviderFactory
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
@@ -46,6 +48,8 @@ async def lifespan(app: FastAPI):
     app.state.categorizer = Categorizer(provider=provider)
     app.state.suggester = MerchantSuggester(provider=provider)
     app.state.portfolio_reviewer = PortfolioReviewer(provider=provider)
+    app.state.embedder = EmbeddingService()
+    app.state.retriever = RetrievalService()
     logger.info("AI service starting up | provider=%s | model=%s", settings.ai_provider, settings.ai_model)
     yield
     logger.info("AI service shutting down")
@@ -204,3 +208,39 @@ async def suggest_categories(request: SuggestCategoriesRequest) -> SuggestCatego
     )
     suggestions = [MerchantSuggestion(**s) for s in suggestions_raw if s.get("confidence", 0) > 0]
     return SuggestCategoriesResponse(suggestions=suggestions)
+
+
+@app.post("/embed-transactions", response_model=EmbedTransactionsResponse)
+async def embed_transactions(request: EmbedTransactionsRequest) -> EmbedTransactionsResponse:
+    """Embed a batch of transactions and store vectors to transaction_embeddings."""
+    items = [
+        EmbedItemInternal(
+            transaction_id=i.transaction_id,
+            description=i.description,
+            remarks=i.remarks,
+            category=i.category,
+            wallet=i.wallet,
+        )
+        for i in request.items
+    ]
+    embedded, skipped = await app.state.embedder.embed_and_store(items)
+    return EmbedTransactionsResponse(
+        embedded=embedded,
+        skipped=skipped,
+        model=settings.embedding_model,
+    )
+
+
+@app.post("/search", response_model=SearchResponse)
+async def search_transactions(request: SearchRequest) -> SearchResponse:
+    """Semantic search over transactions using pgvector cosine similarity."""
+    results = await app.state.retriever.search(
+        query=request.query,
+        top_k=request.top_k,
+        min_similarity=request.min_similarity,
+    )
+    return SearchResponse(
+        results=results,
+        query=request.query,
+        total_found=len(results),
+    )

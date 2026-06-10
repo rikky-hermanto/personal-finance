@@ -28,6 +28,7 @@ public class TransactionsController : ControllerBase
     private readonly IFileStorageService _fileStorageService;
     private readonly ITransactionPipelineService _pipelineService;
     private readonly Supabase.Client _supabase;
+    private readonly ILlmSearchClient _searchClient;
 
     public TransactionsController(
         ILogger<TransactionsController> logger,
@@ -40,7 +41,8 @@ public class TransactionsController : ControllerBase
         IMediator mediator,
         IFileStorageService fileStorageService,
         ITransactionPipelineService pipelineService,
-        Supabase.Client supabase)
+        Supabase.Client supabase,
+        ILlmSearchClient searchClient)
     {
         _logger = logger;
         _statementImportService = statementImportService;
@@ -53,6 +55,7 @@ public class TransactionsController : ControllerBase
         _fileStorageService = fileStorageService;
         _pipelineService = pipelineService;
         _supabase = supabase;
+        _searchClient = searchClient;
     }
 
     [HttpGet("health")]
@@ -268,6 +271,30 @@ public class TransactionsController : ControllerBase
         }
 
         var addedTransactions = await _transactionService.AddTransactionsAsync(nonDuplicates);
+
+        // Fire-and-forget: embed transactions for semantic search after successful insert.
+        // Failure here must not break the upload response — embedding is optional enrichment.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var embedItems = addedTransactions
+                    .Where(t => t.Id > 0)
+                    .Select(t => new EmbedItemRequest(
+                        TransactionId: t.Id,
+                        Description:   t.Description,
+                        Remarks:       t.Remarks ?? "",
+                        Category:      t.Category ?? "",
+                        Wallet:        t.AccountName ?? ""))
+                    .ToList();
+                if (embedItems.Count > 0)
+                    await _searchClient.EmbedTransactionsAsync(embedItems);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Background embed failed for {Count} transactions", addedTransactions.Count);
+            }
+        }, CancellationToken.None);
 
         if (!string.IsNullOrEmpty(request.FileHash))
             await _transactionService.RegisterFileHashAsync(request.FileHash, request.FileName ?? "uploaded_file");

@@ -74,3 +74,16 @@ suffix (e.g. `20260605-eval-results-v2.md`).
 A model can score F1=1.00 (right row count) with low critical-field accuracy if it
 consistently gets `flow` (DB/CR) wrong. The harness separates these to make that failure
 mode visible rather than averaging it away.
+
+---
+
+## Embedding mental model (written from memory)
+
+**What is an embedding?**
+An embedding is a dense vector in a high-dimensional space (e.g. 1536 dimensions) where semantic similarity between texts is preserved as geometric proximity — similar texts produce vectors with a small angular distance (high cosine similarity).
+
+**Why does cosine distance work for semantic similarity?**
+When a model trains on large text corpora, it learns to place semantically similar texts near each other in the embedding space — "food", "makan", and "GoFood" cluster together even without exact string overlap. Cosine distance (angle between vectors) captures this directional similarity regardless of vector magnitude, making it more robust than Euclidean distance for text. Two texts about food spending will point in similar directions in the 1536-dim space; two texts about completely different topics will point in opposite directions.
+
+**What text should you embed for a transaction — raw `description` alone, or `description + remarks + category + wallet`?**
+Embed `description + remarks + category + wallet`. The raw description from a BCA statement is often a terse code like `"DEBIT TRANSFER"` or `"DEBIT"` — there is zero semantic signal for a query like "food spending in March". The category set by the rule engine (`"Food & Dining"`) IS the semantic signal. By appending it to the embedding text, a query for "food" now finds the right transactions even when the raw description is opaque. The wallet adds bank-level filtering ("BCA transactions"). The asymmetry is intentional: documents get the enriched form; queries stay natural language.
