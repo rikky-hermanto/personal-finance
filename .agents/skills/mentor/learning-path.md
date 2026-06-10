@@ -51,7 +51,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 - Wrap existing Anthropic and Gemini calls with Langfuse tracing
 - Create a Langfuse dashboard showing: cost/day, calls/day, latency distribution, error rate
 - Extract p50/p95 latency and average cost-per-doc from OTel + Langfuse
-- Document 3 concrete numbers in `article-digest.md`
+- Document 3 concrete numbers in `docs/mentor/progress.md`
 
 **Definition of done:** You can say "my extraction pipeline costs $X per document and runs in Xms p95" with a dashboard screenshot to back it up.
 
@@ -274,10 +274,9 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 - Update LinkedIn:
   - Headline: "Backend Engineer → AI Engineering | LLM Pipelines · RAG · Agentic Systems · MCP | Python · .NET"
   - About: lead with AI narrative, link blog + GitHub
-- Update `cv.md` and `article-digest.md` with all new metrics and proof points
-- Run `/career-ops pdf` to regenerate CV
+- Log all new metrics and proof points in `docs/mentor/progress.md` (CV updates live in the career-ops project — handled separately, out of scope here)
 
-**Definition of done:** Blog live and linked in GitHub. Demo Loom recorded and linked. Cert scheduled or passed. LinkedIn updated. CV regenerated.
+**Definition of done:** Blog live and linked in GitHub. Demo Loom recorded and linked. Cert scheduled or passed. LinkedIn updated. Metrics logged in `docs/mentor/progress.md` (CV regeneration happens in career-ops, separately).
 
 ---
 

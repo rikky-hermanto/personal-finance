@@ -23,6 +23,10 @@ Project housekeeping. Run between sprints or when the codebase feels cluttered. 
 
 Scan `.claude/plans/` for `*-todo.md` files that can be archived.
 
+### Step 0 — Path check
+
+Verify `.claude/plans/` exists before scanning. If it doesn't, report `Plans: skipped — path not found` and move to the next category. Same rule applies to `.claude/plans/learning/` in Step 5.
+
 ### Step 1 — Collect candidates
 
 For each `*-todo.md` in `.claude/plans/` (not already in `completed/`):
@@ -42,6 +46,18 @@ Mark a plan **POSSIBLY COMPLETE** when:
 Mark a plan **IN PROGRESS** when steps exist and some are checked but not all.
 
 Mark a plan **NOT STARTED** when zero checked steps.
+
+Mark a plan **MALFORMED** when it lacks a `Status:` header entirely, or its checkboxes can't be parsed (no recognizable `- [ ]` / `- [x]` lines where steps should be, garbled markdown, etc.). Do not guess a status for these — classify as MALFORMED ❌, note *why* (e.g., "no Status header", "no parseable checkboxes"), and continue with the remaining files. Malformed plans are never auto-moved; they go in the report for human repair.
+
+**Status → report emoji mapping (use consistently in the Output Format):**
+
+| Classification | Report line prefix |
+|----------------|--------------------|
+| VERIFIED COMPLETE | ✅ ARCHIVE |
+| POSSIBLY COMPLETE | ⚠️ POSSIBLY DONE |
+| IN PROGRESS | 🔵 IN PROGRESS |
+| NOT STARTED | ⏸ NOT STARTED |
+| MALFORMED | ❌ MALFORMED |
 
 ### Step 2 — Cross-check GitHub
 
@@ -65,11 +81,29 @@ After moving, run `/kanban-sync` to keep BOARD.md in sync.
 
 ### Step 4 — Report stale plans
 
-Flag plans that are NOT STARTED and older than 30 days by checking their `Started:` date header. These may be superseded. Do not delete — report them for human decision.
+Flag plans that are NOT STARTED and older than 30 days. How to determine age:
+
+1. Read the plan's `> **Started:**` header line and extract the date (e.g., `> **Started:** 2026-01-15`).
+2. If no `Started:` header exists, fall back to file modification time:
+   ```powershell
+   (Get-Item ".claude/plans/<file>.md").LastWriteTime.ToString("yyyy-MM-dd")
+   ```
+3. Compare that date against today's date **yourself** (you know today's date from context) — do not script fragile shell date arithmetic. If the gap is more than 30 days, flag the plan as stale: `⏸ NOT STARTED: PF-XXX (started 2026-01-15 — 45 days stale)`.
+
+Stale plans may be superseded. Do not delete — report them for human decision.
+
+### Step 5 — Learning plans (`.claude/plans/learning/`)
+
+Scan `.claude/plans/learning/` too (skip with `skipped — path not found` if absent), but apply **different rules** — learning plans (PF-AIxxx) track the 90-day AI learning path and live longer than feature plans:
+
+- Archive a learning plan to `completed/` only when **both** hold: its GitHub issue is `CLOSED` **and** all checkboxes are done. Never archive on checkboxes alone.
+- Flag any learning plan untouched for more than 90 days (same age logic as Step 4 — `Started:` header or file mtime, compared by you) as "review for relevance" — report only, never move.
 
 ---
 
 ## Category 2 — Codebase Cleanliness
+
+**Path check first:** verify `apps/api/src/`, `apps/frontend/src/`, and `services/` exist before scanning. For any missing path, report `skipped — path not found` for the affected scans instead of silently producing nothing.
 
 ### Dead code markers
 
@@ -87,9 +121,6 @@ grep -rn 'Fact(Skip' apps/api/tests/ --include="*.cs"
 
 # Dead experimental endpoints (known: upload-preview-new)
 grep -rn "upload-preview-new\|experimental" apps/api/src/ --include="*.cs"
-
-# any import
-grep -rn "^using.*;" apps/api/src/ --include="*.cs" | grep -v "// "
 ```
 
 Report each hit with file:line. Do not auto-delete — output a triage list.
@@ -115,32 +146,51 @@ git ls-files | grep -E "\.(user|suo|DotSettings\.user)$"
 
 ### Temp / scratch files
 
+Primary check — untracked files in the repo:
+
 ```bash
-ls c:\tmp\ 2>/dev/null
 git status --short | grep "^??" | grep -v ".env"
+```
+
+Optional scratch-folder check (guarded — `c:\tmp` may not exist; run via PowerShell, not bash):
+
+```powershell
+if (Test-Path 'C:\tmp') { Get-ChildItem 'C:\tmp' | Select-Object Name, LastWriteTime } else { Write-Output 'skipped — C:\tmp not found' }
 ```
 
 ---
 
 ## Category 3 — Tech Debt Markers
 
-Pull the known tech debt list from `CLAUDE.md` (the `### Known Tech Debt` section) and verify current status of each item:
+**Do NOT rely on a hardcoded debt list — it goes stale.** Extract the current list at run time:
 
-| Debt item | How to verify |
-|-----------|--------------|
-| TypeScript strict mode disabled | `grep '"strict"' apps/frontend/tsconfig.json` |
-| `IBankIdentifier` in wrong layer | Check if file is in `Infrastructure/Parsers/IBankIdentifier.cs` |
-| `TransactionService.cs` missing namespace | Check first 10 lines for `namespace` |
-| `ex.Message` leak in upload-preview | `grep -n "ex.Message" apps/api/src/PersonalFinance.Api/Controllers/TransactionsController.cs` |
-| `upload-preview-new` dead endpoint | Grep for the action method |
-| ILogger missing in DashboardService | `grep -n "ILogger" apps/api/src/PersonalFinance.Application/Services/DashboardService.cs` |
-| ILogger missing in SpendingAnalysisService | Same grep on SpendingAnalysisService.cs |
+1. **Path check:** verify `docs/STATUS.md` and `CLAUDE.md` exist. If either is missing, report `skipped — path not found` for that source.
+2. Read the `## Known Tech Debt` section from `docs/STATUS.md` — this is the authoritative list.
+3. Read the `## Known Gotchas` section from `CLAUDE.md` and merge in any items not already covered.
+4. For **each item found in those docs**, devise a targeted verification — usually a grep against the file(s) the item names, or a quick read of the file's first lines.
+5. Report each item as one of:
+   - `STILL OPEN` — the grep/read confirms the debt still exists
+   - `FIXED` — the codebase no longer shows the problem → **recommend removing the item from docs/STATUS.md / CLAUDE.md** (report only; doc edits happen after user confirmation)
+   - `FILE NOT FOUND` — the file the item references no longer exists (debt may be obsolete; flag for human review)
 
-For each item: report `STILL OPEN`, `FIXED`, or `FILE NOT FOUND`.
+**Illustrative examples only** (the actual checks must be derived from whatever the docs list *today* — do not treat these as the debt list):
+
+```bash
+# Example: "TypeScript strict mode disabled" → check the compiler flag
+grep '"strict"' apps/frontend/tsconfig.json apps/frontend/tsconfig.app.json
+
+# Example: "TransactionService.cs missing namespace" → check for a namespace declaration
+head -10 apps/api/src/PersonalFinance.Application/Services/TransactionService.cs | grep "namespace"
+
+# Example: "Service X missing ILogger" → check the constructor injects it
+grep -n "ILogger" apps/api/src/PersonalFinance.Application/Services/<ServiceNamedInDocs>.cs
+```
 
 ---
 
 ## Category 4 — Folder Structure Audit
+
+**Path check first:** verify `apps/api/src/PersonalFinance.Infrastructure/` and `apps/frontend/src/` exist. For any missing path, report `skipped — path not found` for the affected scans.
 
 ### ARCH-02: Interfaces in wrong layer
 
@@ -150,7 +200,11 @@ Scan Infrastructure for interface files:
 grep -rn "^public interface" apps/api/src/PersonalFinance.Infrastructure/ --include="*.cs" -l
 ```
 
-Each hit is an ARCH-02 violation — the interface belongs in `Application/Interfaces/`.
+**Known intentional placements (do NOT report as violations):**
+
+- `Infrastructure/Parsers/IBankSignature.cs` — deliberately lives in Infrastructure as part of the PF-124 Chain of Responsibility registry (`BankIdentifier`). It is an internal detail of the parser subsystem, not a cross-layer contract; the cross-layer contracts (`IBankStatementParser`, `IBankIdentifier`) correctly live in `Application/Interfaces/`.
+
+**Rule:** flagged hits require manual review before reporting as violations — check git history (`git log --follow <file>`) and CLAUDE.md / `.kanban/BOARD.md` for an intentional-placement rationale (e.g., a PF ticket) before listing a hit as an ARCH-02 violation. Report confirmed-intentional hits separately as "excluded (intentional)".
 
 ### ARCH-03: Namespace vs physical path mismatch
 
@@ -174,7 +228,7 @@ find apps/frontend/src -name "*Api.ts" -not -path "*/api/*"
 
 ## Category 5 — Dependency Health
 
-Quick scan for outdated or vulnerable packages (no auto-update — report only):
+**Optional / best-effort category.** Quick scan for outdated packages (no auto-update — report only). Verify each directory exists first (`apps/api`, `apps/frontend`, `services/ai-service`) and report `skipped — path not found` for missing ones. If a tool isn't available (e.g., pip outside the venv) report `skipped — tool unavailable` rather than failing the sweep:
 
 ```bash
 # .NET packages
@@ -201,6 +255,7 @@ Print a structured report before making any changes:
 ⚠️  POSSIBLY DONE: PF-XXX — status=Done but 2 unchecked steps
 🔵 IN PROGRESS: PF-XXX — 4/9 steps complete
 ⏸  NOT STARTED: PF-XXX (started 2026-01-15 — 45 days stale)
+❌ MALFORMED: PF-XXX — no Status header / unparseable checkboxes
 
 ### Codebase
 [n] Console.Write hits → [file:line list]
@@ -209,12 +264,13 @@ Print a structured report before making any changes:
 [n] Orphaned plan files → [list]
 
 ### Tech Debt Status
-STILL OPEN: TypeScript strict mode
-STILL OPEN: IBankIdentifier in wrong layer
-FIXED: ...
+(one line per item extracted from docs/STATUS.md + CLAUDE.md at run time)
+STILL OPEN: <item> — <evidence file:line>
+FIXED: <item> — recommend removing from docs
+FILE NOT FOUND: <item> — referenced file gone, flag for review
 
 ### Folder Structure
-[n] ARCH-02 violations → [list]
+[n] ARCH-02 violations → [list] (after manual review; intentional placements listed as "excluded (intentional)")
 [n] ARCH-03 violations → [list]
 
 ### Dependencies
@@ -232,4 +288,4 @@ FIXED: ...
 - **Never touch `src/components/ui/`** — shadcn/ui managed files.
 - **Never commit** — leave all changes (moves, edits) uncommitted for user review.
 - **One plan move at a time is fine** — no need to batch into a single git operation.
-- After archiving plans, always update `CLAUDE.md`'s `### Known Tech Debt` section if any items were resolved, and run `/kanban-sync`.
+- After archiving plans, recommend updates to `docs/STATUS.md`'s `## Known Tech Debt` section (and `CLAUDE.md`'s `## Known Gotchas`) if any items were resolved — apply only after user confirmation — and run `/kanban-sync`.
