@@ -20,6 +20,8 @@ You never start coding. You produce the plan that someone else will execute.
 - A refactor request: `/plan "extract all inline category logic out of TransactionsController"`
 - With lens override: `/plan PF-116 as architect` → skips PO scoring, goes straight to technical approaches
 
+**`as architect` mode:** skip the PO/user-value scoring dimensions entirely — score only with the technical grid (use the Refactor grid, or the Feature grid with **User value** replaced by **Architectural correctness**). The verdict focuses on technical correctness and architecture fit, not product value.
+
 If no argument given, ask what to plan.
 
 ---
@@ -53,9 +55,16 @@ Affected layer(s): Domain | Application | Infrastructure | Api | React Component
 Priority signal: Must-fix | High | Normal | Low | Nice-to-have
 ```
 
-If the use case is a ticket number, attempt to retrieve context:
-- Check `.kanban/BOARD.md` for the ticket entry
-- If not found, note "ticket not found in local board — planning from description only"
+**Ticket ID resolution (do this explicitly):**
+
+- **If the use case is a ticket number** (e.g. `PF-116`):
+  1. Look it up in `.kanban/BOARD.md` for the ticket entry and context.
+  2. If not in the snapshot, fall back to `gh issue view <number> --repo rikky-hermanto/personal-finance` before declaring it not found.
+  3. Only if both miss, note "ticket not found in board or GitHub — planning from description only".
+- **If the use case is a raw description with no ticket:**
+  1. Find the highest existing `PF-XXX` across `.kanban/BOARD.md` **and** GitHub issues (`gh issue list --repo rikky-hermanto/personal-finance --search "[PF-" --limit 10`).
+  2. Allocate the next ID (`PF-YYY`) for this plan — this prevents ID collisions.
+  3. After planning, tell the user to create the GitHub issue titled `[PF-YYY] {title}` (or offer to create it via `gh issue create`).
 
 ---
 
@@ -67,7 +76,13 @@ For each approach, write:
 - **What changes** (bullet list: files/layers/services affected)
 - **Tradeoffs** (1 sentence on what you gain, 1 on what you give up)
 
-Approaches must be genuinely different — not just minor variations. One approach should always be the "smallest possible change" and one should be the "most correct long-term design." The third (if needed) is the hybrid.
+Approaches must be genuinely different — not just minor variations. To qualify as different, each approach must differ from the others in at least one of these objective dimensions:
+- **Layer** — where the work lives (backend / frontend / AI service)
+- **Data structure or schema** — different tables, columns, entities, or contracts
+- **Scope** — incremental patch vs comprehensive redesign
+- **Synchronicity** — sync vs async vs event-driven
+
+Reject candidate approaches that differ only in parameter values or naming — those are variations, not alternatives. One approach should always be the "smallest possible change" and one should be the "most correct long-term design." The third (if needed) is the hybrid.
 
 ---
 
@@ -127,6 +142,8 @@ Output format — repeat for each approach:
 
 **Why not [Y]:** One paragraph on the decisive factor(s).
 
+**Governance alignment:** [Name the specific governance.md rules this plan touches (e.g. ARCH-02, CODE-02, PERF-01) and confirm the winning approach complies with each — or flag any rule that needs a conscious exception.]
+
 **What to carry from the losing approach(es):** Ideas worth folding into the winner.
 ```
 
@@ -134,7 +151,14 @@ Output format — repeat for each approach:
 
 ### Step 6 — Generate the implementation plan
 
-Write the plan in the exact style of `.claude/plans/PF-009-todo.md`. The plan must use this structure:
+Write the plan in the exact style of `.claude/plans/completed/PF-009-gemini-hello-llm-todo.md` (the canonical example). The plan must use this structure.
+
+**Step-writing rules (apply to every TODO step — read before writing the TODO section):**
+- Every step must be independently committable (a junior dev can do step 3 without having read step 4)
+- No step should represent more than half a day's work — split if necessary
+- Steps that are "run this command" get a bash block; steps that are "create this file" get the full file content in a code block
+- `> **Why:**` is mandatory on every step — this is the learning scaffold, not just a checklist
+- Steps start unchecked `[ ]`; only mark `[x]` for steps already done before plan was written
 
 ```markdown
 # [Ticket ID] — [Short descriptive title]
@@ -142,6 +166,7 @@ Write the plan in the exact style of `.claude/plans/PF-009-todo.md`. The plan mu
 > **GitHub Issue:** #[number]
 > **Status:** To Do
 > **Started:** [YYYY-MM-DD]
+> **Planned from branch:** [branch]
 
 ## Objective
 
@@ -198,20 +223,14 @@ Write the plan in the exact style of `.claude/plans/PF-009-todo.md`. The plan mu
 - [Cost or performance note if relevant]
 ```
 
-**Rules for steps:**
-- Every step must be independently committable (a junior dev can do step 3 without having read step 4)
-- No step should represent more than half a day's work — split if necessary
-- Steps that are "run this command" get a bash block; steps that are "create this file" get the full file content in a code block
-- `> **Why:**` is mandatory on every step — this is the learning scaffold, not just a checklist
-- Steps start unchecked `[ ]`; only mark `[x]` for steps already done before plan was written
-
 ---
 
 ### Step 7 — Save the plan (automatic)
 
 After outputting the plan, **always** save it automatically — do not ask:
 
-- Write the file to `.claude/plans/{ticket-or-slug}-todo.md` using the plan content from Step 6 only (no scoring tables, no verdict — just the plan)
+- Write the file with the Write tool to `.claude/plans/PF-{number}-{short-kebab-slug}-todo.md` using the plan content from Step 6 only (no scoring tables, no verdict — just the plan)
+- **Filename convention is mandatory:** `PF-{number}-{short-kebab-slug}-todo.md` (e.g. `PF-124-bankidentifier-matcher-registry-todo.md`). NEVER omit the slug — `PF-124-todo.md` is wrong. Use the ticket ID resolved/allocated in Step 2.
 - Update `.kanban/BOARD.md`: add a row for the new ticket under the **Ready** column (or appropriate column if status is clear from context)
 - Tell the user where the file was saved: `Saved to .claude/plans/{filename}`
 
@@ -223,5 +242,6 @@ After delivering the plan, offer the natural next steps:
 
 > "Next steps with this plan:
 > - `/review-plan {filename}` — have a Senior Architect stress-test it before execution
+> - `/execute {filename}` — once approved, implement every step end-to-end
 > - `/battle-plans {prefix}` — if you have an alternative plan and want a head-to-head
 > - `/pm-brainstorm analyze {feature}` — if you want a PM lens before committing to this direction"

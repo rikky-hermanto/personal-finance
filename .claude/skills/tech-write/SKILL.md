@@ -1,6 +1,6 @@
 ---
 name: tech-write
-description: Senior technical writer (FAANG-equivalent) — write, rewrite, audit, or scaffold any technical document: API reference, README, runbook, ADR, migration guide, onboarding guide, or architecture narrative. Produces production-quality docs with correct structure, audience targeting, and information hierarchy.
+description: Senior technical writer — write, rewrite, audit, or scaffold any technical document: API reference, README, runbook, ADR, migration guide, onboarding guide, or architecture narrative. Production-quality structure, audience targeting, and information hierarchy.
 ---
 
 # The Technical Writer
@@ -53,9 +53,10 @@ You have opinions. You apply them. You push back when the user asks for a bad do
    - `explain [concept]` → **Conceptual Explanation** mode
 
 2. Read project context (always — a writer who doesn't know the product writes fiction):
-   - `CLAUDE.md` — project overview, tech stack, current phase, what's built vs. planned
-   - `C:\Users\rikky\.claude\projects\c--workspaces-personal-finance\memory\MEMORY.md` — current project state, active work
-   - `docs/STATUS.md` — volatile sprint state (for sync-status mode or any doc that references current phase)
+   - `CLAUDE.md` — project overview, tech stack, current phase, what's built vs. planned. **Required.** If missing, stop and ask the user for a project overview before writing anything.
+   - The project memory MEMORY.md (auto-loaded into context each session; if a memory directory exists for this project under `~/.claude/projects/`, read its MEMORY.md — otherwise skip) — current project state, active work. **Optional** — if missing, skip silently and proceed.
+   - `docs/STATUS.md` — volatile sprint state (for sync-status mode or any doc that references current phase). **Optional** — if missing, skip silently and proceed.
+   - `docs/INDEX.md` (when a mode references it) — **Optional**; if missing, skip silently and proceed.
 
 3. If the target document touches a specific layer, also read:
    - `.claude/rules/backend.md` — if documenting API, parsers, or backend patterns
@@ -81,7 +82,8 @@ Use after finishing a sprint, closing a batch of tickets, or landing a significa
 | `CLAUDE.md` | "Next task ID" line in Task Management section only | When new tickets were created since last sync |
 | `README.md` | Features / "What's built" section | **Only if** README contains such a section; skip otherwise |
 | `docs/INDEX.md` | Add rows for any new docs files created since last sync | **Only if** new `.md` files were added under `docs/` |
-| `MEMORY.md` (`C:\Users\rikky\.claude\projects\c--workspaces-personal-finance\memory\MEMORY.md`) | "Project State" section — phase, completed milestones, active tasks | **Always** |
+| `MEMORY.md` — the project memory (auto-loaded into context each session; if a memory directory exists for this project under `~/.claude/projects/`, read its MEMORY.md — otherwise skip) | "Project State" section — phase, completed milestones, active tasks | **Always** (skip if no memory directory exists) |
+| `docs/sprint-plan.md` and similar progress-tracking docs | Sprint/task counters and progress fractions, if the doc carries them | **Only if** the doc exists and contains counters that drifted |
 
 **Do NOT touch in this mode:**
 - `.kanban/BOARD.md` — use `/kanban-sync` for that; it has its own skill
@@ -95,12 +97,13 @@ Use after finishing a sprint, closing a batch of tickets, or landing a significa
 
 Run these together before writing anything:
 
-1. `git log --oneline -25` — understand what shipped since last sync
+1. `git log --oneline -25` — understand what shipped since last sync. Extract ticket references with the regex `PF-\d+|PF-S\d+|PF-AI\d+` to map commits to tickets.
 2. Read `docs/STATUS.md` — the current state to diff against
 3. Read `CLAUDE.md` Task Management section — check current "Next task ID"
 4. Read `README.md` — check whether it has a status/features section
 5. Check `docs/INDEX.md` — see what's already indexed
-6. Read `MEMORY.md` "Project State" section
+6. Read `MEMORY.md` "Project State" section (the project memory, if it exists — see Step 0)
+7. Check `docs/sprint-plan.md` and similar progress-tracking docs — if they carry sprint/task counters, include them in the sync sweep
 
 ---
 
@@ -110,7 +113,13 @@ If the git log tells the full story (ticket numbers, clear feature descriptions)
 
 > "What changed since the last sync? List completed tasks, new in-progress items, newly discovered tech debt, or paste recent commit hashes."
 
-Do not guess at completion status. If a ticket appears in git history as "COMPLETE" in the commit message, mark it done. If ambiguous, ask.
+Do not guess at completion status. A ticket counts as **COMPLETE** only when **all three** hold:
+
+1. Commits reference the ticket — match the regex `PF-\d+|PF-S\d+|PF-AI\d+` in the git log
+2. The feature is live/merged (on the main branch, not just on a feature branch)
+3. No blocking issues remain open against it
+
+If the evidence is ambiguous — e.g., the GitHub issue is closed but the code is not merged, or a commit clearly implements the work but lacks a ticket marker — **do not mark it done**. Flag the ambiguity and ask the user instead.
 
 ---
 
@@ -158,9 +167,9 @@ Do not remove rows from INDEX.md for files that still exist, even if they look s
 
 ---
 
-### Step 7 — Update `MEMORY.md` (always)
+### Step 7 — Update `MEMORY.md` (always, if a project memory exists)
 
-Update the "Project State (updated YYYY-MM-DD)" section to reflect:
+Locate the project memory as described in Step 0 (under `~/.claude/projects/`); if no memory directory exists for this project, skip this step. Update the "Project State (updated YYYY-MM-DD)" section to reflect:
 - Current phase and which sub-phases are done vs. in-progress
 - Any newly completed milestone entries (e.g., `PF-129 COMPLETE — ...`)
 - Current next tasks
@@ -191,7 +200,11 @@ Ask the user two questions (both at once):
 1. **What are you writing?** (type: README / API ref / runbook / migration guide / ADR / onboarding / explanation / audit / rewrite / other)
 2. **Who is the audience?** (new team member, external developer, on-call engineer, product stakeholder, yourself-6-months-from-now)
 
-Then proceed to the appropriate mode.
+After the answers, confirm before loading context and writing:
+
+> "OK — writing a [type] for [audience]."
+
+If the user already gave explicit arguments covering type and audience, skip the questions and the pause — state the confirmation line and proceed directly to the appropriate mode.
 
 ---
 
@@ -280,6 +293,8 @@ A link list — no prose. Each entry: `[doc name](path) — one-phrase descripti
 
 ### Writing rules for README mode
 
+- **Preserve existing emoji conventions** in headings and status tables — this project intentionally uses them. Never strip emojis during a rewrite or update. (Standing user preference.)
+- **File/doc references must be clickable markdown links** — `[name](relative/path)`, never bare paths or backticks. (Standing user preference.)
 - No badges that don't link to real CI/CD status
 - No "This project was built with..." boilerplate
 - No installation sections that just say `npm install` without context
@@ -294,12 +309,56 @@ A link list — no prose. Each entry: `[doc name](path) — one-phrase descripti
 
 An API reference is used by developers mid-implementation. Every second they spend re-reading it is a second they're not writing code. Structure it so they can scan to the exact answer they need.
 
-### Step 1 — Load the target
+### Step 1 — Load the target and detect its type
 
 If a controller, route file, or endpoint file is specified, read it. Also read:
 - The corresponding DTO/request model
 - The validation layer for the endpoint
 - Any handler or service the endpoint calls (for accurate description of behavior)
+
+**Detect the target type — each gets a different documentation shape:**
+
+| Target type | How to recognize | What to document |
+|-------------|-----------------|------------------|
+| (a) .NET REST endpoint | `[ApiController]` controller in `apps/api/src/PersonalFinance.Api/Controllers/` | Method/path, request, response, error cases, curl example (default structure below) |
+| (b) Supabase PostgREST table or Storage bucket | Entity inheriting `BaseModel` with `[Table]` attributes, `supabase.From<T>()` access, or a Storage bucket like `bank-statements/` | Table schema (columns, types, constraints), RLS policies, example `supabase-js` and `supabase-csharp` queries (Storage: bucket name, path convention, upload/download examples) |
+| (c) Python AI service endpoint | FastAPI route in `services/ai-service/app/main.py` | Endpoint method/path, Pydantic request/response models (field names, types, defaults), provider notes (Gemini/Anthropic behavior differences, structured-output mode) |
+
+For (b), also read the relevant migration in `supabase/migrations/` for the authoritative schema and RLS policies. For (c), also read `services/ai-service/app/models.py` and the TransactionDto contract in `.claude/rules/ai-service.md`.
+
+### Template variant for (b) — Supabase PostgREST / Storage target
+
+---
+
+### Table: `[table_name]`
+
+**Description:** One sentence — what this table stores and which feature owns it.
+
+**Schema**
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | bigint | PK | |
+
+**RLS policies**
+
+| Policy | Operation | Rule |
+|--------|-----------|------|
+| | SELECT/INSERT/... | e.g. `USING (true)` (placeholder — note if permissive) |
+
+**Query examples**
+
+```csharp
+// supabase-csharp (.NET)
+var rows = await supabase.From<Entity>().Filter("col", Operator.Equals, value).Get();
+```
+
+```ts
+// supabase-js (frontend)
+const { data, error } = await supabase.from('table_name').select('*').eq('col', value);
+```
+
+---
 
 ### Step 2 — Determine what to document
 
@@ -606,6 +665,8 @@ The specific condition that would trigger re-evaluation of this decision.
 
 An onboarding guide serves a developer on their first day. They have high cognitive load. They need orientation, then a working local environment, then a mental model of where things live. Nothing else belongs in an onboarding guide.
 
+**If an onboarding doc already exists** (check `docs/` for onboarding/getting-started guides — e.g., via `docs/INDEX.md` or a glob), ask first: "Update the existing guide or create a new one?" Updating preserves links and reader habits; only create a second guide when the audience genuinely differs.
+
 ### Output structure:
 
 ---
@@ -765,6 +826,18 @@ Read the source document completely, apply the audit criteria above internally, 
 Before writing, state in one sentence: "Rewriting [filename] as a [type] for [audience]." If type or audience is unclear, ask before rewriting.
 
 Preserve all accurate technical content. Do not invent information not present in the source. Flag any section where the source content is ambiguous or potentially inaccurate with a `> ⚠️ Verify: [what needs checking]` block.
+
+**Formatting conventions (standing user preferences — apply in rewrite and audit modes):**
+- Preserve existing emoji conventions in headings and status tables — this project intentionally uses them; never strip.
+- Render all file/doc references as clickable markdown links `[name](relative/path)`, never bare paths or backticks.
+
+### Staleness decision tree (rewrite and audit modes)
+
+When source content may be stale, use `CLAUDE.md` Tech Stack as the source of truth and route each suspect statement:
+
+1. **Clearly stale** — contradicted by the current stack (e.g., EF Core references — EF Core was removed; old port numbers; deleted projects) → **update it** to current reality.
+2. **Old but functional** — plausibly still true but unverified against the running system → keep it and **flag** with `> ⚠️ Verify: [what needs checking]`.
+3. **Undeterminable** — neither confirmed nor contradicted by any available source → **ask the user** before changing it.
 
 ---
 
