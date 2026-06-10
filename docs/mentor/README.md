@@ -8,7 +8,7 @@ Your daily structured guide for transitioning from Backend Engineering to AI Eng
 
 ## Quick Start
 
-Open any chat in this project (or `personal-finance`) and type:
+Open any chat in this project and type:
 
 ```
 /mentor
@@ -26,7 +26,7 @@ That's it. It reads your progress, figures out where you are in the 90-day plan,
 | `/mentor today` | Same as above |
 | `/mentor log <what you did>` | Every time you finish something — keep the log alive |
 | `/mentor status` | When you want the full picture — all phases, all tasks |
-| `/mentor weekly` | Sunday night or Monday morning — review + plan the week |
+| `/mentor weekly` | Sunday night or Monday morning — review the last 7 days + plan the chapter remainder |
 | `/mentor plan` | When you want to see the full 30/60/90 roadmap |
 | `/mentor cert <name>` | Before buying any course or certification |
 | `/mentor gap` | Re-assess how your skills stack up against AI Eng JDs |
@@ -35,29 +35,33 @@ That's it. It reads your progress, figures out where you are in the 90-day plan,
 
 ## The 90-Day Plan (overview)
 
-### Phase 1 — Close Critical Gaps (Days 1–30)
-| Week | Theme | Goal |
+12 chapters across 3 phases. Chapters are paced by progress, not calendar weeks.
+
+### Phase 1 — Foundation + RAG (Days 1–30)
+| Chapter | Theme | Goal |
 |---|---|---|
 | 1 | AI Observability + Real Metrics | Add Langfuse; quote cost-per-doc and p95 latency |
 | 2 | LLM Evaluation Framework | Build eval harness; benchmark Gemini vs Claude |
-| 3 | Agentic Frameworks Entry | DeepLearning.AI courses + first LangGraph agent |
-| 4 | Demo + Documentation | 2-min Loom + one-pager case study + updated CV |
+| 3 | RAG — Embeddings + Retrieval | pgvector semantic search with MRR@5 measured |
+| 4 | RAG — Chunking, Re-ranking, Generation | `POST /ask` grounded answers with citations + measured MRR lift |
 
-### Phase 2 — Agentic + RAG Proof (Days 31–60)
-| Week | Theme | Goal |
+### Phase 2 — Streaming + Agents (Days 31–60)
+| Chapter | Theme | Goal |
 |---|---|---|
-| 5–6 | Full RAG Pipeline | "Ask your finances" chat with pgvector + reranker |
-| 7 | Streaming + Advanced Patterns | SSE streaming end-to-end (FastAPI → React) |
+| 5 | Streaming + Production UX | SSE streaming end-to-end (FastAPI → React) |
+| 6 | Advanced RAG Patterns | Sentence-window, auto-merging, hybrid search — measured winner |
+| 7 | First Agent — smolagents | Transaction Categorizer Agent with Langfuse traces |
 | 8 | LangGraph Multi-Agent | Financial Health Advisor agent with tool use |
 
-### Phase 3 — Positioning + Active Hunt (Days 61–90)
-| Week | Theme | Goal |
+### Phase 3 — MCP + Positioning + Apply (Days 61–90)
+| Chapter | Theme | Goal |
 |---|---|---|
-| 9–10 | Public Presence + Certification | Blog post live + Databricks or Azure AI-102 cert passed |
+| 9 | Model Context Protocol (MCP) | Personal-finance MCP server callable from Claude Desktop |
+| 10 | Public Presence + Certification | Blog post live + Databricks or Azure AI-102 cert passed |
 | 11 | Interview Prep | 5 STAR stories + 3 deep-dives rehearsed |
 | 12 | Active Applications | 5+ high-fit applications sent |
 
-Full detail: [`.agents/skills/mentor/learning-path.md`](../.agents/skills/mentor/learning-path.md)
+Full detail: [`.agents/skills/mentor/learning-path.md`](../../.agents/skills/mentor/learning-path.md)
 
 ---
 
@@ -65,21 +69,24 @@ Full detail: [`.agents/skills/mentor/learning-path.md`](../.agents/skills/mentor
 
 ```
 docs/mentor/
-  README.md       ← you are here
-  progress.md     ← your live log (the skill reads and writes this)
-  ai-engineer-learning-path.md
-  ai-engineer-learning-tips.md
-  ai-engineering-usecase-map.md
+  README.md                      ← you are here (canonical mentor README)
+  progress.md                    ← your live log — CANONICAL, the skill reads and writes this
+  ai-engineer-learning-path.md   ← compiled curriculum reference (phases, topics, resources)
+  ai-engineer-learning-tips.md   ← daily loop, retrieval/interleaving protocol, anti-patterns
+  ai-engineer-learning-tips-id.md← Indonesian translation of the tips doc
+  ai-engineering-usecase-map.md  ← AI engineering use-case map
 
 .agents/skills/mentor/
-  SKILL.md        ← skill brain (modes, rules, prompts)
-  learning-path.md← full 30/60/90 day curriculum with resources
+  SKILL.md          ← skill brain (modes, rules, prompts)
+  learning-path.md  ← chapter-by-chapter 30/60/90 day curriculum with resources
 
 .claude/skills/mentor/
-  SKILL.md        ← redirect (makes /mentor work in Claude Code)
-```
+  SKILL.md          ← redirect (makes /mentor work in Claude Code)
+  README.md         ← short pointer to this file
 
-**Also installed in:** `C:\workspaces\career-ops\` — progress tracked in `docs/mentor/progress.md` there too.
+.claude/plans/learning/
+  PF-AI00x-*.md     ← detailed per-chapter learning plans (with Knowledge Check quizzes)
+```
 
 ---
 
@@ -109,24 +116,20 @@ The skill was built to give daily structure so the pivot doesn't get lost in day
 
 ---
 
-## Keeping Both Projects in Sync
+## Canonical Progress Location
 
-The skill is installed in both `career-ops` and `personal-finance`. Progress is tracked in `mentor/progress.md` in each project root.
+`docs/mentor/progress.md` in **this project (personal-finance)** is the canonical progress log — always. Run `/mentor` and `/mentor log` from here; the skill never reads or writes progress anywhere else.
 
-**Recommended workflow:**
-- Run `/mentor` and `/mentor log` from `personal-finance` (that's where the actual AI work happens)
-- Periodically copy `personal-finance/mentor/progress.md` → `career-ops/mentor/progress.md` to keep them aligned
-
-Or just pick one project and use it consistently.
+Any sync to the `career-ops` project is handled separately and is out of scope for this skill.
 
 ---
 
 ## Certification Guide (summary)
 
 **Free first — always:**
-- DeepLearning.AI short courses (LangChain, LangGraph, RAG) — Week 3–5, ~10h total
+- DeepLearning.AI short courses (LangChain, LangGraph, RAG) — slotted across Chapters 6–8, ~10h total
 
-**Pick one paid cert (Week 9–10):**
+**Pick one paid cert (Chapter 10):**
 - **Databricks GenAI Engineer Associate** (~$200) — highest signal for AI Eng roles
 - **Azure AI Engineer Associate AI-102** (~$165) — good if targeting Azure-stack companies; builds on your existing Azure background
 
