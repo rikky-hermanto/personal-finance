@@ -25,7 +25,7 @@ Converts unstructured user brain dumps into a clean, lightweight idea file in `d
 
 ## Steps
 
-1. **Extract the core idea** in one sentence. If vague, state your interpretation explicitly in the file — do NOT ask the user first.
+1. **Extract the core idea** in one sentence. If vague, state your interpretation explicitly in the file — do NOT ask the user first. Then **draw a text-based pipeline/workflow diagram** — boxes, arrows, branches — showing the key flow of the idea (input → process → output). Rough is fine; even a sketch captures structure that words miss.
 2. **Derive a slug** — short kebab-case from the idea title (e.g. `money-tracing`, `smart-notifications`).
 3. **Check for collisions and relations** — `Glob docs/ideas/*.md`:
    - **Slug exists?** Append a dated `## Update {YYYY-MM-DD}` section with the new dump to the existing file. Never overwrite a prior capture.
@@ -51,6 +51,12 @@ Omit any optional section that would be empty — no placeholder headings.
 ## The Core Idea
 
 {One sentence. If user was vague, state your interpretation explicitly.}
+
+```
+{Text-based pipeline/workflow diagram — boxes, arrows, branches.
+Show the key flow: what comes in → how it transforms → what comes out.
+Rough is fine. Even a sketch captures structure that words miss.}
+```
 
 ---
 
