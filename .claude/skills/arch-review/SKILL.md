@@ -30,7 +30,7 @@ Before reading code:
 
 1. **Enumerate reality with Glob** (e.g. `apps/api/src/**/*.cs`, `apps/frontend/src/**/*.{ts,tsx}`, `services/ai-service/app/**/*.py`). Record file counts per layer — they go in the report header and tell you how much fan-out you need.
 2. **Compare the directory shape against CLAUDE.md's Project Layout.** Directories that exist on disk but not in the docs (or vice versa) are your first drift findings — the docs are part of the architecture.
-3. **Find the previous report:** glob `.claude/plans/arch-review-*.md` and read the most recent one if it exists. You'll produce a "Delta since last review" section from it. If none exists, note this is the baseline review.
+3. **Find the previous report:** glob `docs/architecture/archreview-*.md` and read the most recent one if it exists. You'll produce a "Delta since last review" section from it. If none exists, note this is the baseline review.
 
 ## Phase 1 — Learn the codebase
 
@@ -194,7 +194,18 @@ If you could only do 3 things next, what moves the needle most? Order by impact-
 
 ## Save the report
 
-Write the full Phase 2 output to `.claude/plans/arch-review-{YYYY-MM-DD}.md` without asking — the next review's delta section depends on it. Mention the path in your closing message.
+Write the full Phase 2 output to `docs/architecture/archreview-{YYYYMMDD}-{concise-highlight}.md` without asking — the next review's delta section depends on it. Mention the path in your closing message.
+
+**Filename convention:**
+- `{YYYYMMDD}` — today's date, e.g. `20260610`
+- `{concise-highlight}` — a short kebab-case label that captures the focus or top finding of *this specific review*, not a generic label. Examples:
+  - `full-stack-baseline` (first review, broad scope)
+  - `backend-ci-rag-contract-drift` (backend focus, top issues were CI gaps and RAG field drift)
+  - `frontend-strict-mode-rq-migration` (frontend focus, TypeScript + React Query)
+  - `ai-service-rag-phase2-readiness` (AI service readiness check)
+  - `security-auth-posture` (security focus review)
+
+Pick the label that would tell a reader at a glance what this report is *about*, not just when it was run.
 
 ---
 
@@ -202,7 +213,7 @@ Write the full Phase 2 output to `.claude/plans/arch-review-{YYYY-MM-DD}.md` wit
 
 After delivering the report, say:
 
-> "Report complete — saved to `.claude/plans/arch-review-{date}.md`. I read [N] files across [layers]. Ready to go deeper on any finding, brainstorm new ideas, or talk through a specific improvement. What would you like to explore?"
+> "Report complete — saved to `docs/architecture/archreview-{YYYYMMDD}-{concise-highlight}.md`. I read [N] files across [layers]. Ready to go deeper on any finding, brainstorm new ideas, or talk through a specific improvement. What would you like to explore?"
 
 Then engage as a discussion partner:
 - "What should we do about X?" → give one concrete recommendation with tradeoffs — not a menu of options

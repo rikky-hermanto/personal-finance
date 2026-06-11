@@ -93,3 +93,34 @@ Build an iterative learning agent that observes LLM-parsed anonymous bank statem
 ## Next Step (when ready)
 
 Run `/pm-brainstorm analyze llm-to-deterministic-parser-agent` for full PM analysis, or `/plan` when ready to build.
+
+---
+
+## Updates: To Consider
+
+### Dual text representation in `parser_learning_events` (2026-06-10)
+
+The Pattern Learning Agent's hardest job is detecting **column stability** across samples — inferring that position 45–55 chars is always the debit column from PyMuPDF raw text requires LLM reasoning. A secondary extraction with **MarkItDown** (pdfplumber backend) would give the agent explicit Markdown table structure instead:
+
+```
+PyMuPDF (raw):      "01/05/2026  BCA Transfer ke Anto           1.500.000    498.500.000"
+MarkItDown (markdown): "| Tanggal | Keterangan | Debit | Saldo |" + rows as pipe tables
+```
+
+Proposed schema addition to `parser_learning_events`:
+
+```sql
+ALTER TABLE parser_learning_events ADD COLUMN raw_text TEXT;       -- PyMuPDF (existing extraction path)
+ALTER TABLE parser_learning_events ADD COLUMN markdown_text TEXT;  -- MarkItDown (column structure pre-resolved)
+```
+
+**Routing rule:**
+- `LlmPdfParser` continues using `raw_text` — zero change to the extraction pipeline (100% F1 confirmed by PF-AI002)
+- Pattern Learning Agent uses `markdown_text` for column/header stability analysis
+- Pattern Learning Agent uses `raw_text` for decimal/date format analysis (pdfminer can mangle Indonesian number formatting — raw is safer for that)
+
+**Dependency to add when building this:** `markitdown[pdf]` in `pyproject.toml` (optional, agent-path only).
+
+**MarkItDown-MCP:** Not applicable — the MCP server variant is for IDE/agent-loop clients, not background cron jobs. Use the library directly.
+
+**Risk to validate first:** pdfplumber's column clustering is calibrated for Western layouts. Indonesian bank PDFs with narrow columns and period-as-thousands-separator (e.g. `1.500.000`) may get mis-clustered. Run MarkItDown manually on a Superbank and BCA sample before building the agent — don't assume correct column detection.
