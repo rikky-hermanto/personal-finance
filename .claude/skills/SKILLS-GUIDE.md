@@ -118,7 +118,7 @@ The full pipeline: takes a raw problem, bug, feature, or refactor request; reads
 
 | Argument | Behavior |
 |----------|----------|
-| `[ticket]` | Look up ticket in `.kanban/BOARD.md`, plan from description |
+| `[ticket]` | Look up ticket in `.claude/plans/BOARD.md`, plan from description |
 | `[free-text description]` | Plan from the description directly |
 | `[ticket or text] as architect` | Skip PO scoring; go straight to technical approach scoring |
 
@@ -232,7 +232,7 @@ Acts as a **Senior Staff Technical Writer** (FAANG-equivalent). Reads the live c
 /tech-write explain "hybrid parser routing"             # conceptual explanation
 ```
 
-**`sync-status` touches:** `docs/STATUS.md` (always) · `CLAUDE.md` next-ticket-ID line · `README.md` features section (if present) · `docs/INDEX.md` (new docs only) · `MEMORY.md` project state section. Never touches `.kanban/BOARD.md` — use `/kanban-sync` for that.
+**`sync-status` touches:** `docs/STATUS.md` (always) · `CLAUDE.md` next-ticket-ID line · `README.md` features section (if present) · `docs/INDEX.md` (new docs only) · `MEMORY.md` project state section. Never touches `.claude/plans/BOARD.md` — use `/kanban-sync` for that.
 
 **Doc audit output:** Diátaxis classification · Grade (A–F) · Issue table (🔴 blocking / 🟡 reduces usefulness / 🟢 polish) · Missing content · **PUBLISH / REVISE / REWRITE verdict**
 

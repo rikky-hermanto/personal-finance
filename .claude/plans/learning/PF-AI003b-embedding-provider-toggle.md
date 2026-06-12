@@ -103,7 +103,7 @@ that's where the destructive warning lives.
 | `services/ai-service/tests/test_embedding_providers.py` | CREATE — factory, normalization, backfill tests |
 | `services/ai-service/evals/eval_retrieval.py` | MODIFY — print provider + model in header |
 | `services/ai-service/docs/rag-embeddings-howto.md` | MODIFY — prerequisites, switching providers section |
-| `.kanban/BOARD.md` | MODIFY — add PF-AI003b |
+| `.claude/plans/BOARD.md` | MODIFY — add PF-AI003b |
 
 ---
 

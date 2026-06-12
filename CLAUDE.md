@@ -398,28 +398,20 @@ cd apps/frontend && npm run dev
 
 ## Task Management
 
-Tasks are managed in **GitHub Projects v2** (hybrid approach):
+Tasks are managed in **local files** (GitHub Issues/Projects no longer used):
 
-- **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4) + [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues)
-- **Claude snapshot:** `.kanban/BOARD.md` — updated after every task operation so Claude can understand project state without hitting the GitHub API
+- **Plans:** `.claude/plans/` — one `PF-{number}-{short-kebab-slug}-todo.md` per ticket (learning track: `.claude/plans/learning/`, archived: `.claude/plans/completed/`)
+- **Status board:** `.claude/plans/BOARD.md` — kanban snapshot, updated after every task operation
 
 ### Creating a new task
-```bash
-gh issue create \
-  --repo rikky-hermanto/personal-finance \
-  --title "[PF-XXX] Task title" \
-  --body "## Objective\n...\n\n## Acceptance Criteria\n- [ ] ..." \
-  --label "feature,sprint:cleanup"
-# Then add to project and set Status in GitHub UI or via GraphQL
-```
+Create a plan file in `.claude/plans/` (use `/plan`), then add a row to the appropriate column in `.claude/plans/BOARD.md`.
 
 ### Moving / closing a task
-- Update Status field in [Project #4](https://github.com/users/rikky-hermanto/projects/4)
-- Close issue when Done: `gh issue close <number> --repo rikky-hermanto/personal-finance`
-- **Always update `.kanban/BOARD.md`** to reflect the new state
+- Move the row between column tables in `.claude/plans/BOARD.md`
+- When Done: archive the plan to `.claude/plans/completed/` (the plan-complete hook appends Done rows automatically)
 
 ### Next task ID
-Check the highest `[PF-XXX]` title in [GitHub Issues](https://github.com/rikky-hermanto/personal-finance/issues) and increment. Current highest: **PF-128** (Superbank PDF Parser) → next is **PF-129**. New Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13); next Supabase task is **PF-S14**. AI learning track tasks use prefix **PF-AI** (PF-AI001 complete, PF-AI002 complete, PF-AI003 in progress, PF-AI004 planned).
+Check the highest `PF-XXX` in `.claude/plans/BOARD.md` and plan filenames, then increment. Current highest: **PF-130** → next is **PF-131**. Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13); next Supabase task is **PF-S14**. AI learning track tasks use prefix **PF-AI** (PF-AI001 complete, PF-AI002 complete, PF-AI003 in progress, PF-AI004 planned).
 
 ---
 

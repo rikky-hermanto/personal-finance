@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 PostToolUse hook: when a .claude/plans/*.md file reaches completion,
-auto-appends the ticket to .kanban/BOARD.md Done section.
+auto-appends the ticket to .claude/plans/BOARD.md Done section.
 
 Completion signals (either is sufficient):
   - Header contains:  > **Status:** Completed
@@ -99,7 +99,7 @@ def main():
 
         # Resolve BOARD.md: script lives at .claude/hooks/ → project root is ../../
         project_root = Path(__file__).parent.parent.parent
-        board_path   = project_root / '.kanban' / 'BOARD.md'
+        board_path   = project_root / '.claude' / 'plans' / 'BOARD.md'
 
         if not board_path.exists():
             print(f'✅ {ticket_id} plan complete — BOARD.md not found, update manually.')

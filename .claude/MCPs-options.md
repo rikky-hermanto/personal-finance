@@ -9,7 +9,7 @@ A scan of MCP servers worth evaluating for this project, grouped by where they'd
 | MCP | Fit | Why it matters here |
 |-----|-----|---------------------|
 | **Supabase MCP** | 🟢 Very high | Mid-migration (PF-S08 next). Lets Claude run SQL, inspect RLS policies, apply migrations, manage Storage buckets directly. Big leverage during PF-S08 (Auth) → PF-S11 (Webhooks) → PF-S12 (Realtime) → PF-S13 (RAG). |
-| **GitHub MCP** | 🟢 High | Replaces `gh` CLI flows for Issues + Projects v2 board ops. Structured access to PRs, reviews, project fields (Status), milestones. Would streamline the `.kanban/BOARD.md` snapshot workflow. |
+| **GitHub MCP** | 🟢 High | Replaces `gh` CLI flows for Issues + Projects v2 board ops. Structured access to PRs, reviews, project fields (Status), milestones. Would streamline the `.claude/plans/BOARD.md` snapshot workflow. |
 | **Postgres MCP** | 🟡 Medium | Subset of Supabase MCP — only useful if Supabase MCP doesn't expose enough raw SQL. Probably redundant. |
 | **Grafana / Loki / Tempo MCP** | 🟡 Medium | LGTM stack is live (PF-100). Query traces and logs from chat instead of pivoting to Grafana UI. Useful during incident triage; less useful day-to-day. |
 | **Docker MCP** | 🟡 Medium | Container lifecycle from chat — minor win since `npm start` already orchestrates the full stack. |
