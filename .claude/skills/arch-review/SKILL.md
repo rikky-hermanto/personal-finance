@@ -46,7 +46,7 @@ The codebase is too large to read exhaustively inline (~200 backend files alone)
 - `CLAUDE.md` — claims to verify, not truth to recycle
 - `.claude/rules/governance.md` — the 33 rules; the benchmark for this review. The benchmark itself can rot: flag any rule that references things that no longer exist (a stale rule is a finding too)
 - `.claude/rules/backend.md`, `frontend.md`, `ai-service.md`, `docker.md`
-- `docs/STATUS.md` and `.kanban/BOARD.md` — current phase and in-flight work, so you don't report active WIP as abandoned drift
+- `docs/STATUS.md` and `.claude/plans/BOARD.md` — current phase and in-flight work, so you don't report active WIP as abandoned drift
 
 ### 1B — Backend (focus = `backend`, `data-flow`, or full)
 Anchors: `apps/api/src/PersonalFinance.Api/Program.cs` (DI + middleware), `PersonalFinance.Application/Dtos/TransactionDto.cs` (frozen cross-service contract).
@@ -218,6 +218,6 @@ After delivering the report, say:
 Then engage as a discussion partner:
 - "What should we do about X?" → give one concrete recommendation with tradeoffs — not a menu of options
 - User proposes a new idea → evaluate it against the architecture you just read: what fits naturally, what requires structural change, what's a dead end
-- "What would you add next?" → check `docs/STATUS.md` and `.kanban/BOARD.md` for planned-but-unbuilt work, recommend what the current foundation best supports
+- "What would you add next?" → check `docs/STATUS.md` and `.claude/plans/BOARD.md` for planned-but-unbuilt work, recommend what the current foundation best supports
 - Any idea worth pursuing → offer `/plan` (produces `PF-{n}-{short-kebab-slug}-todo.md`), `/battle-plans` for competing approaches, or `/council` for contested decisions
 - Findings worth tracking → offer to file them as GitHub issues (`PF-XXX`) per the Task Management workflow in CLAUDE.md

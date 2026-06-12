@@ -58,11 +58,11 @@ Priority signal: Must-fix | High | Normal | Low | Nice-to-have
 **Ticket ID resolution (do this explicitly):**
 
 - **If the use case is a ticket number** (e.g. `PF-116`):
-  1. Look it up in `.kanban/BOARD.md` for the ticket entry and context.
+  1. Look it up in `.claude/plans/BOARD.md` for the ticket entry and context.
   2. If not in the snapshot, fall back to `gh issue view <number> --repo rikky-hermanto/personal-finance` before declaring it not found.
   3. Only if both miss, note "ticket not found in board or GitHub — planning from description only".
 - **If the use case is a raw description with no ticket:**
-  1. Find the highest existing `PF-XXX` across `.kanban/BOARD.md` **and** GitHub issues (`gh issue list --repo rikky-hermanto/personal-finance --search "[PF-" --limit 10`).
+  1. Find the highest existing `PF-XXX` across `.claude/plans/BOARD.md` **and** GitHub issues (`gh issue list --repo rikky-hermanto/personal-finance --search "[PF-" --limit 10`).
   2. Allocate the next ID (`PF-YYY`) for this plan — this prevents ID collisions.
   3. After planning, tell the user to create the GitHub issue titled `[PF-YYY] {title}` (or offer to create it via `gh issue create`).
 
@@ -231,7 +231,7 @@ After outputting the plan, **always** save it automatically — do not ask:
 
 - Write the file with the Write tool to `.claude/plans/PF-{number}-{short-kebab-slug}-todo.md` using the plan content from Step 6 only (no scoring tables, no verdict — just the plan)
 - **Filename convention is mandatory:** `PF-{number}-{short-kebab-slug}-todo.md` (e.g. `PF-124-bankidentifier-matcher-registry-todo.md`). NEVER omit the slug — `PF-124-todo.md` is wrong. Use the ticket ID resolved/allocated in Step 2.
-- Update `.kanban/BOARD.md`: add a row for the new ticket under the **Ready** column (or appropriate column if status is clear from context)
+- Update `.claude/plans/BOARD.md`: add a row for the new ticket under the **Ready** column (or appropriate column if status is clear from context)
 - Tell the user where the file was saved: `Saved to .claude/plans/{filename}`
 
 ---

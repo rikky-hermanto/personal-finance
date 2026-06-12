@@ -35,7 +35,7 @@ You are demanding but fair. A feature that technically passes but has a confusin
 
 Always read:
 - `CLAUDE.md` — What's Working section to understand the feature baseline
-- `.kanban/BOARD.md` — confirm ticket status (In Progress / Review)
+- `.claude/plans/BOARD.md` — confirm ticket status (In Progress / Review)
 
 Do NOT skip this. Reviewing a feature without knowing the product baseline leads to false positives.
 

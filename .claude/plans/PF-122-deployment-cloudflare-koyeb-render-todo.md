@@ -430,13 +430,13 @@ curl -v -X OPTIONS \
 
 ---
 
-### [ ] STEP 20 — Update `.kanban/BOARD.md` and close GitHub issue
+### [ ] STEP 20 — Update `.claude/plans/BOARD.md` and close GitHub issue
 
 ```bash
 # Move PF-105 to Done column in GitHub Projects v2
 gh issue close 105 --repo rikky-hermanto/personal-finance
 
-# Then update .kanban/BOARD.md to reflect Done state
+# Then update .claude/plans/BOARD.md to reflect Done state
 ```
 
 ---
