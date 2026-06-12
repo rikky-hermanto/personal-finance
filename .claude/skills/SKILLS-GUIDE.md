@@ -540,6 +540,23 @@ Tracks and drives Rikky's pivot from .NET Backend Engineer to **AI Engineering /
 
 ---
 
+## Orchestration & Cost Efficiency
+
+### `/efficient-model` — your selected model orchestrates, cheaper tiers do the heavy lifting
+**Model-agnostic.** Whatever you picked via `/model` becomes the orchestrator and stays on judgment — decomposition, architecture/contract calls, synthesis, final review — while token-heavy passes (broad repo scans across the .NET/Python/React monorepo, test/log reduction, bounded edits, research sweeps) get pushed **down a tier** to cheaper executor subagents. It does **not** change your model; it only governs how that model delegates.
+
+```
+/efficient-model        # read the delegation pattern before a heavy, parallelizable task
+```
+
+**Tier ladder:** Fable → Opus → Sonnet → Haiku. The orchestrator delegates each slice to the cheapest tier that can do it reliably (mechanical scans/log reduction → `haiku`; bounded reasoning → one tier down). On Haiku there's nothing below — skip it.
+
+**Levers:** `Agent({ subagent_type, model })` for one bounded slice; `Workflow` `agent(..., { model })` for fan-out (needs `ultracode` to activate). Includes a subagent-type→tier map for this repo, a handoff-packet checklist, and a vetting rule: treat subagent reports as leads, reopen cited files before acting — especially the THINK-05 frozen contract and governance layering.
+
+**Skip for** tiny edits, tightly-coupled changes, or judgment-sensitive debugging.
+
+---
+
 ## Naming Convention for Plan Files
 
 ```
