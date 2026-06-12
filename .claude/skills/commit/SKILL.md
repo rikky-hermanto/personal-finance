@@ -98,7 +98,7 @@ Print a compact table before staging anything:
 📦 Safe to stage (5 files):
   M  apps/frontend/src/components/Dashboard.tsx
   M  apps/api/src/PersonalFinance.Application/Services/DashboardService.cs
-  M  .kanban/BOARD.md
+  M  .claude/plans/BOARD.md
   ?  apps/frontend/src/components/NewWidget.tsx
   M  .claude/skills/commit/SKILL.md
 
@@ -146,7 +146,7 @@ Group staged files by area:
 | `services/ai-service/` | Python AI service |
 | `supabase/migrations/` | Database schema change |
 | `.claude/` | Developer tooling / skills / rules |
-| `.kanban/`, `.github/` | Project housekeeping |
+| `.claude/plans/`, `.github/` | Project housekeeping |
 | `docs/` | Documentation |
 | `docker-compose.yml`, `Dockerfile` | Infrastructure / container |
 

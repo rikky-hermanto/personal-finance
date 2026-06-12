@@ -204,7 +204,7 @@ grep -rn "^public interface" apps/api/src/PersonalFinance.Infrastructure/ --incl
 
 - `Infrastructure/Parsers/IBankSignature.cs` — deliberately lives in Infrastructure as part of the PF-124 Chain of Responsibility registry (`BankIdentifier`). It is an internal detail of the parser subsystem, not a cross-layer contract; the cross-layer contracts (`IBankStatementParser`, `IBankIdentifier`) correctly live in `Application/Interfaces/`.
 
-**Rule:** flagged hits require manual review before reporting as violations — check git history (`git log --follow <file>`) and CLAUDE.md / `.kanban/BOARD.md` for an intentional-placement rationale (e.g., a PF ticket) before listing a hit as an ARCH-02 violation. Report confirmed-intentional hits separately as "excluded (intentional)".
+**Rule:** flagged hits require manual review before reporting as violations — check git history (`git log --follow <file>`) and CLAUDE.md / `.claude/plans/BOARD.md` for an intentional-placement rationale (e.g., a PF ticket) before listing a hit as an ARCH-02 violation. Report confirmed-intentional hits separately as "excluded (intentional)".
 
 ### ARCH-03: Namespace vs physical path mismatch
 

@@ -1,11 +1,11 @@
 ---
 name: kanban-sync
-description: Sync .kanban/BOARD.md against GitHub Issues — moves closed issues to Done, reports open issues missing from the board. Eliminates the manual BOARD.md update step after every task closure.
+description: Sync .claude/plans/BOARD.md against GitHub Issues — moves closed issues to Done, reports open issues missing from the board. Eliminates the manual BOARD.md update step after every task closure.
 ---
 
 # Skill: kanban-sync
 
-Sync `.kanban/BOARD.md` with the live state of GitHub Issues. Run this after closing a ticket, or anytime the board feels stale.
+Sync `.claude/plans/BOARD.md` with the live state of GitHub Issues. Run this after closing a ticket, or anytime the board feels stale.
 
 ## What it does
 
@@ -35,7 +35,7 @@ Build a list of closed tickets: `{ pf_id, issue_number, clean_title }` where `cl
 
 ## Step 2 — Read BOARD.md
 
-Read `.kanban/BOARD.md`. Extract the full text of the `## Done (closed)` section.
+Read `.claude/plans/BOARD.md`. Extract the full text of the `## Done (closed)` section.
 
 Build a set of ticket IDs already present in Done — scan for `| PF-` row patterns and the `~~PF-` strikethrough pattern used in backlog sections for completed items.
 
