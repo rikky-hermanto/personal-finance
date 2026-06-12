@@ -11,6 +11,7 @@ from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseRes
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
 from app.providers.factory import ProviderFactory
+from app.providers.embedding_factory import create_embedding_provider
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
 from app.services.categorizer import Categorizer
@@ -48,9 +49,14 @@ async def lifespan(app: FastAPI):
     app.state.categorizer = Categorizer(provider=provider)
     app.state.suggester = MerchantSuggester(provider=provider)
     app.state.portfolio_reviewer = PortfolioReviewer(provider=provider)
-    app.state.embedder = EmbeddingService()
-    app.state.retriever = RetrievalService()
-    logger.info("AI service starting up | provider=%s | model=%s", settings.ai_provider, settings.ai_model)
+    embed_provider = create_embedding_provider(settings)
+    app.state.embedder = EmbeddingService(provider=embed_provider, db_url=settings.database_url)
+    app.state.retriever = RetrievalService(provider=embed_provider, db_url=settings.database_url)
+    logger.info(
+        "AI service starting up | provider=%s | model=%s | embedding_provider=%s | embedding_model=%s",
+        settings.ai_provider, settings.ai_model,
+        settings.embedding_provider, embed_provider.model,
+    )
     yield
     logger.info("AI service shutting down")
     langfuse.flush()   # drain buffered traces before process exits
