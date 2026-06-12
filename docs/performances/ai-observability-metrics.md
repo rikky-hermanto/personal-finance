@@ -37,11 +37,44 @@ _Numbers will be refined in Week 2 eval harness benchmarks._
 | Full corpus cost (5,000 docs) | ~$0.01 | One-time backfill cost |
 | p50 embed latency (batch 50) | — | To be measured after backfill |
 | p95 embed latency (batch 50) | — | To be measured after backfill |
-| Search p50 latency | — | To be measured via eval_retrieval.py |
-| Search p95 latency | — | To be measured via eval_retrieval.py |
-| MRR@5 baseline | — | Run `evals/eval_retrieval.py` after backfill |
+| Search p50 latency | ~640ms | Median over 7 queries (2026-06-12) |
+| Search p95 latency | ~1900ms | Tail = cold start (first OpenAI embed + asyncpg connect) |
+| Search warm latency | ~420–730ms | After connection pool + client warm |
+| **MRR@5 baseline** | **0.476** | Set-based relevance, naive dense retrieval (2026-06-12) |
+| Hit@5 | 0.57 | 4 of 7 queries surface ≥1 relevant result in top-5 |
+| P@5 | 0.26 | Fraction of top-5 that are relevant |
 
-_Run `PYTHONPATH=. python evals/eval_retrieval.py` after backfilling to populate the latency and MRR numbers._
+### Chapter-3 retrieval baseline (2026-06-12) — set-based relevance
+
+**MRR@5 = 0.476 · Hit@5 = 0.57 · P@5 = 0.26** (macro avg over 7 queries), naive dense
+retrieval, `text-embedding-3-small`, no re-ranking, no hybrid search.
+
+**Eval methodology — set-based, not exact-ID.** An earlier exact-ID run scored 0.00 — but
+the hand-labeled IDs were *real and relevant*; the 0.00 was an **eval-design artifact**, not a
+retrieval failure. This corpus has many near-duplicate transactions (36 Electricity, 317
+Groceries, 32 Salary), so exact-ID matching scores a valid retrieval as a miss whenever it
+surfaces a *different* correct transaction than the one labeled. The eval was rewritten so a
+query's relevant set is **rule-defined** (`category` match ∪ `description ILIKE`), computed
+against the live DB — measuring "did the top-K surface a transaction of the right *kind*?".
+
+**Per-query failure profile (this is the Chapter-4 to-do list):**
+
+| Query | Hit | MRR | Read |
+|-------|-----|-----|------|
+| belanja grocery minimarket | ✅ | 1.00 | Well-described merchants (Grandlucky, Dapur Prima) — dense retrieval excels |
+| gaji bulanan salary | ✅ | 1.00 | Finds one then drifts (P@5 0.20) |
+| coffee kedai kopi Fore | ✅ | 1.00 | Same — rank-1 hit, low precision |
+| bayar kontrakan | ✅ | 0.33 | Small relevant set (9), first hit at rank 3 |
+| tagihan listrik PLN | ❌ | 0.00 | Terse one-word `Listrik` carries weak semantic signal |
+| Netflix Spotify streaming | ❌ | 0.00 | Subscriptions paid via opaque `TRSF E-BANKING DB` codes |
+| investasi saham Mansek | ❌ | 0.00 | Brokerage transfers hidden in transfer-out codes |
+
+**Interview number:** "Naive dense retrieval gets MRR@5 0.48 on my finance corpus. It nails
+well-described categories — groceries scored a perfect 1.0 — but misses terse Indonesian bank
+codes like single-word 'Listrik'. That failure profile is exactly why hybrid keyword+vector
+search is the next iteration: BM25 catches the literal tokens dense embeddings drop."
+
+_Search latency numbers above are real query round-trips. Re-run: `PYTHONPATH=. python evals/eval_retrieval.py`._
 
 ## Retrieval Architecture (PF-AI003)
 
