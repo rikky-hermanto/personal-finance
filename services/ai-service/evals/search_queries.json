@@ -1,37 +1,37 @@
 [
   {
     "query": "tagihan listrik PLN bulan Maret",
-    "expected_top5_ids": [24561],
-    "note": "PLN electricity bill — Bills & Utilities. Replace IDs with real transaction IDs."
+    "relevant": { "category": ["Electricity"], "ilike": ["%listrik%", "%PLN%"] },
+    "note": "Power bills. Relevant = anything in the Electricity category or mentioning listrik/PLN."
   },
   {
     "query": "gaji bulanan salary income",
-    "expected_top5_ids": [22201, 22247, 22275, 22311, 22352, 22395],
-    "note": "Monthly salary credit — Income / CR transactions. Replace IDs with real transaction IDs."
+    "relevant": { "category": ["Salary"], "ilike": [] },
+    "note": "Monthly salary credits. Descriptions are bank transfer codes, so category is the only reliable anchor."
   },
   {
     "query": "belanja grocery di minimarket",
-    "expected_top5_ids": [22118, 22309, 22315, 22413, 22444],
-    "note": "Convenience store shopping. Replace IDs with real transaction IDs."
+    "relevant": { "category": ["Groceries"], "ilike": [] },
+    "note": "Grocery / minimarket shopping."
   },
   {
     "query": "Netflix Spotify langganan streaming",
-    "expected_top5_ids": [22097, 22302, 22445, 23704, 24258, 25368],
-    "note": "Subscription services. Replace IDs with real transaction IDs."
+    "relevant": { "category": ["Entertainment"], "ilike": ["%netflix%", "%spotify%", "%disney%"] },
+    "note": "Streaming subscriptions."
   },
   {
     "query": "coffee kedai kopi Fore",
-    "expected_top5_ids": [23061, 25498, 25732, 25748 ],
-    "note": "Coffee shops. Replace IDs with real transaction IDs."
+    "relevant": { "category": [], "ilike": ["%fore%", "%kopi%", "%coffee%", "%starbucks%"] },
+    "note": "Coffee is a subset of Food (1194 rows) — too broad to use the category; anchor on keywords instead."
   },
   {
     "query": "investasi saham Mansek",
-    "expected_top5_ids": [23882, 23982, 24423, 25219],
-    "note": "Investment transactions. Replace IDs with real transaction IDs."
+    "relevant": { "category": ["Stock"], "ilike": ["%mansek%"] },
+    "note": "Stock / brokerage (Mandiri Sekuritas) transfers."
   },
   {
     "query": "bayar kontrakan",
-    "expected_top5_ids": [22090, 22441, 22775, 23667, 23876, 24629],
-    "note": "Loan / credit card repayments. Replace IDs with real transaction IDs."
+    "relevant": { "category": [], "ilike": ["%kontrak%", "%sewa%", "%rent%"] },
+    "note": "Rent payments. No dedicated Rent category, so anchor on keywords."
   }
 ]

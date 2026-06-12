@@ -14,6 +14,7 @@ and requires interactive [y/N] confirmation before proceeding.
 """
 import argparse
 import asyncio
+import re
 import sys
 from pathlib import Path
 
@@ -111,8 +112,24 @@ async def backfill(batch_size: int, dry_run: bool, yes: bool) -> None:
             )
             for r in batch
         ]
-        embedded, skipped = await service.embed_and_store(items)
-        print(f"Batch {i // batch_size + 1}: embedded={embedded}, skipped={skipped}")
+        batch_num = i // batch_size + 1
+        for attempt in range(1, 6):
+            try:
+                embedded, skipped = await service.embed_and_store(items)
+                print(f"Batch {batch_num}: embedded={embedded}, skipped={skipped}")
+                break
+            except Exception as exc:
+                msg = str(exc)
+                if "429" in msg or "RESOURCE_EXHAUSTED" in msg:
+                    # Parse the retryDelay from the API error (e.g. "retryDelay': '25s'")
+                    m = re.search(r"retryDelay[^0-9]*(\d+)", msg)
+                    delay = int(m.group(1)) + 5 if m else 30 * attempt
+                    print(f"Batch {batch_num}: rate-limited (attempt {attempt}/5) — sleeping {delay}s ...")
+                    await asyncio.sleep(delay)
+                else:
+                    raise
+        else:
+            print(f"Batch {batch_num}: FAILED after 5 attempts, skipping.")
 
     print("\nDone.")
 
