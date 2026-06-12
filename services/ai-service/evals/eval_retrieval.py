@@ -27,6 +27,11 @@ def mrr_at_k(ranked_ids: list[int], relevant_ids: set[int], k: int = 5) -> float
 
 
 async def run() -> None:
+    from app.config import settings
+    from app.providers.embedding_factory import create_embedding_provider
+
+    embed_provider = create_embedding_provider(settings)
+
     queries = json.loads(QUERIES_FILE.read_text(encoding="utf-8"))
 
     unfilled = [q for q in queries if not q["expected_top5_ids"]]
@@ -36,9 +41,10 @@ async def run() -> None:
         print("Then run: PYTHONPATH=. python scripts/backfill_embeddings.py")
         print()
 
-    service = RetrievalService()
+    service = RetrievalService(provider=embed_provider, db_url=settings.database_url)
 
     rr_scores = []
+    print(f"Provider: {settings.embedding_provider} | Model: {embed_provider.model}")
     print(f"{'Query':<50}  {'MRR':>5}  {'Latency':>8}  Top-3 IDs")
     print("-" * 90)
 

@@ -1,4 +1,4 @@
-"""EmbeddingService: generate and store transaction embeddings via OpenAI.
+"""EmbeddingService: generate and store transaction embeddings via an EmbeddingProvider.
 
 Stores vectors directly to Postgres via asyncpg (bypasses PostgREST —
 pgvector requires raw SQL <=> operator).
@@ -9,10 +9,9 @@ import logging
 from dataclasses import dataclass
 
 import asyncpg
-import openai
 
-from app.config import settings
 from app.observability import langfuse, estimate_embed_cost_usd
+from app.providers.embedding_base import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +42,9 @@ class EmbedItem:
 
 
 class EmbeddingService:
-    def __init__(self) -> None:
-        self._client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
-        self._model = settings.embedding_model
-        self._db_url = settings.database_url
+    def __init__(self, provider: EmbeddingProvider, db_url: str) -> None:
+        self._provider = provider
+        self._db_url = db_url
 
     async def embed_and_store(self, items: list[EmbedItem]) -> tuple[int, int]:
         """Embed a batch of transactions and upsert into transaction_embeddings.
@@ -57,38 +55,34 @@ class EmbeddingService:
             return 0, 0
 
         texts = [item.search_text() for item in items]
+        model = self._provider.model
 
         generation = langfuse.start_observation(
             as_type="generation",
-            name="openai-embed-batch",
-            model=self._model,
+            name="embed-batch",
+            model=model,
             input=f"{len(texts)} texts",
+            metadata={"provider": type(self._provider).__name__, "model": model},
         )
         try:
-            response = await self._client.embeddings.create(
-                model=self._model,
-                input=texts,
-                encoding_format="float",
-            )
+            vectors = await self._provider.embed_documents(texts)
         except Exception as exc:
             generation.update(level="ERROR", status_message=str(exc))
             generation.end()
             raise
 
-        tokens = response.usage.total_tokens
-        cost = estimate_embed_cost_usd(self._model, tokens)
+        token_count = getattr(self._provider, "last_token_count", 0)
+        cost = estimate_embed_cost_usd(model, token_count)
         generation.update(
-            usage_details={"input": tokens, "output": 0},
+            usage_details={"input": token_count, "output": 0},
             cost_details={"usd": cost},
         )
         generation.end()
 
         logger.info(
-            "Embeddings generated | model=%s | texts=%d | tokens=%d | cost_usd=%.6f",
-            self._model, len(texts), tokens, cost,
+            "Embeddings generated | provider=%s | model=%s | texts=%d | tokens=%d | cost_usd=%.6f",
+            type(self._provider).__name__, model, len(texts), token_count, cost,
         )
-
-        vectors = [e.embedding for e in response.data]
 
         conn = await asyncpg.connect(self._db_url)
         await register_vector(conn)
@@ -110,7 +104,7 @@ class EmbeddingService:
                         item.transaction_id,
                         vector,
                         text,
-                        self._model,
+                        model,
                     )
                     embedded += 1
                 except Exception as exc:

@@ -12,6 +12,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-AI003b | _(no issue)_ | Embedding Provider Toggle (OpenAI ⇄ Gemini) |
 | PF-001 | [#9](https://github.com/rikky-hermanto/personal-finance/issues/9) | .NET Web API with Clean Architecture |
 | PF-002 | [#10](https://github.com/rikky-hermanto/personal-finance/issues/10) | React + Vite Frontend Scaffold |
 | PF-003 | [#11](https://github.com/rikky-hermanto/personal-finance/issues/11) | Docker Compose Orchestration |
@@ -94,6 +95,14 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-S11 | [#74](https://github.com/rikky-hermanto/personal-finance/issues/74) | Event-driven AI pipeline — statement_uploads + Webhook + Python /webhooks/process | 5 |
 | PF-S12 | [#75](https://github.com/rikky-hermanto/personal-finance/issues/75) | Supabase Realtime — React subscription for live AI processing status | 5 |
 | PF-S13 | [#76](https://github.com/rikky-hermanto/personal-finance/issues/76) | RAG pipeline — pgvector embeddings + match_transactions + natural language query | 6 |
+
+---
+
+## In Progress — AI Learning Track
+
+| ID | Title | Notes |
+|----|-------|-------|
+| PF-AI003b | Embedding Provider Toggle (OpenAI ⇄ Gemini) | Plan: `.claude/plans/learning/PF-AI003b-embedding-provider-toggle.md` |
 
 ---
 
