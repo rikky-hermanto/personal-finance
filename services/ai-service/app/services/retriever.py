@@ -34,6 +34,11 @@ class RetrievalService:
         conn = await asyncpg.connect(self._db_url)
         await register_vector(conn)
         try:
+            # ivfflat default probes=1 only searches 1 cluster → high miss rate on small
+            # datasets. sqrt(lists) is the standard starting point; lists=100 → probes=10
+            # gives ~99% recall on 4467 rows without meaningful latency cost.
+            # SET (not SET LOCAL) — asyncpg uses autocommit; LOCAL needs an active txn.
+            await conn.execute("SET ivfflat.probes = 10")
             rows = await conn.fetch(
                 """
                 SELECT
