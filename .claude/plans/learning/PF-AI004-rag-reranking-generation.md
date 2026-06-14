@@ -77,7 +77,9 @@ cd services/ai-service
 PYTHONPATH=. python evals/eval_retrieval.py   # must print a real MRR@5 — not run on placeholder IDs
 ```
 
-> **Why:** This entire chapter's headline deliverable is a *delta* — "re-ranking improved MRR@5 from 0.XX to 0.YY." Without the Chapter 3 baseline recorded first, there is nothing to measure lift against. Do not start Step 1 until `docs/performances/ai-observability-metrics.md` has the baseline MRR@5.
+> **Why:** This entire chapter's headline deliverable is a *delta* — "re-ranking improved P@5 from 0.66 to 0.YY." Without the Chapter 3 baseline recorded first, there is nothing to measure lift against. Do not start Step 1 until `docs/performances/ai-observability-metrics.md` has the baseline numbers.
+
+> **Note (2026-06-13):** The original Chapter 3 baseline was 0.476 MRR@5 — this was a corrupted metric caused by IVFFlat `probes=1` (default) only searching 1 of 100 clusters. Fixed by adding `SET ivfflat.probes = 10` in `RetrievalService.search()`. Real baseline after fix: **MRR@5 = 1.000, P@5 = 0.66**. The re-ranking lift story therefore shifts from MRR to P@5 — MRR is already maxed. The probes bug is itself a debugging story worth keeping for interviews ("I found that our retrieval baseline was corrupted by an IVFFlat misconfiguration — after fixing it, MRR jumped from 0.476 to 1.000").
 
 ---
 
@@ -510,15 +512,15 @@ Run both modes back-to-back and record in `docs/performances/ai-observability-me
 
 ```bash
 cd services/ai-service
-PYTHONPATH=. python evals/eval_retrieval.py            # confirm baseline unchanged
+PYTHONPATH=. python evals/eval_retrieval.py            # confirm baseline: MRR=1.000, P@5=0.66
 PYTHONPATH=. python evals/eval_retrieval.py --rerank   # the new number
 ```
 
-Record: baseline MRR@5, reranked MRR@5, the delta, and the added latency per query.
+Record: baseline P@5, reranked P@5, the delta, and the added latency per query. Also record MRR for completeness, but **P@5 is the primary lift metric for this chapter** — MRR is already at 1.000 after the probes fix, so re-ranking cannot improve it further. The meaningful question is: "did the wider funnel (top-10) give the cross-encoder better candidates to select from, improving precision?"
 
 > **Why retrieve 10 then rerank to 5 (not rerank the top-5)?** Re-ranking the same 5 documents can only re-*order* them — MRR@5 barely moves because nothing new enters the set. The lift comes from the wider funnel: a relevant transaction at retrieval rank 8 is invisible to the baseline but gets promoted into the top-5 by the cross-encoder. Funnel width is the lever; this is exactly the recall-vs-precision tradeoff the interviewer is fishing for.
 
-> **If the delta is ~0 or negative:** that's a *finding*, not a failure (THINK-04). Likely causes: (a) the baseline was already near-perfect on 10 easy queries — add 5 harder queries (ambiguous, multi-category) to the set; (b) `ms-marco` models are English-trained and your queries are Indonesian — note the language mismatch, try a multilingual rerank model, and write the observation down. "My re-ranker underperformed on Indonesian queries because ms-marco is English-centric; here's how I diagnosed it" is a *better* interview story than a clean +0.1.
+> **If P@5 delta is ~0:** that's a *finding*, not a failure (THINK-04). Likely causes: (a) with 7 queries and MRR already perfect, P@5=0.66 may be close to ceiling for this query set — add 5 harder queries (ambiguous, multi-category) to create more room; (b) `ms-marco` models are English-trained and your queries are Indonesian — note the language mismatch, try a multilingual rerank model, and write the observation down. "My re-ranker underperformed on Indonesian queries because ms-marco is English-centric; here's how I diagnosed it" is a *better* interview story than a clean +0.1.
 
 ---
 
@@ -908,9 +910,12 @@ Append to `docs/performances/ai-observability-metrics.md`:
 
 | Metric | Value |
 |--------|-------|
-| MRR@5 baseline (Chapter 3, top-5 cosine) | 0.XX |
-| MRR@5 reranked (top-10 → FlashRank → top-5) | 0.YY |
-| Re-ranking lift | +0.ZZ |
+| MRR@5 baseline (Chapter 3, corrupted — ivfflat probes=1 bug) | 0.476 |
+| MRR@5 after probes=10 fix (real Chapter 3 baseline) | 1.000 |
+| P@5 baseline (top-5 cosine, probes=10) | 0.66 |
+| P@5 reranked (top-10 → FlashRank → top-5) | 0.YY |
+| P@5 re-ranking lift | +0.ZZ |
+| MRR@5 reranked (expected: no change — already 1.000) | 1.000 |
 | Re-rank latency added per query | ~XXms (local CPU, $0 cost) |
 | /ask retrieval_ms (p50) | XXms |
 | /ask generation_ms (p50) | X.Xs |
@@ -1008,7 +1013,7 @@ Organized by concept — read the one tied to what you're building; skip the res
 
 **The Sunday metric:**
 > "What can I say in an interview today that I couldn't say last Sunday?"
-> Target answer: *"I added a two-stage retrieval funnel — pgvector top-10 into a local FlashRank cross-encoder — which lifted MRR@5 from 0.XX to 0.YY at zero API cost, then built a grounded `/ask` endpoint that answers from cited transactions only, drops hallucinated citation ids, and scores 0.XX RAGAS faithfulness with a cross-provider judge."* Every number in that sentence comes from Steps 5, 10, and 11.
+> Target answer: *"I debugged a retrieval baseline that looked like 0.476 MRR — traced it to IVFFlat probes=1 only searching 1 of 100 clusters, fixed it in one line, real baseline was 1.000. Then I added a two-stage funnel — pgvector top-10 into a local FlashRank cross-encoder — which improved P@5 from 0.66 to 0.YY at zero API cost, and built a grounded `/ask` endpoint that answers from cited transactions only, drops hallucinated ids, and scores 0.XX RAGAS faithfulness with a cross-provider judge."* Every number comes from Steps 0, 5, 10, and 11.
 
 ---
 
