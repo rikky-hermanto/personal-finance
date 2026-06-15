@@ -102,8 +102,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI003b | Embedding Provider Toggle (OpenAI ⇄ Gemini) | Plan: `.claude/plans/learning/PF-AI003b-embedding-provider-toggle.md` |
-
 ---
 
 ## Backlog — AI Ramp-Up + Sprint 1 (pre-Supabase or parallel)
