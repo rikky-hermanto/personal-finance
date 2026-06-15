@@ -374,3 +374,39 @@
 - Start Chapter 4 (PF-AI004): hybrid search (pgvector + tsvector BM25) is the highest-leverage first move — it targets the exact 0.00 queries (listrik, streaming, Mansek)
 
 **Streak: 1 day**
+
+### 2026-06-15 — Day 19
+
+**Session: PF-AI003b — Embedding Provider Toggle (OpenAI ⇄ Gemini)**
+
+- Built `EmbeddingProvider` Protocol abstraction (`app/providers/embedding_base.py`) — mirrors the existing `LlmProvider` pattern exactly
+- Created `OpenAIEmbeddingProvider` (moved from `embedder.py`) + `GeminiEmbeddingProvider` (`gemini-embedding-001`, `output_dimensionality=1536`, L2 normalization, task_type asymmetry)
+- Created `embedding_factory.py` — `create_embedding_provider(settings)` mirrors `ProviderFactory.create(settings)`
+- Updated `app/config.py`: `embedding_provider: Literal["openai", "gemini"] = "gemini"`, `validate_embedding_provider_key()` warns but does not crash
+- Updated `app/observability.py`: Gemini embed cost (free tier = 0.0), span renamed `"embed-batch"`, provider+model metadata in every span
+- Rewrote `embedder.py` + `retriever.py` to depend only on `EmbeddingProvider` protocol (no openai import)
+- Retriever SQL adds `AND te.model = $4` guard — prevents stale cross-model vectors from polluting results during a provider switch
+- Rewrote `backfill_embeddings.py`: detects model-mismatch rows, prints destructive warning with count, prompts `[y/N]` interactively; `--yes` skips for non-interactive use
+- Updated `main.py` to instantiate provider via factory, pass single instance to both services
+- Updated all existing tests to mock `EmbeddingProvider` protocol (not openai SDK); added `test_embedding_providers.py` covering factory toggle, Gemini L2 normalization, retriever model filter, backfill confirmation paths
+- `pytest` green — all tests pass
+- Updated `docs/rag-embeddings-howto.md`: prerequisites, arch diagram, "Switching providers" section
+- Updated chores `SKILL.md`: learning plans (PF-AIxxx) **never** move to `completed/` — update `Status: Done` in place only
+
+**Chapter 3 checklist:** ✅ all items done (PF-AI003 + PF-AI003b complete)
+
+**Interview-ready answers (new):**
+- "The embedding layer uses an abstract `EmbeddingProvider` protocol — same factory pattern as the LLM providers. Switching OpenAI ↔ Gemini is a single env var change plus a backfill run."
+- "Gemini's `output_dimensionality` flag returns truncated but un-normalized vectors — L2 normalization is required before storing for cosine similarity to work correctly."
+- "I use asymmetric task types: `RETRIEVAL_DOCUMENT` for indexing, `RETRIEVAL_QUERY` at query time. OpenAI doesn't support task types so it's symmetric — both models' handling is documented in the provider implementation."
+- "The retriever has a `WHERE te.model = <active_model>` guard. During a provider switch, old vectors from the previous model are geometrically incompatible — without the guard, they'd silently poison cosine scores."
+
+**Note:** This is an infrastructure fix (owner only has `GEMINI_API_KEY`), not a curriculum chapter task — same class as Day 6/10/12 tooling days. The design decisions (protocol abstraction, factory, mixed-state guard) are directly interview-relevant: they map to the "how do you keep the AI pipeline modular and cost-controlled?" question.
+
+**Retros (blockers & surprises):**
+- None — clean session. Straightforward port of the existing LLM provider pattern to the embedding layer.
+
+**Remaining for next session:**
+- Start Chapter 4 (PF-AI004): hybrid search (pgvector + tsvector BM25) is the highest-leverage first move — targets the exact 0.00 queries (terse bank codes: listrik, streaming, Mansek)
+
+**Streak: 1 day** (reset — no log entries 2026-06-13/14)

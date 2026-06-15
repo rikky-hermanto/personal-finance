@@ -96,7 +96,8 @@ Stale plans may be superseded. Do not delete — report them for human decision.
 
 Scan `.claude/plans/learning/` too (skip with `skipped — path not found` if absent), but apply **different rules** — learning plans (PF-AIxxx) track the 90-day AI learning path and live longer than feature plans:
 
-- Archive a learning plan to `completed/` only when **both** hold: its GitHub issue is `CLOSED` **and** all checkboxes are done. Never archive on checkboxes alone.
+- **Never move learning plans to `completed/`** — they stay in `.claude/plans/learning/` permanently. Archiving does not apply to this folder.
+- When all checkboxes are done, update the plan's `Status:` header to `Done` in place — that is the only action needed.
 - Flag any learning plan untouched for more than 90 days (same age logic as Step 4 — `Started:` header or file mtime, compared by you) as "review for relevance" — report only, never move.
 
 ---
