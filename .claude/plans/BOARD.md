@@ -102,6 +102,16 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
+| PF-AI004 | RAG Phase 2 — Chunking, Re-ranking, Generation | Blocked on PF-AI003 MRR close-out (complete) |
+
+## To Do — AI Learning Track
+
+| ID | Title | Notes |
+|----|-------|-------|
+| PF-AI005 | Streaming + Production UX (SSE) | Depends on PF-AI004; plan: `.claude/plans/learning/PF-AI005-streaming-sse-todo.md` |
+| PF-AI006 | Advanced RAG Patterns | Depends on PF-AI004+PF-AI005; plan: [`.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md`](.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) |
+| PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents.md) |
+
 ---
 
 ## Backlog — AI Ramp-Up + Sprint 1 (pre-Supabase or parallel)

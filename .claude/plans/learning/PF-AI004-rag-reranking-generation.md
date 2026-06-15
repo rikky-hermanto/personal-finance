@@ -10,6 +10,60 @@
 
 PF-AI003 shipped the first half of the RAG pipeline: `transaction_embeddings` (pgvector), `EmbeddingService`, `RetrievalService`, `/embed-transactions` + `/search`, and an MRR@5 harness. Retrieval *works* but is naive: cosine top-K with no quality refinement, no filtering, and no generation step — the user gets raw transaction rows, not answers.
 
+The diagram below shows the full target-state pipeline. Steps marked ✅ Phase 1 are already shipped (PF-AI003); steps marked 🔄 Phase 2 are what this chapter builds:
+
+```
+INDEXING SIDE                     QUERY SIDE (POST /ask, real-time)
+────────────────────              ────────────────────────────────────────────────
+
+Transactions (DB rows)            User Query
+      │                           "berapa pengeluaran makan Maret?"
+      ▼                                       │
+  [Chunker]            🔄 Phase 2             ▼
+  fixed_size_chunks()  PF-AI004  ┌──────────────────────────────────────────┐
+  sentence_window()    tested,   │  1. Embed Query                          │  ✅ Phase 1
+      │                Ch6 wires │     text-embedding-3-small (OpenAI)      │  PF-AI003
+      ▼                          └──────────────────────┬───────────────────┘
+  [Embed Chunks]       ✅ Phase 1                       │
+  text-embedding-3-    PF-AI003                         ▼
+  small (batched,                ┌──────────────────────────────────────────┐
+  Langfuse traced)               │  2. Vector Search                        │  ✅ Phase 1
+      │                          │     pgvector cosine (ivfflat, probes=10) │  PF-AI003
+      ▼                          │     → top-10 candidates                  │
+  [transaction_        ✅ Phase 1└──────────────────────┬───────────────────┘
+   embeddings table]   PF-AI003                         │
+  pgvector (ivfflat)                                    ▼
+                                 ┌──────────────────────────────────────────┐
+                                 │  3. Metadata Filter                      │  🔄 Phase 2
+                                 │     WHERE category / account             │  PF-AI004
+                                 │          date_from / date_to             │
+                                 │     (SQL WHERE — not post-filter)        │
+                                 └──────────────────────┬───────────────────┘
+                                                        │
+                                                        ▼
+                                 ┌──────────────────────────────────────────┐
+                                 │  4. Re-rank                              │  🔄 Phase 2
+                                 │     FlashRank cross-encoder (~34 MB CPU) │  PF-AI004
+                                 │     top-10 → top-3 (cross-encoded score) │
+                                 └──────────────────────┬───────────────────┘
+                                                        │
+                                                        ▼
+                                 ┌──────────────────────────────────────────┐
+                                 │  5. LLM Synthesis                        │  🔄 Phase 2
+                                 │     ProviderFactory (Gemini / Anthropic) │  PF-AI004
+                                 │     top-3 contexts → grounded answer     │
+                                 │     + [n] inline citations               │
+                                 │     hallucination guard: drop bad ids    │
+                                 └──────────────────────┬───────────────────┘
+                                                        │
+                                                        ▼
+                                 ┌──────────────────────────────────────────┐
+                                 │  POST /ask Response                      │
+                                 │  { answer, citations[], confident,       │
+                                 │    model, retrieval_ms, generation_ms }  │
+                                 └──────────────────────────────────────────┘
+```
+
 This task builds the second half — **re-ranking and grounded generation**, plus the chunking foundations Chapter 6 will build on:
 
 1. **Chunking module** — `app/services/chunker.py` with two strategies (fixed-size with overlap, sentence-window) + unit tests. Transactions are single short rows, so chunking is learned and tested against real statement *fixture text* now; production chunked retrieval lands in Chapter 6 (sentence-window retrieval).
