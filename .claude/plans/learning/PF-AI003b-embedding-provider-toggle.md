@@ -1,7 +1,7 @@
 # PF-AI003b — Embedding Provider Toggle (OpenAI ⇄ Gemini)
 
 > **Learning Phase:** Phase 1 · Week 3 of 12 · Addendum to PF-AI003
-> **Status:** IN PROGRESS
+> **Status:** Done
 > **Started:** 2026-06-12
 > **Parent plan:** [PF-AI003-rag-embeddings-retrieval.md](PF-AI003-rag-embeddings-retrieval.md)
 
@@ -35,24 +35,24 @@ preserved because both providers are constrained to 1536 dims.
 
 ## Acceptance Criteria
 
-- [ ] `EMBEDDING_PROVIDER=gemini` works end-to-end: backfill runs, `POST /search` returns results
-- [ ] `EMBEDDING_PROVIDER=openai` continues to work as before
-- [ ] `app/providers/embedding_base.py` — `EmbeddingProvider` Protocol (`embed_documents`, `embed_query`, `model`)
-- [ ] `app/providers/openai_embedding.py` — `OpenAIEmbeddingProvider` (moved from `embedder.py`)
-- [ ] `app/providers/gemini_embedding.py` — `GeminiEmbeddingProvider` (gemini-embedding-001, 1536 dims, normalized, task_type asymmetry)
-- [ ] `app/providers/embedding_factory.py` — `create_embedding_provider(settings)` function
-- [ ] `app/config.py` — `embedding_provider: Literal["openai", "gemini"] = "gemini"`, `embedding_model: str = ""` (empty = per-provider default), `validate_embedding_provider_key()` warns but does not crash
-- [ ] `app/observability.py` — Gemini embed pricing (free tier = 0.0), span renamed "embed-batch", provider+model metadata
-- [ ] `app/services/embedder.py` — depends only on `EmbeddingProvider` protocol; no openai import
-- [ ] `app/services/retriever.py` — depends only on `EmbeddingProvider` protocol; SQL adds `WHERE te.model = <active model>` guard
-- [ ] `scripts/backfill_embeddings.py` — detects model-mismatch rows, prints destructive warning, requires `[y/N]` or `--yes`; `--dry-run` reports both missing + to-be-replaced counts
-- [ ] `app/main.py` — instantiates embedding provider via factory, passes to both services
-- [ ] `services/ai-service/.env.example` — `EMBEDDING_PROVIDER` documented
-- [ ] All existing tests updated to mock `EmbeddingProvider` abstraction (not openai SDK)
-- [ ] New tests: factory toggle, Gemini vector normalization, retriever SQL model filter, backfill confirmation paths
-- [ ] `evals/eval_retrieval.py` — prints active provider + model in output header
-- [ ] `docs/rag-embeddings-howto.md` — updated prerequisites, arch diagram, "Switching providers" section
-- [ ] `pytest` passes (all tests green)
+- [x] `EMBEDDING_PROVIDER=gemini` works end-to-end: backfill runs, `POST /search` returns results
+- [x] `EMBEDDING_PROVIDER=openai` continues to work as before
+- [x] `app/providers/embedding_base.py` — `EmbeddingProvider` Protocol (`embed_documents`, `embed_query`, `model`)
+- [x] `app/providers/openai_embedding.py` — `OpenAIEmbeddingProvider` (moved from `embedder.py`)
+- [x] `app/providers/gemini_embedding.py` — `GeminiEmbeddingProvider` (gemini-embedding-001, 1536 dims, normalized, task_type asymmetry)
+- [x] `app/providers/embedding_factory.py` — `create_embedding_provider(settings)` function
+- [x] `app/config.py` — `embedding_provider: Literal["openai", "gemini"] = "gemini"`, `embedding_model: str = ""` (empty = per-provider default), `validate_embedding_provider_key()` warns but does not crash
+- [x] `app/observability.py` — Gemini embed pricing (free tier = 0.0), span renamed "embed-batch", provider+model metadata
+- [x] `app/services/embedder.py` — depends only on `EmbeddingProvider` protocol; no openai import
+- [x] `app/services/retriever.py` — depends only on `EmbeddingProvider` protocol; SQL adds `WHERE te.model = <active model>` guard
+- [x] `scripts/backfill_embeddings.py` — detects model-mismatch rows, prints destructive warning, requires `[y/N]` or `--yes`; `--dry-run` reports both missing + to-be-replaced counts
+- [x] `app/main.py` — instantiates embedding provider via factory, passes to both services
+- [x] `services/ai-service/.env.example` — `EMBEDDING_PROVIDER` documented
+- [x] All existing tests updated to mock `EmbeddingProvider` abstraction (not openai SDK)
+- [x] New tests: factory toggle, Gemini vector normalization, retriever SQL model filter, backfill confirmation paths
+- [x] `evals/eval_retrieval.py` — prints active provider + model in output header
+- [x] `docs/rag-embeddings-howto.md` — updated prerequisites, arch diagram, "Switching providers" section
+- [x] `pytest` passes (all tests green)
 
 ## Approach
 
@@ -109,16 +109,16 @@ that's where the destructive warning lives.
 
 ## TODO
 
-### [ ] STEP 1 — Plan file (this file)
+### [x] STEP 1 — Plan file (this file)
 Create this plan before touching any code.
 
 ---
 
-### [ ] STEP 2 — Add PF-AI003b to BOARD.md (In Progress)
+### [x] STEP 2 — Add PF-AI003b to BOARD.md (In Progress)
 
 ---
 
-### [ ] STEP 3 — EmbeddingProvider abstraction + provider implementations
+### [x] STEP 3 — EmbeddingProvider abstraction + provider implementations
 
 Create `app/providers/embedding_base.py`:
 ```python
@@ -150,7 +150,7 @@ public interface IEmbeddingProvider {
 
 ---
 
-### [ ] STEP 4 — Update app/config.py
+### [x] STEP 4 — Update app/config.py
 
 Add:
 - `embedding_provider: Literal["openai", "gemini"] = "gemini"`
@@ -159,7 +159,7 @@ Add:
 
 ---
 
-### [ ] STEP 5 — Update app/observability.py
+### [x] STEP 5 — Update app/observability.py
 
 Add:
 - `GEMINI_EMBED_COST = {"gemini-embedding-001": 0.0}` (free tier)
@@ -169,7 +169,7 @@ Add:
 
 ---
 
-### [ ] STEP 6 — Rewrite embedder.py and retriever.py
+### [x] STEP 6 — Rewrite embedder.py and retriever.py
 
 `EmbeddingService(provider: EmbeddingProvider)`:
 - Replace `openai.AsyncOpenAI` calls with `provider.embed_documents(texts)`
@@ -181,7 +181,7 @@ Add:
 
 ---
 
-### [ ] STEP 7 — Rewrite backfill_embeddings.py
+### [x] STEP 7 — Rewrite backfill_embeddings.py
 
 New logic:
 1. Query missing transactions (no embedding row)
@@ -192,7 +192,7 @@ New logic:
 
 ---
 
-### [ ] STEP 8 — Update main.py
+### [x] STEP 8 — Update main.py
 
 ```python
 from app.providers.embedding_factory import create_embedding_provider
@@ -209,13 +209,13 @@ async def lifespan(app):
 
 ---
 
-### [ ] STEP 9 — Update .env.example
+### [x] STEP 9 — Update .env.example
 
 Add `EMBEDDING_PROVIDER=gemini` block.
 
 ---
 
-### [ ] STEP 10 — Update tests
+### [x] STEP 10 — Update tests
 
 Update `test_embedder.py` and `test_retriever.py` to mock `EmbeddingProvider` (not openai SDK).
 Create `test_embedding_providers.py`:
@@ -228,7 +228,7 @@ Create `test_embedding_providers.py`:
 
 ---
 
-### [ ] STEP 11 — Update evals/eval_retrieval.py
+### [x] STEP 11 — Update evals/eval_retrieval.py
 
 Print header line before the results table:
 ```
@@ -237,7 +237,7 @@ Provider: gemini | Model: gemini-embedding-001
 
 ---
 
-### [ ] STEP 12 — Update docs/rag-embeddings-howto.md
+### [x] STEP 12 — Update docs/rag-embeddings-howto.md
 
 - Prerequisites table: replace `OPENAI_API_KEY` row with `EMBEDDING_PROVIDER + matching key` row
 - Architecture diagram: update model references
@@ -246,7 +246,7 @@ Provider: gemini | Model: gemini-embedding-001
 
 ---
 
-### [ ] STEP 13 — Run pytest
+### [x] STEP 13 — Run pytest
 
 ```bash
 cd services/ai-service && pytest
@@ -255,7 +255,7 @@ All tests must be green before committing.
 
 ---
 
-### [ ] STEP 14 — Mark BOARD.md Done and commit
+### [x] STEP 14 — Mark BOARD.md Done and commit
 
 ---
 
