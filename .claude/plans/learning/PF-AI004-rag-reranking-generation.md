@@ -6,7 +6,7 @@
 > **Planned from branch:** main
 > **Pivot goal:** Turn the toy into something defensible. Naive top-K retrieval is the demo version of RAG — hiring managers ask about chunking strategy, re-ranking, and grounded synthesis. After this chapter, `POST /ask {"query": "berapa pengeluaran makan bulan Maret?"}` returns a correct, *cited* answer, and you can quote two deltas: "re-ranking moved MRR@5 from 0.XX to 0.YY" and "RAGAS faithfulness on my generated answers is 0.ZZ."
 
-# The Ladder
+# 📖 Introduction
 
 > Read this before the implementation steps. The goal is to *understand* the concept by watching
 > it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
@@ -14,6 +14,31 @@
 ## High level — what is this?
 
 Chapter 3 shipped half a RAG pipeline: embed a query, cosine-search pgvector, return the top-K rows. That's retrieval — and it's naive in two specific ways. First, *what you embed* matters: chop the source text wrong and you embed garbled fragments. Second, *trusting cosine similarity alone* lets near-miss rows sneak into the top results, and even a perfect top-3 is just rows — not an answer a human asked for. This chapter fixes both: it teaches you how text gets prepared before embedding (**chunking**), how a second, slower model double-checks the first one's ranking (**re-ranking**), and how raw rows become a trustworthy, cited sentence (**grounded generation**).
+
+RAG is just two phases — build the index once, then query it many times:
+
+```
+ 1. BUILD THE INDEX  (offline, once per document)
+ ──────────────────────────────────────────────────────────────────────────
+                                                                  ┌─────────┐
+   Data Source        split into        embed each       store    │ 1010 0101│
+   📄 🖼  💬 ▶        chunks of text     chunk             ───▶ │ 1110 1011│
+  ┌──────────┐  ──▶  ┌─────────────┐ ─▶ ┌─────────────┐          │ 0011 1010│
+  │statement,│       │ chunk 1     │    │ embeddings  │          │ 1001 0101│
+  │ PDF, etc │       │ chunk 2     │    │  1010 0101  │          └─────────┘
+  └──────────┘       │ chunk 3     │    │  1110 1011  │           pgvector DB
+                      │ chunk 4     │    │  ...        │
+                      └─────────────┘    └─────────────┘
+                      (tokenization)
+
+ 2. ANSWER A QUERY  (online, every request — this is "RAG")
+ ──────────────────────────────────────────────────────────────────────────
+   USER  ───────▶   DB (pgvector)  ───────▶   LLM   ───────▶  "Hi! ..." answer
+   query             nearest-neighbor          generate          back to the
+                      embedding search          grounded answer   user
+```
+
+Chapter 3 built phase 1 (chunk → embed → store) and the first half of phase 2 (query → DB). This chapter sharpens phase 2: instead of handing the DB's raw rows straight to the LLM, a re-ranker double-checks them first, and the LLM's answer comes back with citations instead of a bare guess:
 
 ```
 chunk ──▶ embed ──▶ store ──▶ retrieve ──▶ re-rank ──▶ generate ──▶ cite
@@ -24,7 +49,7 @@ chunk ──▶ embed ──▶ store ──▶ retrieve ──▶ re-rank ─�
 
 Three mini-ladders below — one per concept this chapter ships.
 
-## Chunking — from naive to shipped
+## Chunking
 
 > **Honest project mapping:** a transaction in this app is already one short DB row (`"GOFOOD GEPREK BENSU GADING | BCA | 2026-03-14 | DB"`) — there's nothing to chunk there. The thing actually worth chunking is the longer source text: multi-page bank statement narratives like `evals/fixtures/bca_01.txt`. That's what `chunker.py` is built and tested against this chapter; wiring it into real chunked *retrieval* is Chapter 6's job. So read "chunking" below as "how do I cut a long document into pieces an embedding model can handle," not "how do I chunk one transaction."
 
@@ -46,7 +71,7 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ▶ **Watch/read for this concept:** [Chunking Strategies in RAG: Optimising Data for Advanced AI Responses](https://www.youtube.com/watch?v=pIGRwMjhMaQ) — hands-on, levels up exactly through these rungs.
 
-## Re-ranking — from naive to shipped
+## Re-ranking
 
 **Rung 0 — cosine top-K, as shipped in Chapter 3.** Embed the query `"berapa pengeluaran makan bulan Maret?"`, cosine-search `transaction_embeddings`, return the top-10 by similarity. This already works and is the current baseline (`P@5 = 0.66` after the IVFFlat probes fix).
 
@@ -62,7 +87,7 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ▶ **Watch/read for this concept:** [Sentence-Transformers — Retrieve & Re-Rank](https://sbert.net/examples/applications/retrieve_rerank/README.html) — the canonical bi-encoder vs cross-encoder explanation with the funnel diagram.
 
-## Grounded generation + citations — from naive to shipped
+## Grounded generation + citations
 
 **Rung 0 — dump the raw rows at the user.** Retrieve and re-rank, then hand the user the rows themselves: `GOFOOD GEPREK BENSU GADING — Rp 85.000`, `GRABFOOD ORDER 7FHJS8 — Rp 62.500`, …
 
@@ -80,10 +105,11 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ▶ **Watch/read for this concept:** [Anthropic — Reducing hallucinations](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) — the grounding-prompt patterns used in this chapter's `SYSTEM_PROMPT`.
 
----
+ 
 
-# Implementation 
-## Objective
+# 🔧 Implementation
+
+## 🎯 Objective
 
 PF-AI003 shipped the first half of the RAG pipeline: `transaction_embeddings` (pgvector), `EmbeddingService`, `RetrievalService`, `/embed-transactions` + `/search`, and an MRR@5 harness. Retrieval *works* but is naive: cosine top-K with no quality refinement, no filtering, and no generation step — the user gets raw transaction rows, not answers.
 
@@ -153,7 +179,7 @@ This task builds the second half — **re-ranking and grounded generation**, plu
 **Depends on:** PF-AI003 (retriever, embeddings, MRR harness — the baseline number must exist before measuring lift; finish the Chapter 3 eval gate first).
 **Unblocks:** Chapter 5 (stream `/ask` tokens over SSE), Chapter 6 (advanced retrieval variants measured with this same harness).
 
-## Acceptance Criteria
+## ✅ Acceptance Criteria
 
 - [ ] `app/services/chunker.py` — `fixed_size_chunks(text, chunk_size, overlap)` + `sentence_window_chunks(text, window_size)`; both covered by unit tests in `tests/test_chunker.py` (≥ 6 tests), demonstrated against one real eval fixture statement text
 - [ ] `app/services/reranker.py` — `RerankerService.rerank(query, results, top_k)` re-orders `SearchResult` lists via FlashRank cross-encoder, runs off the event loop (`asyncio.to_thread`), unit-tested with a mocked ranker
@@ -166,7 +192,7 @@ This task builds the second half — **re-ranking and grounded generation**, plu
 - [ ] `pyproject.toml` updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
 - [ ] Langfuse traces exist for the `/ask` generation step (cost + latency visible, same pattern as extraction)
 
-## Approach
+## 🧭 Approach
 
 **FlashRank local, not Cohere Rerank — for Chapter 4.** Both are cross-encoders; the concept ("bi-encoder retrieves fast, cross-encoder re-scores accurately") is identical. FlashRank runs locally (~34 MB MiniLM model, CPU, no API key, no rate limit), which keeps the eval harness deterministic and free to re-run. Cohere's trial tier is rate-limited (10 calls/min) — fine for production-ish traffic, hostile to iterative benchmarking. `RerankerService` is a thin seam: swapping to Cohere later is a one-class change, and articulating that tradeoff is itself interview content.
 
@@ -178,7 +204,7 @@ This task builds the second half — **re-ranking and grounded generation**, plu
 
 Out of scope: streaming the answer (Chapter 5), hybrid BM25 + vector search and chunked-corpus retrieval (Chapter 6), conversation memory (Chapter 8). Don't add them now.
 
-## Affected Files
+## 📂 Affected Files
 
 | File | Change |
 |------|--------|
@@ -197,9 +223,8 @@ Out of scope: streaming the answer (Chapter 5), hybrid BM25 + vector search and 
 | `services/ai-service/evals/ask_questions.json` | Create — 5 eval questions with expected-answer notes |
 | `docs/performances/ai-observability-metrics.md` | Edit — MRR delta, faithfulness score, /ask latency split |
 
----
-
-## TODO
+ 
+## 📋 TODO
 
 ### [ ] STEP 0 — Prerequisite gate: Chapter 3 baseline number exists
 
@@ -212,7 +237,6 @@ PYTHONPATH=. python evals/eval_retrieval.py   # must print a real MRR@5 — not 
 
 > **Note (2026-06-13):** The original Chapter 3 baseline was 0.476 MRR@5 — this was a corrupted metric caused by IVFFlat `probes=1` (default) only searching 1 of 100 clusters. Fixed by adding `SET ivfflat.probes = 10` in `RetrievalService.search()`. Real baseline after fix: **MRR@5 = 1.000, P@5 = 0.66**. The re-ranking lift story therefore shifts from MRR to P@5 — MRR is already maxed. The probes bug is itself a debugging story worth keeping for interviews ("I found that our retrieval baseline was corrupted by an IVFFlat misconfiguration — after fixing it, MRR jumped from 0.476 to 1.000").
 
----
 
 ### [ ] STEP 1 — Learn: the re-ranking mental model (theory anchor, 45 min)
 
@@ -232,7 +256,6 @@ The one genuine pre-read of the chapter. The wall here is understanding *why a s
 
 > **The interview frame:** "My retrieval is a two-stage funnel: pgvector cosine search retrieves the top-10 candidates with a bi-encoder embedding, then a local cross-encoder (FlashRank MiniLM) re-scores those 10 by reading query and document together, and the top-3 feed generation. Re-ranking moved my MRR@5 from 0.XX to 0.YY at ~Zms added latency, with no extra API cost because the cross-encoder runs locally."
 
----
 
 ### [ ] STEP 2 — Build `app/services/chunker.py` (pure module, no I/O)
 
@@ -359,7 +382,6 @@ cd services/ai-service && PYTHONPATH=. pytest tests/test_chunker.py -v
 
 > **The interview frame:** "Fixed-size with overlap is the baseline — overlap prevents boundary facts from being lost to both chunks. Sentence-window is the refinement: index small units for precise matching, but return the expanded window so the LLM gets enough context. Small-to-search, big-to-read."
 
----
 
 ### [ ] STEP 3 — Add FlashRank + build `app/services/reranker.py`
 
@@ -498,7 +520,6 @@ PYTHONPATH=. pytest tests/test_reranker.py -v
 // The anti-pattern in both worlds is calling it inline and blocking.
 ```
 
----
 
 ### [ ] STEP 4 — Metadata filtering in `RetrievalService` + `SearchRequest`
 
@@ -597,7 +618,6 @@ Add 2–3 filter tests to `tests/test_retriever.py` (assert the generated SQL co
 
 > **Why `ILIKE` and a regex-validated date string?** Account/category names arrive from a UI dropdown eventually, but tolerate case differences today. Dates validate shape at the Pydantic boundary (`pattern=`) and cast in SQL (`::date`) — bad input fails with 422 at the edge, not a cryptic asyncpg error mid-query.
 
----
 
 ### [ ] STEP 5 — Re-run the MRR harness with re-ranking, record the delta
 
@@ -653,7 +673,6 @@ Record: baseline P@5, reranked P@5, the delta, and the added latency per query. 
 
 > **If P@5 delta is ~0:** that's a *finding*, not a failure (THINK-04). Likely causes: (a) with 7 queries and MRR already perfect, P@5=0.66 may be close to ceiling for this query set — add 5 harder queries (ambiguous, multi-category) to create more room; (b) `ms-marco` models are English-trained and your queries are Indonesian — note the language mismatch, try a multilingual rerank model, and write the observation down. "My re-ranker underperformed on Indonesian queries because ms-marco is English-centric; here's how I diagnosed it" is a *better* interview story than a clean +0.1.
 
----
 
 ### [ ] STEP 6 — THINK-03 gate: justify the `/ask` extraction schema field-by-field
 
@@ -667,7 +686,6 @@ Before writing any `/ask` code, the `generate_json` schema gets the THINK-03 tab
 
 > **Why:** THINK-03 — a `string` amount or id in a tool/JSON schema corrupts silently: no compile error, no exception, just wrong joins downstream. Listing each field with its type and consumer *before* coding is the rule. `confident: boolean` exists because the grounding instruction alone ("say you don't know") produces prose the caller can't branch on — a boolean is machine-checkable.
 
----
 
 ### [ ] STEP 7 — Add `/ask` models to `app/models.py`
 
@@ -705,7 +723,6 @@ class AskResponse(BaseModel):
 
 > **Why `retrieval_ms` / `generation_ms` split in the response?** Chapter 5 streams this endpoint; knowing *where* the latency lives (retrieval ~100ms vs generation ~2s) is what justifies streaming the generation phase. Measuring the split now gives you the before/after story, and it's a free observability win in every demo.
 
----
 
 ### [ ] STEP 8 — Build `app/services/answerer.py` (the RAG read path)
 
@@ -890,7 +907,6 @@ PYTHONPATH=. pytest tests/test_answerer.py -v
 
 > **Why validate `cited_transaction_ids` against the context?** LLMs cite confidently and wrongly. An id not in the provided context is by definition fabricated — silently passing it through would render a clickable citation pointing at an unrelated (or nonexistent) transaction. Dropping + logging makes hallucination *visible* in Langfuse instead of shipping it to the UI. This guard is a one-liner that comes up in every "how do you handle hallucination?" interview.
 
----
 
 ### [ ] STEP 9 — Wire `POST /ask` in `app/main.py`
 
@@ -930,7 +946,6 @@ Verify: the answer contains a real IDR total, `[n]` markers, `citations` lists r
 
 > **Why `502` and not `500` on LLM failure?** The error contract table in `.claude/rules/ai-service.md`: provider failures and malformed LLM output are upstream-dependency errors → 502, which the .NET API maps to a user-visible "AI temporarily unavailable" rather than a generic crash. Returning 200 with an empty answer is explicitly forbidden — it would poison any downstream caching/eval with fake successes.
 
----
 
 ### [ ] STEP 10 — Write `evals/ask_questions.json` + RAGAS faithfulness eval
 
@@ -1030,7 +1045,6 @@ PYTHONPATH=. python evals/eval_faithfulness.py
 
 > **Why a different judge model (gpt-4o-mini) than the generator (Gemini)?** Same-model-judging-itself inflates scores (self-preference bias — you read about this in Chapter 2's LLM-as-judge material). The OpenAI key already exists for embeddings, so the cross-provider judge is free to set up; 5 answers ≈ fractions of a cent.
 
----
 
 ### [ ] STEP 11 — Update the metrics doc
 
@@ -1055,7 +1069,6 @@ Append to `docs/performances/ai-observability-metrics.md`:
 
 > **Why:** These are the chapter's interview numbers. The Sunday-metric answer this chapter is: *"I added a local cross-encoder re-ranker that lifted MRR@5 by +0.ZZ at ~XXms and $0 per query, and a grounded `/ask` endpoint whose answers score 0.XX RAGAS faithfulness with a hallucinated-citation guard."* Without the doc entry, the numbers evaporate.
 
----
 
 ### [ ] STEP 12 — Full test pass + commit
 
@@ -1083,7 +1096,6 @@ git commit -m "PF-AI004: RAG Phase 2 — chunking, FlashRank re-ranking, grounde
 
 > **Why:** Same-day shipping rule — the chapter isn't done until it's committed with the eval numbers in the diff.
 
----
 
 ### [ ] STEP 13 — Log progress
 
@@ -1091,9 +1103,8 @@ git commit -m "PF-AI004: RAG Phase 2 — chunking, FlashRank re-ranking, grounde
 /mentor log Built RAG Phase 2: chunker (fixed-size + sentence-window, tested), FlashRank re-ranker (MRR@5 0.XX → 0.YY, +0.ZZ lift), metadata-filtered retrieval, grounded POST /ask with citation validation (hallucinated ids dropped), RAGAS faithfulness 0.XX on 5 answers. Chapter 4 complete.
 ```
 
----
 
-## Notes
+## 📌 Notes
 
 - **Chapter 3 gate first (Step 0).** The MRR@5 baseline from PF-AI003 must be a real number before this chapter starts — the re-ranking delta is the headline deliverable.
 - **FlashRank model cache.** First `Ranker(...)` instantiation downloads ~34 MB to `cache_dir`. In Docker this re-downloads per container unless the dir is volume-mounted or baked into the image — fine for local dev, note it for the eventual Dockerfile touch-up (defer).
@@ -1105,9 +1116,8 @@ git commit -m "PF-AI004: RAG Phase 2 — chunking, FlashRank re-ranking, grounde
 - **Next chapter (5 — Streaming):** `generation_ms` will dominate `retrieval_ms` by ~10–20×. That measured split is the justification for streaming `/ask` over SSE, and the `AnswerService` seam (provider call isolated in one place) is where the streaming variant plugs in.
 - **Deferred:** hybrid BM25 + vector search (Chapter 6), chunked-corpus retrieval wiring (Chapter 6), conversation memory (Chapter 8), .NET `/ask` proxy + chat UI (Chapter 5), Cohere Rerank swap (only if FlashRank disappoints on Indonesian).
 
----
 
-## Resources / Theory to Learn
+## 📚 Resources / Theory to Learn
 
 Organized by concept — read the one tied to what you're building; skip the rest until you hit that wall.
 
@@ -1132,9 +1142,8 @@ Organized by concept — read the one tied to what you're building; skip the res
 ### Video (one segment, not a full course)
 - **DeepLearning.AI — *Building and Evaluating Advanced RAG*** (free short course) → https://learn.deeplearning.ai/courses/building-evaluating-advanced-rag — the sentence-window + re-ranking segments (~30 min) are exactly this chapter; the rest is Chapter 6 material.
 
----
 
-## Learning Strategy
+## 🧠 Learning Strategy
 
 **Daily loop for Chapter 4:**
 - **Morning (90 min, deep block #1):** chunker + reranker (Steps 2–3). Stop when both test files are green.
@@ -1161,7 +1170,6 @@ Organized by concept — read the one tied to what you're building; skip the res
 > "What can I say in an interview today that I couldn't say last Sunday?"
 > Target answer: *"I debugged a retrieval baseline that looked like 0.476 MRR — traced it to IVFFlat probes=1 only searching 1 of 100 clusters, fixed it in one line, real baseline was 1.000. Then I added a two-stage funnel — pgvector top-10 into a local FlashRank cross-encoder — which improved P@5 from 0.66 to 0.YY at zero API cost, and built a grounded `/ask` endpoint that answers from cited transactions only, drops hallucinated ids, and scores 0.XX RAGAS faithfulness with a cross-provider judge."* Every number comes from Steps 0, 5, 10, and 11.
 
----
 
 ## 📝 Knowledge Check
 

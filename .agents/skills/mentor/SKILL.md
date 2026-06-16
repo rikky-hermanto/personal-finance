@@ -407,15 +407,19 @@ distractions instead.
 ### Section order (REQUIRED)
 
 1. Title + metadata blockquote
-2. **`# The Ladder`** — the concept walkthrough (the on-ramp). Rules below.
-3. **`# Implementation`** — `## Objective` → `## Acceptance Criteria` → `## Approach` →
-   `## Affected Files` → `---` → `## TODO` (steps) → reference tables → `## Notes`
-4. `## Resources / Theory to Learn` — reference / deeper dives (now SECONDARY; the *one* best
+2. **`# 📖 Introduction`** — the concept walkthrough (the on-ramp). Rules below.
+3. **`# 🔧 Implementation`** — `## 🎯 Objective` → `## ✅ Acceptance Criteria` → `## 🧭 Approach` →
+   `## 📂 Affected Files` → `## 📋 TODO` (steps) → reference tables → `## 📌 Notes`
+4. `## 📚 Resources / Theory to Learn` — reference / deeper dives (now SECONDARY; the *one* best
    hands-on resource per concept is pulled UP into the ladder, the rest stay here)
-5. `## Learning Strategy` — daily loop, the 5 principles, anti-patterns, the Sunday metric
+5. `## 🧠 Learning Strategy` — daily loop, the 5 principles, anti-patterns, the Sunday metric
 6. `## 📝 Knowledge Check` — the quiz (always the FINAL section; see below)
 
-### `# The Ladder` — rules
+**Heading style:** every `#`/`##` section heading gets a leading emoji (above) — scannable at a
+glance, no two sections share an icon. Skip `---` horizontal rules between TODO steps and between
+sections; the emoji headings + whitespace already separate them, dividers just add visual noise.
+
+### `# 📖 Introduction` — rules
 
 The principle: **earn the jargon.** Introduce each concept only at the moment the previous version
 breaks. Never front-load a term — make the reader feel the problem first, then name the fix. This
@@ -435,18 +439,20 @@ is exactly what a good hands-on video does; the ladder ports it into the plan fi
 - **End the ladder where the chapter ships** — climb only to the sophistication this chapter
   actually implements; name the next rung as a one-line teaser, don't teach it.
 - **One mini-ladder per distinct concept.** A chapter covering chunking + re-ranking + generation
-  gets three short mini-ladders under `# The Ladder`, not one tangled one.
+  gets three short mini-ladders under `# 📖 Introduction`, not one tangled one. Mini-ladder
+  headings are just `## {Concept}` — no "— from naive to shipped" suffix; the rungs themselves
+  carry that meaning.
 - **No forward references** to later-chapter jargon as if already known.
 - **Language matches the file** — English plan → English ladder; `-id` plan → Indonesian ladder
   (technical terms stay in English).
 - **Do not touch the technical content of the TODO steps when adding a ladder to an existing
-  plan** — the ladder is a new on-ramp prepended above `# Implementation`, not a rewrite of the
+  plan** — the ladder is a new on-ramp prepended above `# 🔧 Implementation`, not a rewrite of the
   build steps.
 
-### `# The Ladder` — template
+### `# 📖 Introduction` — template
 
 ```markdown
-# The Ladder
+# 📖 Introduction
 
 > Read this before the implementation steps. The goal is to *understand* the concept by watching
 > it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
@@ -455,9 +461,11 @@ is exactly what a good hands-on video does; the ladder ports it into the plan fi
 
 {One paragraph: what the chapter's concept is, where it sits in the pipeline, the goal.}
 
-{One diagram — ASCII or mermaid — the "what am I looking at" picture.}
+{One diagram — ASCII or mermaid — the "what am I looking at" picture. For a RAG chapter, lead
+with the two-phase split (build the index offline, answer a query online) before the
+chapter-specific pipeline strip.}
 
-## {Concept A} — from naive to shipped
+## {Concept A}
 
 **Rung 0 — {the dumb version that works}.** {2–3 sentences: what you already have, or the
 simplest possible thing that does the job.}
@@ -474,7 +482,7 @@ rung becomes what the next wall pushes against.}
 
 ▶ **Watch/read for this concept:** {the one best hands-on resource, embedded here.}
 
-## {Concept B} — from naive to shipped
+## {Concept B}
 {repeat the rung structure}
 ```
 
@@ -483,7 +491,7 @@ rung becomes what the next wall pushes against.}
 ## Knowledge Check Quiz (PF-AIxxx) — Required
 
 **Every learning plan you generate or revise MUST end with a Knowledge Check quiz** — as the FINAL
-section of the file (after `## Learning Strategy`). This is mandatory, not optional.
+section of the file (after `## 🧠 Learning Strategy`). This is mandatory, not optional.
 
 Rules:
 - **Coverage:** 5–6 multiple-choice questions, each covering one load-bearing concept from

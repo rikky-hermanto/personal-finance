@@ -6,7 +6,7 @@
 > **Planned from branch:** main
 > **Pivot goal:** Ship token-by-token streaming. Every modern AI product streams — knowing how to implement SSE in FastAPI, wire it to both LLM providers, and consume it in React is a concrete differentiator. This chapter also replaces the polling-based upload status with Supabase Realtime, closing one of the oldest UX debt items in the codebase.
 
-# The Ladder
+# 📖 Introduction
 
 > Read this before the implementation steps. The goal is to *understand* the concept by watching
 > it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
@@ -38,7 +38,7 @@ Client (ChatPage)                    AI Service (FastAPI /ask/stream)
    |<-----------------------------------------|
 ```
 
-## Why stream + the SSE choice — from naive to shipped
+## Why stream + the SSE choice
 
 **Rung 0 — the naive version that works.** `POST /ask` already returns a correct, grounded
 answer: retrieve → rerank → generate → return one JSON blob. It's right, it's simple, and it
@@ -79,7 +79,7 @@ while keeping the same auto-reconnect semantics SSE promises. *This is what `cha
 ▶ **Watch/read for this concept:** https://github.com/sysid/sse-starlette and
 [MDN — Using server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
 
-## Provider streaming (async generators) — from naive to shipped
+## Provider streaming (async generators)
 
 **Rung 0 — the naive version that works.** `provider.generate_json()` already calls the LLM and
 returns the complete answer as one return value, once the model is fully done generating.
@@ -110,7 +110,7 @@ streaming (all text still arrives at once) but at least stops it from stalling o
 
 ▶ **Watch/read for this concept:** https://docs.anthropic.com/en/api/messages-streaming
 
-## Realtime vs polling (upload status) — from naive to shipped
+## Realtime vs polling (upload status)
 
 **Rung 0 — the naive version that works.** The upload wizard polls `GET /api/uploads/{id}/status`
 every 2 seconds and updates the UI when the status changes. Simple, and it's been working.
@@ -137,11 +137,10 @@ explicitly as a follow-up.*
 
 ▶ **Watch/read for this concept:** https://supabase.com/docs/guides/realtime
 
----
 
-# Implementation
+# 🔧 Implementation
 
-## Objective
+## 🎯 Objective
 
 PF-AI004 built `POST /ask` — a grounded Q&A endpoint that returns a complete answer after retrieval + generation. The UX problem: Gemini synthesis takes 2–6s per response; the user stares at a spinner. Token streaming collapses perceived latency to near-zero — the first token appears within ~150ms and the answer builds in front of the user.
 
@@ -154,7 +153,7 @@ This chapter:
 **Depends on:** PF-AI004 (`POST /ask`, `AnswerService`, `RerankerService`, `app.state.reranker`, `app.state.answerer` — must be wired before `POST /ask/stream` can be built in Step 5)
 **Unblocks:** Chapter 8 (LangGraph agent needs a streaming interface); Chapter 10 demo Loom (the "RAG chat: ask and see it stream" segment requires this chapter)
 
-## Acceptance Criteria
+## ✅ Acceptance Criteria
 
 - [ ] `LlmProvider` protocol (base.py) has `stream_generate(system_prompt, user_prompt) -> AsyncGenerator[str, None]`
 - [ ] `AnthropicProvider.stream_generate()` yields tokens via `client.messages.stream()` async context manager
@@ -170,7 +169,7 @@ This chapter:
 - [ ] `apps/frontend/package.json`: `@microsoft/fetch-event-source`, `@supabase/supabase-js`
 - [ ] No buffering verified: `curl --no-buffer` shows tokens arriving progressively, not in a single burst
 
-## Approach
+## 🧭 Approach
 
 **SSE over WebSockets — why.** SSE is unidirectional (server → client), standard HTTP (no upgrade handshake, no proxy issues), auto-reconnects on drop, and works with any CDN. WebSockets are bidirectional — justified for chat rooms, multiplayer, collaborative editing; overkill for token streaming. The only gap SSE has vs WebSockets is POST support in the browser — native `EventSource` is GET-only. `@microsoft/fetch-event-source` closes that gap.
 
@@ -186,7 +185,7 @@ This chapter:
 
 Out of scope: conversation memory (Chapter 8), streaming the categorization step (not needed), hybrid BM25 search (Chapter 6), .NET proxy for `/ask/stream` with auth (PF-S08).
 
-## Affected Files
+## 📂 Affected Files
 
 | File | Change |
 |------|--------|
@@ -204,9 +203,8 @@ Out of scope: conversation memory (Chapter 8), streaming the categorization step
 | `apps/frontend/src/lib/supabase.ts` | Create — Supabase client singleton |
 | `apps/frontend/src/hooks/useUploadStatus.ts` | Edit — replace polling with Realtime subscription |
 
----
 
-## TODO
+## 📋 TODO
 
 ### [ ] STEP 0 — Prerequisite gate: PF-AI004 done + theory pre-read (30 min)
 
@@ -237,7 +235,6 @@ If that returns `{"answer":...}`, the gate is open.
 
 > **The interview frame:** "I chose SSE over WebSockets for token streaming because it's unidirectional (server → client is all I need), standard HTTP (no upgrade, no proxy issues, CDN-compatible), and auto-reconnects. The only limitation is POST support — native `EventSource` is GET-only, so I used `@microsoft/fetch-event-source` on the React side, which wraps `fetch()` with the same reconnection semantics."
 
----
 
 ### [ ] STEP 1 — Extend `LlmProvider` protocol: add `stream_generate()`
 
@@ -268,7 +265,6 @@ class LlmProvider(Protocol):
 
 > **Why not add a return value annotation?** The generator finishes when the LLM stream ends — no return value semantics needed. The `done` SSE event is the caller's responsibility, not the generator's.
 
----
 
 ### [ ] STEP 2 — Implement `stream_generate()` in `AnthropicProvider`
 
@@ -325,7 +321,6 @@ asyncio.run(test())
 > // Same pattern: async generator in Python ↔ IAsyncEnumerable<T> in C#
 > ```
 
----
 
 ### [ ] STEP 3 — Implement `stream_generate()` in `GeminiProvider`
 
@@ -372,7 +367,6 @@ class GeminiProvider:
 > ```
 > If you hit this, document it in `docs/performances/ai-observability-metrics.md` and note that Gemini streaming will be a no-op until the SDK supports async streaming in your version.
 
----
 
 ### [ ] STEP 4 — Install `sse-starlette`; expose `app.state.provider`
 
@@ -399,7 +393,6 @@ async def lifespan(app: FastAPI):
 
 `app.state.provider` is needed by `POST /ask/stream` to call `provider.stream_generate()`.
 
----
 
 ### [ ] STEP 5 — Build `POST /ask/stream` SSE endpoint
 
@@ -499,7 +492,6 @@ Expected output: `metadata` event first, then a stream of `token` events, then `
 
 > **The interview frame:** "SSE generators in FastAPI need explicit disconnect detection — unlike WebSockets, there's no close event pushed to the server. I check `request.is_disconnected()` between token yields. That stops the LLM call when the user closes the tab, which saves ~$0.001 per aborted stream at personal volume but adds up at production scale."
 
----
 
 ### [ ] STEP 6 — Write `tests/test_streaming.py`
 
@@ -601,7 +593,6 @@ def test_ask_stream_no_contexts_sends_done_with_not_confident():
 cd services/ai-service && PYTHONPATH=. pytest tests/test_streaming.py -v
 ```
 
----
 
 ### [ ] STEP 7 — React: install deps + `chatApi.ts`
 
@@ -680,7 +671,6 @@ Add `VITE_AI_SERVICE_URL=http://localhost:8000` to `apps/frontend/.env` (or `.en
 
 > **Why `throw err` in `onerror`?** `fetch-event-source` auto-retries on network errors. For a chat app, silent retries are bad UX — the user already sees the chat stuck. Throw to break the retry loop; the `onError` handler surfaces the error to the UI.
 
----
 
 ### [ ] STEP 8 — Build `ChatPage.tsx` and wire the `/chat` route
 
@@ -826,7 +816,6 @@ Also add "Chat" to the sidebar nav in the layout component.
 
 > **Lazy import:** if the frontend grows, wrap `ChatPage` in `React.lazy()` + `Suspense` to avoid adding it to the initial bundle. Not needed now.
 
----
 
 ### [ ] STEP 9 — Supabase Realtime: replace upload status polling
 
@@ -897,7 +886,6 @@ export function useUploadStatus(uploadId: string | null) {
 
 > **The interview frame:** "I replaced polling-based upload status with a Supabase Realtime subscription. The client opens a WebSocket channel to Supabase and receives table-change events within ~50ms of the backend writing a status update, instead of the previous 2-second polling interval. This also installed `@supabase/supabase-js` on the frontend, pre-empting the Supabase Auth integration work."
 
----
 
 ### [ ] STEP 10 — No-buffer verification + load test check
 
@@ -927,7 +915,6 @@ curl -N --no-buffer -X POST http://localhost:8000/ask/stream \
 
 Expected: service log shows the generator exited cleanly (no stack trace, just a log line about disconnect). If you see a `BrokenPipeError` in the logs, add better exception handling around the `async for token in ...` loop.
 
----
 
 ### [ ] STEP 11 — Record metrics + commit
 
@@ -975,7 +962,6 @@ git status    # verify no .env files
 git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase Realtime upload status"
 ```
 
----
 
 ### [ ] STEP 12 — Log progress
 
@@ -983,9 +969,8 @@ git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase 
 /mentor log Built streaming SSE chapter: stream_generate() on Anthropic+Gemini providers, POST /ask/stream (metadata→token→done event protocol, disconnect guard), React chat UI with @microsoft/fetch-event-source (TTFT ~XXXms), Supabase Realtime upload status replacing polling. Chapter 5 complete.
 ```
 
----
 
-## Notes
+## 📌 Notes
 
 - **Chapter 4 gate.** `POST /ask/stream` reuses `SYSTEM_PROMPT` and `_format_context()` from `answerer.py`. Make sure PF-AI004 is committed and the functions are importable before Step 5.
 - **`app.state.provider` vs `app.state.answerer.provider`.** The streaming endpoint calls `provider.stream_generate()` directly — not via `AnswerService`. That's fine: `AnswerService.ask()` returns a complete `AskResponse`; a streaming variant would need a different return type. For now, keep them separate. If a streaming `AnswerService.stream_ask()` method is added later, it's the right seam.
@@ -996,9 +981,8 @@ git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase 
 - **Deferred:** streaming the categorization step (not needed — it's fast), streaming the portfolio review (Chapter 10 demo), conversation history (Chapter 8), .NET `/ask/stream` proxy with auth (PF-S08).
 - **THINK-05 (frozen contract):** `AskRequest` / `AskResponse` / `Citation` were frozen when `.NET` could proxy `/ask`. The streaming endpoint introduces a new SSE protocol — document it separately if `.NET` ever proxies `/ask/stream`.
 
----
 
-## Resources / Theory to Learn
+## 📚 Resources / Theory to Learn
 
 Organized by concept — pull when building the relevant step, not all upfront.
 
@@ -1019,9 +1003,8 @@ Organized by concept — pull when building the relevant step, not all upfront.
 - **Supabase Realtime docs** → https://supabase.com/docs/guides/realtime — `postgres_changes` channel type; enabling Realtime on a table; the filter format (`id=eq.XXX`)
 - **`@supabase/supabase-js` quickstart** → https://supabase.com/docs/reference/javascript/introduction — `createClient`, `channel`, `on`, `subscribe`
 
----
 
-## Learning Strategy
+## 🧠 Learning Strategy
 
 **Daily loop for Chapter 5:**
 - **Day 1 (3h):** Steps 0–4 — theory pre-read + provider streaming. Finish when both `stream_generate()` impls pass a smoke test.
@@ -1049,7 +1032,6 @@ Organized by concept — pull when building the relevant step, not all upfront.
 > "What can I say in an interview today that I couldn't say last Sunday?"
 > Target: *"I built SSE streaming for our RAG chat endpoint — `/ask/stream` emits contexts before generation starts so citations render before the first token, which is better UX and better architecture than post-generation citation validation. Time-to-first-token dropped from ~3s (blocking `/ask`) to ~150ms. I also handled connection drops by polling `request.is_disconnected()` between yields, which stops the LLM call when the user closes the tab — a concrete cost-control pattern. On the React side I used `@microsoft/fetch-event-source` because native `EventSource` is GET-only, then wired Supabase Realtime to replace a 2-second upload polling loop."*
 
----
 
 ## 📝 Knowledge Check
 
@@ -1073,7 +1055,6 @@ Organized by concept — pull when building the relevant step, not all upfront.
 *Maps to: Azure AI-102 · Responsible AI integration patterns; Databricks GenAI Engineer Associate · Application Development*
 </details>
 
----
 
 ### 2. POST body + SSE — why native EventSource falls short (Databricks · Google Cloud PMLE)
 
@@ -1093,7 +1074,6 @@ Organized by concept — pull when building the relevant step, not all upfront.
 *Maps to: Databricks GenAI Engineer Associate · Application Development; Google Cloud PMLE · MLOps / Serving*
 </details>
 
----
 
 ### 3. Disconnect handling in async SSE generators (AWS ML Engineer · Azure AI-102)
 
@@ -1113,7 +1093,6 @@ Organized by concept — pull when building the relevant step, not all upfront.
 *Maps to: AWS Certified ML Engineer – Associate · ML infrastructure / cost optimization; Azure AI-102 · Implement solutions using Azure OpenAI (streaming patterns)*
 </details>
 
----
 
 ### 4. Citation design for streaming — metadata-first vs done-event (Databricks · Google Cloud PMLE)
 
@@ -1133,7 +1112,6 @@ Organized by concept — pull when building the relevant step, not all upfront.
 *Maps to: Databricks GenAI Engineer Associate · Application Development (RAG UX patterns); Google Cloud PMLE · Serving patterns*
 </details>
 
----
 
 ### 5. `asyncio.to_thread` vs native async streaming (Databricks · AWS ML Engineer)
 
@@ -1153,7 +1131,6 @@ Organized by concept — pull when building the relevant step, not all upfront.
 *Maps to: Databricks GenAI Engineer Associate · Application Development (async patterns); AWS Certified ML Engineer – Associate · ML infrastructure*
 </details>
 
----
 
 ### 6. Supabase Realtime vs polling — tradeoffs (Azure AI-102 · Google Cloud PMLE)
 
