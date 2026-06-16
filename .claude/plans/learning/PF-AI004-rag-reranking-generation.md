@@ -51,7 +51,7 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ## Chunking
 
-> **Honest project mapping:** a transaction in this app is already one short DB row (`"GOFOOD GEPREK BENSU GADING | BCA | 2026-03-14 | DB"`) — there's nothing to chunk there. The thing actually worth chunking is the longer source text: multi-page bank statement narratives like `evals/fixtures/bca_01.txt`. That's what `chunker.py` is built and tested against this chapter; wiring it into real chunked *retrieval* is Chapter 6's job. So read "chunking" below as "how do I cut a long document into pieces an embedding model can handle," not "how do I chunk one transaction."
+> **Honest project mapping:** a transaction in this app is already one short DB row (`"GOFOOD GEPREK BENSU GADING | BCA | 2026-03-14 | DB"`) — there's nothing to chunk there. The thing actually worth chunking is the longer source text: multi-page bank statement narratives like [bca_01.txt](../../../services/ai-service/evals/fixtures/bca_01.txt). That's what [chunker.py](../../../services/ai-service/app/services/chunker.py) is built and tested against this chapter; wiring it into real chunked *retrieval* is Chapter 6's job. So read "chunking" below as "how do I cut a long document into pieces an embedding model can handle," not "how do I chunk one transaction."
 
 **Rung 0 — slice the raw text every 35 characters.** The dumbest possible chunker: walk the statement text and cut a new piece every 35 characters, no matter what's there.
 
@@ -63,7 +63,7 @@ Three mini-ladders below — one per concept this chapter ships.
 
 > **The wall:** overlap stops you from *losing* facts at a boundary, but the splitter still has zero awareness of structure. It can just as easily cut `"25/03/2024 TRANSFER DEBET SEWA BULANAN"` away from its amount `"1.500.000,00"` if that's where character 500 happens to fall — the description and the number that belongs to it end up in different chunks.
 
-**Rung 2 — split on structural separators, not raw counts.** `sentence_window_chunks(text, window_size)` (Step 2) splits on `\n` and sentence-ending punctuation instead of a character count, so each chunk is a *complete* line or sentence — never half a merchant name, never a description severed from its amount. It also attaches a `window` of ±N neighboring sentences, so the unit you *search* is small and precise but the unit you *hand to the reader* has enough surrounding context — "small-to-search, big-to-read." → *this is what the chapter ships: both `fixed_size_chunks` and `sentence_window_chunks`, unit-tested in `tests/test_chunker.py`.*
+**Rung 2 — split on structural separators, not raw counts.** `sentence_window_chunks(text, window_size)` (Step 2) splits on `\n` and sentence-ending punctuation instead of a character count, so each chunk is a *complete* line or sentence — never half a merchant name, never a description severed from its amount. It also attaches a `window` of ±N neighboring sentences, so the unit you *search* is small and precise but the unit you *hand to the reader* has enough surrounding context — "small-to-search, big-to-read." → *this is what the chapter ships: both `fixed_size_chunks` and `sentence_window_chunks`, unit-tested in [test_chunker.py](../../../services/ai-service/tests/test_chunker.py).*
 
 > **The wall (next chapter's problem, not this one):** structure ≠ meaning. A line break or a period doesn't know that two adjacent transactions are unrelated, or that one transaction's description happens to wrap across two "sentences." Splitting on `\n`/punctuation is a good proxy for structure, but it can still group unrelated content or split related content purely because of where the document happens to break.
 
@@ -81,7 +81,7 @@ Three mini-ladders below — one per concept this chapter ships.
 
 > **The wall:** a quality hosted cross-encoder (Cohere Rerank) costs money and a network round-trip per call. Fine for production traffic; hostile to an eval harness you want to re-run a dozen times while iterating — every run either costs you or gets rate-limited.
 
-**Rung 2 — FlashRank: the same cross-encoder idea, running locally.** A ~34 MB MiniLM cross-encoder that runs on CPU, no API key, no rate limit, deterministic — free to re-run the eval harness as many times as you want. → *this is what the chapter ships* (`reranker.py`, Step 3).
+**Rung 2 — FlashRank: the same cross-encoder idea, running locally.** A ~34 MB MiniLM cross-encoder that runs on CPU, no API key, no rate limit, deterministic — free to re-run the eval harness as many times as you want. → *this is what the chapter ships* ([reranker.py](../../../services/ai-service/app/services/reranker.py), Step 3).
 
 > **Teaser, covered in the build steps:** FlashRank's `rerank()` call is synchronous CPU inference. Call it directly inside an `async def` endpoint and it blocks the event loop for *every* concurrent request the service is handling. The fix (`asyncio.to_thread`) is in Step 3 — named here so the wall doesn't surprise you mid-build.
 
@@ -101,7 +101,7 @@ Three mini-ladders below — one per concept this chapter ships.
 
 > **The wall:** even a well-grounded model occasionally cites a `transaction_id` that was never in the context it was handed — a number it pattern-matched from training data or a nearby digit, not something it actually read.
 
-**Rung 3 — validate every cited id against the context you actually gave it.** After the model responds, check each `cited_transaction_ids` entry against the set of ids that were really in the prompt; silently drop (and log) anything that isn't there. → *this is what ships* — the citation-validation loop in `answerer.py` (Step 8), the **hallucination guard**.
+**Rung 3 — validate every cited id against the context you actually gave it.** After the model responds, check each `cited_transaction_ids` entry against the set of ids that were really in the prompt; silently drop (and log) anything that isn't there. → *this is what ships* — the citation-validation loop in [answerer.py](../../../services/ai-service/app/services/answerer.py) (Step 8), the **hallucination guard**.
 
 ▶ **Watch/read for this concept:** [Anthropic — Reducing hallucinations](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) — the grounding-prompt patterns used in this chapter's `SYSTEM_PROMPT`.
 
@@ -169,27 +169,27 @@ Transactions (DB rows)            User Query
 
 This task builds the second half — **re-ranking and grounded generation**, plus the chunking foundations Chapter 6 will build on:
 
-1. **Chunking module** — `app/services/chunker.py` with two strategies (fixed-size with overlap, sentence-window) + unit tests. Transactions are single short rows, so chunking is learned and tested against real statement *fixture text* now; production chunked retrieval lands in Chapter 6 (sentence-window retrieval).
-2. **Re-ranker** — `app/services/reranker.py` wrapping FlashRank (local cross-encoder, free, no API key). Top-10 retrieved → top-K re-ranked.
+1. **Chunking module** — [chunker.py](../../../services/ai-service/app/services/chunker.py) with two strategies (fixed-size with overlap, sentence-window) + unit tests. Transactions are single short rows, so chunking is learned and tested against real statement *fixture text* now; production chunked retrieval lands in Chapter 6 (sentence-window retrieval).
+2. **Re-ranker** — [reranker.py](../../../services/ai-service/app/services/reranker.py) wrapping FlashRank (local cross-encoder, free, no API key). Top-10 retrieved → top-K re-ranked.
 3. **Metadata filtering** — optional `category`, `account`, `date_from`, `date_to` on `SearchRequest`, compiled to parametrized SQL WHERE clauses in `RetrievalService`.
-4. **Grounded synthesis** — `app/services/answerer.py`: retrieve top-10 → re-rank to top-3 → `LlmProvider.generate_json` (existing Gemini/Anthropic factory) → answer with citations. Exposed as `POST /ask`.
-5. **Measure the lift** — extend `evals/eval_retrieval.py` with `--rerank`; record the MRR@5 delta vs the Chapter 3 baseline.
-6. **RAGAS faithfulness** — `evals/eval_faithfulness.py` scores 5 generated answers for groundedness against their retrieved contexts.
+4. **Grounded synthesis** — [answerer.py](../../../services/ai-service/app/services/answerer.py): retrieve top-10 → re-rank to top-3 → `LlmProvider.generate_json` (existing Gemini/Anthropic factory) → answer with citations. Exposed as `POST /ask`.
+5. **Measure the lift** — extend [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) with `--rerank`; record the MRR@5 delta vs the Chapter 3 baseline.
+6. **RAGAS faithfulness** — [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) scores 5 generated answers for groundedness against their retrieved contexts.
 
 **Depends on:** PF-AI003 (retriever, embeddings, MRR harness — the baseline number must exist before measuring lift; finish the Chapter 3 eval gate first).
 **Unblocks:** Chapter 5 (stream `/ask` tokens over SSE), Chapter 6 (advanced retrieval variants measured with this same harness).
 
 ## ✅ Acceptance Criteria
 
-- [ ] `app/services/chunker.py` — `fixed_size_chunks(text, chunk_size, overlap)` + `sentence_window_chunks(text, window_size)`; both covered by unit tests in `tests/test_chunker.py` (≥ 6 tests), demonstrated against one real eval fixture statement text
-- [ ] `app/services/reranker.py` — `RerankerService.rerank(query, results, top_k)` re-orders `SearchResult` lists via FlashRank cross-encoder, runs off the event loop (`asyncio.to_thread`), unit-tested with a mocked ranker
+- [ ] [chunker.py](../../../services/ai-service/app/services/chunker.py) — `fixed_size_chunks(text, chunk_size, overlap)` + `sentence_window_chunks(text, window_size)`; both covered by unit tests in [test_chunker.py](../../../services/ai-service/tests/test_chunker.py) (≥ 6 tests), demonstrated against one real eval fixture statement text
+- [ ] [reranker.py](../../../services/ai-service/app/services/reranker.py) — `RerankerService.rerank(query, results, top_k)` re-orders `SearchResult` lists via FlashRank cross-encoder, runs off the event loop (`asyncio.to_thread`), unit-tested with a mocked ranker
 - [ ] `SearchRequest` accepts optional `category`, `account`, `date_from`, `date_to`, `rerank` — `RetrievalService.search()` compiles them to parametrized WHERE clauses (no string interpolation of values)
 - [ ] `POST /ask` — accepts `{query, top_k, filters...}`, returns `{answer, citations[], model, retrieval_ms, generation_ms}`; answer text references citations as `[1]`, `[2]`; LLM failures return 502 (never 200-with-empty per ai-service rules)
 - [ ] Demo question works end-to-end: a food-spending question in Indonesian returns a correct IDR total with cited transactions
-- [ ] `evals/eval_retrieval.py --rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in `docs/performances/ai-observability-metrics.md`
-- [ ] `evals/eval_faithfulness.py` — RAGAS `Faithfulness` on 5 generated answers; mean score recorded (target ≥ 0.80)
-- [ ] `tests/test_reranker.py` + `tests/test_answerer.py` pass (mocked FlashRank / mocked provider — no real API calls in tests)
-- [ ] `pyproject.toml` updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
+- [ ] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) `--rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
+- [ ] [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) — RAGAS `Faithfulness` on 5 generated answers; mean score recorded (target ≥ 0.80)
+- [ ] [test_reranker.py](../../../services/ai-service/tests/test_reranker.py) + [test_answerer.py](../../../services/ai-service/tests/test_answerer.py) pass (mocked FlashRank / mocked provider — no real API calls in tests)
+- [ ] [pyproject.toml](../../../services/ai-service/pyproject.toml) updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
 - [ ] Langfuse traces exist for the `/ask` generation step (cost + latency visible, same pattern as extraction)
 
 ## 🧭 Approach
@@ -208,20 +208,20 @@ Out of scope: streaming the answer (Chapter 5), hybrid BM25 + vector search and 
 
 | File | Change |
 |------|--------|
-| `services/ai-service/app/services/chunker.py` | Create — fixed-size + sentence-window chunking strategies |
-| `services/ai-service/app/services/reranker.py` | Create — `RerankerService` (FlashRank cross-encoder) |
-| `services/ai-service/app/services/answerer.py` | Create — `AnswerService` (retrieve → rerank → grounded synthesis) |
-| `services/ai-service/app/services/retriever.py` | Edit — optional metadata filters compiled to WHERE clauses |
-| `services/ai-service/app/models.py` | Edit — extend `SearchRequest`; add `AskRequest`, `Citation`, `AskResponse` |
-| `services/ai-service/app/main.py` | Edit — add `POST /ask`; wire reranker + answerer in lifespan |
-| `services/ai-service/pyproject.toml` | Edit — add `flashrank`; dev extra: `ragas`, `langchain-openai` |
-| `services/ai-service/tests/test_chunker.py` | Create — unit tests for both strategies |
-| `services/ai-service/tests/test_reranker.py` | Create — unit tests (mocked FlashRank) |
-| `services/ai-service/tests/test_answerer.py` | Create — unit tests (mocked retriever/reranker/provider) |
-| `services/ai-service/evals/eval_retrieval.py` | Edit — `--rerank` flag + baseline/reranked delta table |
-| `services/ai-service/evals/eval_faithfulness.py` | Create — RAGAS faithfulness on 5 generated answers |
-| `services/ai-service/evals/ask_questions.json` | Create — 5 eval questions with expected-answer notes |
-| `docs/performances/ai-observability-metrics.md` | Edit — MRR delta, faithfulness score, /ask latency split |
+| [chunker.py](../../../services/ai-service/app/services/chunker.py) | Create — fixed-size + sentence-window chunking strategies |
+| [reranker.py](../../../services/ai-service/app/services/reranker.py) | Create — `RerankerService` (FlashRank cross-encoder) |
+| [answerer.py](../../../services/ai-service/app/services/answerer.py) | Create — `AnswerService` (retrieve → rerank → grounded synthesis) |
+| [retriever.py](../../../services/ai-service/app/services/retriever.py) | Edit — optional metadata filters compiled to WHERE clauses |
+| [models.py](../../../services/ai-service/app/models.py) | Edit — extend `SearchRequest`; add `AskRequest`, `Citation`, `AskResponse` |
+| [main.py](../../../services/ai-service/app/main.py) | Edit — add `POST /ask`; wire reranker + answerer in lifespan |
+| [pyproject.toml](../../../services/ai-service/pyproject.toml) | Edit — add `flashrank`; dev extra: `ragas`, `langchain-openai` |
+| [test_chunker.py](../../../services/ai-service/tests/test_chunker.py) | Create — unit tests for both strategies |
+| [test_reranker.py](../../../services/ai-service/tests/test_reranker.py) | Create — unit tests (mocked FlashRank) |
+| [test_answerer.py](../../../services/ai-service/tests/test_answerer.py) | Create — unit tests (mocked retriever/reranker/provider) |
+| [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) | Edit — `--rerank` flag + baseline/reranked delta table |
+| [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) | Create — RAGAS faithfulness on 5 generated answers |
+| [ask_questions.json](../../../services/ai-service/evals/ask_questions.json) | Create — 5 eval questions with expected-answer notes |
+| [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) | Edit — MRR delta, faithfulness score, /ask latency split |
 
  
 ## 📋 TODO
@@ -233,7 +233,7 @@ cd services/ai-service
 PYTHONPATH=. python evals/eval_retrieval.py   # must print a real MRR@5 — not run on placeholder IDs
 ```
 
-> **Why:** This entire chapter's headline deliverable is a *delta* — "re-ranking improved P@5 from 0.66 to 0.YY." Without the Chapter 3 baseline recorded first, there is nothing to measure lift against. Do not start Step 1 until `docs/performances/ai-observability-metrics.md` has the baseline numbers.
+> **Why:** This entire chapter's headline deliverable is a *delta* — "re-ranking improved P@5 from 0.66 to 0.YY." Without the Chapter 3 baseline recorded first, there is nothing to measure lift against. Do not start Step 1 until [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) has the baseline numbers.
 
 > **Note (2026-06-13):** The original Chapter 3 baseline was 0.476 MRR@5 — this was a corrupted metric caused by IVFFlat `probes=1` (default) only searching 1 of 100 clusters. Fixed by adding `SET ivfflat.probes = 10` in `RetrievalService.search()`. Real baseline after fix: **MRR@5 = 1.000, P@5 = 0.66**. The re-ranking lift story therefore shifts from MRR to P@5 — MRR is already maxed. The probes bug is itself a debugging story worth keeping for interviews ("I found that our retrieval baseline was corrupted by an IVFFlat misconfiguration — after fixing it, MRR jumped from 0.476 to 1.000").
 
@@ -247,7 +247,7 @@ The one genuine pre-read of the chapter. The wall here is understanding *why a s
 2. FlashRank README → https://github.com/PrithivirajDamodaran/FlashRank (skim the model table + usage — 10 min)
 3. Cohere — *Rerank* overview → https://docs.cohere.com/docs/rerank-overview (read for the hosted-alternative framing only — 10 min)
 
-**Active-retrieval task (do NOT skip):** Close all tabs. Append to `evals/README.md` a section `## Re-ranking mental model (written from memory)`:
+**Active-retrieval task (do NOT skip):** Close all tabs. Append to [evals/README.md](../../../services/ai-service/evals/README.md) a section `## Re-ranking mental model (written from memory)`:
 - Why can't the bi-encoder (embedding) score be as accurate as the cross-encoder score? (hint: when does each model see query and document *together*?)
 - Why is the standard pattern "retrieve 10 with the fast model, re-rank with the slow model" instead of cross-encoding the whole table?
 - What does "ms-marco" in the model name refer to, and why does that matter for *your* Indonesian-language transactions?
@@ -257,9 +257,9 @@ The one genuine pre-read of the chapter. The wall here is understanding *why a s
 > **The interview frame:** "My retrieval is a two-stage funnel: pgvector cosine search retrieves the top-10 candidates with a bi-encoder embedding, then a local cross-encoder (FlashRank MiniLM) re-scores those 10 by reading query and document together, and the top-3 feed generation. Re-ranking moved my MRR@5 from 0.XX to 0.YY at ~Zms added latency, with no extra API cost because the cross-encoder runs locally."
 
 
-### [ ] STEP 2 — Build `app/services/chunker.py` (pure module, no I/O)
+### [ ] STEP 2 — Build [chunker.py](../../../services/ai-service/app/services/chunker.py) (pure module, no I/O)
 
-Create `services/ai-service/app/services/chunker.py`:
+Create [services/ai-service/app/services/chunker.py](../../../services/ai-service/app/services/chunker.py):
 
 ```python
 """Chunking strategies for longer-form documents (statement narratives, notes).
@@ -325,7 +325,7 @@ def sentence_window_chunks(text: str, window_size: int = 1) -> list[Chunk]:
     return chunks
 ```
 
-Create `services/ai-service/tests/test_chunker.py`:
+Create [services/ai-service/tests/test_chunker.py](../../../services/ai-service/tests/test_chunker.py):
 
 ```python
 import pytest
@@ -383,9 +383,9 @@ cd services/ai-service && PYTHONPATH=. pytest tests/test_chunker.py -v
 > **The interview frame:** "Fixed-size with overlap is the baseline — overlap prevents boundary facts from being lost to both chunks. Sentence-window is the refinement: index small units for precise matching, but return the expanded window so the LLM gets enough context. Small-to-search, big-to-read."
 
 
-### [ ] STEP 3 — Add FlashRank + build `app/services/reranker.py`
+### [ ] STEP 3 — Add FlashRank + build [reranker.py](../../../services/ai-service/app/services/reranker.py)
 
-Add to `pyproject.toml` dependencies:
+Add to [pyproject.toml](../../../services/ai-service/pyproject.toml) dependencies:
 
 ```toml
     "flashrank>=0.2",
@@ -395,7 +395,7 @@ Add to `pyproject.toml` dependencies:
 cd services/ai-service && pip install flashrank
 ```
 
-Create `services/ai-service/app/services/reranker.py`:
+Create [services/ai-service/app/services/reranker.py](../../../services/ai-service/app/services/reranker.py):
 
 ```python
 """RerankerService: cross-encoder re-ranking over retrieved transactions.
@@ -450,7 +450,7 @@ class RerankerService:
         return reranked[:top_k]
 ```
 
-Create `services/ai-service/tests/test_reranker.py`:
+Create [services/ai-service/tests/test_reranker.py](../../../services/ai-service/tests/test_reranker.py):
 
 ```python
 from unittest.mock import MagicMock, patch
@@ -523,7 +523,7 @@ PYTHONPATH=. pytest tests/test_reranker.py -v
 
 ### [ ] STEP 4 — Metadata filtering in `RetrievalService` + `SearchRequest`
 
-Extend `SearchRequest` in `app/models.py` (additive — THINK-05 safe):
+Extend `SearchRequest` in [app/models.py](../../../services/ai-service/app/models.py) (additive — THINK-05 safe):
 
 ```python
 class SearchRequest(BaseModel):
@@ -539,7 +539,7 @@ class SearchRequest(BaseModel):
     rerank: bool = False
 ```
 
-Edit `RetrievalService.search()` in `app/services/retriever.py` to accept the filters and compile them into the SQL:
+Edit `RetrievalService.search()` in [app/services/retriever.py](../../../services/ai-service/app/services/retriever.py) to accept the filters and compile them into the SQL:
 
 ```python
     async def search(
@@ -592,7 +592,7 @@ Edit `RetrievalService.search()` in `app/services/retriever.py` to accept the fi
         # ... existing row → SearchResult mapping unchanged ...
 ```
 
-Update `/search` in `main.py` to pass the new fields through, and apply `rerank` when requested:
+Update `/search` in [main.py](../../../services/ai-service/app/main.py) to pass the new fields through, and apply `rerank` when requested:
 
 ```python
 @app.post("/search", response_model=SearchResponse)
@@ -612,7 +612,7 @@ async def search_transactions(request: SearchRequest) -> SearchResponse:
     return SearchResponse(results=results, query=request.query, total_found=len(results))
 ```
 
-Add 2–3 filter tests to `tests/test_retriever.py` (assert the generated SQL contains the clause and the parameter list lines up — mocked asyncpg, same pattern as the existing 4 tests).
+Add 2–3 filter tests to [tests/test_retriever.py](../../../services/ai-service/tests/test_retriever.py) (assert the generated SQL contains the clause and the parameter list lines up — mocked asyncpg, same pattern as the existing 4 tests).
 
 > **Why filter in SQL instead of post-filtering the results?** Post-filtering retrieves top-10 *then* drops non-matching rows — a March-only query might come back with 1 result even though the table has 50 March food transactions, because the unfiltered top-10 was dominated by other months. Pushing filters into WHERE means pgvector ranks *within* the filtered set, so `LIMIT top_k` stays meaningful. This is "pre-filtering vs post-filtering" in vector-search terms — a standard interview probe.
 
@@ -621,7 +621,7 @@ Add 2–3 filter tests to `tests/test_retriever.py` (assert the generated SQL co
 
 ### [ ] STEP 5 — Re-run the MRR harness with re-ranking, record the delta
 
-Extend `evals/eval_retrieval.py` with a `--rerank` flag:
+Extend [evals/eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) with a `--rerank` flag:
 
 ```python
 """Retrieval benchmark: MRR@5, optionally with cross-encoder re-ranking.
@@ -659,7 +659,7 @@ if __name__ == "__main__":
     asyncio.run(run(args.rerank))
 ```
 
-Run both modes back-to-back and record in `docs/performances/ai-observability-metrics.md`:
+Run both modes back-to-back and record in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
 
 ```bash
 cd services/ai-service
@@ -687,7 +687,7 @@ Before writing any `/ask` code, the `generate_json` schema gets the THINK-03 tab
 > **Why:** THINK-03 — a `string` amount or id in a tool/JSON schema corrupts silently: no compile error, no exception, just wrong joins downstream. Listing each field with its type and consumer *before* coding is the rule. `confident: boolean` exists because the grounding instruction alone ("say you don't know") produces prose the caller can't branch on — a boolean is machine-checkable.
 
 
-### [ ] STEP 7 — Add `/ask` models to `app/models.py`
+### [ ] STEP 7 — Add `/ask` models to [app/models.py](../../../services/ai-service/app/models.py)
 
 ```python
 # ── RAG Phase 2: Grounded Q&A ────────────────────────────────────────────────
@@ -724,9 +724,9 @@ class AskResponse(BaseModel):
 > **Why `retrieval_ms` / `generation_ms` split in the response?** Chapter 5 streams this endpoint; knowing *where* the latency lives (retrieval ~100ms vs generation ~2s) is what justifies streaming the generation phase. Measuring the split now gives you the before/after story, and it's a free observability win in every demo.
 
 
-### [ ] STEP 8 — Build `app/services/answerer.py` (the RAG read path)
+### [ ] STEP 8 — Build [answerer.py](../../../services/ai-service/app/services/answerer.py) (the RAG read path)
 
-Create `services/ai-service/app/services/answerer.py`:
+Create [services/ai-service/app/services/answerer.py](../../../services/ai-service/app/services/answerer.py):
 
 ```python
 """AnswerService: grounded Q&A over transactions.
@@ -843,7 +843,7 @@ class AnswerService:
         )
 ```
 
-Create `services/ai-service/tests/test_answerer.py` — mock all three collaborators (canonical AsyncMock pattern from `.claude/rules/ai-service.md`):
+Create [services/ai-service/tests/test_answerer.py](../../../services/ai-service/tests/test_answerer.py) — mock all three collaborators (canonical AsyncMock pattern from [.claude/rules/ai-service.md](../../rules/ai-service.md)):
 
 ```python
 from unittest.mock import AsyncMock
@@ -908,7 +908,7 @@ PYTHONPATH=. pytest tests/test_answerer.py -v
 > **Why validate `cited_transaction_ids` against the context?** LLMs cite confidently and wrongly. An id not in the provided context is by definition fabricated — silently passing it through would render a clickable citation pointing at an unrelated (or nonexistent) transaction. Dropping + logging makes hallucination *visible* in Langfuse instead of shipping it to the UI. This guard is a one-liner that comes up in every "how do you handle hallucination?" interview.
 
 
-### [ ] STEP 9 — Wire `POST /ask` in `app/main.py`
+### [ ] STEP 9 — Wire `POST /ask` in [app/main.py](../../../services/ai-service/app/main.py)
 
 In the lifespan, after the existing embedder/retriever wiring:
 
@@ -921,7 +921,7 @@ In the lifespan, after the existing embedder/retriever wiring:
     )
 ```
 
-Add the endpoint (error contract per `.claude/rules/ai-service.md` — LLM failure is 502, never 200-with-empty):
+Add the endpoint (error contract per [.claude/rules/ai-service.md](../../rules/ai-service.md) — LLM failure is 502, never 200-with-empty):
 
 ```python
 @app.post("/ask", response_model=AskResponse)
@@ -944,12 +944,12 @@ curl -X POST http://localhost:8000/ask \
 
 Verify: the answer contains a real IDR total, `[n]` markers, `citations` lists real transactions, and the Langfuse dashboard shows the generation with cost.
 
-> **Why `502` and not `500` on LLM failure?** The error contract table in `.claude/rules/ai-service.md`: provider failures and malformed LLM output are upstream-dependency errors → 502, which the .NET API maps to a user-visible "AI temporarily unavailable" rather than a generic crash. Returning 200 with an empty answer is explicitly forbidden — it would poison any downstream caching/eval with fake successes.
+> **Why `502` and not `500` on LLM failure?** The error contract table in [.claude/rules/ai-service.md](../../rules/ai-service.md): provider failures and malformed LLM output are upstream-dependency errors → 502, which the .NET API maps to a user-visible "AI temporarily unavailable" rather than a generic crash. Returning 200 with an empty answer is explicitly forbidden — it would poison any downstream caching/eval with fake successes.
 
 
-### [ ] STEP 10 — Write `evals/ask_questions.json` + RAGAS faithfulness eval
+### [ ] STEP 10 — Write [evals/ask_questions.json](../../../services/ai-service/evals/ask_questions.json) + RAGAS faithfulness eval
 
-Add eval-only dependencies to the `dev` extra in `pyproject.toml`:
+Add eval-only dependencies to the `dev` extra in [pyproject.toml](../../../services/ai-service/pyproject.toml):
 
 ```toml
 dev = [
@@ -963,7 +963,7 @@ dev = [
 pip install ragas langchain-openai
 ```
 
-Create `evals/ask_questions.json` — 5 questions you can verify by hand against Supabase Studio:
+Create [evals/ask_questions.json](../../../services/ai-service/evals/ask_questions.json) — 5 questions you can verify by hand against Supabase Studio:
 
 ```json
 [
@@ -975,7 +975,7 @@ Create `evals/ask_questions.json` — 5 questions you can verify by hand against
 ]
 ```
 
-Create `services/ai-service/evals/eval_faithfulness.py`:
+Create [services/ai-service/evals/eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py):
 
 ```python
 """RAGAS faithfulness on /ask answers: is every claim grounded in the retrieved context?
@@ -1035,7 +1035,7 @@ if __name__ == "__main__":
     asyncio.run(run())
 ```
 
-Run and record the mean in `docs/performances/ai-observability-metrics.md`:
+Run and record the mean in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
 
 ```bash
 PYTHONPATH=. python evals/eval_faithfulness.py
@@ -1048,7 +1048,7 @@ PYTHONPATH=. python evals/eval_faithfulness.py
 
 ### [ ] STEP 11 — Update the metrics doc
 
-Append to `docs/performances/ai-observability-metrics.md`:
+Append to [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
 
 ```markdown
 ## RAG Phase 2 (PF-AI004) — re-ranking + generation
@@ -1111,7 +1111,7 @@ git commit -m "PF-AI004: RAG Phase 2 — chunking, FlashRank re-ranking, grounde
 - **`ms-marco` models are English-trained.** Your queries are Indonesian. If the Step 5 delta disappoints, FlashRank's multilingual option (`miniReranker_arabic_v1` is *not* it — check the README table for the multilingual entry) or a language note in the metrics doc is the move. Either outcome is a documented finding (THINK-04).
 - **`AnswerService` uses constructor injection** (unlike the self-constructing `EmbeddingService`/`RetrievalService` from PF-AI003). Deliberate: three swappable collaborators, trivial mocking, and the shape Chapter 8's LangGraph nodes will want. Don't retro-fit the older services now.
 - **RAGAS pulls langchain into the venv.** Confined to the `dev` extra — it must never be imported from `app/` code. The app's only LLM surface remains `ProviderFactory`.
-- **THINK-05 (frozen contract):** `SearchRequest`/`SearchResponse` changes are additive-optional only. `AskRequest`/`AskResponse`/`Citation` are *new* contract surface — when .NET grows an `/ask` proxy (Chapter 5, for the chat UI), the field names freeze; note it in `.claude/rules/ai-service.md` then.
+- **THINK-05 (frozen contract):** `SearchRequest`/`SearchResponse` changes are additive-optional only. `AskRequest`/`AskResponse`/`Citation` are *new* contract surface — when .NET grows an `/ask` proxy (Chapter 5, for the chat UI), the field names freeze; note it in [.claude/rules/ai-service.md](../../rules/ai-service.md) then.
 - **`/ask` cost profile:** ~3 context transactions + a short question ≈ 500–800 input tokens to Gemini 2.5 Flash per ask — effectively free at personal volume; the Langfuse trace from PF-AI001 captures it without new code.
 - **Next chapter (5 — Streaming):** `generation_ms` will dominate `retrieval_ms` by ~10–20×. That measured split is the justification for streaming `/ask` over SSE, and the `AnswerService` seam (provider call isolated in one place) is where the streaming variant plugs in.
 - **Deferred:** hybrid BM25 + vector search (Chapter 6), chunked-corpus retrieval wiring (Chapter 6), conversation memory (Chapter 8), .NET `/ask` proxy + chat UI (Chapter 5), Cohere Rerank swap (only if FlashRank disappoints on Indonesian).
@@ -1152,7 +1152,7 @@ Organized by concept — read the one tied to what you're building; skip the res
 - **Next session:** evals (Steps 5, 10) + metrics + commit. Eval runs need wall-clock time — interleave with writing the metrics doc.
 
 **The 5 principles applied to Chapter 4:**
-1. **Active retrieval:** Step 1's three questions, written from memory into `evals/README.md`. If you can't explain why the cross-encoder sees query+document together, re-read before coding.
+1. **Active retrieval:** Step 1's three questions, written from memory into [evals/README.md](../../../services/ai-service/evals/README.md). If you can't explain why the cross-encoder sees query+document together, re-read before coding.
 2. **Project-first:** the only pre-reads are Step 1 (re-ranking) and the THINK-03 schema gate (Step 6). Chunking/RAGAS docs are pull-when-stuck.
 3. **Same-day shipping:** Steps 2–3 committed day 1; Steps 4–9 day 2; evals + numbers day 3. Three commits, not one mega-commit.
 4. **Interleaving:** FlashRank model download, backfill confirmation, and eval runs all have wall time — write the next step's test file while they run.
@@ -1163,7 +1163,7 @@ Organized by concept — read the one tied to what you're building; skip the res
 - ❌ Re-ranking only the top-5. The lift comes from widening the funnel (retrieve 10) — re-ordering 5 items barely moves MRR@5.
 - ❌ Calling FlashRank inline in the async endpoint. It's sync CPU inference — `asyncio.to_thread` or you stall the event loop for every concurrent request.
 - ❌ Letting the LLM's `cited_transaction_ids` pass through unvalidated. Citation hallucination is the #1 trust-killer in a finance app; the guard is 5 lines.
-- ❌ Tuning the grounding prompt by vibes. Question 5 in `ask_questions.json` (the no-data adversarial) is the regression test — if it ever returns a confident number, the prompt regressed.
+- ❌ Tuning the grounding prompt by vibes. Question 5 in [ask_questions.json](../../../services/ai-service/evals/ask_questions.json) (the no-data adversarial) is the regression test — if it ever returns a confident number, the prompt regressed.
 - ❌ Returning 200 with an empty answer on LLM failure. The error contract says 502 — eval harnesses and .NET error mapping both depend on it.
 
 **The Sunday metric:**
