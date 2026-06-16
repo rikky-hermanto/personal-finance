@@ -6,6 +6,83 @@
 > **Planned from branch:** main
 > **Pivot goal:** Turn the toy into something defensible. Naive top-K retrieval is the demo version of RAG — hiring managers ask about chunking strategy, re-ranking, and grounded synthesis. After this chapter, `POST /ask {"query": "berapa pengeluaran makan bulan Maret?"}` returns a correct, *cited* answer, and you can quote two deltas: "re-ranking moved MRR@5 from 0.XX to 0.YY" and "RAGAS faithfulness on my generated answers is 0.ZZ."
 
+# The Ladder
+
+> Read this before the implementation steps. The goal is to *understand* the concept by watching
+> it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
+
+## High level — what is this?
+
+Chapter 3 shipped half a RAG pipeline: embed a query, cosine-search pgvector, return the top-K rows. That's retrieval — and it's naive in two specific ways. First, *what you embed* matters: chop the source text wrong and you embed garbled fragments. Second, *trusting cosine similarity alone* lets near-miss rows sneak into the top results, and even a perfect top-3 is just rows — not an answer a human asked for. This chapter fixes both: it teaches you how text gets prepared before embedding (**chunking**), how a second, slower model double-checks the first one's ranking (**re-ranking**), and how raw rows become a trustworthy, cited sentence (**grounded generation**).
+
+```
+chunk ──▶ embed ──▶ store ──▶ retrieve ──▶ re-rank ──▶ generate ──▶ cite
+ Ch.4      Ch.3       Ch.3       Ch.3         Ch.4        Ch.4       Ch.4
+(prep)   (vector)   (pgvector) (cosine     (cross-     (LLM +     (validate
+                                 top-10)    encoder)    context)   ids exist)
+```
+
+Three mini-ladders below — one per concept this chapter ships.
+
+## Chunking — from naive to shipped
+
+> **Honest project mapping:** a transaction in this app is already one short DB row (`"GOFOOD GEPREK BENSU GADING | BCA | 2026-03-14 | DB"`) — there's nothing to chunk there. The thing actually worth chunking is the longer source text: multi-page bank statement narratives like `evals/fixtures/bca_01.txt`. That's what `chunker.py` is built and tested against this chapter; wiring it into real chunked *retrieval* is Chapter 6's job. So read "chunking" below as "how do I cut a long document into pieces an embedding model can handle," not "how do I chunk one transaction."
+
+**Rung 0 — slice the raw text every 35 characters.** The dumbest possible chunker: walk the statement text and cut a new piece every 35 characters, no matter what's there.
+
+> **The wall:** run that over a real line from `bca_01.txt` —
+> `14/03/2024 GOFOOD GEPREK BENSU GADING                               85.000,00`
+> — and character 35 lands *inside* the merchant name. The cut produces `"...BENSU GADI"` as one chunk and `"NG    85.000,00..."` as the next. You've now embedded "GADI" and "NG" as two unrelated fragments — neither one looks anything like "GADING" to an embedding model, so a later search for that merchant misses both halves.
+
+**Rung 1 — an automated splitter with overlap (same idea, less breakage).** `fixed_size_chunks(text, chunk_size, overlap)` (Step 2) still counts characters, but it's not actually a fix for the word-cutting problem by itself — what `overlap` buys you is that the **tail of one chunk is carried into the head of the next**, so a fact that straddles a cut boundary still appears whole in at least one chunk instead of being lost to both.
+
+> **The wall:** overlap stops you from *losing* facts at a boundary, but the splitter still has zero awareness of structure. It can just as easily cut `"25/03/2024 TRANSFER DEBET SEWA BULANAN"` away from its amount `"1.500.000,00"` if that's where character 500 happens to fall — the description and the number that belongs to it end up in different chunks.
+
+**Rung 2 — split on structural separators, not raw counts.** `sentence_window_chunks(text, window_size)` (Step 2) splits on `\n` and sentence-ending punctuation instead of a character count, so each chunk is a *complete* line or sentence — never half a merchant name, never a description severed from its amount. It also attaches a `window` of ±N neighboring sentences, so the unit you *search* is small and precise but the unit you *hand to the reader* has enough surrounding context — "small-to-search, big-to-read." → *this is what the chapter ships: both `fixed_size_chunks` and `sentence_window_chunks`, unit-tested in `tests/test_chunker.py`.*
+
+> **The wall (next chapter's problem, not this one):** structure ≠ meaning. A line break or a period doesn't know that two adjacent transactions are unrelated, or that one transaction's description happens to wrap across two "sentences." Splitting on `\n`/punctuation is a good proxy for structure, but it can still group unrelated content or split related content purely because of where the document happens to break.
+
+**Rung 3 — named, not built — semantic / agentic splitting.** Split where the *meaning* changes (e.g. compare embedding similarity between adjacent sentences and cut where it drops, or let an LLM decide chunk boundaries). That's the actual fix for "structure ≠ meaning," and it's out of scope here — noted as a teaser, not taught.
+
+▶ **Watch/read for this concept:** [Chunking Strategies in RAG: Optimising Data for Advanced AI Responses](https://www.youtube.com/watch?v=pIGRwMjhMaQ) — hands-on, levels up exactly through these rungs.
+
+## Re-ranking — from naive to shipped
+
+**Rung 0 — cosine top-K, as shipped in Chapter 3.** Embed the query `"berapa pengeluaran makan bulan Maret?"`, cosine-search `transaction_embeddings`, return the top-10 by similarity. This already works and is the current baseline (`P@5 = 0.66` after the IVFFlat probes fix).
+
+> **The wall:** the embedding model is a **bi-encoder** — it encoded the query and every transaction description *independently*, never together, so all it can ever compare is two pre-computed points in vector space. That's cheap and fast, but it's also why near-misses sneak into the top-10: `"makan"` (to eat) and `"makanan ternak"` (animal feed) share enough of the same root that their embeddings sit close together, even though one is a food-spending question and the other is irrelevant to it. The bi-encoder never gets a chance to actually reason about that difference — it only ever saw the two pieces of text in isolation.
+
+**Rung 1 — re-rank the top-10 with a cross-encoder.** A **cross-encoder** reads the query and a candidate document *together*, in one forward pass — it can attend across both and actually weigh whether `"makanan ternak"` answers a question about `"makan"`, something the bi-encoder structurally cannot do. The pattern is a funnel: cheap-and-broad bi-encoder retrieves 10 candidates, expensive-and-narrow cross-encoder re-scores those 10.
+
+> **The wall:** a quality hosted cross-encoder (Cohere Rerank) costs money and a network round-trip per call. Fine for production traffic; hostile to an eval harness you want to re-run a dozen times while iterating — every run either costs you or gets rate-limited.
+
+**Rung 2 — FlashRank: the same cross-encoder idea, running locally.** A ~34 MB MiniLM cross-encoder that runs on CPU, no API key, no rate limit, deterministic — free to re-run the eval harness as many times as you want. → *this is what the chapter ships* (`reranker.py`, Step 3).
+
+> **Teaser, covered in the build steps:** FlashRank's `rerank()` call is synchronous CPU inference. Call it directly inside an `async def` endpoint and it blocks the event loop for *every* concurrent request the service is handling. The fix (`asyncio.to_thread`) is in Step 3 — named here so the wall doesn't surprise you mid-build.
+
+▶ **Watch/read for this concept:** [Sentence-Transformers — Retrieve & Re-Rank](https://sbert.net/examples/applications/retrieve_rerank/README.html) — the canonical bi-encoder vs cross-encoder explanation with the funnel diagram.
+
+## Grounded generation + citations — from naive to shipped
+
+**Rung 0 — dump the raw rows at the user.** Retrieve and re-rank, then hand the user the rows themselves: `GOFOOD GEPREK BENSU GADING — Rp 85.000`, `GRABFOOD ORDER 7FHJS8 — Rp 62.500`, …
+
+> **The wall:** rows aren't an answer. The user asked `"berapa pengeluaran makan bulan Maret?"` — "how much," a number — not "here's a list, go add it up yourself."
+
+**Rung 1 — feed the rows to the LLM and ask it to summarize.** Pass the context to the model, ask for a total in plain language.
+
+> **The wall:** without constraints, the model **hallucinates** — it can state a total that doesn't match the rows it was actually given (claiming "Rp 500.000" when the real context only sums to Rp 147.500), or even reference a transaction that was never in the context at all.
+
+**Rung 2 — a grounding prompt.** Instruct the model explicitly: answer ONLY from the provided context, and it is allowed to say "I don't know" (`confident: false`) instead of guessing. This closes most of the hallucination gap.
+
+> **The wall:** even a well-grounded model occasionally cites a `transaction_id` that was never in the context it was handed — a number it pattern-matched from training data or a nearby digit, not something it actually read.
+
+**Rung 3 — validate every cited id against the context you actually gave it.** After the model responds, check each `cited_transaction_ids` entry against the set of ids that were really in the prompt; silently drop (and log) anything that isn't there. → *this is what ships* — the citation-validation loop in `answerer.py` (Step 8), the **hallucination guard**.
+
+▶ **Watch/read for this concept:** [Anthropic — Reducing hallucinations](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) — the grounding-prompt patterns used in this chapter's `SYSTEM_PROMPT`.
+
+---
+
+# Implementation 
 ## Objective
 
 PF-AI003 shipped the first half of the RAG pipeline: `transaction_embeddings` (pgvector), `EmbeddingService`, `RetrievalService`, `/embed-transactions` + `/search`, and an MRR@5 harness. Retrieval *works* but is naive: cosine top-K with no quality refinement, no filtering, and no generation step — the user gets raw transaction rows, not answers.
@@ -1016,6 +1093,20 @@ git commit -m "PF-AI004: RAG Phase 2 — chunking, FlashRank re-ranking, grounde
 
 ---
 
+## Notes
+
+- **Chapter 3 gate first (Step 0).** The MRR@5 baseline from PF-AI003 must be a real number before this chapter starts — the re-ranking delta is the headline deliverable.
+- **FlashRank model cache.** First `Ranker(...)` instantiation downloads ~34 MB to `cache_dir`. In Docker this re-downloads per container unless the dir is volume-mounted or baked into the image — fine for local dev, note it for the eventual Dockerfile touch-up (defer).
+- **`ms-marco` models are English-trained.** Your queries are Indonesian. If the Step 5 delta disappoints, FlashRank's multilingual option (`miniReranker_arabic_v1` is *not* it — check the README table for the multilingual entry) or a language note in the metrics doc is the move. Either outcome is a documented finding (THINK-04).
+- **`AnswerService` uses constructor injection** (unlike the self-constructing `EmbeddingService`/`RetrievalService` from PF-AI003). Deliberate: three swappable collaborators, trivial mocking, and the shape Chapter 8's LangGraph nodes will want. Don't retro-fit the older services now.
+- **RAGAS pulls langchain into the venv.** Confined to the `dev` extra — it must never be imported from `app/` code. The app's only LLM surface remains `ProviderFactory`.
+- **THINK-05 (frozen contract):** `SearchRequest`/`SearchResponse` changes are additive-optional only. `AskRequest`/`AskResponse`/`Citation` are *new* contract surface — when .NET grows an `/ask` proxy (Chapter 5, for the chat UI), the field names freeze; note it in `.claude/rules/ai-service.md` then.
+- **`/ask` cost profile:** ~3 context transactions + a short question ≈ 500–800 input tokens to Gemini 2.5 Flash per ask — effectively free at personal volume; the Langfuse trace from PF-AI001 captures it without new code.
+- **Next chapter (5 — Streaming):** `generation_ms` will dominate `retrieval_ms` by ~10–20×. That measured split is the justification for streaming `/ask` over SSE, and the `AnswerService` seam (provider call isolated in one place) is where the streaming variant plugs in.
+- **Deferred:** hybrid BM25 + vector search (Chapter 6), chunked-corpus retrieval wiring (Chapter 6), conversation memory (Chapter 8), .NET `/ask` proxy + chat UI (Chapter 5), Cohere Rerank swap (only if FlashRank disappoints on Indonesian).
+
+---
+
 ## Resources / Theory to Learn
 
 Organized by concept — read the one tied to what you're building; skip the rest until you hit that wall.
@@ -1026,6 +1117,7 @@ Organized by concept — read the one tied to what you're building; skip the res
 - **Cohere Rerank docs** → https://docs.cohere.com/docs/rerank-overview — the hosted alternative; read to articulate the local-vs-hosted tradeoff, not to integrate.
 
 ### Concept 2 — Chunking strategies (Step 2)
+- **Chunking Strategies in RAG: Optimising Data for Advanced AI Responses** → https://www.youtube.com/watch?v=pIGRwMjhMaQ — hands on, gradually levels up; the basis for the ladder above.
 - **Pinecone — *Chunking Strategies for LLM Applications*** → https://www.pinecone.io/learn/chunking-strategies/ — the standard survey: fixed-size, recursive, sentence-window, semantic. Read fixed-size + sentence-window sections only.
 - **LlamaIndex — *Sentence Window Retrieval* concept docs** → https://docs.llamaindex.ai — skim for the "small-to-search, big-to-read" framing; you're hand-rolling what their `SentenceWindowNodeParser` does, which is precisely why you'll understand it better than framework users.
 
@@ -1068,20 +1160,6 @@ Organized by concept — read the one tied to what you're building; skip the res
 **The Sunday metric:**
 > "What can I say in an interview today that I couldn't say last Sunday?"
 > Target answer: *"I debugged a retrieval baseline that looked like 0.476 MRR — traced it to IVFFlat probes=1 only searching 1 of 100 clusters, fixed it in one line, real baseline was 1.000. Then I added a two-stage funnel — pgvector top-10 into a local FlashRank cross-encoder — which improved P@5 from 0.66 to 0.YY at zero API cost, and built a grounded `/ask` endpoint that answers from cited transactions only, drops hallucinated ids, and scores 0.XX RAGAS faithfulness with a cross-provider judge."* Every number comes from Steps 0, 5, 10, and 11.
-
----
-
-## Notes
-
-- **Chapter 3 gate first (Step 0).** The MRR@5 baseline from PF-AI003 must be a real number before this chapter starts — the re-ranking delta is the headline deliverable.
-- **FlashRank model cache.** First `Ranker(...)` instantiation downloads ~34 MB to `cache_dir`. In Docker this re-downloads per container unless the dir is volume-mounted or baked into the image — fine for local dev, note it for the eventual Dockerfile touch-up (defer).
-- **`ms-marco` models are English-trained.** Your queries are Indonesian. If the Step 5 delta disappoints, FlashRank's multilingual option (`miniReranker_arabic_v1` is *not* it — check the README table for the multilingual entry) or a language note in the metrics doc is the move. Either outcome is a documented finding (THINK-04).
-- **`AnswerService` uses constructor injection** (unlike the self-constructing `EmbeddingService`/`RetrievalService` from PF-AI003). Deliberate: three swappable collaborators, trivial mocking, and the shape Chapter 8's LangGraph nodes will want. Don't retro-fit the older services now.
-- **RAGAS pulls langchain into the venv.** Confined to the `dev` extra — it must never be imported from `app/` code. The app's only LLM surface remains `ProviderFactory`.
-- **THINK-05 (frozen contract):** `SearchRequest`/`SearchResponse` changes are additive-optional only. `AskRequest`/`AskResponse`/`Citation` are *new* contract surface — when .NET grows an `/ask` proxy (Chapter 5, for the chat UI), the field names freeze; note it in `.claude/rules/ai-service.md` then.
-- **`/ask` cost profile:** ~3 context transactions + a short question ≈ 500–800 input tokens to Gemini 2.5 Flash per ask — effectively free at personal volume; the Langfuse trace from PF-AI001 captures it without new code.
-- **Next chapter (5 — Streaming):** `generation_ms` will dominate `retrieval_ms` by ~10–20×. That measured split is the justification for streaming `/ask` over SSE, and the `AnswerService` seam (provider call isolated in one place) is where the streaming variant plugs in.
-- **Deferred:** hybrid BM25 + vector search (Chapter 6), chunked-corpus retrieval wiring (Chapter 6), conversation memory (Chapter 8), .NET `/ask` proxy + chat UI (Chapter 5), Cohere Rerank swap (only if FlashRank disappoints on Indonesian).
 
 ---
 

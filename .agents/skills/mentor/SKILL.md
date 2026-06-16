@@ -386,15 +386,104 @@ Re-run the AI Engineering gap analysis. Read `cv.md` and `docs/mentor/progress.m
 
 ---
 
-## Learning Plan Files (PF-AIxxx) — Required Knowledge Check Quiz
+## Learning Plan Anatomy — Ladder First (teach before build)
 
-The detailed weekly learning plans live in `.claude/plans/learning/PF-AIxxx-*.md` (e.g.
-`PF-AI001-ai-observability.md`). Their section order is: title + metadata blockquote →
-Objective → Acceptance Criteria → Approach → Affected Files → TODO (steps) → Resources /
-Theory to Learn → Learning Strategy → Notes.
+The detailed learning plans live in `.claude/plans/learning/PF-AIxxx-*.md`. They are read by
+someone **pivoting into a topic for the first time** — not by someone executing a pattern they
+already own. A plan that opens with implementation steps and dense jargon (cross-encoder, IVFFlat
+probes, RAGAS faithfulness) reads like a big-bang mastery dump: the cognitive load is miscalibrated
+to a beginner, the brain avoids it, and Rikky mental-blocks for *days* while doing easier
+distractions instead.
 
-**Every learning plan you generate or revise MUST end with a Knowledge Check quiz** — placed
-*after* `## Notes`, as the final section of the file. This is mandatory, not optional.
+> **Confirmed 2026-06-16.** This happened with PF-AI004. Chapter 3 was done; he could not start
+> Chapter 4 for days — not laziness, the material assumed mastery. What unblocked him was a
+> hands-on video that taught chunking as a **ladder**: manual 35-char split → "it cuts words in
+> half" → library splitter (same output, less code) → "context bleeds across the cut" → overlap →
+> recursive on `\n` → semantic → agentic. He never met a term before he'd *felt the problem it
+> solves.* "TERARAH BGT" (so directed). That ladder is now the required on-ramp for every plan.
+
+**So every learning plan opens with a concept ladder that teaches before it builds.**
+
+### Section order (REQUIRED)
+
+1. Title + metadata blockquote
+2. **`# The Ladder`** — the concept walkthrough (the on-ramp). Rules below.
+3. **`# Implementation`** — `## Objective` → `## Acceptance Criteria` → `## Approach` →
+   `## Affected Files` → `---` → `## TODO` (steps) → reference tables → `## Notes`
+4. `## Resources / Theory to Learn` — reference / deeper dives (now SECONDARY; the *one* best
+   hands-on resource per concept is pulled UP into the ladder, the rest stay here)
+5. `## Learning Strategy` — daily loop, the 5 principles, anti-patterns, the Sunday metric
+6. `## 📝 Knowledge Check` — the quiz (always the FINAL section; see below)
+
+### `# The Ladder` — rules
+
+The principle: **earn the jargon.** Introduce each concept only at the moment the previous version
+breaks. Never front-load a term — make the reader feel the problem first, then name the fix. This
+is exactly what a good hands-on video does; the ladder ports it into the plan file.
+
+- **Open with the high-level moment** — one short paragraph + one diagram (ASCII or mermaid): what
+  this is, where it sits in the pipeline, what the goal is. NO depth. This is the "what am I even
+  looking at" screen — the equivalent of the intro diagram in the video.
+- **Then climb the rungs.** Each rung = **the naive version that works → the concrete wall it hits
+  → the fix** (which names the new concept and becomes the next rung). 2–4 sentences per rung.
+- **Every new term is introduced as the solution to a felt problem** — bolded at first use with a
+  one-line plain-language gloss. If a term appears *before* its wall, that's the bug to fix.
+- **Use a real example from this project** at each wall (an actual query, an actual transaction
+  row) so the problem is concrete, not abstract.
+- **Embed the single best hands-on resource at its rung** (`▶ Watch/read for this: <url>`), not in
+  a bibliography. The Resources section keeps the rest as pull-when-stuck references.
+- **End the ladder where the chapter ships** — climb only to the sophistication this chapter
+  actually implements; name the next rung as a one-line teaser, don't teach it.
+- **One mini-ladder per distinct concept.** A chapter covering chunking + re-ranking + generation
+  gets three short mini-ladders under `# The Ladder`, not one tangled one.
+- **No forward references** to later-chapter jargon as if already known.
+- **Language matches the file** — English plan → English ladder; `-id` plan → Indonesian ladder
+  (technical terms stay in English).
+- **Do not touch the technical content of the TODO steps when adding a ladder to an existing
+  plan** — the ladder is a new on-ramp prepended above `# Implementation`, not a rewrite of the
+  build steps.
+
+### `# The Ladder` — template
+
+```markdown
+# The Ladder
+
+> Read this before the implementation steps. The goal is to *understand* the concept by watching
+> it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
+
+## High level — what is this?
+
+{One paragraph: what the chapter's concept is, where it sits in the pipeline, the goal.}
+
+{One diagram — ASCII or mermaid — the "what am I looking at" picture.}
+
+## {Concept A} — from naive to shipped
+
+**Rung 0 — {the dumb version that works}.** {2–3 sentences: what you already have, or the
+simplest possible thing that does the job.}
+
+> **The wall:** {the concrete problem rung 0 hits — described so you *feel* it, with a real
+> query/row from this project.}
+
+**Rung 1 — {the fix}.** {2–3 sentences. Name the new concept **in bold** + one-line gloss. This
+rung becomes what the next wall pushes against.}
+
+> **The wall:** {next problem}
+
+**Rung 2 — {next fix}.** {…} → *this is what the chapter ships.*
+
+▶ **Watch/read for this concept:** {the one best hands-on resource, embedded here.}
+
+## {Concept B} — from naive to shipped
+{repeat the rung structure}
+```
+
+---
+
+## Knowledge Check Quiz (PF-AIxxx) — Required
+
+**Every learning plan you generate or revise MUST end with a Knowledge Check quiz** — as the FINAL
+section of the file (after `## Learning Strategy`). This is mandatory, not optional.
 
 Rules:
 - **Coverage:** 5–6 multiple-choice questions, each covering one load-bearing concept from
