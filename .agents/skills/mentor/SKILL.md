@@ -428,19 +428,19 @@ is exactly what a good hands-on video does; the ladder ports it into the plan fi
 - **Open with the high-level moment** — one short paragraph + one diagram (ASCII or mermaid): what
   this is, where it sits in the pipeline, what the goal is. NO depth. This is the "what am I even
   looking at" screen — the equivalent of the intro diagram in the video.
-- **Then climb the rungs.** Each rung = **the naive version that works → the concrete wall it hits
-  → the fix** (which names the new concept and becomes the next rung). 2–4 sentences per rung.
+- **Then walk the stages.** Each stage = **the naive version that works → the concrete wall it hits
+  → the fix** (which names the new concept and becomes the next stage). 2–4 sentences per stage.
 - **Every new term is introduced as the solution to a felt problem** — bolded at first use with a
   one-line plain-language gloss. If a term appears *before* its wall, that's the bug to fix.
 - **Use a real example from this project** at each wall (an actual query, an actual transaction
   row) so the problem is concrete, not abstract.
-- **Embed the single best hands-on resource at its rung** (`▶ Watch/read for this: <url>`), not in
+- **Embed the single best hands-on resource at its stage** (`▶ Watch/read for this: <url>`), not in
   a bibliography. The Resources section keeps the rest as pull-when-stuck references.
 - **End the ladder where the chapter ships** — climb only to the sophistication this chapter
-  actually implements; name the next rung as a one-line teaser, don't teach it.
+  actually implements; name the next stage as a one-line teaser, don't teach it.
 - **One mini-ladder per distinct concept.** A chapter covering chunking + re-ranking + generation
   gets three short mini-ladders under `# 📖 Introduction`, not one tangled one. Mini-ladder
-  headings are just `## {Concept}` — no "— from naive to shipped" suffix; the rungs themselves
+  headings are just `## {Concept}` — no "— from naive to shipped" suffix; the stages themselves
   carry that meaning.
 - **No forward references** to later-chapter jargon as if already known.
 - **Language matches the file** — English plan → English ladder; `-id` plan → Indonesian ladder
@@ -489,23 +489,23 @@ chapter-specific pipeline strip.}
 
 ## {Concept A}
 
-**Rung 0 — {the dumb version that works}.** {2–3 sentences: what you already have, or the
+**Stage 0 — {the dumb version that works}.** {2–3 sentences: what you already have, or the
 simplest possible thing that does the job.}
 
-> **The wall:** {the concrete problem rung 0 hits — described so you *feel* it, with a real
+> **The wall:** {the concrete problem stage 0 hits — described so you *feel* it, with a real
 > query/row from this project.}
 
-**Rung 1 — {the fix}.** {2–3 sentences. Name the new concept **in bold** + one-line gloss. This
-rung becomes what the next wall pushes against.}
+**Stage 1 — {the fix}.** {2–3 sentences. Name the new concept **in bold** + one-line gloss. This
+stage becomes what the next wall pushes against.}
 
 > **The wall:** {next problem}
 
-**Rung 2 — {next fix}.** {…} → *this is what the chapter ships.*
+**Stage 2 — {next fix}.** {…} → *this is what the chapter ships.*
 
 ▶ **Watch/read for this concept:** {the one best hands-on resource, embedded here.}
 
 ## {Concept B}
-{repeat the rung structure}
+{repeat the stage structure}
 ```
 
 ---

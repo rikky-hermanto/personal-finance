@@ -5,7 +5,78 @@
 > **Started:** 2026-06-06
 > **Pivot goal:** Close the "can you build a RAG pipeline?" gap — the #1 applied AI skill in current job descriptions. After this week, `POST /search { "query": "belanja makan Maret" }` returns the right transactions ranked by semantic similarity, with MRR measured. You can answer "how did you build your retrieval layer?" with numbers and a working endpoint.
 
-## Objective
+# 📖 Introduction
+
+> Read this before the implementation steps. The goal is to *understand* the concept by watching
+> it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
+
+## High level — what is this?
+
+Up to now, finding a transaction in this app means scrolling the transactions table or filtering by exact category/date. This chapter adds **semantic search**: type a natural-language question like `"belanja makan Maret"` and get back the right transactions, ranked by *meaning* — even when none of the words in the query appear in the transaction text. That's the first half of a RAG (Retrieval-Augmented Generation) pipeline: build an index once, then query it many times.
+
+```
+ 1. BUILD THE INDEX  (offline, once per transaction)
+ ──────────────────────────────────────────────────────────────────────────
+   Transaction row          compose            embed                ┌─────────┐
+   "GOFOOD GEPREK    ──▶   search_text   ──▶  (OpenAI          ──▶  │ 1010 0101│
+    BENSU" | Food &         (desc + cat         text-embedding-      │ 1110 1011│
+    Dining | BCA             + wallet)           3-small)            │ 0011 1010│
+                                                                      └─────────┘
+                                                                       pgvector DB
+                                                                 (transaction_embeddings)
+
+ 2. ANSWER A QUERY  (online, every request — this is what makes it "search")
+ ──────────────────────────────────────────────────────────────────────────
+   USER  ───────▶    embed query    ───────▶   pgvector cosine   ───────▶  ranked
+   "food spending      (same model)              search (<=>)              transactions
+    in March"                                                              + similarity
+```
+
+This chapter builds both halves: the embed-and-store path, and the embed-query-and-search path. Re-ranking and a generated answer on top of these results is Chapter 4 (PF-AI004) — out of scope here.
+
+Three mini-ladders below — one per concept this chapter ships.
+
+## Embeddings
+
+**Stage 0 — keyword search, the version you already have.** Filter transactions with `description ILIKE '%makan%'` (or the existing category-rule keyword matcher). It works as long as the query shares an exact word with the text.
+
+> **The wall:** a BCA row often looks like `description = "DEBIT"` with the rule engine separately setting `category = "Food & Dining"`. A query for `"food spending"` shares zero words with `"DEBIT"` — keyword search returns nothing, even though the transaction is exactly what the user meant.
+
+**Stage 1 — embeddings: text becomes a point in meaning-space.** An **embedding** is a dense vector that represents what a piece of text *means*, not the literal characters in it. Two semantically similar texts (`"food spending"` and `"GOFOOD FOOD ORDER"`) produce vectors that sit close together — measured by cosine similarity — even though they share no words.
+
+> **The wall:** if you embed only the raw `description` field, a terse bank code like `"DEBIT TRANSFER"` still carries almost no semantic signal — there's nothing in the text itself for the embedding to capture as "food-related."
+
+**Stage 2 — enrich what you embed.** Compose `description + remarks + category + wallet` into one `search_text` string before embedding (`EmbedItem.search_text()`, Step 4). The category the rule engine already assigned carries the semantic meaning the raw bank text lacks. → *this is what ships.*
+
+▶ **Watch/read for this concept:** [Jay Alammar — The Illustrated Word2Vec](https://jalammar.github.io/illustrated-word2vec/) — the best visual intuition for "words/sentences as points in space."
+
+## Vector storage & search (pgvector)
+
+**Stage 0 — brute-force cosine in a loop.** Keep every embedding in a Python list, and for each query, loop over all of them computing cosine similarity by hand, sort, take the top-K.
+
+> **The wall:** this works for a handful of rows in a notebook, but it isn't queryable SQL — you can't `JOIN` it against the real `transactions` table for dates/amounts/wallet in the same round trip, and every query re-scans every row in pure Python.
+
+**Stage 1 — pgvector: a native vector column in Postgres.** Store embeddings as a `vector(1536)` column and compare them with the `<=>` cosine-distance operator directly in SQL — `JOIN`-able with `transactions` in one query, no separate vector database to run.
+
+> **The wall:** without an index, `<=>` still does a full sequential scan of every row in `transaction_embeddings` to answer one query — fine for thousands of rows, the wrong tool past hundreds of thousands.
+
+**Stage 2 — an `ivfflat` index for approximate nearest-neighbor search.** The index partitions vectors into clusters (`lists = 100`) so a query only has to search the nearest few clusters instead of every row. → *this is what ships* (Step 2 migration).
+
+▶ **Watch/read for this concept:** [pgvector README](https://github.com/pgvector/pgvector) — distance operators, index types, query tips.
+
+## Measuring retrieval quality (MRR@5)
+
+**Stage 0 — eyeball a few queries and see if the results "look right."** Run `/search` for `"makan"`, skim the top results, decide subjectively whether it worked.
+
+> **The wall:** "looks right" isn't a number — you can't compare today's retrieval against last week's, can't show an interviewer evidence, and can't tell if a code change made things better or worse.
+
+**Stage 1 — Mean Reciprocal Rank (MRR@5).** For a set of test queries with a known-correct answer, score each query `1/rank` of the first relevant result in the top 5, then average across all queries. MRR = 1.0 means the right answer is always rank 1; MRR = 0.5 means it's usually around rank 2. → *this is what ships* (Step 13, `eval_retrieval.py`).
+
+▶ **Watch/read for this concept:** [OpenAI cookbook — Embeddings quickstart](https://cookbook.openai.com/examples/get_embeddings_with_chunked_inputs) — read the code, not the prose.
+
+# 🔧 Implementation
+
+## 🎯 Objective
 
 `pgvector` is already enabled in the schema (initial migration, line 1), but the `transaction_embeddings` table doesn't exist yet, and no code embeds anything. The upload pipeline extracts → validates → stores transactions, then stops. There is zero semantic search capability.
 
@@ -17,32 +88,32 @@ This task builds the first half of the RAG pipeline — **embedding and retrieva
 4. Build `RetrievalService` — pgvector cosine-similarity search returning ranked `transaction_id` + similarity score.
 5. Add `POST /search` to FastAPI — receives `{query, top_k}`, returns ranked transactions.
 6. Wire the `.NET` upload pipeline to call `/embed-transactions` after a successful insert batch.
-7. Build `evals/eval_retrieval.py` — MRR measurement against 10 handwritten test queries.
+7. Build [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) — MRR measurement against 10 handwritten test queries.
 
-The deliverable is: a working semantic search over your own transactions, with MRR captured and the embedding cost-per-document added to `docs/performances/ai-observability-metrics.md`.
+The deliverable is: a working semantic search over your own transactions, with MRR captured and the embedding cost-per-document added to [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
 
 **Depends on:** PF-AI001 (reuses `estimate_cost_usd()` + Langfuse), PF-AI002 (the 20 eval fixtures become the Week 4 retrieval test corpus — label them well now).
 **Unblocks:** Week 4 RAG (re-ranking + generation), Week 5 Streaming (streams the grounded answer over SSE).
 
-## Acceptance Criteria
+## ✅ Acceptance Criteria
 
 - [x] Supabase migration `20260606000001_transaction_embeddings.sql` applies cleanly (`supabase db push`)
-- [x] `app/services/embedder.py` — `EmbeddingService.embed_and_store(items)` embeds via OpenAI `text-embedding-3-small`, stores to pgvector, logs token cost via Langfuse and `estimate_embed_cost_usd()`
-- [x] `app/config.py` has `openai_api_key`, `embedding_model` (default `text-embedding-3-small`), `database_url` (Supabase Postgres direct URL for asyncpg)
+- [x] [embedder.py](../../../services/ai-service/app/services/embedder.py) — `EmbeddingService.embed_and_store(items)` embeds via OpenAI `text-embedding-3-small`, stores to pgvector, logs token cost via Langfuse and `estimate_embed_cost_usd()`
+- [x] [config.py](../../../services/ai-service/app/config.py) has `openai_api_key`, `embedding_model` (default `text-embedding-3-small`), `database_url` (Supabase Postgres direct URL for asyncpg)
 - [x] `POST /embed-transactions` endpoint accepts `list[EmbedRequest]`, embeds, stores, returns `{embedded: N, skipped: M}`
-- [x] `app/services/retriever.py` — `RetrievalService.search(query, top_k)` embeds query, runs pgvector `<=>` cosine-distance query, returns ranked `SearchResult` list
+- [x] [retriever.py](../../../services/ai-service/app/services/retriever.py) — `RetrievalService.search(query, top_k)` embeds query, runs pgvector `<=>` cosine-distance query, returns ranked `SearchResult` list
 - [x] `POST /search` endpoint accepts `{query, top_k}`, returns ranked transactions with similarity scores
 - [x] `.NET` `TransactionsController.SubmitTransactions` calls `/embed-transactions` (fire-and-forget via `Task.Run`) after successful insert batch
-- [x] Backfill script `scripts/backfill_embeddings.py` embeds all existing transactions (run once manually)
-- [x] `evals/search_queries.json` — 10 test queries with `expected_transaction_ids` (placeholder IDs — fill from Supabase Studio then run backfill)
-- [x] `evals/eval_retrieval.py` — runs 10 queries, computes MRR@5, prints table
+- [x] Backfill script [backfill_embeddings.py](../../../services/ai-service/scripts/backfill_embeddings.py) embeds all existing transactions (run once manually)
+- [x] [search_queries.json](../../../services/ai-service/evals/search_queries.json) — 10 test queries with `expected_transaction_ids` (placeholder IDs — fill from Supabase Studio then run backfill)
+- [x] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) — runs 10 queries, computes MRR@5, prints table
 - [ ] MRR@5 ≥ 0.6 on the test set (baseline; target ≥ 0.8 after Week 4 re-ranking)
   > Not met: requires filling search_queries.json with real transaction IDs, running backfill_embeddings.py, then eval_retrieval.py
-- [x] `docs/performances/ai-observability-metrics.md` updated with: embedding cost/doc, search latency p50/p95 (cost populated; latency TBD after first run)
-- [x] `tests/test_embedder.py` — 7 unit tests pass (mocked OpenAI + asyncpg)
-- [x] `tests/test_retriever.py` — 4 unit tests pass (mocked OpenAI + asyncpg)
+- [x] [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) updated with: embedding cost/doc, search latency p50/p95 (cost populated; latency TBD after first run)
+- [x] [test_embedder.py](../../../services/ai-service/tests/test_embedder.py) — 7 unit tests pass (mocked OpenAI + asyncpg)
+- [x] [test_retriever.py](../../../services/ai-service/tests/test_retriever.py) — 4 unit tests pass (mocked OpenAI + asyncpg)
 
-## Approach
+## 🧭 Approach
 
 **OpenAI `text-embedding-3-small`, not Ollama — for Week 3.** Ollama/nomic-embed is free and runs locally, but adds `docker pull` friction and a new infrastructure dependency on Day 1 of a new topic. `text-embedding-3-small` works immediately, costs ~$0.02/1M tokens (a 5,000-transaction corpus = ~2.5M characters ≈ ~625K tokens ≈ $0.01 total to embed once), and is the standard interview reference. Start fast; the architecture is provider-swappable by design (same interface pattern as `GeminiProvider` / `AnthropicProvider`).
 
@@ -56,31 +127,29 @@ The deliverable is: a working semantic search over your own transactions, with M
 
 Out of scope: re-ranking (Week 4), LLM synthesis (Week 4), streaming the answer (Week 5), hybrid search / BM25 (Week 6). Don't add those now.
 
-## Affected Files
+## 📂 Affected Files
 
 | File | Change |
 |------|--------|
-| `supabase/migrations/20260606000001_transaction_embeddings.sql` | Create — `transaction_embeddings` table + ivfflat index |
-| `services/ai-service/app/config.py` | Add `openai_api_key`, `embedding_model`, `database_url` |
-| `services/ai-service/app/observability.py` | Add OpenAI embedding cost table + `estimate_embed_cost_usd()` |
-| `services/ai-service/app/models.py` | Add `EmbedItem`, `EmbedRequest`, `EmbedResponse`, `SearchRequest`, `SearchResult`, `SearchResponse` |
-| `services/ai-service/app/services/embedder.py` | Create — `EmbeddingService` (OpenAI `text-embedding-3-small`) |
-| `services/ai-service/app/services/retriever.py` | Create — `RetrievalService` (pgvector cosine similarity) |
-| `services/ai-service/app/main.py` | Add `POST /embed-transactions` and `POST /search` endpoints |
-| `services/ai-service/tests/test_embedder.py` | Create — unit tests for `EmbeddingService` (mocked client) |
-| `services/ai-service/tests/test_retriever.py` | Create — unit tests for `RetrievalService` (mocked asyncpg) |
-| `services/ai-service/evals/search_queries.json` | Create — 10 test queries with expected transaction IDs |
-| `services/ai-service/evals/eval_retrieval.py` | Create — MRR@5 benchmark runner |
-| `services/ai-service/scripts/backfill_embeddings.py` | Create — one-off backfill script |
-| `apps/api/src/PersonalFinance.Infrastructure/External/LlmSearchClient.cs` | Create — typed HttpClient for `/embed-transactions` and `/search` |
-| `apps/api/src/PersonalFinance.Application/Interfaces/ILlmSearchClient.cs` | Create — interface (Application layer owns interfaces, ARCH-02) |
-| `apps/api/src/PersonalFinance.Api/Program.cs` | Register `ILlmSearchClient` / `LlmSearchClient` |
-| `apps/api/src/PersonalFinance.Application/Commands/UploadTransactionsCommandHandler.cs` | Add fire-and-forget call to `ILlmSearchClient.EmbedTransactionsAsync` after insert |
-| `docs/performances/ai-observability-metrics.md` | Add embedding cost/doc + search latency numbers |
+| [20260606000001_transaction_embeddings.sql](../../../supabase/migrations/20260606000001_transaction_embeddings.sql) | Create — `transaction_embeddings` table + ivfflat index |
+| [config.py](../../../services/ai-service/app/config.py) | Add `openai_api_key`, `embedding_model`, `database_url` |
+| [observability.py](../../../services/ai-service/app/observability.py) | Add OpenAI embedding cost table + `estimate_embed_cost_usd()` |
+| [models.py](../../../services/ai-service/app/models.py) | Add `EmbedItem`, `EmbedRequest`, `EmbedResponse`, `SearchRequest`, `SearchResult`, `SearchResponse` |
+| [embedder.py](../../../services/ai-service/app/services/embedder.py) | Create — `EmbeddingService` (OpenAI `text-embedding-3-small`) |
+| [retriever.py](../../../services/ai-service/app/services/retriever.py) | Create — `RetrievalService` (pgvector cosine similarity) |
+| [main.py](../../../services/ai-service/app/main.py) | Add `POST /embed-transactions` and `POST /search` endpoints |
+| [test_embedder.py](../../../services/ai-service/tests/test_embedder.py) | Create — unit tests for `EmbeddingService` (mocked client) |
+| [test_retriever.py](../../../services/ai-service/tests/test_retriever.py) | Create — unit tests for `RetrievalService` (mocked asyncpg) |
+| [search_queries.json](../../../services/ai-service/evals/search_queries.json) | Create — 10 test queries with expected transaction IDs |
+| [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) | Create — MRR@5 benchmark runner |
+| [backfill_embeddings.py](../../../services/ai-service/scripts/backfill_embeddings.py) | Create — one-off backfill script |
+| [LlmSearchClient.cs](../../../apps/api/src/PersonalFinance.Infrastructure/External/LlmSearchClient.cs) | Create — typed HttpClient for `/embed-transactions` and `/search` |
+| [ILlmSearchClient.cs](../../../apps/api/src/PersonalFinance.Application/Interfaces/ILlmSearchClient.cs) | Create — interface (Application layer owns interfaces, ARCH-02) |
+| [Program.cs](../../../apps/api/src/PersonalFinance.Api/Program.cs) | Register `ILlmSearchClient` / `LlmSearchClient` |
+| [UploadTransactionsCommandHandler.cs](../../../apps/api/src/PersonalFinance.Application/Commands/UploadTransactionsCommandHandler.cs) | Add fire-and-forget call to `ILlmSearchClient.EmbedTransactionsAsync` after insert |
+| [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) | Add embedding cost/doc + search latency numbers |
 
----
-
-## TODO
+## 📋 TODO
 
 ### [x] STEP 1 — Learn: The embedding mental model (theory anchor, 60 min)
 
@@ -91,7 +160,7 @@ This week's one genuine pre-read. The "wall" here is understanding *what an embe
 2. Anthropic — *What are embeddings?* → https://docs.anthropic.com/en/docs/build-with-claude/embeddings (short, concrete, the "text → vector → similarity" loop — 10 min)
 3. OpenAI cookbook — *Embeddings quickstart* → https://cookbook.openai.com/examples/get_embeddings_with_chunked_inputs (read the code, not the prose — 10 min)
 
-**Active-retrieval task (do NOT skip):** Close all tabs. In `evals/README.md` (you already have this from PF-AI002), append a new section `## Embedding mental model (written from memory)` and answer:
+**Active-retrieval task (do NOT skip):** Close all tabs. In [evals/README.md](../../../services/ai-service/evals/README.md) (you already have this from PF-AI002), append a new section `## Embedding mental model (written from memory)` and answer:
 - What is an embedding? (one sentence, no jargon)
 - Why does cosine *distance* work for "semantic similarity"? (the geometric intuition)
 - What text should you embed for a transaction — the raw `description` alone, or `description + remarks + category + wallet`? Why does the extra context matter?
@@ -100,11 +169,9 @@ This week's one genuine pre-read. The "wall" here is understanding *what an embe
 
 > **The interview frame:** "An embedding is a dense vector in a high-dimensional space where semantic similarity is preserved. Two semantically similar texts produce vectors with high cosine similarity (low cosine *distance*). For my transactions, I embed `description + remarks + category + wallet` because the category adds the semantic layer that raw transaction text often lacks — especially for terse codes like BCA's `DEBIT TRANSFER`."
 
----
-
 ### [x] STEP 2 — Create the Supabase migration: `transaction_embeddings`
 
-Create `supabase/migrations/20260606000001_transaction_embeddings.sql`:
+Create [supabase/migrations/20260606000001_transaction_embeddings.sql](../../../supabase/migrations/20260606000001_transaction_embeddings.sql):
 
 ```sql
 -- PF-AI003: transaction_embeddings table for pgvector semantic search
@@ -155,9 +222,7 @@ Verify in Studio (http://localhost:54323) → Table Editor → `transaction_embe
 // asyncpg codec registered in STEP 4.
 ```
 
----
-
-### [x] STEP 3 — Extend `app/config.py` with embedding settings
+### [x] STEP 3 — Extend [config.py](../../../services/ai-service/app/config.py) with embedding settings
 
 ```python
 class Settings(BaseSettings):
@@ -207,11 +272,9 @@ public sealed class AiServiceOptions
 
 > **Why a separate `database_url` in the AI service?** The .NET API accesses Supabase via PostgREST (REST API). The Python AI service needs raw SQL for pgvector `<=>` operator queries — PostgREST doesn't expose that. Direct `asyncpg` connection to port 54322 (local) is the clean solution. In production, this becomes the Supabase "connection pooler" URL (Transaction mode, port 6543).
 
----
+### [x] STEP 4 — Build [embedder.py](../../../services/ai-service/app/services/embedder.py)
 
-### [x] STEP 4 — Build `app/services/embedder.py`
-
-Create `services/ai-service/app/services/embedder.py`:
+Create [services/ai-service/app/services/embedder.py](../../../services/ai-service/app/services/embedder.py):
 
 ```python
 """EmbeddingService: generate and store transaction embeddings via OpenAI.
@@ -428,11 +491,9 @@ public sealed class EmbeddingService
 
 > **Why `asyncpg`, not `supabase-py`?** `supabase-py` uses PostgREST (HTTP) under the hood — it can't issue raw SQL with the `<=>` vector operator. `asyncpg` is a direct wire-protocol Postgres client, same connection your local `psql` uses. The AI service is a Python process, not a browser — a direct DB connection is correct here.
 
----
+### [x] STEP 5 — Extend [observability.py](../../../services/ai-service/app/observability.py) with embedding cost tracking
 
-### [x] STEP 5 — Extend `app/observability.py` with embedding cost tracking
-
-Add an `OPENAI_EMBED_COST` table and `estimate_embed_cost_usd()` function to `app/observability.py`:
+Add an `OPENAI_EMBED_COST` table and `estimate_embed_cost_usd()` function to [app/observability.py](../../../services/ai-service/app/observability.py):
 
 ```python
 # OpenAI embedding pricing per 1M tokens (as of 2026-05)
@@ -475,11 +536,9 @@ public static class EmbeddingCosts
 // For cost *display* either is fine; for cost *accumulation*, always decimal in .NET.
 ```
 
----
+### [x] STEP 6 — Add Pydantic models to [models.py](../../../services/ai-service/app/models.py)
 
-### [x] STEP 6 — Add Pydantic models to `app/models.py`
-
-Append to `services/ai-service/app/models.py`:
+Append to [services/ai-service/app/models.py](../../../services/ai-service/app/models.py):
 
 ```python
 # ── RAG: Embeddings + Search ──────────────────────────────────────────────────
@@ -563,11 +622,9 @@ public sealed record SearchResponse(
 // Both validate at the boundary (API input), not in the domain.
 ```
 
----
+### [x] STEP 7 — Build [retriever.py](../../../services/ai-service/app/services/retriever.py)
 
-### [x] STEP 7 — Build `app/services/retriever.py`
-
-Create `services/ai-service/app/services/retriever.py`:
+Create [services/ai-service/app/services/retriever.py](../../../services/ai-service/app/services/retriever.py):
 
 ```python
 """RetrievalService: pgvector cosine-similarity search over transaction embeddings."""
@@ -712,11 +769,9 @@ public sealed class RetrievalService
 
 > **Why `1 - distance` for similarity?** pgvector's `<=>` operator returns *cosine distance* (0 = identical, 2 = maximally different). For display and filtering, you want *cosine similarity* (1 = identical, -1 = opposite). The `1 -` flip makes the semantic obvious: `similarity >= 0.7` means "at least 70% similar". Order by distance ascending (ORDER BY `<=>`) to get most-similar first.
 
----
+### [x] STEP 8 — Add endpoints to [main.py](../../../services/ai-service/app/main.py)
 
-### [x] STEP 8 — Add endpoints to `app/main.py`
-
-Add these two endpoints to `services/ai-service/app/main.py`:
+Add these two endpoints to [services/ai-service/app/main.py](../../../services/ai-service/app/main.py):
 
 ```python
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
@@ -813,11 +868,9 @@ public sealed class SearchController : ControllerBase
 // ASP.NET DI needs an explicit lifetime declaration.
 ```
 
----
-
 ### [x] STEP 9 — Build the .NET `LlmSearchClient`
 
-Create `apps/api/src/PersonalFinance.Application/Interfaces/ILlmSearchClient.cs`:
+Create [apps/api/src/PersonalFinance.Application/Interfaces/ILlmSearchClient.cs](../../../apps/api/src/PersonalFinance.Application/Interfaces/ILlmSearchClient.cs):
 
 ```csharp
 namespace PersonalFinance.Application.Interfaces;
@@ -839,7 +892,7 @@ public sealed record SearchResultDto(
 public sealed record SearchResponse(IReadOnlyList<SearchResultDto> Results, string Query, int TotalFound);
 ```
 
-Create `apps/api/src/PersonalFinance.Infrastructure/External/LlmSearchClient.cs`:
+Create [apps/api/src/PersonalFinance.Infrastructure/External/LlmSearchClient.cs](../../../apps/api/src/PersonalFinance.Infrastructure/External/LlmSearchClient.cs):
 
 ```csharp
 using System.Net.Http.Json;
@@ -885,7 +938,7 @@ public sealed class LlmSearchClient : ILlmSearchClient
 }
 ```
 
-Register in `Program.cs` (follow the existing `LlmExtractionClient` pattern):
+Register in [Program.cs](../../../apps/api/src/PersonalFinance.Api/Program.cs) (follow the existing `LlmExtractionClient` pattern):
 
 ```csharp
 builder.Services.AddHttpClient<ILlmSearchClient, LlmSearchClient>(c =>
@@ -894,11 +947,9 @@ builder.Services.AddHttpClient<ILlmSearchClient, LlmSearchClient>(c =>
 
 > **Why `EmbedTransactionsAsync` doesn't throw on failure?** Embedding is enrichment, not a core upload requirement. If the embed call fails (AI service down, OpenAI rate limit), the transaction is still saved in Postgres — the data is not lost. The embedding can be backfilled later. Throwing here would surface an AI service outage as an upload failure to the user, which is a worse UX. Fire-and-forget is the correct semantic for optional enrichment.
 
----
-
 ### [x] STEP 10 — Wire embed call after upload
 
-In `UploadTransactionsCommandHandler.cs` (or wherever the transaction batch is committed), add the embed call after a successful insert. Find the post-insert block and add:
+In [UploadTransactionsCommandHandler.cs](../../../apps/api/src/PersonalFinance.Application/Commands/UploadTransactionsCommandHandler.cs) (or wherever the transaction batch is committed), add the embed call after a successful insert. Find the post-insert block and add:
 
 ```csharp
 // After: var insertedTransactions = await _supabase.From<Transaction>().Insert(batch);
@@ -949,11 +1000,9 @@ async def upload_transactions(request: ...) -> ...:
 # Both swallow exceptions in the background task (must catch explicitly, as shown).
 ```
 
----
-
 ### [x] STEP 11 — Backfill existing transactions
 
-Create `services/ai-service/scripts/backfill_embeddings.py` (run once manually after the service is up):
+Create [services/ai-service/scripts/backfill_embeddings.py](../../../services/ai-service/scripts/backfill_embeddings.py) (run once manually after the service is up):
 
 ```python
 """One-off backfill: embed all transactions that don't have an embedding yet.
@@ -1050,11 +1099,9 @@ static int GetArg(string[] args, string name, int def)
 }
 ```
 
----
-
 ### [x] STEP 12 — Unit-test `EmbeddingService` and `RetrievalService`
 
-Create `services/ai-service/tests/test_embedder.py`:
+Create [services/ai-service/tests/test_embedder.py](../../../services/ai-service/tests/test_embedder.py):
 
 ```python
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -1150,11 +1197,9 @@ public class EmbeddingServiceTests
 }
 ```
 
----
+### [x] STEP 13 — Write 10 test queries + build [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) (MRR)
 
-### [x] STEP 13 — Write 10 test queries + build `evals/eval_retrieval.py` (MRR)
-
-**First:** write `evals/search_queries.json` — 10 handwritten queries, each with the transaction IDs you'd expect in the top-5 results. Use your real transactions (from local Supabase Studio, `http://localhost:54323`):
+**First:** write [evals/search_queries.json](../../../services/ai-service/evals/search_queries.json) — 10 handwritten queries, each with the transaction IDs you'd expect in the top-5 results. Use your real transactions (from local Supabase Studio, `http://localhost:54323`):
 
 ```json
 [
@@ -1213,7 +1258,7 @@ public class EmbeddingServiceTests
 
 **Replace the IDs** above with real transaction IDs from your database. Verify each by looking at the actual transaction text in Studio.
 
-Now create `services/ai-service/evals/eval_retrieval.py`:
+Now create [services/ai-service/evals/eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py):
 
 ```python
 """Retrieval benchmark: MRR@5 on 10 handwritten queries.
@@ -1300,9 +1345,7 @@ cd services/ai-service
 PYTHONPATH=. python evals/eval_retrieval.py
 ```
 
-Record the MRR@5 in `docs/performances/ai-observability-metrics.md`.
-
----
+Record the MRR@5 in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
 
 ### [x] STEP 14 — Commit
 
@@ -1327,17 +1370,24 @@ git status    # verify NO .env, NO credentials
 git commit -m "PF-AI003: RAG Phase 1 — transaction embeddings + pgvector semantic search"
 ```
 
----
-
 ### [x] STEP 15 — Log progress
 
 ```
 /mentor log Built RAG Phase 1: transaction_embeddings table (pgvector), EmbeddingService (OpenAI text-embedding-3-small, batched), RetrievalService (cosine similarity via asyncpg), /embed-transactions + /search endpoints, .NET LlmSearchClient wired after upload. MRR@5 = 0.XX on 10 queries. Embedding cost $0.0000X/doc.
 ```
 
----
+## 📌 Notes
 
-## Resources / Theory to Learn
+- **`pgvector` extension is already on.** `CREATE EXTENSION IF NOT EXISTS vector;` is in [supabase/migrations/20260101000000_initial_schema.sql](../../../supabase/migrations/20260101000000_initial_schema.sql) line 1. The migration in Step 2 only creates the table — no extension install needed.
+- **`asyncpg` is not in [pyproject.toml](../../../services/ai-service/pyproject.toml) yet.** Add `asyncpg>=0.29` and `pgvector>=0.3` to your dependencies: `pip install asyncpg pgvector` and update `pyproject.toml`.
+- **`openai` SDK version.** The Python AI service currently uses Google Gemini and Anthropic SDKs. Add `openai>=1.30` to `pyproject.toml`. The `AsyncOpenAI` client in Step 4 uses the same async pattern as `anthropic.AsyncAnthropic` — familiar surface.
+- **The `EmbedItem` dataclass in Step 4 vs the Pydantic `EmbedItem` in Step 6.** They serve different purposes: the Pydantic model is the API request shape (FastAPI validation); the dataclass is the internal service type (no serialization overhead). The endpoint converts Pydantic → dataclass in Step 8.
+- **Connection pooling deferred.** Step 4 and 7 open a new `asyncpg` connection per call. For Week 3 (low volume, manual testing), this is fine. Add `asyncpg.create_pool()` as a FastAPI lifespan event in Week 5 when the service handles concurrent requests from the streaming chat.
+- **THINK-05 (frozen contract):** the `/search` response fields (`transaction_id`, `similarity`, `description`, `date`, `amount_idr`, `flow`, `wallet`) are now a cross-service contract between Python and .NET. Rename on one side → update the other in the same commit.
+- **Next week (Week 4 — Re-ranking + Generation):** the `eval_retrieval.py` you write in Step 13 becomes the baseline. Week 4 adds a re-ranker on top of the top-10 results and measures MRR lift. The delta ("re-ranking improved MRR@5 from 0.XX to 0.YY") is an interview-ready number. Set up the harness to make that measurement easy.
+- **Deferred:** connection pooling, hybrid BM25+vector search (Week 6), re-ranking (Week 4), LLM synthesis / `/ask` endpoint (Week 4), Supabase RPC alternative for .NET-side search (Week 6 consideration).
+
+## 📚 Resources / Theory to Learn
 
 Organized by concept — read the one tied to what you're building; skip the rest until you hit that wall.
 
@@ -1365,9 +1415,7 @@ Organized by concept — read the one tied to what you're building; skip the res
 ### Video (one segment, not a full course)
 - **DeepLearning.AI — *Building Systems with the ChatGPT API* (Embeddings section)*** → https://learn.deeplearning.ai — the 20-minute embeddings + similarity search segment explains the cosine geometry you need for the interview frame.
 
----
-
-## Learning Strategy
+## 🧠 Learning Strategy
 
 **Daily loop for Week 3:**
 - **Morning (90 min, deep block #1):** embedding + storage path (Steps 2–6). Stop when `/embed-transactions` returns HTTP 200 for one transaction.
@@ -1392,21 +1440,6 @@ Organized by concept — read the one tied to what you're building; skip the res
 **The Sunday metric:**
 > "What can I say in an interview today that I couldn't say last Sunday?"
 > Target answer: *"I built a pgvector semantic search layer over my transaction history — embedding `description + category + wallet` with `text-embedding-3-small`, storing 1536-dim vectors in Supabase, and measuring MRR@5 = 0.XX on 10 handwritten queries. Embedding costs $0.0000X per document."* If you can say that with real numbers, the week worked.
-
----
-
-## Notes
-
-- **`pgvector` extension is already on.** `CREATE EXTENSION IF NOT EXISTS vector;` is in `supabase/migrations/20260101000000_initial_schema.sql` line 1. The migration in Step 2 only creates the table — no extension install needed.
-- **`asyncpg` is not in `pyproject.toml` yet.** Add `asyncpg>=0.29` and `pgvector>=0.3` to your dependencies: `pip install asyncpg pgvector` and update `pyproject.toml`.
-- **`openai` SDK version.** The Python AI service currently uses Google Gemini and Anthropic SDKs. Add `openai>=1.30` to `pyproject.toml`. The `AsyncOpenAI` client in Step 4 uses the same async pattern as `anthropic.AsyncAnthropic` — familiar surface.
-- **The `EmbedItem` dataclass in Step 4 vs the Pydantic `EmbedItem` in Step 6.** They serve different purposes: the Pydantic model is the API request shape (FastAPI validation); the dataclass is the internal service type (no serialization overhead). The endpoint converts Pydantic → dataclass in Step 8.
-- **Connection pooling deferred.** Step 4 and 7 open a new `asyncpg` connection per call. For Week 3 (low volume, manual testing), this is fine. Add `asyncpg.create_pool()` as a FastAPI lifespan event in Week 5 when the service handles concurrent requests from the streaming chat.
-- **THINK-05 (frozen contract):** the `/search` response fields (`transaction_id`, `similarity`, `description`, `date`, `amount_idr`, `flow`, `wallet`) are now a cross-service contract between Python and .NET. Rename on one side → update the other in the same commit.
-- **Next week (Week 4 — Re-ranking + Generation):** the `eval_retrieval.py` you write in Step 13 becomes the baseline. Week 4 adds a re-ranker on top of the top-10 results and measures MRR lift. The delta ("re-ranking improved MRR@5 from 0.XX to 0.YY") is an interview-ready number. Set up the harness to make that measurement easy.
-- **Deferred:** connection pooling, hybrid BM25+vector search (Week 6), re-ranking (Week 4), LLM synthesis / `/ask` endpoint (Week 4), Supabase RPC alternative for .NET-side search (Week 6 consideration).
-
----
 
 ## 📝 Knowledge Check
 
