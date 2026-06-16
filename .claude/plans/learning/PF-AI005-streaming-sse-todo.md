@@ -6,6 +6,141 @@
 > **Planned from branch:** main
 > **Pivot goal:** Ship token-by-token streaming. Every modern AI product streams — knowing how to implement SSE in FastAPI, wire it to both LLM providers, and consume it in React is a concrete differentiator. This chapter also replaces the polling-based upload status with Supabase Realtime, closing one of the oldest UX debt items in the codebase.
 
+# The Ladder
+
+> Read this before the implementation steps. The goal is to *understand* the concept by watching
+> it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
+
+## High level — what is this?
+
+`POST /ask` (PF-AI004) already answers questions about your transactions — but it answers all at
+once, after retrieval, reranking, and generation are *all* done. This chapter turns that into a
+live stream: the server pushes retrieved context the instant retrieval finishes, then pushes the
+answer one token at a time as the LLM generates it, over a single HTTP connection the browser
+keeps open. The same pattern — push small updates to the client without the client asking again —
+also replaces the upload-status polling loop with a real subscription.
+
+```
+Client (ChatPage)                    AI Service (FastAPI /ask/stream)
+   |  POST /ask/stream {query}              |
+   |---------------------------------------->|
+   |                                         |-- retrieve (pgvector) + rerank (FlashRank)
+   |   event: metadata {contexts: [...]}     |
+   |<-----------------------------------------|   citations render NOW — before any token
+   |                                         |-- provider.stream_generate() starts
+   |   event: token "Total"                  |
+   |<-----------------------------------------|
+   |   event: token " pengeluaran"           |
+   |<-----------------------------------------|
+   |   event: token " Rp 50.000"             |
+   |<-----------------------------------------|
+   |   event: done                           |
+   |<-----------------------------------------|
+```
+
+## Why stream + the SSE choice — from naive to shipped
+
+**Rung 0 — the naive version that works.** `POST /ask` already returns a correct, grounded
+answer: retrieve → rerank → generate → return one JSON blob. It's right, it's simple, and it
+shipped last chapter.
+
+> **The wall:** Gemini synthesis takes 2–6 seconds. Ask "berapa total pengeluaran makan bulan
+> Maret?" and the UI just shows a spinner for that whole window. Every AI product you actually use
+> day to day — ChatGPT, Claude.ai — never makes you stare at a blank screen that long; they show
+> the answer building word by word. A blocking spinner reads as broken, even though the backend is
+> working correctly.
+
+**Rung 1 — stream the tokens.** Instead of waiting for the full answer, push each piece of text to
+the client the moment the model produces it. The user sees the first word in ~150ms instead of
+waiting 2–6s for the whole thing — perceived latency collapses even though total generation time
+is unchanged.
+
+> **The wall:** HTTP is normally one request → one response. How do you keep pushing more data to
+> the client *after* the initial response has started, without the client re-asking?
+
+**Rung 2 — Server-Sent Events.** **SSE** (a long-lived HTTP response the server keeps writing to)
+is unidirectional (server → client), rides on plain HTTP (no protocol upgrade, no special proxy
+config), and the browser auto-reconnects if the connection drops. For "client sends one query,
+server streams tokens back," that's exactly the shape needed — no bidirectional channel required.
+
+> **The wall:** the React chat UI needs to POST a JSON body (`{"query": "...", "category": "..."}`)
+> to *start* the stream. The browser's native `EventSource` API is GET-only — it can't send a body
+> or custom headers, so it can't kick off this request at all.
+
+**Rung 3 — `@microsoft/fetch-event-source` (what ships).** This library wraps `fetch()` instead of
+`EventSource`, so it supports POST bodies, custom headers, and an `AbortController` to cancel —
+while keeping the same auto-reconnect semantics SSE promises. *This is what `chatApi.ts` ships.*
+
+> **Teaser, not taught here:** WebSockets give you a full bidirectional channel — the client can
+> push messages back at any time. That's the right tool for chat *rooms*, multiplayer, or
+> collaborative editing, where both sides talk continuously. Here the client only ever sends one
+> request and then listens — bidirectional is overhead this chapter doesn't need.
+
+▶ **Watch/read for this concept:** https://github.com/sysid/sse-starlette and
+[MDN — Using server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events/Using_server-sent_events)
+
+## Provider streaming (async generators) — from naive to shipped
+
+**Rung 0 — the naive version that works.** `provider.generate_json()` already calls the LLM and
+returns the complete answer as one return value, once the model is fully done generating.
+
+> **The wall:** to stream to the client, the *provider* needs to hand back text incrementally too
+> — there's no way to stream out of FastAPI tokens you don't have yet. A function that `return`s
+> once, at the very end, can't feed an SSE generator that needs to `yield` repeatedly while
+> generation is still in progress.
+
+**Rung 1 — an async generator.** Write `stream_generate()` as `async def` with `yield` instead of
+`return`: each `yield text` hands one chunk to whoever is iterating with `async for`, before the
+function continues to the next chunk. Typed as `AsyncGenerator[str, None]` — text out, nothing
+sent in.
+
+> **The wall:** if the underlying SDK call inside that `async def` is actually synchronous and
+> blocking (e.g. a plain `client.generate_content(...)` that doesn't return until the whole answer
+> is ready), it freezes the entire event loop for that whole duration — every other concurrent
+> request on the service (health checks, another user's search, another user's stream) stalls
+> until it returns. Wrapping a blocking call in `async def` doesn't make it non-blocking.
+
+**Rung 2 — native async streaming, with a thread-pool fallback (what ships).** Use the SDK's real
+async streaming entry point — `client.messages.stream()` for Anthropic, `client.aio.models.
+generate_content_stream()` for Gemini — so the event loop stays free while tokens arrive. Where the
+installed SDK version doesn't expose async streaming yet, `asyncio.to_thread(...)` pushes the
+blocking call onto a worker thread instead of the event loop — it loses true incremental
+streaming (all text still arrives at once) but at least stops it from stalling other requests.
+*This is what `AnthropicProvider.stream_generate()` / `GeminiProvider.stream_generate()` ship.*
+
+▶ **Watch/read for this concept:** https://docs.anthropic.com/en/api/messages-streaming
+
+## Realtime vs polling (upload status) — from naive to shipped
+
+**Rung 0 — the naive version that works.** The upload wizard polls `GET /api/uploads/{id}/status`
+every 2 seconds and updates the UI when the status changes. Simple, and it's been working.
+
+> **The wall:** that's up to 2 seconds of pure waiting between the backend actually finishing and
+> the UI noticing, *plus* the client is firing a request every 2 seconds for the entire processing
+> window even when nothing has changed yet — wasted requests, wasted load, for a one-time status
+> flip.
+
+**Rung 1 — Supabase Realtime.** Instead of asking repeatedly, open one subscription on the
+`uploads` table and let Postgres push the change the moment it happens — a `postgres_changes`
+event arrives in ~50ms instead of up to 2000ms, and there's no polling loop running at all.
+
+> **The wall:** subscribe with the anon key in local dev and... nothing arrives. No error, no
+> exception — the channel reports "subscribed" successfully, but zero events ever fire. The
+> subscription is silently filtered: Row Level Security quietly drops any row the subscribing role
+> can't `SELECT`, and the failure is invisible unless you already know to suspect RLS.
+
+**Rung 2 — RLS scoped to actually allow the read (what ships).** A permissive `USING (true)`
+policy on `uploads` for local dev lets the anon key read (and therefore receive change events for)
+every row; in production this narrows to a policy scoped to the authenticated owner of the upload.
+*This is the fix `useUploadStatus.ts` ships with for local dev — production scoping is called out
+explicitly as a follow-up.*
+
+▶ **Watch/read for this concept:** https://supabase.com/docs/guides/realtime
+
+---
+
+# Implementation
+
 ## Objective
 
 PF-AI004 built `POST /ask` — a grounded Q&A endpoint that returns a complete answer after retrieval + generation. The UX problem: Gemini synthesis takes 2–6s per response; the user stares at a spinner. Token streaming collapses perceived latency to near-zero — the first token appears within ~150ms and the answer builds in front of the user.
@@ -850,6 +985,19 @@ git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase 
 
 ---
 
+## Notes
+
+- **Chapter 4 gate.** `POST /ask/stream` reuses `SYSTEM_PROMPT` and `_format_context()` from `answerer.py`. Make sure PF-AI004 is committed and the functions are importable before Step 5.
+- **`app.state.provider` vs `app.state.answerer.provider`.** The streaming endpoint calls `provider.stream_generate()` directly — not via `AnswerService`. That's fine: `AnswerService.ask()` returns a complete `AskResponse`; a streaming variant would need a different return type. For now, keep them separate. If a streaming `AnswerService.stream_ask()` method is added later, it's the right seam.
+- **Gemini streaming maturity.** As of early 2026, Gemini's async streaming API is stable but the exact method path differs across `google-genai` SDK versions. If `client.aio.models.generate_content_stream()` doesn't exist, check the installed SDK changelog and adjust. Note the installed version in the metrics doc.
+- **VITE_AI_SERVICE_URL env var.** The frontend's `.env` needs this for direct AI service access. It's new — add it to `.env.example` as well. Don't commit real values.
+- **TTFT is the demo metric.** For the Chapter 10 Loom demo, the streaming segment is most effective if you visibly delay the question and let the viewer watch the first token appear in ~150ms. Quote TTFT in the demo narration.
+- **Supabase Realtime + RLS.** The `postgres_changes` subscription on `uploads` will silently return no events if RLS is enabled and the anon key can't read the row. For local dev with permissive `USING (true)` RLS policies, this works. In production, either use the service role key (server-side only) or scope the policy.
+- **Deferred:** streaming the categorization step (not needed — it's fast), streaming the portfolio review (Chapter 10 demo), conversation history (Chapter 8), .NET `/ask/stream` proxy with auth (PF-S08).
+- **THINK-05 (frozen contract):** `AskRequest` / `AskResponse` / `Citation` were frozen when `.NET` could proxy `/ask`. The streaming endpoint introduces a new SSE protocol — document it separately if `.NET` ever proxies `/ask/stream`.
+
+---
+
 ## Resources / Theory to Learn
 
 Organized by concept — pull when building the relevant step, not all upfront.
@@ -900,19 +1048,6 @@ Organized by concept — pull when building the relevant step, not all upfront.
 **The Sunday metric:**
 > "What can I say in an interview today that I couldn't say last Sunday?"
 > Target: *"I built SSE streaming for our RAG chat endpoint — `/ask/stream` emits contexts before generation starts so citations render before the first token, which is better UX and better architecture than post-generation citation validation. Time-to-first-token dropped from ~3s (blocking `/ask`) to ~150ms. I also handled connection drops by polling `request.is_disconnected()` between yields, which stops the LLM call when the user closes the tab — a concrete cost-control pattern. On the React side I used `@microsoft/fetch-event-source` because native `EventSource` is GET-only, then wired Supabase Realtime to replace a 2-second upload polling loop."*
-
----
-
-## Notes
-
-- **Chapter 4 gate.** `POST /ask/stream` reuses `SYSTEM_PROMPT` and `_format_context()` from `answerer.py`. Make sure PF-AI004 is committed and the functions are importable before Step 5.
-- **`app.state.provider` vs `app.state.answerer.provider`.** The streaming endpoint calls `provider.stream_generate()` directly — not via `AnswerService`. That's fine: `AnswerService.ask()` returns a complete `AskResponse`; a streaming variant would need a different return type. For now, keep them separate. If a streaming `AnswerService.stream_ask()` method is added later, it's the right seam.
-- **Gemini streaming maturity.** As of early 2026, Gemini's async streaming API is stable but the exact method path differs across `google-genai` SDK versions. If `client.aio.models.generate_content_stream()` doesn't exist, check the installed SDK changelog and adjust. Note the installed version in the metrics doc.
-- **VITE_AI_SERVICE_URL env var.** The frontend's `.env` needs this for direct AI service access. It's new — add it to `.env.example` as well. Don't commit real values.
-- **TTFT is the demo metric.** For the Chapter 10 Loom demo, the streaming segment is most effective if you visibly delay the question and let the viewer watch the first token appear in ~150ms. Quote TTFT in the demo narration.
-- **Supabase Realtime + RLS.** The `postgres_changes` subscription on `uploads` will silently return no events if RLS is enabled and the anon key can't read the row. For local dev with permissive `USING (true)` RLS policies, this works. In production, either use the service role key (server-side only) or scope the policy.
-- **Deferred:** streaming the categorization step (not needed — it's fast), streaming the portfolio review (Chapter 10 demo), conversation history (Chapter 8), .NET `/ask/stream` proxy with auth (PF-S08).
-- **THINK-05 (frozen contract):** `AskRequest` / `AskResponse` / `Citation` were frozen when `.NET` could proxy `/ask`. The streaming endpoint introduces a new SSE protocol — document it separately if `.NET` ever proxies `/ask/stream`.
 
 ---
 
