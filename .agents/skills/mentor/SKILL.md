@@ -449,6 +449,28 @@ is exactly what a good hands-on video does; the ladder ports it into the plan fi
   plan** — the ladder is a new on-ramp prepended above `# 🔧 Implementation`, not a rewrite of the
   build steps.
 
+### File references — always clickable links
+
+Every real file path mentioned in a learning plan (the `📂 Affected Files` table, "Create
+`path`:" / "Edit `path`:" lines before code blocks, `📌 Notes`, the `🎯 Objective` list) must be
+rendered as a clickable markdown link, not a bare backtick span — `[chunker.py](../../../services/ai-service/app/services/chunker.py)`,
+not `` `app/services/chunker.py` ``.
+
+- **Path is relative to the plan file's own location**, not the repo root — VSCode resolves
+  markdown links relative to the file they appear in. Plans live three directories below the repo
+  root (`.claude/plans/learning/`), so every link needs a `../../../` prefix before the
+  repo-root-relative path: `[ai-service.md](../../rules/ai-service.md)` only needs `../../` because
+  `.claude/rules/` is two levels up, not three — compute the actual depth, don't copy a fixed
+  prefix blindly.
+- **Link text is just the filename** (`chunker.py`), the href is the full path from repo root.
+- **Skip API endpoints, class names, and bare directory mentions** (`/ask`, `RetrievalService`,
+  `evals/fixtures/`) — only link an actual single file.
+- **Never touch paths inside fenced code blocks** (bash commands, python imports, `git add`
+  lines) — those are literal command/import syntax; wrapping them in markdown link syntax breaks
+  them. Only prose-level mentions outside code fences get linked.
+- This applies whether the file already exists or is being created by this chapter — the link
+  resolves correctly once the step that creates it runs.
+
 ### `# 📖 Introduction` — template
 
 ```markdown
