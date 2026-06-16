@@ -510,6 +510,62 @@ stage becomes what the next wall pushes against.}
 
 ---
 
+## C# Equivalent Code Blocks (PF-AIxxx) — Required
+
+Rikky is a 10+ year C#/.NET engineer pivoting into Python/AI Engineering — his fastest path to
+fluency is mapping every new Python idiom onto the C# pattern he already owns, not learning Python
+in a vacuum. **Every Python code block introduced in a learning plan's `# 🔧 Implementation` TODO
+steps must be followed immediately by a C# port.** Confirmed pattern, established in
+[PF-AI002](../../../.claude/plans/learning/PF-AI002-llm-evaluation-framework.md) and
+[PF-AI003](../../../.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) — extend it to
+every future chapter, don't reintroduce it ad hoc per plan.
+
+### Format
+
+Immediately below the closing fence of a Python code block:
+
+````markdown
+**C# equivalent** ({1-line idiom mapping — what Python construct maps to what C# construct, e.g.
+"Python `dataclass` → a class with computed properties; `dict` → `Dictionary`"}):
+
+```csharp
+{a faithful, idiomatic port — not a literal transliteration}
+```
+````
+
+- **One C# port per distinct Python code block** (a class, a script, a test file) — not per line.
+  Small follow-up edits to the same file in the same step can share one combined port if that reads
+  better than two fragments.
+- The parenthetical names the *specific* idiom swaps this block makes (dataclass→class,
+  asyncpg→Npgsql, pytest→xUnit, dict→Dictionary, Decimal→decimal, etc.) — never a generic "ported
+  to C#."
+- The port is **hypothetical** — the AI service is Python/FastAPI and stays that way; the C# block
+  is a teaching device, not code that gets wired into `apps/api`. Frame it as "if this were a .NET
+  service," but use this project's *real* C# conventions anyway (xUnit `[Fact]` +
+  `Method_Condition_ExpectedResult` naming, `Assert.Equal(expected, actual)` argument order,
+  `ILogger<T>`, nullable reference types) so the port doubles as a correct example of this
+  project's own backend style — see [.claude/rules/backend.md](../../../.claude/rules/backend.md).
+- **Tests:** `pytest` functions → xUnit `[Fact]`/`[Theory]`; `AsyncMock`/`patch(...)` → `Mock<T>` +
+  Moq constructor injection (or `IClassFixture`); `assert x == y` → `Assert.Equal(y, x)` (expected
+  first — the opposite argument order from a Python `assert`).
+- **Eval/CLI scripts:** `argparse` → `System.CommandLine` or manual arg parsing; `asyncio.run(main())`
+  → `async Task Main`; `time.perf_counter()` → `Stopwatch`.
+- **SQL/asyncpg:** `asyncpg.connect` + `conn.fetch` → `NpgsqlConnection` + Dapper or
+  `ExecuteReaderAsync` — **not** the `supabase-csharp` SDK. That SDK is this project's *actual*
+  .NET data layer for a different domain (the main API); the AI service talks to Postgres directly
+  via asyncpg, so its C# twin is the direct-driver equivalent (Npgsql/Dapper), not PostgREST.
+- **No real C# equivalent exists** (e.g. RAGAS, FlashRank-as-a-package): say so explicitly and port
+  the *underlying technique* by hand instead of inventing a fictitious NuGet package — e.g. "no
+  RAGAS-equivalent package exists; here's the claim-decomposition-and-verify pattern it implements,
+  called directly against the existing provider abstraction."
+- Add a one-line `>` callout after the port only when there's a genuine gotcha worth flagging (a
+  blocking-call anti-pattern, an argument-order trap) — most ports don't need one.
+- **Skip a port** only for throwaway one-liners (a single `pip install` line, a bash command, a
+  scratch `python -c` demo). Anything that's an actual function, class, schema, or test file gets
+  one.
+
+---
+
 ## Knowledge Check Quiz (PF-AIxxx) — Required
 
 **Every learning plan you generate or revise MUST end with a Knowledge Check quiz** — as the FINAL
