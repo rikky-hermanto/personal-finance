@@ -53,35 +53,35 @@ Three mini-ladders below — one per concept this chapter ships.
 
 > **Honest project mapping:** a transaction in this app is already one short DB row (`"GOFOOD GEPREK BENSU GADING | BCA | 2026-03-14 | DB"`) — there's nothing to chunk there. The thing actually worth chunking is the longer source text: multi-page bank statement narratives like [bca_01.txt](../../../services/ai-service/evals/fixtures/bca_01.txt). That's what [chunker.py](../../../services/ai-service/app/services/chunker.py) is built and tested against this chapter; wiring it into real chunked *retrieval* is Chapter 6's job. So read "chunking" below as "how do I cut a long document into pieces an embedding model can handle," not "how do I chunk one transaction."
 
-**Rung 0 — slice the raw text every 35 characters.** The dumbest possible chunker: walk the statement text and cut a new piece every 35 characters, no matter what's there.
+**Stage 0 — slice the raw text every 35 characters.** The dumbest possible chunker: walk the statement text and cut a new piece every 35 characters, no matter what's there.
 
 > **The wall:** run that over a real line from `bca_01.txt` —
 > `14/03/2024 GOFOOD GEPREK BENSU GADING                               85.000,00`
 > — and character 35 lands *inside* the merchant name. The cut produces `"...BENSU GADI"` as one chunk and `"NG    85.000,00..."` as the next. You've now embedded "GADI" and "NG" as two unrelated fragments — neither one looks anything like "GADING" to an embedding model, so a later search for that merchant misses both halves.
 
-**Rung 1 — an automated splitter with overlap (same idea, less breakage).** `fixed_size_chunks(text, chunk_size, overlap)` (Step 2) still counts characters, but it's not actually a fix for the word-cutting problem by itself — what `overlap` buys you is that the **tail of one chunk is carried into the head of the next**, so a fact that straddles a cut boundary still appears whole in at least one chunk instead of being lost to both.
+**Stage 1 — an automated splitter with overlap (same idea, less breakage).** `fixed_size_chunks(text, chunk_size, overlap)` (Step 2) still counts characters, but it's not actually a fix for the word-cutting problem by itself — what `overlap` buys you is that the **tail of one chunk is carried into the head of the next**, so a fact that straddles a cut boundary still appears whole in at least one chunk instead of being lost to both.
 
 > **The wall:** overlap stops you from *losing* facts at a boundary, but the splitter still has zero awareness of structure. It can just as easily cut `"25/03/2024 TRANSFER DEBET SEWA BULANAN"` away from its amount `"1.500.000,00"` if that's where character 500 happens to fall — the description and the number that belongs to it end up in different chunks.
 
-**Rung 2 — split on structural separators, not raw counts.** `sentence_window_chunks(text, window_size)` (Step 2) splits on `\n` and sentence-ending punctuation instead of a character count, so each chunk is a *complete* line or sentence — never half a merchant name, never a description severed from its amount. It also attaches a `window` of ±N neighboring sentences, so the unit you *search* is small and precise but the unit you *hand to the reader* has enough surrounding context — "small-to-search, big-to-read." → *this is what the chapter ships: both `fixed_size_chunks` and `sentence_window_chunks`, unit-tested in [test_chunker.py](../../../services/ai-service/tests/test_chunker.py).*
+**Stage 2 — split on structural separators, not raw counts.** `sentence_window_chunks(text, window_size)` (Step 2) splits on `\n` and sentence-ending punctuation instead of a character count, so each chunk is a *complete* line or sentence — never half a merchant name, never a description severed from its amount. It also attaches a `window` of ±N neighboring sentences, so the unit you *search* is small and precise but the unit you *hand to the reader* has enough surrounding context — "small-to-search, big-to-read." → *this is what the chapter ships: both `fixed_size_chunks` and `sentence_window_chunks`, unit-tested in [test_chunker.py](../../../services/ai-service/tests/test_chunker.py).*
 
 > **The wall (next chapter's problem, not this one):** structure ≠ meaning. A line break or a period doesn't know that two adjacent transactions are unrelated, or that one transaction's description happens to wrap across two "sentences." Splitting on `\n`/punctuation is a good proxy for structure, but it can still group unrelated content or split related content purely because of where the document happens to break.
 
-**Rung 3 — named, not built — semantic / agentic splitting.** Split where the *meaning* changes (e.g. compare embedding similarity between adjacent sentences and cut where it drops, or let an LLM decide chunk boundaries). That's the actual fix for "structure ≠ meaning," and it's out of scope here — noted as a teaser, not taught.
+**Stage 3 — named, not built — semantic / agentic splitting.** Split where the *meaning* changes (e.g. compare embedding similarity between adjacent sentences and cut where it drops, or let an LLM decide chunk boundaries). That's the actual fix for "structure ≠ meaning," and it's out of scope here — noted as a teaser, not taught.
 
-▶ **Watch/read for this concept:** [Chunking Strategies in RAG: Optimising Data for Advanced AI Responses](https://www.youtube.com/watch?v=pIGRwMjhMaQ) — hands-on, levels up exactly through these rungs.
+▶ **Watch/read for this concept:** [Chunking Strategies in RAG: Optimising Data for Advanced AI Responses](https://www.youtube.com/watch?v=pIGRwMjhMaQ) — hands-on, levels up exactly through these stages.
 
 ## Re-ranking
 
-**Rung 0 — cosine top-K, as shipped in Chapter 3.** Embed the query `"berapa pengeluaran makan bulan Maret?"`, cosine-search `transaction_embeddings`, return the top-10 by similarity. This already works and is the current baseline (`P@5 = 0.66` after the IVFFlat probes fix).
+**Stage 0 — cosine top-K, as shipped in Chapter 3.** Embed the query `"berapa pengeluaran makan bulan Maret?"`, cosine-search `transaction_embeddings`, return the top-10 by similarity. This already works and is the current baseline (`P@5 = 0.66` after the IVFFlat probes fix).
 
 > **The wall:** the embedding model is a **bi-encoder** — it encoded the query and every transaction description *independently*, never together, so all it can ever compare is two pre-computed points in vector space. That's cheap and fast, but it's also why near-misses sneak into the top-10: `"makan"` (to eat) and `"makanan ternak"` (animal feed) share enough of the same root that their embeddings sit close together, even though one is a food-spending question and the other is irrelevant to it. The bi-encoder never gets a chance to actually reason about that difference — it only ever saw the two pieces of text in isolation.
 
-**Rung 1 — re-rank the top-10 with a cross-encoder.** A **cross-encoder** reads the query and a candidate document *together*, in one forward pass — it can attend across both and actually weigh whether `"makanan ternak"` answers a question about `"makan"`, something the bi-encoder structurally cannot do. The pattern is a funnel: cheap-and-broad bi-encoder retrieves 10 candidates, expensive-and-narrow cross-encoder re-scores those 10.
+**Stage 1 — re-rank the top-10 with a cross-encoder.** A **cross-encoder** reads the query and a candidate document *together*, in one forward pass — it can attend across both and actually weigh whether `"makanan ternak"` answers a question about `"makan"`, something the bi-encoder structurally cannot do. The pattern is a funnel: cheap-and-broad bi-encoder retrieves 10 candidates, expensive-and-narrow cross-encoder re-scores those 10.
 
 > **The wall:** a quality hosted cross-encoder (Cohere Rerank) costs money and a network round-trip per call. Fine for production traffic; hostile to an eval harness you want to re-run a dozen times while iterating — every run either costs you or gets rate-limited.
 
-**Rung 2 — FlashRank: the same cross-encoder idea, running locally.** A ~34 MB MiniLM cross-encoder that runs on CPU, no API key, no rate limit, deterministic — free to re-run the eval harness as many times as you want. → *this is what the chapter ships* ([reranker.py](../../../services/ai-service/app/services/reranker.py), Step 3).
+**Stage 2 — FlashRank: the same cross-encoder idea, running locally.** A ~34 MB MiniLM cross-encoder that runs on CPU, no API key, no rate limit, deterministic — free to re-run the eval harness as many times as you want. → *this is what the chapter ships* ([reranker.py](../../../services/ai-service/app/services/reranker.py), Step 3).
 
 > **Teaser, covered in the build steps:** FlashRank's `rerank()` call is synchronous CPU inference. Call it directly inside an `async def` endpoint and it blocks the event loop for *every* concurrent request the service is handling. The fix (`asyncio.to_thread`) is in Step 3 — named here so the wall doesn't surprise you mid-build.
 
@@ -89,19 +89,19 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ## Grounded generation + citations
 
-**Rung 0 — dump the raw rows at the user.** Retrieve and re-rank, then hand the user the rows themselves: `GOFOOD GEPREK BENSU GADING — Rp 85.000`, `GRABFOOD ORDER 7FHJS8 — Rp 62.500`, …
+**Stage 0 — dump the raw rows at the user.** Retrieve and re-rank, then hand the user the rows themselves: `GOFOOD GEPREK BENSU GADING — Rp 85.000`, `GRABFOOD ORDER 7FHJS8 — Rp 62.500`, …
 
 > **The wall:** rows aren't an answer. The user asked `"berapa pengeluaran makan bulan Maret?"` — "how much," a number — not "here's a list, go add it up yourself."
 
-**Rung 1 — feed the rows to the LLM and ask it to summarize.** Pass the context to the model, ask for a total in plain language.
+**Stage 1 — feed the rows to the LLM and ask it to summarize.** Pass the context to the model, ask for a total in plain language.
 
 > **The wall:** without constraints, the model **hallucinates** — it can state a total that doesn't match the rows it was actually given (claiming "Rp 500.000" when the real context only sums to Rp 147.500), or even reference a transaction that was never in the context at all.
 
-**Rung 2 — a grounding prompt.** Instruct the model explicitly: answer ONLY from the provided context, and it is allowed to say "I don't know" (`confident: false`) instead of guessing. This closes most of the hallucination gap.
+**Stage 2 — a grounding prompt.** Instruct the model explicitly: answer ONLY from the provided context, and it is allowed to say "I don't know" (`confident: false`) instead of guessing. This closes most of the hallucination gap.
 
 > **The wall:** even a well-grounded model occasionally cites a `transaction_id` that was never in the context it was handed — a number it pattern-matched from training data or a nearby digit, not something it actually read.
 
-**Rung 3 — validate every cited id against the context you actually gave it.** After the model responds, check each `cited_transaction_ids` entry against the set of ids that were really in the prompt; silently drop (and log) anything that isn't there. → *this is what ships* — the citation-validation loop in [answerer.py](../../../services/ai-service/app/services/answerer.py) (Step 8), the **hallucination guard**.
+**Stage 3 — validate every cited id against the context you actually gave it.** After the model responds, check each `cited_transaction_ids` entry against the set of ids that were really in the prompt; silently drop (and log) anything that isn't there. → *this is what ships* — the citation-validation loop in [answerer.py](../../../services/ai-service/app/services/answerer.py) (Step 8), the **hallucination guard**.
 
 ▶ **Watch/read for this concept:** [Anthropic — Reducing hallucinations](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) — the grounding-prompt patterns used in this chapter's `SYSTEM_PROMPT`.
 
