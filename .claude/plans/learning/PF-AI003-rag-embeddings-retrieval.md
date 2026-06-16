@@ -74,6 +74,8 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ▶ **Watch/read for this concept:** [OpenAI cookbook — Embeddings quickstart](https://cookbook.openai.com/examples/get_embeddings_with_chunked_inputs) — read the code, not the prose.
 
+<br>
+
 # 🔧 Implementation
 
 ## 🎯 Objective

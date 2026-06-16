@@ -106,6 +106,8 @@ Three mini-ladders below — one per concept this chapter ships.
 ▶ **Watch/read for this concept:** [Anthropic — Reducing hallucinations](https://docs.anthropic.com/en/docs/test-and-evaluate/strengthen-guardrails/reduce-hallucinations) — the grounding-prompt patterns used in this chapter's `SYSTEM_PROMPT`.
 
  
+<br>
+
 
 # 🔧 Implementation
 
@@ -325,6 +327,60 @@ def sentence_window_chunks(text: str, window_size: int = 1) -> list[Chunk]:
     return chunks
 ```
 
+**C# equivalent** (Python `dataclass` with a mutable default factory → a C# `record` with `init`
+properties; module-level functions → static methods on a `Chunker` class; Python slicing →
+`Substring`/`Span<char>`):
+
+```csharp
+// PersonalFinance.Application/Services/Chunker.cs — pure functions, no I/O, no model calls.
+public sealed record Chunk(string Text, int Index, string Window = "", IReadOnlyDictionary<string, object>? Meta = null);
+
+public static class Chunker
+{
+    public static List<Chunk> FixedSizeChunks(string text, int chunkSize = 500, int overlap = 100)
+    {
+        if (chunkSize <= 0) throw new ArgumentException("chunkSize must be positive", nameof(chunkSize));
+        if (overlap >= chunkSize) throw new ArgumentException("overlap must be smaller than chunkSize", nameof(overlap));
+
+        text = text.Trim();
+        if (text.Length == 0) return new List<Chunk>();
+
+        var chunks = new List<Chunk>();
+        var step = chunkSize - overlap;
+        var index = 0;
+        for (var start = 0; start < text.Length; start += step, index++)
+        {
+            var length = Math.Min(chunkSize, text.Length - start);
+            var piece = text.Substring(start, length);
+            if (string.IsNullOrWhiteSpace(piece)) break;
+            chunks.Add(new Chunk(piece, index));
+            if (start + chunkSize >= text.Length) break;
+        }
+        return chunks;
+    }
+
+    private static readonly Regex SentenceSplit = new(@"(?<=[.!?])\s+|\n+", RegexOptions.Compiled);
+
+    public static List<Chunk> SentenceWindowChunks(string text, int windowSize = 1)
+    {
+        var sentences = SentenceSplit.Split(text)
+            .Select(s => s.Trim())
+            .Where(s => s.Length > 0)
+            .ToList();
+
+        var chunks = new List<Chunk>();
+        for (var i = 0; i < sentences.Count; i++)
+        {
+            var lo = Math.Max(0, i - windowSize);
+            var hi = Math.Min(sentences.Count, i + windowSize + 1);
+            var window = string.Join(" ", sentences.Skip(lo).Take(hi - lo));
+            chunks.Add(new Chunk(sentences[i], i, window));
+        }
+        return chunks;
+    }
+}
+```
+
 Create [services/ai-service/tests/test_chunker.py](../../../services/ai-service/tests/test_chunker.py):
 
 ```python
@@ -370,6 +426,67 @@ def test_sentence_window_edges_clamp():
     text = "One. Two. Three."
     chunks = sentence_window_chunks(text, window_size=2)
     assert chunks[0].window == "One. Two. Three."  # no negative index wraparound
+```
+
+**C# equivalent** (`pytest` functions → xUnit `[Fact]` methods; `pytest.raises` → `Assert.Throws`;
+`assert x == y` → `Assert.Equal(y, x)` — expected first, the reverse of Python's `assert` order):
+
+```csharp
+public class ChunkerTests
+{
+    [Fact]
+    public void FixedSizeChunks_RespectsChunkSize()
+    {
+        var chunks = Chunker.FixedSizeChunks(new string('a', 1200), chunkSize: 500, overlap: 100);
+        Assert.All(chunks, c => Assert.True(c.Text.Length <= 500));
+    }
+
+    [Fact]
+    public void FixedSizeChunks_OverlapCarriesContent()
+    {
+        var text = string.Concat(Enumerable.Repeat("0123456789", 30)); // 300 chars
+        var chunks = Chunker.FixedSizeChunks(text, chunkSize: 100, overlap: 20);
+        // tail of chunk N == head of chunk N+1
+        Assert.Equal(chunks[1].Text[..20], chunks[0].Text[^20..]);
+    }
+
+    [Fact]
+    public void FixedSizeChunks_EmptyText_ReturnsEmpty()
+    {
+        Assert.Empty(Chunker.FixedSizeChunks("   "));
+    }
+
+    [Fact]
+    public void FixedSizeChunks_OverlapGteSize_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => Chunker.FixedSizeChunks("abc", chunkSize: 100, overlap: 100));
+    }
+
+    [Fact]
+    public void SentenceWindowChunks_CoreIsSingleSentence()
+    {
+        var text = "First sentence. Second sentence. Third sentence.";
+        var chunks = Chunker.SentenceWindowChunks(text, windowSize: 1);
+        Assert.Equal("Second sentence.", chunks[1].Text);
+    }
+
+    [Fact]
+    public void SentenceWindowChunks_IncludesNeighbours()
+    {
+        var text = "First sentence. Second sentence. Third sentence.";
+        var chunks = Chunker.SentenceWindowChunks(text, windowSize: 1);
+        Assert.Contains("First sentence.", chunks[1].Window);
+        Assert.Contains("Third sentence.", chunks[1].Window);
+    }
+
+    [Fact]
+    public void SentenceWindowChunks_EdgesClamp()
+    {
+        var text = "One. Two. Three.";
+        var chunks = Chunker.SentenceWindowChunks(text, windowSize: 2);
+        Assert.Equal("One. Two. Three.", chunks[0].Window); // no negative index wraparound
+    }
+}
 ```
 
 Then demonstrate on a real fixture: in a scratch run, load one statement fixture text from `evals/fixtures/`, chunk it both ways, and eyeball the output (`python -c` one-liner is fine — no committed artifact needed).
@@ -450,6 +567,58 @@ class RerankerService:
         return reranked[:top_k]
 ```
 
+**C# equivalent** (FlashRank has no NuGet equivalent — the port models the same seam around a
+hypothetical local cross-encoder client; Python's `asyncio.to_thread` → C#'s `Task.Run`, the same
+"push sync CPU work off the request-serving thread" fix in both worlds):
+
+```csharp
+// PersonalFinance.Application/Services/RerankerService.cs
+public interface IRerankerService
+{
+    Task<List<SearchResult>> RerankAsync(string query, List<SearchResult> results, int topK = 3, CancellationToken ct = default);
+}
+
+public sealed class RerankerService : IRerankerService
+{
+    private readonly ICrossEncoderRanker _ranker; // hypothetical local MiniLM cross-encoder wrapper
+    private readonly ILogger<RerankerService> _logger;
+
+    public RerankerService(ICrossEncoderRanker ranker, ILogger<RerankerService> logger)
+    {
+        _ranker = ranker;
+        _logger = logger;
+    }
+
+    public async Task<List<SearchResult>> RerankAsync(
+        string query, List<SearchResult> results, int topK = 3, CancellationToken ct = default)
+    {
+        if (results.Count == 0) return new List<SearchResult>();
+
+        var passages = results
+            .Select(r => new RerankPassage(r.TransactionId, $"{r.Description} | {r.Wallet} | {r.Date} | {r.Flow}"))
+            .ToList();
+
+        // The cross-encoder is synchronous CPU inference — run it on the thread
+        // pool so a 50ms model call doesn't block every other request the
+        // service is handling (the same fix as never blocking on .Result).
+        var ranked = await Task.Run(() => _ranker.Rerank(query, passages), ct);
+
+        var byId = results.ToDictionary(r => r.TransactionId);
+        return ranked
+            .Where(p => byId.ContainsKey(p.Id))
+            .Select(p => byId[p.Id])
+            .Take(topK)
+            .ToList();
+    }
+}
+```
+
+> **Why `Task.Run`, not just `await` the call directly?** `_ranker.Rerank(...)` is a synchronous,
+> CPU-bound method (no I/O to await). Calling it inline inside an `async` controller action runs it
+> on the thread that's serving the request — under load, that starves the thread pool the same way
+> calling FlashRank inline would block Python's event loop. `Task.Run` is the ASP.NET Core twin of
+> `asyncio.to_thread`.
+
 Create [services/ai-service/tests/test_reranker.py](../../../services/ai-service/tests/test_reranker.py):
 
 ```python
@@ -504,6 +673,59 @@ async def test_rerank_empty_input_returns_empty(mock_ranker):
     assert await service.rerank("q", [], top_k=3) == []
 ```
 
+**C# equivalent** (`unittest.mock.patch` on a module-level class → Moq constructor injection of
+`ICrossEncoderRanker`; `pytest.fixture` → a private test helper; `@pytest.mark.asyncio` → nothing
+needed, xUnit `[Fact]` already awaits `async Task` test methods):
+
+```csharp
+public class RerankerServiceTests
+{
+    private static SearchResult Result(int id, string desc) => new()
+    {
+        TransactionId = id, Similarity = 0.9, Description = desc,
+        Date = "2026-03-01", AmountIdr = 50000.0m, Flow = "DB", Wallet = "BCA",
+    };
+
+    [Fact]
+    public async Task RerankAsync_ReordersByCrossEncoderScore()
+    {
+        // Arrange — cross-encoder says tx 2 beats tx 1, reversing the retrieval order
+        var ranker = new Mock<ICrossEncoderRanker>();
+        ranker.Setup(r => r.Rerank(It.IsAny<string>(), It.IsAny<List<RerankPassage>>()))
+            .Returns(new List<RerankResult> { new(2, 0.99), new(1, 0.40) });
+        var service = new RerankerService(ranker.Object, Mock.Of<ILogger<RerankerService>>());
+
+        // Act
+        var results = await service.RerankAsync("kopi",
+            new List<SearchResult> { Result(1, "TRANSFER"), Result(2, "STARBUCKS") }, topK: 2);
+
+        // Assert
+        Assert.Equal(new[] { 2, 1 }, results.Select(r => r.TransactionId));
+    }
+
+    [Fact]
+    public async Task RerankAsync_TruncatesToTopK()
+    {
+        var ranker = new Mock<ICrossEncoderRanker>();
+        ranker.Setup(r => r.Rerank(It.IsAny<string>(), It.IsAny<List<RerankPassage>>()))
+            .Returns(Enumerable.Range(1, 5).Select(i => new RerankResult(i, 1.0 - i / 10.0)).ToList());
+        var service = new RerankerService(ranker.Object, Mock.Of<ILogger<RerankerService>>());
+
+        var results = await service.RerankAsync("q",
+            Enumerable.Range(1, 5).Select(i => Result(i, $"tx{i}")).ToList(), topK: 3);
+
+        Assert.Equal(3, results.Count);
+    }
+
+    [Fact]
+    public async Task RerankAsync_EmptyInput_ReturnsEmpty()
+    {
+        var service = new RerankerService(Mock.Of<ICrossEncoderRanker>(), Mock.Of<ILogger<RerankerService>>());
+        Assert.Empty(await service.RerankAsync("q", new List<SearchResult>(), topK: 3));
+    }
+}
+```
+
 ```bash
 PYTHONPATH=. pytest tests/test_reranker.py -v
 ```
@@ -537,6 +759,36 @@ class SearchRequest(BaseModel):
     date_from: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     date_to: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     rerank: bool = False
+```
+
+**C# equivalent** (Pydantic `BaseModel` + `Field(pattern=...)` → a C# record with data-annotation
+validation attributes; Pydantic validates at construction, ASP.NET Core validates via model
+binding + `ModelState`):
+
+```csharp
+public sealed record SearchRequest
+{
+    [Required, MinLength(1), MaxLength(500)]
+    public string Query { get; init; } = "";
+
+    [Range(1, 50)]
+    public int TopK { get; init; } = 5;
+
+    [Range(0.0, 1.0)]
+    public double MinSimilarity { get; init; } = 0.0;
+
+    // PF-AI004: optional metadata filters + rerank toggle
+    public string? Category { get; init; }
+    public string? Account { get; init; }
+
+    [RegularExpression(@"^\d{4}-\d{2}-\d{2}$")]
+    public string? DateFrom { get; init; }
+
+    [RegularExpression(@"^\d{4}-\d{2}-\d{2}$")]
+    public string? DateTo { get; init; }
+
+    public bool Rerank { get; init; } = false;
+}
 ```
 
 Edit `RetrievalService.search()` in [app/services/retriever.py](../../../services/ai-service/app/services/retriever.py) to accept the filters and compile them into the SQL:
@@ -592,6 +844,65 @@ Edit `RetrievalService.search()` in [app/services/retriever.py](../../../service
         # ... existing row → SearchResult mapping unchanged ...
 ```
 
+**C# equivalent** (`asyncpg.connect` + positional `$1, $2, ...` params → `NpgsqlConnection` +
+Dapper with named `@p1, @p2, ...` params; the local `add()` closure that appends a clause + a
+parameter together is the part worth preserving — it's what keeps the WHERE list and the
+parameter list from drifting apart):
+
+```csharp
+public async Task<List<SearchResult>> SearchAsync(
+    string query, int topK = 5, double minSimilarity = 0.0,
+    string? category = null, string? account = null,
+    string? dateFrom = null, string? dateTo = null, CancellationToken ct = default)
+{
+    var queryVector = await _embedder.EmbedAsync(query, ct); // existing query embedding unchanged
+
+    // Compile optional filters to parametrized WHERE clauses.
+    // NEVER interpolate values into SQL — parameters only (@p3, @p4, ...).
+    var where = new List<string> { "1 - (te.embedding <=> @p1::vector) >= @p2" };
+    var parameters = new DynamicParameters();
+    parameters.Add("p1", queryVector);
+    parameters.Add("p2", minSimilarity);
+    var paramIndex = 2;
+
+    void Add(string clauseTemplate, object value)
+    {
+        paramIndex++;
+        var name = $"p{paramIndex}";
+        parameters.Add(name, value);
+        where.Add(string.Format(clauseTemplate, name));
+    }
+
+    if (category is not null) Add("t.category ILIKE @{0}", category);
+    if (account is not null) Add("a.name ILIKE @{0}", account);
+    if (dateFrom is not null) Add("t.date >= @{0}::date", dateFrom);
+    if (dateTo is not null) Add("t.date <= @{0}::date", dateTo);
+    parameters.Add($"p{paramIndex + 1}", topK);
+
+    var sql = $"""
+        SELECT
+            te.transaction_id, 1 - (te.embedding <=> @p1::vector) AS similarity,
+            t.description, t.date::text AS date, t.amount_idr, t.flow,
+            COALESCE(a.name, '') AS wallet
+        FROM transaction_embeddings te
+        JOIN transactions t ON t.id = te.transaction_id
+        LEFT JOIN accounts a ON a.id = t.account_id
+        WHERE {string.Join(" AND ", where)}
+        ORDER BY te.embedding <=> @p1::vector
+        LIMIT @p{paramIndex + 1}
+        """;
+
+    var rows = await _connection.QueryAsync<SearchResult>(sql, parameters);
+    return rows.ToList(); // existing row -> SearchResult mapping unchanged
+}
+```
+
+> **Why a `DynamicParameters` + `Add()` helper instead of string-building both lists by hand?**
+> Same reason as the Python closure: the WHERE clause and its parameter must always be appended
+> together, in the same call. Building them in two separate steps is exactly how a parameter list
+> drifts out of sync with the SQL — the local helper makes that class of bug structurally
+> impossible.
+
 Update `/search` in [main.py](../../../services/ai-service/app/main.py) to pass the new fields through, and apply `rerank` when requested:
 
 ```python
@@ -610,6 +921,26 @@ async def search_transactions(request: SearchRequest) -> SearchResponse:
     if request.rerank:
         results = await app.state.reranker.rerank(request.query, results, top_k=request.top_k)
     return SearchResponse(results=results, query=request.query, total_found=len(results))
+```
+
+**C# equivalent** (FastAPI route function → ASP.NET Core controller action; `app.state.*`
+singletons → constructor-injected services, per ARCH-04 — controller bodies stay thin, the
+fetch-wider-then-rerank logic lives one level down):
+
+```csharp
+[HttpPost]
+public async Task<ActionResult<SearchResponse>> Search(SearchRequest request, CancellationToken ct)
+{
+    var fetchK = request.Rerank ? Math.Max(request.TopK, 10) : request.TopK;
+    var results = await _retriever.SearchAsync(
+        request.Query, fetchK, request.MinSimilarity,
+        request.Category, request.Account, request.DateFrom, request.DateTo, ct);
+
+    if (request.Rerank)
+        results = await _reranker.RerankAsync(request.Query, results, request.TopK, ct);
+
+    return Ok(new SearchResponse(results, request.Query, results.Count));
+}
 ```
 
 Add 2–3 filter tests to [tests/test_retriever.py](../../../services/ai-service/tests/test_retriever.py) (assert the generated SQL contains the clause and the parameter list lines up — mocked asyncpg, same pattern as the existing 4 tests).
@@ -657,6 +988,46 @@ if __name__ == "__main__":
     ap.add_argument("--rerank", action="store_true")
     args = ap.parse_args()
     asyncio.run(run(args.rerank))
+```
+
+**C# equivalent** (`argparse` flag → a manually-parsed console flag; `time.perf_counter()` →
+`Stopwatch`; `asyncio.run(run(...))` → `await Task` from `Main` — same `EvalRunner` console
+project shape as [PF-AI002's harness](../../../.claude/plans/learning/PF-AI002-llm-evaluation-framework.md)):
+
+```csharp
+public static async Task RunAsync(bool rerank, CancellationToken ct = default)
+{
+    var queries = JsonSerializer.Deserialize<List<EvalQuery>>(await File.ReadAllTextAsync(QueriesFile, ct))!;
+    var service = new RetrievalService(/* ... */);
+    var reranker = rerank ? new RerankerService(/* ... */) : null;
+
+    var scores = new List<double>();
+    foreach (var q in queries)
+    {
+        var sw = Stopwatch.StartNew();
+        List<SearchResult> results;
+        if (reranker is not null)
+        {
+            var candidates = await service.SearchAsync(q.Query, topK: 10, ct: ct); // wide funnel
+            results = await reranker.RerankAsync(q.Query, candidates, topK: 5, ct: ct);
+        }
+        else
+        {
+            results = await service.SearchAsync(q.Query, topK: 5, ct: ct);
+        }
+        var latencyMs = sw.Elapsed.TotalMilliseconds;
+        // ... existing MrrAtK scoring + table print unchanged ...
+    }
+
+    var mode = rerank ? "reranked (10->5)" : "baseline (top-5)";
+    Console.WriteLine($"\nMRR@5 [{mode}]: {scores.Average():F3}");
+}
+
+public static async Task Main(string[] args)
+{
+    var rerank = args.Contains("--rerank");
+    await RunAsync(rerank);
+}
 ```
 
 Run both modes back-to-back and record in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
@@ -719,6 +1090,47 @@ class AskResponse(BaseModel):
     model: str
     retrieval_ms: float
     generation_ms: float
+```
+
+**C# equivalent** (Pydantic `BaseModel`s → C# `record`s; `int`/`float`/`str` map directly to
+`int`/`double`/`string` — no THINK-03 surprises here since the Python side already uses the
+correct primitive types):
+
+```csharp
+public sealed record AskRequest
+{
+    [Required, MinLength(1), MaxLength(500)]
+    public string Query { get; init; } = "";
+
+    [Range(1, 10)]
+    public int TopK { get; init; } = 3; // contexts handed to the LLM
+
+    public string? Category { get; init; }
+    public string? Account { get; init; }
+
+    [RegularExpression(@"^\d{4}-\d{2}-\d{2}$")]
+    public string? DateFrom { get; init; }
+
+    [RegularExpression(@"^\d{4}-\d{2}-\d{2}$")]
+    public string? DateTo { get; init; }
+}
+
+public sealed record Citation(
+    int Marker,         // [1], [2] — position referenced in the answer text
+    int TransactionId,
+    string Date,
+    string Description,
+    decimal AmountIdr,
+    string Flow,
+    string Wallet);
+
+public sealed record AskResponse(
+    string Answer,
+    bool Confident,
+    List<Citation> Citations,
+    string Model,
+    double RetrievalMs,
+    double GenerationMs);
 ```
 
 > **Why `retrieval_ms` / `generation_ms` split in the response?** Chapter 5 streams this endpoint; knowing *where* the latency lives (retrieval ~100ms vs generation ~2s) is what justifies streaming the generation phase. Measuring the split now gives you the before/after story, and it's a free observability win in every demo.
@@ -843,6 +1255,105 @@ class AnswerService:
         )
 ```
 
+**C# equivalent** (constructor-injected collaborators map directly onto C# DI — this is the same
+shape `Create{Entity}CommandHandler` already uses, per [backend.md](../../../.claude/rules/backend.md);
+Python's `time.perf_counter()` → `Stopwatch`; the `by_id` dict-of-tuples → a small local
+`record`):
+
+```csharp
+public sealed class AnswerService
+{
+    private readonly IRetrievalService _retriever;
+    private readonly IRerankerService _reranker;
+    private readonly ILlmProvider _provider;
+    private readonly ILogger<AnswerService> _logger;
+
+    private static readonly object AnswerSchema = new
+    {
+        type = "object",
+        properties = new
+        {
+            answer = new { type = "string" },
+            cited_transaction_ids = new { type = "array", items = new { type = "integer" } },
+            confident = new { type = "boolean" },
+        },
+        required = new[] { "answer", "cited_transaction_ids", "confident" },
+    };
+
+    private const string SystemPrompt = """
+        You are a personal finance assistant answering questions about the user's own bank
+        transactions. Answer ONLY from the numbered transactions provided as context. Rules:
+        - If the context does not contain the answer, say so and set confident=false. Never
+          estimate or invent amounts.
+        - Reference transactions inline as [1], [2] matching their context numbers, and list
+          their ids in cited_transaction_ids.
+        - Amounts are in IDR. Sum amounts yourself when the question asks for totals.
+        - Answer in the same language as the question (Indonesian or English).
+        """;
+
+    public AnswerService(
+        IRetrievalService retriever, IRerankerService reranker,
+        ILlmProvider provider, ILogger<AnswerService> logger)
+    {
+        _retriever = retriever;
+        _reranker = reranker;
+        _provider = provider;
+        _logger = logger;
+    }
+
+    private static string FormatContext(List<SearchResult> results) =>
+        string.Join("\n", results.Select((r, i) =>
+            $"[{i + 1}] id={r.TransactionId} | {r.Date} | {r.Description} | " +
+            $"{r.Flow} | Rp {r.AmountIdr:N0} | {r.Wallet}"));
+
+    public async Task<AskResponse> AskAsync(AskRequest request, CancellationToken ct = default)
+    {
+        // 1. Retrieve a wide candidate set (filtered), then rerank to TopK.
+        var sw = Stopwatch.StartNew();
+        var candidates = await _retriever.SearchAsync(
+            request.Query, topK: 10, category: request.Category, account: request.Account,
+            dateFrom: request.DateFrom, dateTo: request.DateTo, ct: ct);
+        var contexts = await _reranker.RerankAsync(request.Query, candidates, request.TopK, ct);
+        var retrievalMs = sw.Elapsed.TotalMilliseconds;
+
+        if (contexts.Count == 0)
+        {
+            return new AskResponse(
+                Answer: "Tidak ada transaksi yang cocok dengan pertanyaan ini.",
+                Confident: false, Citations: new List<Citation>(), Model: "none",
+                RetrievalMs: retrievalMs, GenerationMs: 0.0);
+        }
+
+        // 2. Grounded synthesis via the existing provider (Langfuse-traced).
+        sw.Restart();
+        var userPrompt = $"Context transactions:\n{FormatContext(contexts)}\n\nQuestion: {request.Query}";
+        var raw = await _provider.GenerateJsonAsync(SystemPrompt, userPrompt, AnswerSchema, ct);
+        var generationMs = sw.Elapsed.TotalMilliseconds;
+
+        // 3. Validate citations: drop ids the LLM invented (hallucination guard).
+        var byId = contexts.Select((r, i) => (r, marker: i + 1))
+            .ToDictionary(x => x.r.TransactionId, x => x);
+        var citations = new List<Citation>();
+        foreach (var tid in raw.CitedTransactionIds)
+        {
+            if (byId.TryGetValue(tid, out var hit))
+            {
+                citations.Add(new Citation(hit.marker, hit.r.TransactionId, hit.r.Date,
+                    hit.r.Description, hit.r.AmountIdr, hit.r.Flow, hit.r.Wallet));
+            }
+            else
+            {
+                _logger.LogWarning("LLM cited unknown transaction_id={TransactionId} — dropped", tid);
+            }
+        }
+
+        return new AskResponse(
+            Answer: raw.Answer, Confident: raw.Confident, Citations: citations,
+            Model: _settings.AiModel, RetrievalMs: retrievalMs, GenerationMs: generationMs);
+    }
+}
+```
+
 Create [services/ai-service/tests/test_answerer.py](../../../services/ai-service/tests/test_answerer.py) — mock all three collaborators (canonical AsyncMock pattern from [.claude/rules/ai-service.md](../../rules/ai-service.md)):
 
 ```python
@@ -899,6 +1410,87 @@ async def test_ask_no_contexts_returns_not_confident_without_llm_call():
     service._provider.generate_json.assert_not_called()
 ```
 
+**C# equivalent** (three `AsyncMock` collaborators → three `Mock<T>` collaborators passed to the
+constructor — no `patch()` gymnastics needed because `AnswerService` is constructor-injected, the
+exact payoff the build step's "why constructor injection" callout describes; `assert_not_called()`
+→ Moq `Verify(..., Times.Never())`):
+
+```csharp
+public class AnswerServiceTests
+{
+    private static SearchResult Result(int id) => new()
+    {
+        TransactionId = id, Similarity = 0.9, Description = $"TX{id}",
+        Date = "2026-03-01", AmountIdr = 10000.0m, Flow = "DB", Wallet = "BCA",
+    };
+
+    private static AnswerService BuildService(RawAnswer providerJson, List<SearchResult> contexts)
+    {
+        var retriever = new Mock<IRetrievalService>();
+        retriever.Setup(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(contexts);
+
+        var reranker = new Mock<IRerankerService>();
+        reranker.Setup(r => r.RerankAsync(It.IsAny<string>(), It.IsAny<List<SearchResult>>(),
+                It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(contexts);
+
+        var provider = new Mock<ILlmProvider>();
+        provider.Setup(p => p.GenerateJsonAsync(It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(providerJson);
+
+        return (new AnswerService(retriever.Object, reranker.Object, provider.Object,
+            Mock.Of<ILogger<AnswerService>>()), provider);
+    }
+
+    [Fact]
+    public async Task AskAsync_ReturnsGroundedAnswerWithCitations()
+    {
+        var (service, _) = BuildService(
+            new RawAnswer("Total Rp 10.000 [1]", new List<int> { 1 }, true),
+            new List<SearchResult> { Result(1) });
+
+        var response = await service.AskAsync(new AskRequest { Query = "makan maret" });
+
+        Assert.True(response.Confident);
+        Assert.Equal(1, response.Citations[0].TransactionId);
+        Assert.Equal(1, response.Citations[0].Marker);
+    }
+
+    [Fact]
+    public async Task AskAsync_DropsHallucinatedCitationIds()
+    {
+        var (service, _) = BuildService(
+            new RawAnswer("x [1]", new List<int> { 1, 999 }, true),
+            new List<SearchResult> { Result(1) });
+
+        var response = await service.AskAsync(new AskRequest { Query = "q" });
+
+        Assert.Equal(new[] { 1 }, response.Citations.Select(c => c.TransactionId)); // 999 dropped
+    }
+
+    [Fact]
+    public async Task AskAsync_NoContexts_ReturnsNotConfidentWithoutLlmCall()
+    {
+        var (service, provider) = BuildService(
+            new RawAnswer("", new List<int>(), false), new List<SearchResult>());
+
+        var response = await service.AskAsync(new AskRequest { Query = "q" });
+
+        Assert.False(response.Confident);
+        provider.Verify(p => p.GenerateJsonAsync(It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Never());
+    }
+}
+```
+
+> **`BuildService` returns a tuple, not just the service.** xUnit/Moq has no module-level
+> `service._provider` to reach into after construction the way the Python fixture does — the test
+> that needs to assert "never called" on the mock has to keep its own reference, so the helper
+> hands both back.
+
 ```bash
 PYTHONPATH=. pytest tests/test_answerer.py -v
 ```
@@ -932,6 +1524,32 @@ async def ask(request: AskRequest) -> AskResponse:
     except Exception as exc:
         logger.exception("ask failed")
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
+```
+
+**C# equivalent** (DI wiring → `Program.cs`/`Startup` registration instead of a `lifespan` block;
+the route handler → a thin controller action per ARCH-04 — try/catch maps to the project's
+existing exception-middleware contract, ERR-03/ERR-04, rather than a per-action try/catch):
+
+```csharp
+// Program.cs
+builder.Services.AddScoped<IRerankerService, RerankerService>();
+builder.Services.AddScoped<AnswerService>();
+
+// AskController.cs — exceptions bubble to the global exception middleware,
+// which already maps unhandled errors to 500; LLM-specific failures are
+// translated to 502 there per the .claude/rules/ai-service.md error contract.
+[ApiController]
+[Route("api/[controller]")]
+public class AskController : ControllerBase
+{
+    private readonly AnswerService _answerer;
+
+    public AskController(AnswerService answerer) => _answerer = answerer;
+
+    [HttpPost]
+    public async Task<ActionResult<AskResponse>> Ask(AskRequest request, CancellationToken ct)
+        => Ok(await _answerer.AskAsync(request, ct));
+}
 ```
 
 Smoke test (service running, embeddings backfilled):
@@ -1034,6 +1652,74 @@ async def run() -> None:
 if __name__ == "__main__":
     asyncio.run(run())
 ```
+
+**C# equivalent** (no RAGAS-equivalent NuGet package exists — `ragas`'s `Faithfulness` metric
+internally asks a judge LLM to decompose the answer into atomic claims, then asks the judge again
+whether each claim is supported by the context, and averages the result. There's nothing to
+import; port the *technique* directly against the existing provider abstraction instead):
+
+```csharp
+// evals/EvalFaithfulness.cs — hand-rolled claim-decomposition-and-verify,
+// the same technique RAGAS's Faithfulness metric implements internally.
+public sealed record ClaimVerdict(string Claim, bool Supported);
+
+public static class FaithfulnessEval
+{
+    private const string DecomposePrompt =
+        "List each distinct factual claim in this answer as a short JSON array of strings. " +
+        "Answer: {0}";
+
+    private const string VerifyPrompt =
+        "Context:\n{0}\n\nClaim: \"{1}\"\n\nIs this claim directly supported by the context above? " +
+        "Answer with a JSON object: {{\"supported\": true|false}}.";
+
+    // Cross-provider judge (a different model than the generator) avoids
+    // self-preference bias, same reasoning as the Python script's gpt-4o-mini choice.
+    public static async Task<double> ScoreAsync(
+        ILlmProvider judge, string answer, IReadOnlyList<string> contexts, CancellationToken ct = default)
+    {
+        var claims = await judge.GenerateJsonArrayAsync(string.Format(DecomposePrompt, answer), ct);
+        if (claims.Count == 0) return 1.0; // no claims to falsify
+
+        var contextText = string.Join("\n", contexts);
+        var verdicts = new List<ClaimVerdict>();
+        foreach (var claim in claims)
+        {
+            var raw = await judge.GenerateJsonAsync(
+                string.Format(VerifyPrompt, contextText, claim), ct: ct);
+            verdicts.Add(new ClaimVerdict(claim, raw.Supported));
+        }
+
+        return verdicts.Count(v => v.Supported) / (double)verdicts.Count;
+    }
+
+    public static async Task RunAsync(ILlmProvider generatorProvider, ILlmProvider judgeProvider, AnswerService answerer)
+    {
+        var questions = JsonSerializer.Deserialize<List<AskQuestion>>(
+            await File.ReadAllTextAsync("evals/ask_questions.json"))!;
+
+        var scores = new List<double>();
+        foreach (var q in questions)
+        {
+            var response = await answerer.AskAsync(new AskRequest { Query = q.Query, DateFrom = q.DateFrom, DateTo = q.DateTo });
+            var contexts = response.Citations.Count > 0
+                ? response.Citations.Select(c => $"{c.Date} | {c.Description} | {c.Flow} | Rp {c.AmountIdr:N0} | {c.Wallet}").ToList()
+                : new List<string> { "(no context retrieved)" };
+
+            var score = await ScoreAsync(judgeProvider, response.Answer, contexts);
+            scores.Add(score);
+            Console.WriteLine($"{q.Query[..Math.Min(60, q.Query.Length)],-62} faithfulness={score:F2}  confident={response.Confident}");
+        }
+
+        Console.WriteLine($"\nMean faithfulness: {scores.Average():F3}   (target >= 0.80)");
+    }
+}
+```
+
+> **Why hand-roll instead of "there's no equivalent, skip it"?** The same observability gap exists
+> in any .NET shop building RAG without a Python sidecar — this is the pattern you'd reach for in
+> practice, and walking through it by hand is what makes RAGAS's internals legible rather than a
+> black box you just trust.
 
 Run and record the mean in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
 
