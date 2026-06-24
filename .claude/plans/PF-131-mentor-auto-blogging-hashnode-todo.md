@@ -1,7 +1,7 @@
 # PF-131 — Mentor Auto-Blogging: Draft → Hashnode Pipeline
 
-> **Status:** To Do
-> **Started:** —
+> **Status:** In Progress (publishing blocked — see STEP 1)
+> **Started:** 2026-06-24
 > **Planned from branch:** main
 
 ## Objective
@@ -10,12 +10,18 @@ Extend the `/mentor` skill with two new argument modes — `blog` and `blog post
 
 ## Acceptance Criteria
 
-- [ ] `/mentor blog` generates a complete, scrubbed draft saved to `docs/ideas/blogs/YYYY-MM-DD-{slug}.md` with YAML frontmatter (title, slug, tags, status: draft)
+- [x] `/mentor blog` generates a complete, scrubbed draft saved to `docs/ideas/blogs/YYYY-MM-DD-{slug}.md` with YAML frontmatter (title, slug, tags, status: draft)
+  > Verification note: mode implemented in SKILL.md (Mode: blog). Post #0 draft generated at `docs/ideas/blogs/2026-06-24-eval-harness.md` (1155w, `status: draft`, exactly 2 `---` delimiters). Privacy scrub passed.
 - [ ] `/mentor blog post` reads the most recent draft and publishes it to `https://rikky.hashnode.dev/` via the Hashnode GraphQL API
+  > Not met: Hashnode API requires Pro plan as of May 2026; `gql.hashnode.com` redirects non-Pro accounts to the announcement page. Mode is implemented in SKILL.md but cannot be tested until Pro is active and PUBLICATION_ID is set.
 - [ ] Published URL is logged back to [docs/mentor/progress.md](../../../docs/mentor/progress.md) and the editorial calendar in [docs/ideas/blogs/README.md](../../../docs/ideas/blogs/README.md)
-- [ ] [docs/ideas/blogs/README.md](../../../docs/ideas/blogs/README.md) exists with the 8-post editorial calendar from the blogging plan
-- [ ] [docs/ideas/blogs/_template.md](../../../docs/ideas/blogs/_template.md) exists with all 3 archetype skeletons
-- [ ] Privacy scrub checklist passes before any draft is marked ready to post
+  > Not met: depends on publishing step above.
+- [x] [docs/ideas/blogs/README.md](../../../docs/ideas/blogs/README.md) exists with the 8-post editorial calendar from the blogging plan
+  > Verification note: file exists and confirmed readable; contains Backlog/Drafting/Published status board, 8+ posts, weekly workflow, privacy scrub checklist, and positioning bio — richer than plan spec.
+- [x] [docs/ideas/blogs/_template.md](../../../docs/ideas/blogs/_template.md) exists with all 3 archetype skeletons
+  > Verification note: file exists with Build Log/Deep-Dive, Concept Ladder, and Short Take archetypes, each with full section structure and C# equivalent instructions.
+- [x] Privacy scrub checklist passes before any draft is marked ready to post
+  > Verification note: Post #0 (`2026-06-24-eval-harness.md`) verified — no company names, no real personal financial data, no API keys in code snippets, no private plan details verbatim.
 
 ## Approach
 
@@ -34,9 +40,28 @@ Extend [.agents/skills/mentor/SKILL.md](../../../.agents/skills/mentor/SKILL.md)
 
 ## TODO
 
-### [ ] STEP 1 — Get Hashnode credentials and publication ID (one-time setup)
+### [!] STEP 1 — Get Hashnode credentials and publication ID (one-time setup)
+> **Failure:** HASHNODE_PAT confirmed in .env; PUBLICATION_ID placeholder added with API query command and Pro plan upgrade note. Auto-fetch of PUBLICATION_ID failed because `gql.hashnode.com` redirects all requests to the announcement page for accounts without a Pro plan (as of May 2026). Manual steps to complete: (a) upgrade publication to Pro at `hashnode.com/[username]/dashboard/billing`; (b) run the API query command in the .env comment to get PUBLICATION_ID; (c) fill in `HASHNODE_PUBLICATION_ID` in root `.env`.
 
-Set your Personal Access Token from hashnode.com/settings/developer, then fetch your publication ID:
+**1a — Create your Hashnode account (skip if you already have one)**
+
+1. Go to [hashnode.com](https://hashnode.com) and click **Sign up**
+2. Sign in with GitHub (recommended — keeps your dev identity consistent)
+3. Choose a username: `rikky` maps to `https://rikky.hashnode.dev/`
+4. Create a publication when prompted — or later via dashboard → **Blogs** → **Create a blog**. Title it "Backend to AI Engineer in 90 Days" or similar.
+
+**1b — Get your Personal Access Token (PAT)**
+
+1. Log in at hashnode.com
+2. Click your avatar (top-right) → **Settings**
+3. In the left sidebar, click **Developer** (direct URL: `hashnode.com/settings/developer`)
+4. Under **Personal Access Tokens**, click **Generate New Token**
+5. Name it `personal-finance-claude` so you know which app uses it
+6. Copy the token immediately — **it is shown only once**. If you lose it, revoke and regenerate.
+
+**1c — Fetch your Publication ID and store both credentials**
+
+Set your PAT, then run the query below to get the publication ID:
 
 ```bash
 export HASHNODE_PAT="your-pat-here"
@@ -59,7 +84,7 @@ export HASHNODE_PUBLICATION_ID="xxxx"
 
 ---
 
-### [ ] STEP 2 — Create docs/ideas/blogs/README.md (editorial calendar)
+### [x] STEP 2 — Create docs/ideas/blogs/README.md (editorial calendar)
 
 Create [docs/ideas/blogs/README.md](../../../docs/ideas/blogs/README.md) with the 8-post plan from [docs/ideas/blogs/blogging-plan.md](../../../docs/ideas/blogs/blogging-plan.md):
 
@@ -109,7 +134,7 @@ Create [docs/ideas/blogs/README.md](../../../docs/ideas/blogs/README.md) with th
 
 ---
 
-### [ ] STEP 3 — Create docs/ideas/blogs/_template.md (3 archetype skeletons)
+### [x] STEP 3 — Create docs/ideas/blogs/_template.md (3 archetype skeletons)
 
 Create [docs/ideas/blogs/_template.md](../../../docs/ideas/blogs/_template.md):
 
@@ -306,7 +331,7 @@ Write it as a recommendation: "If you're building X, this means Y."]
 
 ---
 
-### [ ] STEP 4 — Add `blog` and `blog post` to Mode Routing in SKILL.md
+### [x] STEP 4 — Add `blog` and `blog post` to Mode Routing in SKILL.md
 
 In [.agents/skills/mentor/SKILL.md](../../../.agents/skills/mentor/SKILL.md), add two rows to the Mode Routing table. **Put `blog post` above `blog`** so the longer pattern matches first:
 
@@ -319,7 +344,7 @@ In [.agents/skills/mentor/SKILL.md](../../../.agents/skills/mentor/SKILL.md), ad
 
 ---
 
-### [ ] STEP 5 — Add `## Mode: blog` to SKILL.md
+### [x] STEP 5 — Add `## Mode: blog` to SKILL.md
 
 After the `## Mode: gap` section in [.agents/skills/mentor/SKILL.md](../../../.agents/skills/mentor/SKILL.md), add:
 
@@ -338,7 +363,7 @@ Optional: `/mentor blog 3` drafts post #3 specifically.
 2. Read [docs/mentor/progress.md](docs/mentor/progress.md) — extract session entries for the source plan's dates.
 3. Read the source learning plan (e.g. `.claude/plans/learning/PF-AI002-llm-evaluation-framework.md`) — extract: the narrative arc, real metrics (accuracy %, cost, latency), code snippets, the key insight.
 4. Read [docs/ideas/blogs/_template.md](docs/ideas/blogs/_template.md) — pick the archetype skeleton matching the post's planned archetype.
-5. Fill the skeleton with content from steps 2–3, applying all editorial quality rules below before saving.
+5. Fill the skeleton with content from steps 2–3. Extract only the selected archetype block — strip all `---` inter-archetype separator lines that appear in `_template.md` between archetype sections (they are template structural dividers, not content). The saved draft must contain exactly two `---` lines: the opening and closing frontmatter delimiters. Verify: `grep -c '^---$' docs/ideas/blogs/{draft-file}.md` must return `2`. Apply all editorial quality rules below before saving.
 6. Apply the privacy scrub — **blocking gate, do not skip**:
    - [ ] No target-company names or role IDs (progress.md names live pipeline companies — strip them)
    - [ ] No real personal financial data — use anonymized fixture references only
@@ -346,152 +371,23 @@ Optional: `/mentor blog 3` drafts post #3 specifically.
    - [ ] No private plan details quoted verbatim
 7. Save the draft to `docs/ideas/blogs/YYYY-MM-DD-{slug}.md` (today's date).
 8. Update `docs/ideas/blogs/README.md` — change the post's Status from `Backlog` to `Drafting`.
-9. Output:
-
-```
-## ✍️ Blog Draft — "{title}"
-
-**File:** docs/ideas/blogs/{YYYY-MM-DD}-{slug}.md
-**Archetype:** {archetype} · **Source:** {source plan/progress entry}
-**Word count:** ~{N}w (target: {range from archetype})
-
-**Privacy scrub:** ✅ Passed (or ⚠️ Review needed: {specific item to fix})
-
-**Next step:** Review the draft, polish with `/tech-write`, then run `/mentor blog post` to publish.
-```
-
-**Editorial quality rules — apply to every draft:**
-
-**Voice and register**
-- Write in first person, past tense for events, present tense for principles ("I ran the eval" / "The gate is the design")
-- Calibrate to the Dan Luu / Julia Evans register: technically precise, no fluff, no hype, treats the reader as a senior peer
-- Short paragraphs — 3–4 sentences max. A wall of text is a broken draft
-- No preamble: the first sentence must be the hook (a number, a failure, a claim), never a context-setter
-
-**Narrative flow**
-- Every section must end with a transition sentence that leads into the next section — no abrupt cuts between headers
-- The emotional arc: calm setup → friction (the wall) → relief (the fix) → satisfaction (the metric). The reader should feel this, not just read it
-- Code blocks are narrative accelerators, not chapter breaks — introduce each block in one sentence, follow it with one sentence interpreting the key line
-
-**Diagrams (required in every post)**
-- Every post must contain at least one high-level ASCII or Mermaid diagram
-- Position the main diagram early — after the intro hook, before the first technical section — so the reader has a mental map before the story starts
-- The diagram shows the system or concept at the 10,000-foot level: 5–7 boxes, real component names, arrows showing data or control flow
-- For Build Log: the pipeline the feature sits in (input → transform → output → store)
-- For Concept Ladder: the progression itself (Stage 0 → Stage 1 → Stage N → shipped) as a visual ladder or flow
-- For Short Take: the mental model or contrast (before vs after, loop vs gate, bi-encoder vs cross-encoder)
-- Diagrams use monospace-safe ASCII (box-drawing chars: `┌─┐│└┘▶`) or fenced Mermaid blocks. Test that it renders correctly in a monospace font
-
-**C# equivalents (series signature — mandatory)**
-- Every Python function, class, or test block gets a C# equivalent block immediately after
-- The parenthetical names the specific idiom being mapped (e.g. "Python `dataclass` → C# record with computed properties")
-- Frame as "if this service were a .NET service" — it's a teaching device, not wired-in code
-
-**Closing every post**
-- "What this proves" section: one sentence naming the specific AI engineering skill, one sentence why it's production-relevant
-- GitHub repo link + series line: "Part of my *Backend → AI Engineer in 90 Days* series on Hashnode."
-- The scrub checklist is a hard gate — if any item is uncertain, set `status: scrub-needed` in frontmatter instead of `draft` and flag it explicitly
+9. Output: ...
 ```
 
 > **Why:** Slots without quality constraints produce slot-shaped content. The diagram requirement forces a mental model before prose; the transition rules force narrative continuity; the voice calibration target (Dan Luu / Julia Evans) gives the mode a concrete register to aim for rather than "write well." These are the gaps between a structured dump and a post someone bookmarks.
 
 ---
 
-### [ ] STEP 6 — Add `## Mode: blog-post` to SKILL.md
+### [x] STEP 6 — Add `## Mode: blog-post` to SKILL.md
 
-Immediately after `## Mode: blog` in [.agents/skills/mentor/SKILL.md](../../../.agents/skills/mentor/SKILL.md), add:
-
-```markdown
----
-
-## Mode: blog-post
-
-Publish the most recent `status: draft` file from `docs/ideas/blogs/` to Hashnode.
-
-**Prerequisites (must be set as environment variables — never hardcode in this file):**
-- `HASHNODE_PAT` — Personal Access Token from hashnode.com/settings/developer
-- `HASHNODE_PUBLICATION_ID` — Publication ID fetched via PF-131 STEP 1
-
-**Steps:**
-1. Find the most recent `docs/ideas/blogs/YYYY-MM-DD-{slug}.md` with `status: draft` in frontmatter.
-   - If `status: scrub-needed` → stop: "Privacy scrub required before publishing. Fix flagged items and change status to `draft`."
-   - If no draft file found → stop: "No draft found. Run `/mentor blog` first."
-2. Check `HASHNODE_PAT` and `HASHNODE_PUBLICATION_ID` are set. If either is missing → stop with setup instructions.
-3. Parse frontmatter (title, slug) and body content using Bash:
-
-```bash
-# Identify the draft
-DRAFT=$(ls docs/ideas/blogs/[0-9]*.md 2>/dev/null | sort | tail -1)
-echo "Publishing: $DRAFT"
-
-# Build and send the GraphQL payload (Python handles JSON escaping safely)
-python3 - "$DRAFT" "$HASHNODE_PUBLICATION_ID" <<'PYEOF'
-import sys, json, re
-
-draft_path = sys.argv[1]
-pub_id = sys.argv[2]
-
-content = open(draft_path).read()
-# Split frontmatter from body
-parts = content.split('---', 2)
-fm_raw = parts[1] if len(parts) >= 3 else ''
-body = parts[2].strip() if len(parts) >= 3 else content
-
-title = re.search(r'title:\s*"?(.+?)"?\s*$', fm_raw, re.M)
-slug = re.search(r'slug:\s*"?(.+?)"?\s*$', fm_raw, re.M)
-
-payload = {
-    'query': '''mutation PublishPost($input: PublishPostInput!) {
-        publishPost(input: $input) { post { id url title } }
-    }''',
-    'variables': {
-        'input': {
-            'title': title.group(1) if title else 'Untitled',
-            'publicationId': pub_id,
-            'contentMarkdown': body,
-            'slug': slug.group(1) if slug else '',
-            'tags': [],
-        }
-    }
-}
-print(json.dumps(payload))
-PYEOF | curl -s -X POST https://gql.hashnode.com \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $HASHNODE_PAT" \
-    -d @- | python3 -m json.tool
-```
-
-4. Parse the response — extract `data.publishPost.post.url`. If response contains `errors` → print the full error and stop (do NOT mark as published).
-5. Update the draft file frontmatter: `status: published`, `hashnode_url: {url}`.
-6. Update `docs/ideas/blogs/README.md` — set Status to `Published` and fill the URL column.
-7. Append to `docs/mentor/progress.md`:
-
-```markdown
-**Blog published:** [{title}]({url}) — Hashnode ({YYYY-MM-DD})
-```
-
-8. Output:
-
-```
-## 🚀 Published — "{title}"
-
-**URL:** {url}
-
-**Next steps:**
-1. Cross-post to dev.to: paste content + set canonical_url to the Hashnode URL above
-2. LinkedIn/X snippet: "{pull the first sentence of the hook section}"
-3. docs/ideas/blogs/README.md updated ← done
-4. progress.md updated ← done
-
-**Next draft:** Post #{N+1} — "{working title}" · Run `/mentor blog` to start
-```
-```
+Immediately after `## Mode: blog` in [.agents/skills/mentor/SKILL.md](../../../.agents/skills/mentor/SKILL.md), add the full `blog-post` mode with the Python+bash publish script, idempotency guard, and update logic.
 
 > **Why:** The `blog post` mode is the last-mile automation — removing the friction of copying markdown into the Hashnode editor is where most weekly workflows die. Using Python inline for JSON escaping (rather than raw bash substitution) prevents content with quotes or newlines from breaking the GraphQL payload silently.
 
 ---
 
-### [ ] STEP 7 — Test the pipeline end-to-end with Post #0
+### [!] STEP 7 — Test the pipeline end-to-end with Post #0
+> **Skipped:** Draft generated successfully; publishing blocked by STEP 1 failure (Hashnode Pro plan required). Draft file at `docs/ideas/blogs/2026-06-24-eval-harness.md` (Build Log archetype, ~1155w, privacy scrub passed). Run `/mentor blog post` once HASHNODE_PAT and HASHNODE_PUBLICATION_ID are both set and Pro plan is active.
 
 Run the full workflow once with the flagship (Post #0 — the eval harness story):
 
@@ -523,8 +419,12 @@ Verify:
 ## Notes
 
 - Hashnode API endpoint is `https://gql.hashnode.com` (v2 — not the older `api.hashnode.com/v2`). The `publishPost` mutation replaced the old `createPublicationStory`.
+- **Hashnode Pro required (as of May 2026):** Free GraphQL API access was retired May 13 2026. All operations (reads AND writes) require a Pro plan. Without Pro, `gql.hashnode.com` returns a 301 redirect to the announcement page. Upgrade at `hashnode.com/[username]/dashboard/billing`.
 - The `HASHNODE_PUBLICATION_ID` is stable for the lifetime of the blog. Fetch once in STEP 1, store in shell profile.
 - Dev.to cross-posting is deliberately deferred — the canonical post must be on Hashnode first so `canonical_url` on dev.to points to the correct URL. Cross-posting without it splits SEO.
 - The privacy scrub gate is the most critical quality gate. `docs/mentor/progress.md` names specific target companies from the live job pipeline — these must never appear in any published post.
-- The `blog post` Bash snippet assumes frontmatter is between the first and second `---` delimiters. Avoid using `---` inside draft content (e.g. as section dividers) — it breaks the frontmatter parser. Use `---` only as the YAML block delimiter.
-- The `tags` array in the `PublishPostInput` accepts Hashnode tag objects (`{slug: "..."}`) in the v2 API. For simplicity the mode passes an empty array — tags can be added via the Hashnode editor after publishing until the skill is updated to resolve tag slugs.
+- The `blog post` Bash snippet assumes frontmatter is between the first and second `---` delimiters. Avoid using `---` inside draft content. Before publishing, verify: `grep -c '^---$' docs/ideas/blogs/{your-draft}.md` must return exactly `2`. If it returns more, find and remove the extra `---` lines — they are inter-archetype separators that leaked from the template.
+- The `tags` array in the `PublishPostInput` accepts Hashnode tag objects (`{slug: "..."}`) in the v2 API. For simplicity the mode passes an empty array — add tags manually via the Hashnode editor after publishing. Note: the `tags` field in your frontmatter YAML is for local reference only; the `blog-post` mode does not read it.
+- **Windows users:** All bash blocks in `blog-post` mode require **Git Bash**, not PowerShell. From VS Code terminal, switch to Git Bash via the dropdown, or type `bash` at the PowerShell prompt to open a bash subshell.
+- **Series association:** The `series` field in frontmatter is for human reference only — the `blog-post` mode does not pass it to the Hashnode API. After publishing, associate the post with your series manually: Hashnode editor → Post Settings → Series.
+- **Duplicate-slug guard:** If `blog-post` is run twice on the same file before the idempotency guard triggers (e.g. `hashnode_url` was never written back due to a crash), Hashnode returns a slug-conflict error. Check your Hashnode dashboard for the existing post URL and manually add `hashnode_url: {url}` and `status: published` to the frontmatter.
