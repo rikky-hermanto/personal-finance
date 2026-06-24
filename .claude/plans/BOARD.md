@@ -73,6 +73,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
 | PF-127 | _(no issue)_ | PII Redaction: Tracked Files + Untracked Plan Files (Pre-Open-Source) |
 | PF-128 | _(no issue)_ | Superbank PDF Parser: bank-specific LLM prompt + dispatch map |
+| PF-131 | _(no issue)_ | Mentor Auto-Blogging: `/mentor blog` draft + `/mentor blog post` → Hashnode |
 
 ---
 

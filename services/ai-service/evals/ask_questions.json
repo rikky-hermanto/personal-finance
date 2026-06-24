@@ -1,0 +1,7 @@
+[
+  {"query": "berapa total pengeluaran makan bulan Maret 2026?", "date_from": "2026-03-01", "date_to": "2026-03-31", "note": "verify sum by hand in Studio — Food & Dining DB rows in March"},
+  {"query": "kapan terakhir kali bayar listrik PLN?", "note": "single-fact lookup — latest Bills & Utilities PLN row"},
+  {"query": "berapa kali jajan kopi bulan ini?", "note": "count question — coffee transactions current month"},
+  {"query": "what was my biggest expense in March?", "note": "max-amount question, English — tests language mirroring"},
+  {"query": "berapa pengeluaran untuk sewa apartemen tahun 2031?", "note": "adversarial — no data; expect confident=false, no invented number"}
+]

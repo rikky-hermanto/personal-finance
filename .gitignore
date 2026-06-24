@@ -90,3 +90,7 @@ docs/*_profile.md
 # MCP server config — contains local DB credentials; use .mcp.json.example for the template
 .mcp.json
 docs/cv/
+
+# Added by /commit ignore — 2026-06-17
+**/.flashrank_cache/
+

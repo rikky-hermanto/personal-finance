@@ -1,7 +1,7 @@
 # PF-AI004 — RAG Phase 2: Chunking, Re-ranking, Generation
 
 > **Learning Phase:** Phase 1 · Chapter 4 of 12 · Day ~14 of 90
-> **Status:** To Do
+> **Status:** In Progress — code complete and unit-tested; live evals (P@5 delta, RAGAS faithfulness, /ask smoke test) blocked by execution-environment infra (see STEP 0/5/9/10 notes)
 > **Started:** 2026-06-10
 > **Planned from branch:** main
 > **Pivot goal:** Turn the toy into something defensible. Naive top-K retrieval is the demo version of RAG — hiring managers ask about chunking strategy, re-ranking, and grounded synthesis. After this chapter, `POST /ask {"query": "berapa pengeluaran makan bulan Maret?"}` returns a correct, *cited* answer, and you can quote two deltas: "re-ranking moved MRR@5 from 0.XX to 0.YY" and "RAGAS faithfulness on my generated answers is 0.ZZ."
@@ -183,16 +183,26 @@ This task builds the second half — **re-ranking and grounded generation**, plu
 
 ## ✅ Acceptance Criteria
 
-- [ ] [chunker.py](../../../services/ai-service/app/services/chunker.py) — `fixed_size_chunks(text, chunk_size, overlap)` + `sentence_window_chunks(text, window_size)`; both covered by unit tests in [test_chunker.py](../../../services/ai-service/tests/test_chunker.py) (≥ 6 tests), demonstrated against one real eval fixture statement text
-- [ ] [reranker.py](../../../services/ai-service/app/services/reranker.py) — `RerankerService.rerank(query, results, top_k)` re-orders `SearchResult` lists via FlashRank cross-encoder, runs off the event loop (`asyncio.to_thread`), unit-tested with a mocked ranker
-- [ ] `SearchRequest` accepts optional `category`, `account`, `date_from`, `date_to`, `rerank` — `RetrievalService.search()` compiles them to parametrized WHERE clauses (no string interpolation of values)
-- [ ] `POST /ask` — accepts `{query, top_k, filters...}`, returns `{answer, citations[], model, retrieval_ms, generation_ms}`; answer text references citations as `[1]`, `[2]`; LLM failures return 502 (never 200-with-empty per ai-service rules)
+- [x] [chunker.py](../../../services/ai-service/app/services/chunker.py) — `fixed_size_chunks(text, chunk_size, overlap)` + `sentence_window_chunks(text, window_size)`; both covered by unit tests in [test_chunker.py](../../../services/ai-service/tests/test_chunker.py) (≥ 6 tests), demonstrated against one real eval fixture statement text
+  > Verified: 7 tests pass (`pytest tests/test_chunker.py -v`); demoed against `evals/fixtures/bca_01.txt` (3 fixed-size chunks, 15 sentence-window chunks).
+- [x] [reranker.py](../../../services/ai-service/app/services/reranker.py) — `RerankerService.rerank(query, results, top_k)` re-orders `SearchResult` lists via FlashRank cross-encoder, runs off the event loop (`asyncio.to_thread`), unit-tested with a mocked ranker
+  > Verified: 3 mocked tests pass; also ran one real (non-mocked) FlashRank inference call to confirm the library itself works end-to-end (see STEP 5 note).
+- [x] `SearchRequest` accepts optional `category`, `account`, `date_from`, `date_to`, `rerank` — `RetrievalService.search()` compiles them to parametrized WHERE clauses (no string interpolation of values)
+  > Verified: 4 new tests in `test_retriever.py` (8/8 pass) assert the WHERE clause text and that values appear only as bound params, never in the SQL string.
+- [x] `POST /ask` — accepts `{query, top_k, filters...}`, returns `{answer, citations[], model, retrieval_ms, generation_ms}`; answer text references citations as `[1]`, `[2]`; LLM failures return 502 (never 200-with-empty per ai-service rules)
+  > Verification note: endpoint wired and import-clean; response shape and 502-on-exception path confirmed by reading `main.py`/`answerer.py` and the 3 passing `test_answerer.py` cases. Not exercised with a live LLM call (see STEP 9 note) — the citation-marker behavior depends on the LLM actually following `SYSTEM_PROMPT`, which is mocked in tests, not live-verified.
 - [ ] Demo question works end-to-end: a food-spending question in Indonesian returns a correct IDR total with cited transactions
+  > Not met: requires a reachable Postgres + a live provider call; blocked by the same infra gap as STEP 0 (Docker/Supabase unavailable in this execution environment).
 - [ ] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) `--rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
+  > Not met: `--rerank` flag is implemented and ready; the run itself is blocked by the same Postgres-unreachable issue as STEP 0. The metrics doc records this gap explicitly rather than a fabricated delta.
 - [ ] [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) — RAGAS `Faithfulness` on 5 generated answers; mean score recorded (target ≥ 0.80)
-- [ ] [test_reranker.py](../../../services/ai-service/tests/test_reranker.py) + [test_answerer.py](../../../services/ai-service/tests/test_answerer.py) pass (mocked FlashRank / mocked provider — no real API calls in tests)
-- [ ] [pyproject.toml](../../../services/ai-service/pyproject.toml) updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
+  > Not met: script written, but `ragas` cannot be installed in this Windows environment (its `scikit-network` dependency needs MSVC Build Tools to compile and ships no prebuilt wheel for this Python/platform combo); the DB blocker would also apply even if `ragas` were installed.
+- [x] [test_reranker.py](../../../services/ai-service/tests/test_reranker.py) + [test_answerer.py](../../../services/ai-service/tests/test_answerer.py) pass (mocked FlashRank / mocked provider — no real API calls in tests)
+  > Verified: `pytest tests/test_reranker.py tests/test_answerer.py -v` → 6/6 pass.
+- [x] [pyproject.toml](../../../services/ai-service/pyproject.toml) updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
+  > Verified: both entries present in `pyproject.toml`. Runtime note: `ragas`/`langchain-openai` are correctly *declared* but could not actually be *installed* in this environment (see STEP 10) — that's an environment limitation, not a pyproject error.
 - [ ] Langfuse traces exist for the `/ask` generation step (cost + latency visible, same pattern as extraction)
+  > Not met (unverified, not contradicted): `AnswerService` calls the existing `provider.generate_json()`, which already wraps every call in a Langfuse `generation` observation (confirmed by reading `gemini.py`) — so tracing should work automatically once `/ask` is actually invoked. No live call was made in this session to confirm a trace lands in the Langfuse dashboard.
 
 ## 🧭 Approach
 
@@ -228,19 +238,41 @@ Out of scope: streaming the answer (Chapter 5), hybrid BM25 + vector search and 
  
 ## 📋 TODO
 
-### [ ] STEP 0 — Prerequisite gate: Chapter 3 baseline number exists
+### [x] STEP 0 — Prerequisite gate: Chapter 3 baseline number exists
+
+> **Rerun 2026-06-23:** Supabase local stack started (`supabase start`). Baseline confirmed live against real data.
 
 ```bash
 cd services/ai-service
-PYTHONPATH=. python evals/eval_retrieval.py   # must print a real MRR@5 — not run on placeholder IDs
+PYTHONPATH=. python evals/eval_retrieval.py
 ```
 
-> **Why:** This entire chapter's headline deliverable is a *delta* — "re-ranking improved P@5 from 0.66 to 0.YY." Without the Chapter 3 baseline recorded first, there is nothing to measure lift against. Do not start Step 1 until [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) has the baseline numbers.
+```
+Provider: openai | Model: text-embedding-3-small | K=5 | mode=baseline (top-5)
+Query                                    |rel|  Hit   MRR   P@5      Lat
+--------------------------------------------------------------------------------
+tagihan listrik PLN bulan Maret             36    1  1.00  1.00   5947ms
+gaji bulanan salary income                  32    1  1.00  0.40   1185ms
+belanja grocery di minimarket              317    1  1.00  1.00    762ms
+Netflix Spotify langganan streaming         45    1  1.00  0.40    701ms
+coffee kedai kopi Fore                      50    1  1.00  0.60    737ms
+investasi saham Mansek                      35    1  1.00  0.80    728ms
+bayar kontrakan                              9    1  1.00  0.40    736ms
+--------------------------------------------------------------------------------
+MACRO AVG                                      1.00 1.000  0.66
 
-> **Note (2026-06-13):** The original Chapter 3 baseline was 0.476 MRR@5 — this was a corrupted metric caused by IVFFlat `probes=1` (default) only searching 1 of 100 clusters. Fixed by adding `SET ivfflat.probes = 10` in `RetrievalService.search()`. Real baseline after fix: **MRR@5 = 1.000, P@5 = 0.66**. The re-ranking lift story therefore shifts from MRR to P@5 — MRR is already maxed. The probes bug is itself a debugging story worth keeping for interviews ("I found that our retrieval baseline was corrupted by an IVFFlat misconfiguration — after fixing it, MRR jumped from 0.476 to 1.000").
+MRR@5 [baseline (top-5)]: 1.000
+P@5   [baseline (top-5)]: 0.657
+```
+
+> **Confirmed baseline (2026-06-23):** MRR@5 = 1.000 (all 7 queries hit at rank 1), P@5 = 0.657. Every query finds a relevant result in the top 5, but only 65.7% of the top-5 slots are relevant on average — this is the number re-ranking targets to improve. Gate passed; proceed to STEP 5 with `--rerank`.
+
+> **Why:** This entire chapter's headline deliverable is a *delta* — "re-ranking improved P@5 from 0.657 to 0.YY." Without the Chapter 3 baseline recorded first, there is nothing to measure lift against. Do not start Step 5 until this number is confirmed live.
+
+> **Note (2026-06-13 → confirmed 2026-06-23):** The original Chapter 3 baseline was 0.476 MRR@5 — this was a corrupted metric caused by IVFFlat `probes=1` (default) only searching 1 of 100 clusters. Fixed by adding `SET ivfflat.probes = 10` in `RetrievalService.search()`. Real baseline after fix: **MRR@5 = 1.000, P@5 = 0.657**. The re-ranking lift story therefore shifts from MRR to P@5 — MRR is already maxed. The probes bug is itself a debugging story worth keeping for interviews ("I found that our retrieval baseline was corrupted by an IVFFlat misconfiguration — after fixing it, MRR jumped from 0.476 to 1.000").
 
 
-### [ ] STEP 1 — Learn: the re-ranking mental model (theory anchor, 45 min)
+### [x] STEP 1 — Learn: the re-ranking mental model (theory anchor, 45 min)
 
 The one genuine pre-read of the chapter. The wall here is understanding *why a second model improves results the first model already ranked*.
 
@@ -259,7 +291,7 @@ The one genuine pre-read of the chapter. The wall here is understanding *why a s
 > **The interview frame:** "My retrieval is a two-stage funnel: pgvector cosine search retrieves the top-10 candidates with a bi-encoder embedding, then a local cross-encoder (FlashRank MiniLM) re-scores those 10 by reading query and document together, and the top-3 feed generation. Re-ranking moved my MRR@5 from 0.XX to 0.YY at ~Zms added latency, with no extra API cost because the cross-encoder runs locally."
 
 
-### [ ] STEP 2 — Build [chunker.py](../../../services/ai-service/app/services/chunker.py) (pure module, no I/O)
+### [x] STEP 2 — Build [chunker.py](../../../services/ai-service/app/services/chunker.py) (pure module, no I/O)
 
 Create [services/ai-service/app/services/chunker.py](../../../services/ai-service/app/services/chunker.py):
 
@@ -500,7 +532,7 @@ cd services/ai-service && PYTHONPATH=. pytest tests/test_chunker.py -v
 > **The interview frame:** "Fixed-size with overlap is the baseline — overlap prevents boundary facts from being lost to both chunks. Sentence-window is the refinement: index small units for precise matching, but return the expanded window so the LLM gets enough context. Small-to-search, big-to-read."
 
 
-### [ ] STEP 3 — Add FlashRank + build [reranker.py](../../../services/ai-service/app/services/reranker.py)
+### [x] STEP 3 — Add FlashRank + build [reranker.py](../../../services/ai-service/app/services/reranker.py)
 
 Add to [pyproject.toml](../../../services/ai-service/pyproject.toml) dependencies:
 
@@ -743,7 +775,7 @@ PYTHONPATH=. pytest tests/test_reranker.py -v
 ```
 
 
-### [ ] STEP 4 — Metadata filtering in `RetrievalService` + `SearchRequest`
+### [x] STEP 4 — Metadata filtering in `RetrievalService` + `SearchRequest`
 
 Extend `SearchRequest` in [app/models.py](../../../services/ai-service/app/models.py) (additive — THINK-05 safe):
 
@@ -950,7 +982,55 @@ Add 2–3 filter tests to [tests/test_retriever.py](../../../services/ai-service
 > **Why `ILIKE` and a regex-validated date string?** Account/category names arrive from a UI dropdown eventually, but tolerate case differences today. Dates validate shape at the Pydantic boundary (`pattern=`) and cast in SQL (`::date`) — bad input fails with 422 at the edge, not a cryptic asyncpg error mid-query.
 
 
-### [ ] STEP 5 — Re-run the MRR harness with re-ranking, record the delta
+### [x] STEP 5 — Re-run the MRR harness with re-ranking, record the delta
+
+Recall: 
+MRR = Mean Reciprocal Rank. It's a score (0 to 1) that measures how high up the first correct answer shows in a ranked list.
+
+The "reciprocal rank" part: for one search, you look at where the first right result lands, then take 1 ÷ that position.
+
+Right answer is #1 → 1/1 = 1.0 (perfect)
+Right answer is #2 → 1/2 = 0.5
+Right answer is #3 → 1/3 = 0.33
+Not in the list at all → 0
+The "mean" part: you do that for a bunch of test searches, then average all the scores. That average is your MRR.
+
+What it's used for: judging a search/retrieval system. It answers one question — "when someone searches, does the good result show up near the top, or do they have to scroll?" Higher MRR = the right thing comes up sooner.
+
+In your project: you run ~7 test queries (listrik, groceries, salary…), check where the relevant transactions land in the results, and average it. Your current baseline is MRR@5 = 0.476 — the "@5" just means you only look at the top 5 results and ignore anything below. Re-ranking (Chapter 4) is supposed to push the right transactions higher, which would raise that number.
+
+One catch worth remembering: plain MRR only cares about the first correct hit — it ignores how many other good results are in the list. That's why you also track P@5 (precision) alongside it.
+
+> **Rerun 2026-06-23:** `--rerank` flag executed live against real Postgres data. Results below.
+
+```
+Provider: openai | Model: text-embedding-3-small | K=5 | mode=reranked (10->5)
+Query                                    |rel|  Hit   MRR   P@5      Lat
+--------------------------------------------------------------------------------
+tagihan listrik PLN bulan Maret             36    1  1.00  1.00   3862ms
+gaji bulanan salary income                  32    0  0.00  0.00    752ms
+belanja grocery di minimarket              317    1  1.00  1.00    862ms
+Netflix Spotify langganan streaming         45    1  1.00  0.40    758ms
+coffee kedai kopi Fore                      50    1  1.00  1.00    654ms
+investasi saham Mansek                      35    1  1.00  0.40    701ms
+bayar kontrakan                              9    1  1.00  0.40    703ms
+--------------------------------------------------------------------------------
+MACRO AVG                                      0.86 0.857  0.60
+
+MRR@5 [reranked (10->5)]: 0.857
+P@5   [reranked (10->5)]: 0.600
+```
+
+**Delta vs baseline (STEP 0):**
+
+| Metric | Baseline (top-5) | Reranked (10→5) | Delta |
+|--------|-----------------|-----------------|-------|
+| MRR@5  | 1.000           | 0.857           | **-0.143** |
+| P@5    | 0.657           | 0.600           | **-0.057** |
+
+> 🤔⁉️ **Finding (THINK-04 — failures are diagnostic signals):** Re-ranking with `ms-marco-MiniLM-L-12-v2` produced a *negative* delta on Indonesian queries. The `gaji bulanan salary income` query collapsed from MRR=1.00 to MRR=0.00 — the cross-encoder demoted every relevant salary/income result out of the top-5 entirely. This is the English-training-bias risk the plan anticipated: ms-marco is trained on English MS MARCO passages; it does not recognize Indonesian financial vocabulary as "relevant." The bi-encoder (OpenAI `text-embedding-3-small`) is multilingual and handles Indonesian well; the cross-encoder is not, and it overrides the bi-encoder's correct ranking with wrong scores.
+>
+> **This is a better interview story than a +0.1 lift:** "I measured a negative re-ranking delta and diagnosed it — the cross-encoder was English-only, overriding a multilingual bi-encoder that was already correct. I identified the fix: swap to a multilingual cross-encoder model." Next step: try FlashRank's multilingual model (check README table) or `cross-encoder/ms-marco-MiniLM-L-6-en-de` as a stepping stone. Recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
 
 Extend [evals/eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) with a `--rerank` flag:
 
@@ -1045,7 +1125,7 @@ Record: baseline P@5, reranked P@5, the delta, and the added latency per query. 
 > **If P@5 delta is ~0:** that's a *finding*, not a failure (THINK-04). Likely causes: (a) with 7 queries and MRR already perfect, P@5=0.66 may be close to ceiling for this query set — add 5 harder queries (ambiguous, multi-category) to create more room; (b) `ms-marco` models are English-trained and your queries are Indonesian — note the language mismatch, try a multilingual rerank model, and write the observation down. "My re-ranker underperformed on Indonesian queries because ms-marco is English-centric; here's how I diagnosed it" is a *better* interview story than a clean +0.1.
 
 
-### [ ] STEP 6 — THINK-03 gate: justify the `/ask` extraction schema field-by-field
+### [x] STEP 6 — THINK-03 gate: justify the `/ask` extraction schema field-by-field
 
 Before writing any `/ask` code, the `generate_json` schema gets the THINK-03 table (a wrong type here = silently corrupt answers):
 
@@ -1058,7 +1138,7 @@ Before writing any `/ask` code, the `generate_json` schema gets the THINK-03 tab
 > **Why:** THINK-03 — a `string` amount or id in a tool/JSON schema corrupts silently: no compile error, no exception, just wrong joins downstream. Listing each field with its type and consumer *before* coding is the rule. `confident: boolean` exists because the grounding instruction alone ("say you don't know") produces prose the caller can't branch on — a boolean is machine-checkable.
 
 
-### [ ] STEP 7 — Add `/ask` models to [app/models.py](../../../services/ai-service/app/models.py)
+### [x] STEP 7 — Add `/ask` models to [app/models.py](../../../services/ai-service/app/models.py)
 
 ```python
 # ── RAG Phase 2: Grounded Q&A ────────────────────────────────────────────────
@@ -1136,7 +1216,7 @@ public sealed record AskResponse(
 > **Why `retrieval_ms` / `generation_ms` split in the response?** Chapter 5 streams this endpoint; knowing *where* the latency lives (retrieval ~100ms vs generation ~2s) is what justifies streaming the generation phase. Measuring the split now gives you the before/after story, and it's a free observability win in every demo.
 
 
-### [ ] STEP 8 — Build [answerer.py](../../../services/ai-service/app/services/answerer.py) (the RAG read path)
+### [x] STEP 8 — Build [answerer.py](../../../services/ai-service/app/services/answerer.py) (the RAG read path)
 
 Create [services/ai-service/app/services/answerer.py](../../../services/ai-service/app/services/answerer.py):
 
@@ -1500,7 +1580,9 @@ PYTHONPATH=. pytest tests/test_answerer.py -v
 > **Why validate `cited_transaction_ids` against the context?** LLMs cite confidently and wrongly. An id not in the provided context is by definition fabricated — silently passing it through would render a clickable citation pointing at an unrelated (or nonexistent) transaction. Dropping + logging makes hallucination *visible* in Langfuse instead of shipping it to the UI. This guard is a one-liner that comes up in every "how do you handle hallucination?" interview.
 
 
-### [ ] STEP 9 — Wire `POST /ask` in [app/main.py](../../../services/ai-service/app/main.py)
+### [x] STEP 9 — Wire `POST /ask` in [app/main.py](../../../services/ai-service/app/main.py)
+
+> **Verification note:** the endpoint, lifespan wiring (`app.state.reranker`, `app.state.answerer`), and imports are in place and confirmed import-clean (`python -c "import app.main"` succeeds). The `curl` smoke test against a running service with backfilled embeddings was **not run** — same Postgres-unreachable blocker as STEP 0.
 
 In the lifespan, after the existing embedder/retriever wiring:
 
@@ -1565,7 +1647,9 @@ Verify: the answer contains a real IDR total, `[n]` markers, `citations` lists r
 > **Why `502` and not `500` on LLM failure?** The error contract table in [.claude/rules/ai-service.md](../../rules/ai-service.md): provider failures and malformed LLM output are upstream-dependency errors → 502, which the .NET API maps to a user-visible "AI temporarily unavailable" rather than a generic crash. Returning 200 with an empty answer is explicitly forbidden — it would poison any downstream caching/eval with fake successes.
 
 
-### [ ] STEP 10 — Write [evals/ask_questions.json](../../../services/ai-service/evals/ask_questions.json) + RAGAS faithfulness eval
+### [!] STEP 10 — Write [evals/ask_questions.json](../../../services/ai-service/evals/ask_questions.json) + RAGAS faithfulness eval
+
+> **Failure:** [ask_questions.json](../../../services/ai-service/evals/ask_questions.json) and [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) were written per spec, but `ragas` could not be installed in this environment — its hard dependency `scikit-network` ships no prebuilt wheel for Python 3.14/win_amd64 and fails to compile from source without the MSVC C++ Build Tools (`error: Microsoft Visual C++ 14.0 or greater is required`). `flashrank` installed and ran cleanly in the same venv, confirming this is specific to `ragas`'s dependency tree, not a general network/proxy block. Even with `ragas` installed, the run would still hit the same Postgres-unreachable blocker as STEP 0.
 
 Add eval-only dependencies to the `dev` extra in [pyproject.toml](../../../services/ai-service/pyproject.toml):
 
@@ -1732,7 +1816,7 @@ PYTHONPATH=. python evals/eval_faithfulness.py
 > **Why a different judge model (gpt-4o-mini) than the generator (Gemini)?** Same-model-judging-itself inflates scores (self-preference bias — you read about this in Chapter 2's LLM-as-judge material). The OpenAI key already exists for embeddings, so the cross-provider judge is free to set up; 5 answers ≈ fractions of a cent.
 
 
-### [ ] STEP 11 — Update the metrics doc
+### [x] STEP 11 — Update the metrics doc
 
 Append to [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
 
@@ -1756,7 +1840,9 @@ Append to [docs/performances/ai-observability-metrics.md](../../../docs/performa
 > **Why:** These are the chapter's interview numbers. The Sunday-metric answer this chapter is: *"I added a local cross-encoder re-ranker that lifted MRR@5 by +0.ZZ at ~XXms and $0 per query, and a grounded `/ask` endpoint whose answers score 0.XX RAGAS faithfulness with a hallucinated-citation guard."* Without the doc entry, the numbers evaporate.
 
 
-### [ ] STEP 12 — Full test pass + commit
+### [x] STEP 12 — Full test pass + commit
+
+> **Note:** the full `pytest -v` run is done — 95 passed, 1 pre-existing unrelated failure (`test_merchant_suggester.py`, untouched by this chapter). The `git add`/`git commit` portion was intentionally **not** run automatically — the `/execute` skill leaves all changes uncommitted for the user's own review before committing.
 
 ```bash
 cd services/ai-service && PYTHONPATH=. pytest -v          # all suites incl. new 3 files
@@ -1783,7 +1869,7 @@ git commit -m "PF-AI004: RAG Phase 2 — chunking, FlashRank re-ranking, grounde
 > **Why:** Same-day shipping rule — the chapter isn't done until it's committed with the eval numbers in the diff.
 
 
-### [ ] STEP 13 — Log progress
+### [x] STEP 13 — Log progress
 
 ```
 /mentor log Built RAG Phase 2: chunker (fixed-size + sentence-window, tested), FlashRank re-ranker (MRR@5 0.XX → 0.YY, +0.ZZ lift), metadata-filtered retrieval, grounded POST /ask with citation validation (hallucinated ids dropped), RAGAS faithfulness 0.XX on 5 answers. Chapter 4 complete.
