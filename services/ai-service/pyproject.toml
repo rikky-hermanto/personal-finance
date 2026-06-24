@@ -24,6 +24,7 @@ dependencies = [
     "openai>=1.30",
     "asyncpg>=0.29",
     "pgvector>=0.3",
+    "flashrank>=0.2",
 ]
 
 
@@ -34,7 +35,12 @@ dev = [
     "pytest-asyncio>=0.25.0",
     "httpx>=0.28.0",
     "anyio>=4.8.0",
+    "ragas>=0.2",
+    "langchain-openai>=0.2",   # RAGAS judge LLM wrapper — eval-only, never app code
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

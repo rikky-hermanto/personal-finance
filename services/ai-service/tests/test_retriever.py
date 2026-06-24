@@ -101,3 +101,49 @@ async def test_search_sql_includes_model_filter(mock_provider_and_asyncpg):
     # Verify the model value is passed as a positional param
     params = fetch_call.args[1:]
     assert "gemini-embedding-001" in params
+
+
+@pytest.mark.asyncio
+async def test_search_with_category_filter_adds_where_clause_and_param(mock_provider_and_asyncpg):
+    provider, mock_conn = mock_provider_and_asyncpg
+    service = RetrievalService(provider=provider, db_url="postgresql://test")
+
+    await service.search("query", top_k=5, category="Food & Dining")
+
+    fetch_call = mock_conn.fetch.call_args
+    sql = fetch_call.args[0]
+    params = fetch_call.args[1:]
+    assert "t.category ILIKE" in sql
+    assert "Food & Dining" in params
+
+
+@pytest.mark.asyncio
+async def test_search_with_date_range_filters_use_parametrized_clauses(mock_provider_and_asyncpg):
+    provider, mock_conn = mock_provider_and_asyncpg
+    service = RetrievalService(provider=provider, db_url="postgresql://test")
+
+    await service.search("query", top_k=5, date_from="2026-03-01", date_to="2026-03-31")
+
+    fetch_call = mock_conn.fetch.call_args
+    sql = fetch_call.args[0]
+    params = fetch_call.args[1:]
+    assert "t.date >=" in sql and "t.date <=" in sql
+    assert "2026-03-01" in params
+    assert "2026-03-31" in params
+    # No value is ever interpolated directly into the SQL string
+    assert "2026-03-01" not in sql
+    assert "2026-03-31" not in sql
+
+
+@pytest.mark.asyncio
+async def test_search_without_filters_omits_optional_clauses(mock_provider_and_asyncpg):
+    provider, mock_conn = mock_provider_and_asyncpg
+    service = RetrievalService(provider=provider, db_url="postgresql://test")
+
+    await service.search("query", top_k=5)
+
+    sql = mock_conn.fetch.call_args.args[0]
+    assert "t.category ILIKE" not in sql
+    assert "a.name ILIKE" not in sql
+    assert "t.date >=" not in sql
+    assert "t.date <=" not in sql

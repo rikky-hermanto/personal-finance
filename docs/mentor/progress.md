@@ -410,3 +410,37 @@
 - Start Chapter 4 (PF-AI004): hybrid search (pgvector + tsvector BM25) is the highest-leverage first move — targets the exact 0.00 queries (terse bank codes: listrik, streaming, Mansek)
 
 **Streak: 1 day** (reset — no log entries 2026-06-13/14)
+
+### 2026-06-17 — Day 21
+
+**Session: Chapter 4 (PF-AI004) — code shipped: chunker, FlashRank reranker, grounded /ask**
+
+- Built `app/services/chunker.py` — `fixed_size_chunks()` (char-window + overlap) and `sentence_window_chunks()` (sentence-level index, ±N neighbour window); 7 unit tests pass; demoed against the real `bca_01.txt` fixture (3 fixed-size chunks, 15 sentence-window chunks)
+- Built `app/services/reranker.py` — `RerankerService` wraps FlashRank's `ms-marco-MiniLM-L-12-v2` cross-encoder, runs off the event loop via `asyncio.to_thread`; 3 unit tests pass (mocked at the `Ranker` boundary)
+- Extended `SearchRequest` + `RetrievalService.search()` (`app/services/retriever.py`) with optional `category`/`account`/`date_from`/`date_to` filters compiled to parametrized SQL `WHERE` clauses (never string-interpolated) — preserves the existing `te.model = $4` cross-model guard; 4 new tests added to `test_retriever.py` (8/8 pass)
+- Built `app/services/answerer.py` — `AnswerService.ask()`: retrieve top-10 (filtered) → FlashRank rerank to top-K → `LlmProvider.generate_json()` synthesis with a grounding system prompt → citation hallucination guard (drops any `cited_transaction_ids` not actually in the retrieved context, logs a warning); 3 unit tests pass (all three collaborators mocked)
+- Wired `POST /ask` in `main.py` (502 on failure, never 200-with-empty per the AI-service error contract) + `/search` now supports `rerank=true` (widens fetch to top-10, reranks down to `top_k`)
+- Added `AskRequest`/`Citation`/`AskResponse` models; added `flashrank` to core deps, `ragas`+`langchain-openai` to the `dev` extra in `pyproject.toml`
+- Extended `evals/eval_retrieval.py` with a `--rerank` flag (retrieve-10 → FlashRank → top-5) and created `evals/eval_faithfulness.py` + `evals/ask_questions.json` (5 questions incl. one adversarial no-data case) for RAGAS faithfulness scoring
+- Added the Step-1 "Re-ranking mental model" section to `evals/README.md` (bi-encoder vs cross-encoder, funnel width, ms-marco language bias) — written from memory per the active-retrieval rule
+- All 16 new tests pass; full `pytest` suite green except one pre-existing unrelated failure (`test_merchant_suggester.py::test_is_pii_keyword[REK123456-True]`, not touched this session)
+
+**Chapter 4 checklist progress:**
+- [x] Chunking strategy: fixed-size with overlap + sentence-window
+- [x] Re-ranker: FlashRank (local)
+- [x] LLM synthesis: `POST /ask` endpoint — top-K contexts → grounded answer with citations
+- [x] Metadata filtering: account, date range, category
+- [ ] Re-run MRR/P@5 harness with `--rerank` and log the real delta ← blocked this session, see Retros
+- [ ] RAGAS faithfulness scoring on 5 generated answers ← blocked this session, see Retros
+
+**Retros (blockers & surprises):**
+- **Two real infra walls, both genuine — not skipped, not faked.** (1) Local Supabase/Postgres isn't reachable in this execution environment — Docker Desktop's service is stopped and `net start com.docker.service` returns Access Denied (no admin rights here), so `eval_retrieval.py --rerank`, the `/ask` curl smoke test, and `eval_faithfulness.py` all fail at the DB-connect step (confirmed: `ConnectionRefusedError`). (2) `ragas` cannot be `pip install`ed on this Windows box — its hard dependency `scikit-network` ships no prebuilt wheel for Python 3.14/win_amd64 and needs the MSVC C++ Build Tools to compile from source, which aren't installed. **Fix:** documented both gaps explicitly in `docs/performances/ai-observability-metrics.md` instead of writing placeholder numbers — table cells say "not measured" with the reason, not "0" or silently omitted.
+- **Got one real (non-mocked) data point anyway.** Ran `RerankerService.rerank("makan", ...)` for real against three hand-picked candidates — FlashRank's English-trained `ms-marco-MiniLM-L-12-v2` ranked `"MAKANAN TERNAK SAPI BERKAH"` (cattle feed) **above** `"GOFOOD GEPREK BENSU GADING"` (food delivery), confirming the exact language-bias risk the plan's Step 5 anticipated. Logged in `evals/README.md` and the metrics doc as real evidence, not speculation — useful even without the full DB-backed eval.
+- **FlashRank itself installs and runs cleanly** (model download ~22MB, no network restriction) — only `ragas`'s native-compile dependency is blocked, not all of Step 10's tooling.
+
+**Remaining for next session (the real Chapter-4 close-out):**
+- Get Supabase running locally (`docker compose`/`supabase start` on a machine with Docker available) → run `PYTHONPATH=. python evals/eval_retrieval.py` then `--rerank` → record the real P@5 baseline-vs-reranked delta
+- Either install MSVC Build Tools (or run on a non-Windows box / WSL) to get `ragas` installed, or hand-roll the claim-decompose-and-verify faithfulness check the way the plan's C# port describes → run `eval_faithfulness.py` → record mean faithfulness
+- Once both numbers exist, fill in `docs/performances/ai-observability-metrics.md` and close Chapter 4
+
+**Streak: 1 day** (reset — no log entries 2026-06-16)

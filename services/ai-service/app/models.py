@@ -178,6 +178,12 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     top_k: int = Field(default=5, ge=1, le=50)
     min_similarity: float = Field(default=0.0, ge=0.0, le=1.0)
+    # PF-AI004: optional metadata filters + rerank toggle
+    category: str | None = None
+    account: str | None = None
+    date_from: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    rerank: bool = False
 
 
 class SearchResult(BaseModel):
@@ -194,3 +200,34 @@ class SearchResponse(BaseModel):
     results: list[SearchResult]
     query: str
     total_found: int
+
+
+# ── RAG Phase 2: Grounded Q&A ────────────────────────────────────────────────
+
+class AskRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    query: str = Field(..., min_length=1, max_length=500)
+    top_k: int = Field(default=3, ge=1, le=10)        # contexts handed to the LLM
+    category: str | None = None
+    account: str | None = None
+    date_from: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class Citation(BaseModel):
+    marker: int                # [1], [2] — position referenced in the answer text
+    transaction_id: int
+    date: str
+    description: str
+    amount_idr: float
+    flow: str
+    wallet: str
+
+
+class AskResponse(BaseModel):
+    answer: str
+    confident: bool
+    citations: list[Citation]
+    model: str
+    retrieval_ms: float
+    generation_ms: float

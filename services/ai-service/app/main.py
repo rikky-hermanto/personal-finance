@@ -7,9 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 # In the lifespan context manager or @app.on_event("shutdown"):
 from app.observability import langfuse
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
+from app.services.reranker import RerankerService
+from app.services.answerer import AnswerService
 from app.providers.factory import ProviderFactory
 from app.providers.embedding_factory import create_embedding_provider
 from app.services.llm_parser import LlmParser, LlmParseError
@@ -52,6 +54,12 @@ async def lifespan(app: FastAPI):
     embed_provider = create_embedding_provider(settings)
     app.state.embedder = EmbeddingService(provider=embed_provider, db_url=settings.database_url)
     app.state.retriever = RetrievalService(provider=embed_provider, db_url=settings.database_url)
+    app.state.reranker = RerankerService()
+    app.state.answerer = AnswerService(
+        retriever=app.state.retriever,
+        reranker=app.state.reranker,
+        provider=provider,
+    )
     logger.info(
         "AI service starting up | provider=%s | model=%s | embedding_provider=%s | embedding_model=%s",
         settings.ai_provider, settings.ai_model,
@@ -240,13 +248,32 @@ async def embed_transactions(request: EmbedTransactionsRequest) -> EmbedTransact
 @app.post("/search", response_model=SearchResponse)
 async def search_transactions(request: SearchRequest) -> SearchResponse:
     """Semantic search over transactions using pgvector cosine similarity."""
+    # Rerank needs a wider candidate pool to select from — re-ordering the
+    # same top_k barely moves rankings (see eval_retrieval.py --rerank).
+    fetch_k = max(request.top_k, 10) if request.rerank else request.top_k
     results = await app.state.retriever.search(
         query=request.query,
-        top_k=request.top_k,
+        top_k=fetch_k,
         min_similarity=request.min_similarity,
+        category=request.category,
+        account=request.account,
+        date_from=request.date_from,
+        date_to=request.date_to,
     )
+    if request.rerank:
+        results = await app.state.reranker.rerank(request.query, results, top_k=request.top_k)
     return SearchResponse(
         results=results,
         query=request.query,
         total_found=len(results),
     )
+
+
+@app.post("/ask", response_model=AskResponse)
+async def ask(request: AskRequest) -> AskResponse:
+    """Grounded Q&A over the user's transactions (retrieve → rerank → synthesize)."""
+    try:
+        return await app.state.answerer.ask(request)
+    except Exception as exc:
+        logger.exception("ask failed")
+        raise HTTPException(status_code=502, detail="llm_parse_error") from exc

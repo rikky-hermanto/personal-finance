@@ -1,6 +1,7 @@
 """Retrieval benchmark: set-based relevance (Hit@5, MRR@5, P@5).
 
-    PYTHONPATH=. python evals/eval_retrieval.py
+    PYTHONPATH=. python evals/eval_retrieval.py            # baseline (top-5 cosine)
+    PYTHONPATH=. python evals/eval_retrieval.py --rerank   # retrieve top-10 -> FlashRank -> top-5
 
 Why set-based, not exact-ID:
     This corpus has many near-duplicate transactions (33 'Electricity', 317
@@ -16,6 +17,7 @@ Why set-based, not exact-ID:
 
 Prerequisite: embeddings backfilled (scripts/backfill_embeddings.py).
 """
+import argparse
 import asyncio
 import json
 import time
@@ -29,6 +31,7 @@ import asyncpg
 from app.config import settings
 from app.providers.embedding_factory import create_embedding_provider
 from app.services.retriever import RetrievalService
+from app.services.reranker import RerankerService
 
 QUERIES_FILE = Path(__file__).parent / "search_queries.json"
 K = 5
@@ -72,14 +75,16 @@ def precision_at_k(ranked: list[int], relevant: set[int], k: int = K) -> float:
     return sum(1 for t in topk if t in relevant) / len(topk)
 
 
-async def run() -> None:
+async def run(rerank: bool) -> None:
     provider = create_embedding_provider(settings)
     service = RetrievalService(provider=provider, db_url=settings.database_url)
+    reranker = RerankerService() if rerank else None
     queries = json.loads(QUERIES_FILE.read_text(encoding="utf-8"))
     conn = await asyncpg.connect(settings.database_url)
 
+    mode = "reranked (10->5)" if rerank else "baseline (top-5)"
     mrrs, hits, precisions = [], [], []
-    print(f"Provider: {settings.embedding_provider} | Model: {provider.model} | K={K}")
+    print(f"Provider: {settings.embedding_provider} | Model: {provider.model} | K={K} | mode={mode}")
     print(f"{'Query':<40} {'|rel|':>5} {'Hit':>4} {'MRR':>5} {'P@5':>5} {'Lat':>8}")
     print("-" * 80)
 
@@ -91,7 +96,11 @@ async def run() -> None:
             continue
 
         t0 = time.perf_counter()
-        results = await service.search(q["query"], top_k=K)
+        if reranker:
+            candidates = await service.search(q["query"], top_k=10)   # wide funnel
+            results = await reranker.rerank(q["query"], candidates, top_k=K)
+        else:
+            results = await service.search(q["query"], top_k=K)
         latency_ms = (time.perf_counter() - t0) * 1000
 
         ranked = [r.transaction_id for r in results]
@@ -111,8 +120,13 @@ async def run() -> None:
     print(f"Hit@{K}  = fraction of queries with >=1 relevant result in top-{K}")
     print(f"MRR@{K}  = mean reciprocal rank of the first relevant result")
     print(f"P@{K}    = fraction of top-{K} that are relevant")
+    print(f"\nMRR@{K} [{mode}]: {sum(mrrs)/n:.3f}")
+    print(f"P@{K} [{mode}]: {sum(precisions)/n:.3f}")
     print(f"Target: MRR@{K} >= 0.60 this chapter; >= 0.80 after Chapter 4 (re-ranking + hybrid search)")
 
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--rerank", action="store_true", help="retrieve top-10, then FlashRank-rerank to top-5")
+    args = ap.parse_args()
+    asyncio.run(run(args.rerank))
