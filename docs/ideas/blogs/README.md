@@ -8,13 +8,33 @@
 
 ---
 
+## ⚠️ Canonical Project Description (use this every time — never improvise)
+
+Source of truth: **README.md** (repo root). Use this exact language:
+
+> "A **gamified personal finance platform**. The mission: make managing money genuinely enjoyable — through clarity, progress, and a sense of level-up. Not another budgeting tool that guilts you. **A compass that shows where you stand, what to do next, and celebrates when you move forward.** Built around a five-tier Financial Pyramid scoring engine (Foundations → Defense → Growth → Freedom → Legacy)."
+
+**Tagline (use verbatim when a hook is needed):**
+> "Finance should feel like a game you're winning, not a spreadsheet you're losing."
+
+**The product hierarchy:**
+- CORE: `JourneyScoringService` — event-driven 5-tier pyramid scoring engine, reads all data sources
+- MODULES (all five feed the pyramid): `/journey` (home page), `/cashflow`, `/assets`, `/investment`, `/settings`
+- DATA PLUMBING (inside Cashflow): bank statement ingestion — CSV/PDF/screenshot parsing via LLM
+
+**What it is NOT described as:** "an app to import bank statements" or "manage 5 bank accounts." Bank statement ingestion is one data-input feature inside the Cashflow module. It is plumbing, not the product. Never lead with it.
+
+**When in doubt:** The Journey module (`/journey`) is the home screen and the product's core. Lead there.
+
+---
+
 ## Status Board
 
 ### 🔜 Backlog
 
 | # | Working Title | Archetype | Source | Notes |
 |---|---------------|-----------|--------|-------|
-| 1 | *I'm a C# engineer becoming an AI engineer in 90 days. Here's the method.* | Short Take → Deep | `docs/mentor/ai-engineer-learning-tips.md` | Origin/manifesto. Ladder method + C# lens. Every future post links here. |
+| ~~1~~ | ~~*I'm a C# engineer becoming an AI engineer in 90 days. Here's the method.*~~ | Short Take → Deep | `docs/mentor/ai-engineer-learning-tips.md` | ✏️ Drafting → `2026-06-24-csharp-to-ai-intro.md` |
 | 2 | *What "monitor your LLM in production" actually means* | Build Log | `.claude/plans/learning/PF-AI001-ai-observability.md` | Langfuse, OTel-vs-Langfuse boundary, real cost/latency numbers. |
 | 3 | *My RAG eval read 0.00 and I almost blamed the wrong thing* | Build Log | `.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md` | Best narrative in the log — eval ground truth saga, MRR@5=0.476 baseline. |
 | 4 | *Embeddings for people who own the database* | Concept Ladder | `.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md` | Terse bank codes → enrich text → pgvector → ivfflat. C# parallels throughout. |
@@ -28,6 +48,7 @@
 | # | Working Title | Draft File | Started |
 |---|---------------|------------|---------|
 | 0 | *The bug my unit tests couldn't catch — so I built an LLM eval harness* | `2026-06-24-eval-harness.md` | 2026-06-24 |
+| 1 | *I'm a C# engineer becoming an AI engineer in 90 days. Here's the method.* | `2026-06-24-csharp-to-ai-intro.md` | 2026-06-24 |
 
 ### ✅ Published
 

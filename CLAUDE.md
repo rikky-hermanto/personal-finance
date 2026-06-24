@@ -2,7 +2,11 @@
 
 ## Project Overview
 
-Personal Finance is a full-stack web application built with .NET 10 and React 18, designed to help users manage their personal finances. The application features a modern, responsive user interface, a robust backend API, and AI-powered features for transaction extraction, categorization, and insights. The project is containerized using Docker Compose for easy local development and deployment.
+> **"Finance should feel like a game you're winning, not a spreadsheet you're losing."**
+
+Personal Finance is a **gamified personal finance platform** built around a five-tier **Financial Pyramid scoring engine** — showing where you stand (Foundations → Legacy) and what to do next, across transactions, assets, and investments. The mission: make managing money genuinely enjoyable through clarity, progress, and a sense of level-up. Not another budgeting tool. A compass.
+
+**Five modules feed the pyramid:** Journey (home — scoring engine, quests, achievements, Living Garden), Cashflow (transactions + LLM ingestion), Assets (net worth, liabilities), Investment (IDX, funds, bonds, crypto, P2P), Settings. Built on .NET 10 + React 18 + Supabase, with a Python FastAPI AI service for LLM extraction, semantic search, and financial advice.
 
 ## Background Problem
 
@@ -34,7 +38,9 @@ A `JourneyScoringService` reads across all data sources — transactions, assets
 
 ### Data Infrastructure: Managing Cashflow
 
-The owner manages 5 Indonesian bank accounts that each produce monthly statements in different formats. This is the data plumbing that keeps the pyramid scores grounded in reality — without accurate cashflow data, L1 scores are guesses.
+> ⚠️ This section describes **one sub-feature inside the Cashflow module** — the bank statement ingestion pipeline. It is data plumbing that feeds L1 pyramid scores. It is NOT the product. The product is the pyramid.
+
+The Cashflow module ingests data from 5 Indonesian bank accounts that each produce monthly statements in different formats. This is the plumbing that keeps L1 Foundations scores grounded in reality — without accurate cashflow data, L1 scores are guesses.
 
 Before automation, the workflow was entirely manual:
 
