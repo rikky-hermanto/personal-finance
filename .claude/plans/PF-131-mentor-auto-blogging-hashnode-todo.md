@@ -4,6 +4,19 @@
 > **Started:** 2026-06-24
 > **Planned from branch:** main
 
+## ⚠️ Active Blocker — 2026-06-24
+
+**`gql.hashnode.com` returns HTTP 301 for free accounts.**
+
+Confirmed today during `/mentor blog post` run:
+- `HASHNODE_PAT` is set in `.env` (38 chars, token read successfully)
+- `curl -v` against `https://gql.hashnode.com` returned `301 Moved Permanently` → `Location: https://hashnode.com/announcements/graphql-api`
+- This affects ALL operations (reads + writes) — the Publication ID query also fails, so `HASHNODE_PUBLICATION_ID` cannot be fetched via API
+
+**Root cause:** Hashnode retired free GraphQL API access on 2026-05-13. Pro plan required.
+
+**Unblocked by:** Upgrading to Hashnode Pro at `hashnode.com/[username]/dashboard/billing`, then re-running the Publication ID query (STEP 1c) to fill in `HASHNODE_PUBLICATION_ID` in `.env`.
+
 ## Objective
 
 Extend the `/mentor` skill with two new argument modes — `blog` and `blog post` — that automate the editorial pipeline defined in [docs/ideas/blogs/blogging-plan.md](../../../docs/ideas/blogs/blogging-plan.md). The `blog` mode drafts a publish-ready blog post from the activity logs and learning plans; the `blog post` mode pushes the draft to Hashnode via GraphQL API and logs the live URL back to `docs/mentor/progress.md`. This closes Chapter 10 ("Public Presence") of the 90-day AI Engineering pivot.

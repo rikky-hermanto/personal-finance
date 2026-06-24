@@ -2,7 +2,7 @@
 
 > **Finance should feel like a game you're winning, not a spreadsheet you're losing.**
 
-A self-hosted personal finance platform built for Indonesian users. The mission: **make managing money genuinely enjoyable** — through clarity, progress, and a sense of level-up. Not another budgeting tool that guilts you. A compass that shows where you stand, what to do next, and celebrates when you move forward.
+A self-hosted personal finance platform. The mission: **make managing money genuinely enjoyable** — through clarity, progress, and a sense of level-up. Not another budgeting tool that guilts you. A compass that shows where you stand, what to do next, and celebrates when you move forward.
 
 AI-powered ingestion handles the messy part — getting data out of bank CSVs, PDFs, and screenshots automatically so you spend time on decisions, not data entry.
 
