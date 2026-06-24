@@ -1,6 +1,6 @@
 ---
 name: commit
-description: Stage safe files, scan for secrets, generate a context-aware commit message, then commit (and optionally push). Triggered by /commit or /commit push.
+description: Stage safe files, scan for secrets, generate a context-aware commit message, then commit (and optionally push). Triggered by /commit or /commit push. Pass `ignore` to scan pending files and add artifact/secret patterns to .gitignore without committing.
 ---
 
 # Skill: commit
@@ -16,6 +16,7 @@ Safe-commit workflow for this open-source repo. Scans staged content for sensiti
 | `/commit wip` | Quick WIP commit — message: `wip: [brief file summary]`, no push |
 | `/commit amend` | Amend last commit with current staged changes (only if last commit is not on remote) |
 | `/commit dry-run` | Show what would be staged + proposed commit message — no file is touched |
+| `/commit ignore` | Scan all pending/untracked files, infer missing `.gitignore` rules, append them — **no staging, no commit** |
 
 ---
 
@@ -332,3 +333,102 @@ If any of these are NOT in `.gitignore`, print a warning (do not auto-edit):
 | `supabase/.temp/` | Supabase CLI local state |
 
 Current `.gitignore` already covers all of the above as of 2026-05-21 — this check is a guard against future removals.
+
+---
+
+## Variant: `/commit ignore`
+
+**Purpose:** Evaluate every pending/untracked file visible in `git status`, decide which patterns are missing from `.gitignore`, and append only the new rules. **No staging. No commit. No file changes except `.gitignore`.**
+
+### Step 1 — Collect all pending files
+
+```bash
+git status --short
+```
+
+Capture every entry regardless of its status code (`M`, `??`, `A`, `D`, `R`, etc.). Focus on `??` (untracked) and `M` (modified but unstaged) entries — these are the candidates most likely to include accidental artifacts.
+
+### Step 2 — Categorise against known artifact patterns
+
+For each pending file/directory, evaluate it against these categories:
+
+| Category | Patterns |
+|----------|----------|
+| **Credentials / secrets** | `.env`, `.env.*` (not `.env.example`), `appsettings.Development.json`, `appsettings.*.json` (not `appsettings.json`/`.example`), `*.pem`, `*.key`, `secrets.json`, `credentials.json` |
+| **.NET build artifacts** | `**/bin/`, `**/obj/`, `**/publish/`, `**/*.user`, `**/*.suo`, `.vs/` |
+| **Python artifacts** | `.venv/`, `**/__pycache__/`, `**/*.pyc`, `**/*.pyo`, `**/*.egg-info/`, `dist/`, `build/`, `.pytest_cache/`, `**/.mypy_cache/` |
+| **AI / ML cache** | `.flashrank_cache/`, `**/.cache/`, `**/model_cache/`, `*.gguf`, `*.bin` (model weights) |
+| **Node / frontend artifacts** | `node_modules/`, `.next/`, `.nuxt/`, `dist/`, `build/`, `.parcel-cache/` |
+| **Test artifacts** | `**/test-results/`, `**/playwright-report/`, `.playwright-mcp/`, `coverage/`, `**/.coverage`, `**/htmlcov/` |
+| **Supabase CLI state** | `supabase/.temp/`, `supabase/.branches/` |
+| **OS / editor noise** | `.DS_Store`, `Thumbs.db`, `desktop.ini`, `*.swp`, `*.swo`, `*.bak`, `**/.idea/`, `**/*.iml` |
+| **Personal / private data** | `docs/statement-examples/`, `supabase/seed/assets_seed.sql`, `issues.json`, `project_items.json` |
+| **Docker leftovers** | `.docker/`, `docker-compose.override.yml` |
+| **Claude / agent state** | `.claude/settings.local.json` |
+
+### Step 3 — Read the current `.gitignore`
+
+```bash
+cat .gitignore
+```
+
+For each matched pattern from Step 2, check whether it (or an equivalent glob) is **already present** in `.gitignore`. A pattern is considered covered if a broader glob already matches it (e.g. `**/bin/` covers `apps/api/src/bin/`).
+
+### Step 4 — Build the additions list
+
+Produce a table of what would be added and why:
+
+```
+🔍 Pending file scan complete.
+
+Files evaluated : 14
+Already ignored : 9
+
+New rules to add (5):
+  Pattern                       Reason
+  ──────────────────────────────────────────────────────
+  services/ai-service/.flashrank_cache/   AI/ML model cache
+  **/__pycache__/               Python bytecode cache
+  **/*.pyc                      Python compiled files
+  .pytest_cache/                pytest run cache
+  .vs/                          Visual Studio IDE state
+```
+
+If nothing new is found, stop and print:
+```
+✅ .gitignore is already comprehensive — no new rules needed.
+```
+
+### Step 5 — Append new rules to `.gitignore`
+
+**Only proceed if there are new rules to add.**
+
+Append a clearly labelled block to `.gitignore`:
+
+```
+# Added by /commit ignore — <date>
+services/ai-service/.flashrank_cache/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+.vs/
+```
+
+Use a single blank line before the block and a trailing newline after it. Do not rewrite or reformat the existing `.gitignore` content.
+
+### Step 6 — Print final summary
+
+```
+✅ .gitignore updated
+   Added : 5 new rules
+   File  : .gitignore
+
+Run /commit to stage and commit the updated .gitignore.
+```
+
+### Hard constraints for this variant
+
+- **Never stage, never commit** — `.gitignore` is the only file touched.
+- **Never delete or reorder existing `.gitignore` entries** — append only.
+- **Never add a pattern for a file the user has explicitly staged** — respect intentional inclusions.
+- If `.gitignore` does not exist, create it with just the new block (no boilerplate).
