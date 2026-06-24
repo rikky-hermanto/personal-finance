@@ -57,6 +57,8 @@ Before doing anything else, read these files silently:
 | `plan` | **plan** — Full 30/60/90 day roadmap view |
 | `cert <name>` | **cert** — Evaluate a certification for ROI |
 | `gap` | **gap** — Re-assess skill gap vs current AI Eng JD landscape |
+| `blog post` | **blog-post** — Publish the most recent draft to Hashnode |
+| `blog` or `blog <#>` | **blog** — Draft the next (or numbered) post from activity logs |
 
 ---
 
@@ -371,6 +373,168 @@ Re-run the AI Engineering gap analysis. Read `cv.md` and `docs/mentor/progress.m
 
 ### Recommended next 2 weeks
 {2-3 specific actions based on current gap state}
+```
+
+---
+
+## Mode: blog
+
+Draft a publish-ready blog post from the activity logs and learning plans.
+
+Default: drafts the next `Backlog` post in `docs/ideas/blogs/README.md`.
+Optional: `/mentor blog 3` drafts post #3 specifically.
+
+**Steps:**
+1. Read [docs/ideas/blogs/README.md](docs/ideas/blogs/README.md) — find the next Backlog row (or the numbered row if specified). Note the archetype and source plan.
+2. Read [docs/mentor/progress.md](docs/mentor/progress.md) — extract session entries for the source plan's dates.
+3. Read the source learning plan (e.g. `.claude/plans/learning/PF-AI002-llm-evaluation-framework.md`) — extract: the narrative arc, real metrics (accuracy %, cost, latency), code snippets, the key insight.
+4. Read [docs/ideas/blogs/_template.md](docs/ideas/blogs/_template.md) — pick the archetype skeleton matching the post's planned archetype.
+5. Fill the skeleton with content from steps 2–3. Extract only the selected archetype block — strip all `---` inter-archetype separator lines that appear in `_template.md` between archetype sections (they are template structural dividers, not content). The saved draft must contain exactly two `---` lines: the opening and closing frontmatter delimiters. Verify: `grep -c '^---$' docs/ideas/blogs/{draft-file}.md` must return `2`. Apply all editorial quality rules below before saving.
+6. Apply the privacy scrub — **blocking gate, do not skip**:
+   - [ ] No target-company names or role IDs (progress.md names live pipeline companies — strip them)
+   - [ ] No real personal financial data — use anonymized fixture references only
+   - [ ] No API keys or secrets in any code snippet
+   - [ ] No private plan details quoted verbatim
+7. Save the draft to `docs/ideas/blogs/YYYY-MM-DD-{slug}.md` (today's date).
+8. Update `docs/ideas/blogs/README.md` — change the post's Status from `Backlog` to `Drafting`.
+9. Output:
+
+```
+## ✍️ Blog Draft — "{title}"
+
+**File:** docs/ideas/blogs/{YYYY-MM-DD}-{slug}.md
+**Archetype:** {archetype} · **Source:** {source plan/progress entry}
+**Word count:** ~{N}w (target: {range from archetype})
+
+**Privacy scrub:** ✅ Passed (or ⚠️ Review needed: {specific item to fix})
+
+**Next step:** Review the draft, polish with `/tech-write`, then run `/mentor blog post` to publish.
+```
+
+**Editorial quality rules — apply to every draft:**
+
+**Voice and register**
+- Write in first person, past tense for events, present tense for principles ("I ran the eval" / "The gate is the design")
+- Calibrate to the Dan Luu / Julia Evans register: technically precise, no fluff, no hype, treats the reader as a senior peer
+- Short paragraphs — 3–4 sentences max. A wall of text is a broken draft
+- No preamble: the first sentence must be the hook (a number, a failure, a claim), never a context-setter
+
+**Narrative flow**
+- Every section must end with a transition sentence that leads into the next section — no abrupt cuts between headers
+- The emotional arc: calm setup → friction (the wall) → relief (the fix) → satisfaction (the metric). The reader should feel this, not just read it
+- Code blocks are narrative accelerators, not chapter breaks — introduce each block in one sentence, follow it with one sentence interpreting the key line
+
+**Diagrams (required in every post)**
+- Every post must contain at least one high-level ASCII or Mermaid diagram
+- Position the main diagram early — after the intro hook, before the first technical section — so the reader has a mental map before the story starts
+- The diagram shows the system or concept at the 10,000-foot level: 5–7 boxes, real component names, arrows showing data or control flow
+- For Build Log: the pipeline the feature sits in (input → transform → output → store)
+- For Concept Ladder: the progression itself (Stage 0 → Stage 1 → Stage N → shipped) as a visual ladder or flow
+- For Short Take: the mental model or contrast (before vs after, loop vs gate, bi-encoder vs cross-encoder)
+- Diagrams use monospace-safe ASCII (box-drawing chars: `┌─┐│└┘▶`) or fenced Mermaid blocks. Test that it renders correctly in a monospace font
+
+**C# equivalents (series signature — mandatory)**
+- Every Python function, class, or test block gets a C# equivalent block immediately after
+- The parenthetical names the specific idiom being mapped (e.g. "Python `dataclass` → C# record with computed properties")
+- Frame as "if this service were a .NET service" — it's a teaching device, not wired-in code
+
+**Closing every post**
+- "What this proves" section: one sentence naming the specific AI engineering skill, one sentence why it's production-relevant
+- GitHub repo link + series line: "Part of my *Backend → AI Engineer in 90 Days* series on Hashnode."
+- The scrub checklist is a hard gate — if any item is uncertain, set `status: scrub-needed` in frontmatter instead of `draft` and flag it explicitly
+
+---
+
+## Mode: blog-post
+
+Publish the most recent `status: draft` file from `docs/ideas/blogs/` to Hashnode.
+
+**Prerequisites (must be set as environment variables — never hardcode in this file):**
+- `HASHNODE_PAT` — Personal Access Token from hashnode.com/settings/developer
+- `HASHNODE_PUBLICATION_ID` — Publication ID fetched via PF-131 STEP 1
+
+> **⚠️ Hashnode Pro required (as of May 2026):** The `publishPost` mutation and all API operations require a Hashnode Pro plan. If you get a 301 redirect to the announcement page, upgrade your publication at `hashnode.com/[username]/dashboard/billing`. The API endpoint remains `https://gql.hashnode.com`.
+
+**Steps:**
+1. Find the most recent `docs/ideas/blogs/YYYY-MM-DD-{slug}.md` with `status: draft` in frontmatter.
+   - If `hashnode_url:` is already set (non-null) → stop: "Already published at {url}. To re-publish, clear `hashnode_url` and reset `status` to `draft`."
+   - If `status: scrub-needed` → stop: "Privacy scrub required before publishing. Fix flagged items and change status to `draft`."
+   - If no draft file found → stop: "No draft found. Run `/mentor blog` first."
+2. Check `HASHNODE_PAT` and `HASHNODE_PUBLICATION_ID` are set. If either is missing → stop with setup instructions.
+3. Parse frontmatter (title, slug) and body content using Bash:
+
+```bash
+# Run in Git Bash on Windows (not PowerShell) — uses grep, sort, tail
+
+# Identify the most recent draft with status: draft
+DRAFT=$(grep -rl 'status: draft' docs/ideas/blogs/ 2>/dev/null \
+  | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}-' | sort | tail -1)
+if [ -z "$DRAFT" ]; then
+  echo "ERROR: No draft found with status: draft. Run /mentor blog first."
+  exit 1
+fi
+echo "Publishing: $DRAFT"
+
+# Build and send the GraphQL payload (Python handles JSON escaping safely)
+python3 - "$DRAFT" "$HASHNODE_PUBLICATION_ID" <<'PYEOF'
+import sys, json, re
+
+draft_path = sys.argv[1]
+pub_id = sys.argv[2]
+
+content = open(draft_path).read()
+# Split frontmatter from body
+parts = content.split('---', 2)
+fm_raw = parts[1] if len(parts) >= 3 else ''
+body = parts[2].strip() if len(parts) >= 3 else content
+
+title = re.search(r'title:\s*"?(.+?)"?\s*$', fm_raw, re.M)
+slug = re.search(r'slug:\s*"?(.+?)"?\s*$', fm_raw, re.M)
+
+payload = {
+    'query': '''mutation PublishPost($input: PublishPostInput!) {
+        publishPost(input: $input) { post { id url title } }
+    }''',
+    'variables': {
+        'input': {
+            'title': title.group(1) if title else 'Untitled',
+            'publicationId': pub_id,
+            'contentMarkdown': body,
+            'slug': slug.group(1) if slug else '',
+            'tags': [],
+        }
+    }
+}
+print(json.dumps(payload))
+PYEOF | curl -s -X POST https://gql.hashnode.com \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $HASHNODE_PAT" \
+    -d @- | python3 -m json.tool
+```
+
+4. Parse the response — extract `data.publishPost.post.url`. If response contains `errors` → print the full error and stop (do NOT mark as published).
+5. Update the draft file frontmatter: `status: published`, `hashnode_url: {url}`.
+6. Update `docs/ideas/blogs/README.md` — set Status to `Published` and fill the URL column.
+7. Append to `docs/mentor/progress.md`:
+
+```markdown
+**Blog published:** [{title}]({url}) — Hashnode ({YYYY-MM-DD})
+```
+
+8. Output:
+
+```
+## 🚀 Published — "{title}"
+
+**URL:** {url}
+
+**Next steps:**
+1. Cross-post to dev.to: paste content + set canonical_url to the Hashnode URL above
+2. LinkedIn/X snippet: "{pull the first sentence of the hook section}"
+3. docs/ideas/blogs/README.md updated ← done
+4. progress.md updated ← done
+
+**Next draft:** Post #{N+1} — "{working title}" · Run `/mentor blog` to start
 ```
 
 ---
