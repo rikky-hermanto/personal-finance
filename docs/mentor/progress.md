@@ -444,3 +444,25 @@
 - Once both numbers exist, fill in `docs/performances/ai-observability-metrics.md` and close Chapter 4
 
 **Streak: 1 day** (reset — no log entries 2026-06-16)
+
+### 2026-06-24 — Day 28
+
+**Session: Gap acknowledged — context-switch to a side project, now re-focusing**
+
+- No pivot work 2026-06-18 → 2026-06-23. Cause was a deliberate context switch, not a technical block: time went to another project (content creation), not AI Engineering.
+- Re-committing to the pivot as the focus. Next session resumes the Chapter 4 close-out.
+
+**Chapter 4 checklist status (unchanged since Day 21):**
+- [x] Chunker, FlashRank reranker, grounded `POST /ask`, metadata filtering — all shipped + tested
+- [ ] Re-run MRR/P@5 with `--rerank`, log the delta ← still blocked on local Postgres availability
+- [ ] RAGAS faithfulness on 5 answers ← still blocked on `ragas` install (MSVC) — or hand-roll the claim-decompose check
+
+**Retros (blockers & surprises):**
+- **6 days off the pivot — root cause was attention split across projects, not the infra walls.** Honest framing: the Day-21 Docker/ragas walls are still there, but they were *not* the reason this week stalled — the side project (content creation) was. **Fix:** name it plainly and timebox the return — one focused unblock session closes Chapter 4 and Phase 1.
+
+**Remaining for next session (the real Chapter-4 close-out):**
+- Get Postgres reachable (WSL / `supabase start` on a Docker-capable box) → `PYTHONPATH=. python evals/eval_retrieval.py` then `--rerank` → record the P@5 baseline-vs-reranked delta
+- Install MSVC Build Tools (or run on WSL/non-Windows) for `ragas`, or hand-roll the claim-decompose-and-verify faithfulness check → run `eval_faithfulness.py` → record mean faithfulness
+- Fill `docs/performances/ai-observability-metrics.md` with both numbers → close Chapter 4 → Phase 1 complete
+
+**Streak: 1 day** (reset — no log entries 2026-06-18 → 2026-06-23)

@@ -37,24 +37,24 @@ The entire 12-week build arc on one page. Columns: which week in the [learning p
 | 1 | — | Multimodal (vision) inputs | Bank Jago screenshot extraction | Parsing screenshot HP menjadi transaksi terstruktur | `main.py /parse-image` | "Multimodal pipeline handling PNG/WebP input" | ✅ |
 | 1 | — | Prompt caching | Cache stable system prompts (Anthropic path) | Hemat biaya API dengan cache bagian prompt yang tidak berubah | `providers/anthropic.py` | "Quantified cache hit-rate + cost/latency drop on repeat extractions" | ⚪ |
 | 1 | — | XML-tag prompt structuring | Bank prompts with semantic XML tags | Tingkatkan akurasi ekstraksi via struktur prompt yang eksplisit | `prompts/{bank}_v1.py` | "Prompt engineering rigour; before/after accuracy in eval harness" | ⚪ |
-| 2 | 1 | AI-specific observability | Langfuse: cost/call, latency, error rate | Monitor biaya & latensi setiap panggilan LLM secara real-time | All providers + `main.py` | "Extraction costs $X/doc, p95 latency Yms" + dashboard screenshot | ⚪ |
+| 2 | 1 | AI-specific observability | Langfuse: cost/call, latency, error rate | Monitor biaya & latensi setiap panggilan LLM secara real-time | All providers + `main.py` | "Extraction costs $X/doc, p95 latency Yms" + dashboard screenshot | ✅ |
 | 2 | 1 | Prompt versioning + lifecycle | Langfuse prompt registry for bank prompts | Kelola versi prompt secara terpusat & lacak dampaknya ke akurasi | `prompts/` → Langfuse | "Prompt versions tracked, accuracy trends visible across releases" | ⚪ |
-| 2 | 2 | LLM eval harness | 20-fixture extraction benchmark (Gemini vs Sonnet) | Ukur & bandingkan akurasi + biaya antar provider LLM | `evals/eval_extraction.py` | "X% field accuracy; Gemini Y% cheaper on structured extraction workloads" | ⚪ |
+| 2 | 2 | LLM eval harness | 20-fixture extraction benchmark (Gemini vs Sonnet) | Ukur & bandingkan akurasi + biaya antar provider LLM | `evals/eval_extraction.py` | "X% field accuracy; Gemini Y% cheaper on structured extraction workloads" | ✅ |
 | 2 | 2 | Categorization eval | 106-rule + LLM-fallback accuracy measurement | Validasi seberapa akurat sistem kategorisasi transaksi end-to-end | `evals/eval_categorization.py` | "Categorizer accuracy measured, not assumed" | ⚪ |
 | 2 | 2 | CI eval regression (stretch) | Promptfoo / RAGAS gate in GitHub Actions | Cegah regresi prompt secara otomatis sebelum merge ke production | `.github/workflows/` | "Evals run in CI — prompt regressions caught before merge" | ⚪ |
-| 2 | 3 | Text embeddings + vector DBs | Embed txns on insert, store in pgvector | Simpan representasi vektor transaksi sebagai fondasi pencarian semantik | Supabase migration + `TransactionCreatedEvent` | "Built RAG retrieval layer; chose embedding model based on cost/quality trade-off" | ⚪ (PF-S13) |
-| 2 | 3 | Semantic search | Natural-language transaction search | Cari transaksi pakai kalimat biasa ("belanja Maret"), bukan filter manual | `POST /search`, `.NET /api/transactions/search?q=` | "MRR X on 10 handwritten test queries; semantic search > keyword filters" | ⚪ (PF-S13) |
-| 2 | 3 | Embedding drift guard | `embedding_model_version` column + re-embed job | Cegah korupsi hasil similarity search saat model embedding diupgrade | Supabase migration | "Production-aware: model upgrades don't silently corrupt similarity results" | ⚪ |
+| 2 | 3 | Text embeddings + vector DBs | Embed txns on insert, store in pgvector | Simpan representasi vektor transaksi sebagai fondasi pencarian semantik | Supabase migration + `TransactionCreatedEvent` | "Built RAG retrieval layer; chose embedding model based on cost/quality trade-off" | ✅ |
+| 2 | 3 | Semantic search | Natural-language transaction search | Cari transaksi pakai kalimat biasa ("belanja Maret"), bukan filter manual | `POST /search`, `.NET /api/transactions/search?q=` | "MRR X on 10 handwritten test queries; semantic search > keyword filters" | 🟡 |
+| 2 | 3 | Embedding drift guard | `embedding_model_version` column + re-embed job | Cegah korupsi hasil similarity search saat model embedding diupgrade | Supabase migration | "Production-aware: model upgrades don't silently corrupt similarity results" | ✅ |
 | 2 | 3 | RAG as self-improving system | Semantic categorization fallback (k-NN over labelled txns) | Kategorisasi otomatis berbasis kemiripan data historis; makin akurat seiring data tumbuh | `services/categorizer.py` | "RAG made a 106-rule engine self-improving without retraining" | ⚪ (PF-118) |
-| 2 | 4 | Re-ranking | Cohere/FlashRank reranker on top-10 retrieved | Reorder hasil RAG agar dokumen paling relevan muncul di atas | `POST /ask` reranking step | "Reranking lifted MRR from X to Y — named technique + measured delta" | ⚪ |
-| 2 | 4 | Grounded synthesis + citations | "Ask your finances" Q&A with cited answer | Jawab pertanyaan keuangan dengan data transaksi nyata + sitasi sumber | `POST /ask` | "RAG answer with source transactions cited; hallucination rate ~0 on grounded queries" | ⚪ |
-| 2 | 4 | Chunking strategies | Sentence-window + fixed-size on advisory text | Pecah teks narasi panjang tanpa kehilangan konteks antar kalimat | `services/insights.py` | "Named chunking strategies; chose sentence-window for advisory corpus" | ⚪ |
+| 2 | 4 | Re-ranking | Cohere/FlashRank reranker on top-10 retrieved | Reorder hasil RAG agar dokumen paling relevan muncul di atas | `POST /ask` reranking step | "Reranking lifted MRR from X to Y — named technique + measured delta" | 🟡 |
+| 2 | 4 | Grounded synthesis + citations | "Ask your finances" Q&A with cited answer | Jawab pertanyaan keuangan dengan data transaksi nyata + sitasi sumber | `POST /ask` | "RAG answer with source transactions cited; hallucination rate ~0 on grounded queries" | 🟡 |
+| 2 | 4 | Chunking strategies | Sentence-window + fixed-size on advisory text | Pecah teks narasi panjang tanpa kehilangan konteks antar kalimat | `services/chunker.py` | "Named chunking strategies; chose sentence-window for advisory corpus" | 🟡 |
 | 2 | 4–5 | Guardrails: PII + output validation | Guardrail layer on `/ask` (PII scrub, advice disclaimer, output validation) | Cegah kebocoran PII & angka tanpa sumber pada jawaban advisor keuangan | `services/guardrails.py`, `POST /ask` | "Financial advisor can't leak PII or emit an unvalidated number — guardrails first-class, not a Phase-4 afterthought" | ⚪ (PF-122) |
 | 2 | 5 | SSE streaming | Token-by-token streamed chat UI | Chat AI responsif — jawaban muncul token per token, tidak menunggu selesai | `POST /ask` (streaming) + `/chat` React page | "Streaming from FastAPI → React; no buffering, correct SSE error handling" | ⚪ |
 | 2 | 5 | Real-time status (Supabase Realtime) | Replace polling upload status with Realtime | Status proses upload & AI tampil live tanpa polling berulang | Upload wizard + `/status` page | "Eliminated polling; event-driven upload status updates via Realtime" | ⚪ (PF-S12) |
 | 2 | 6 | Advanced RAG: hybrid search | pgvector + `tsvector` full-text hybrid retrieval | Gabungkan pencarian vektor + full-text untuk akurasi retrieval lebih tinggi | `/search` hybrid mode | "Hybrid search beat dense-only by X MRR points — measured, not assumed" | ⚪ |
-| 2 | 6 | Advanced RAG: sentence-window + auto-merging | LlamaIndex-style chunking on advisory corpus | Eksperimen 3 teknik RAG lanjutan; pilih pemenang berdasarkan data eval | Retrieval pipeline | "Three advanced RAG variants benchmarked; winner chosen by eval data" | ⚪ |
-| 2 | 6 / 8 | RAG + agent faithfulness eval | RAGAS faithfulness on `/ask` + tool-call accuracy on agents | Ukur faithfulness jawaban RAG & akurasi tool-call agen, bukan cuma ekstraksi | `evals/eval_rag.py`, `evals/eval_agent.py` | "I eval agents and RAG, not just extraction — faithfulness X, tool-call accuracy Y" | ⚪ |
+| 2 | 6 | Advanced RAG: sentence-window + auto-merging | LlamaIndex-style chunking on advisory corpus | Eksperimen 3 teknik RAG lanjutan; pilih pemenang berdasarkan data eval | Retrieval pipeline | "Three advanced RAG variants benchmarked; winner chosen by eval data" | 🟡 |
+| 2 | 6 / 8 | RAG + agent faithfulness eval | RAGAS faithfulness on `/ask` + tool-call accuracy on agents | Ukur faithfulness jawaban RAG & akurasi tool-call agen, bukan cuma ekstraksi | `evals/eval_faithfulness.py`, `evals/eval_agent.py` | "I eval agents and RAG, not just extraction — faithfulness X, tool-call accuracy Y" | 🟡 |
 | 3 | 7 | Tool-calling loops (smolagents) | Transaction Categorizer Agent | Agen TAO loop yang kategorisasi transaksi dengan reasoning trace di Langfuse | `app/agents/categorizer_agent.py` | "TAO loop: 5 test txns categorized with reasoning trace in Langfuse" | ⚪ |
 | 3 | 7 | Agent with uncertainty handling | Self-correcting Upload Processing Agent | Pipeline upload yang eksplisit soal ketidakpastian & minta konfirmasi user | `app/agents/upload_agent.py`, `POST /agent/process-upload` | "Agent re-routes on low-confidence identification; no silent failures" | ⚪ (PF-119) |
 | 3 | 8 | LangGraph: state + routing + memory | Financial Health Advisor (multi-step) | Saran keuangan multi-langkah berbasis data live user dengan memori sesi | LangGraph graph, tools wired to data layer | "Multi-step agent: analyze → gaps → recommend → drilldown; checkpointer memory; tool-failure fallback" | ⚪ |
@@ -96,17 +96,17 @@ Phase 1 (already done) ───────────────────
   [polish: prompt caching, XML structuring]               ⚪
 
 Phase 2, Chapter 1 ─────────────────────────────────────────────────────────
-  Langfuse tracing             →  quote real numbers in interviews
+  Langfuse tracing             →  quote real numbers in interviews  ✅
 
 Phase 2, Chapter 2 ─────────────────────────────────────────────────────────
-  eval harness (fixtures)      →  accuracy + cost benchmark published
+  eval harness (fixtures)      →  accuracy + cost benchmark published  ✅
   ↓ feeds
   Phase 2 Chapter 6 (advanced RAG evals), Phase 3 agent evals
 
 Phase 2, Chapters 3–4 ─────────────────────────────────────────────────────
-  embeddings + pgvector        →  /search (natural-language txn search)
+  embeddings + pgvector        →  /search (natural-language txn search)  🟡 MRR@5=0.476 baseline
   ↓
-  reranker added               →  /ask  (grounded Q&A with citations)
+  reranker added               →  /ask  (grounded Q&A with citations)  🟡 built, measured lift pending
   ↓ both reused by
   semantic categorization fallback  (UC-2.7)
   sentence-window / hybrid search   (UC-2.14)
