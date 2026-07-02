@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
 
 import asyncpg
 from pgvector.asyncpg import register_vector
@@ -62,10 +63,14 @@ class RetrievalService:
                 add("t.category ILIKE ${n}", category)
             if account:
                 add("a.name ILIKE ${n}", account)
+            # asyncpg's date codec (triggered by the ::date cast) expects a
+            # datetime.date, not a str — it calls .toordinal() on the bound value.
+            # The Pydantic layer already validated the YYYY-MM-DD shape, so
+            # fromisoformat is safe here.
             if date_from:
-                add("t.date >= ${n}::date", date_from)
+                add("t.date >= ${n}::date", date.fromisoformat(date_from))
             if date_to:
-                add("t.date <= ${n}::date", date_to)
+                add("t.date <= ${n}::date", date.fromisoformat(date_to))
 
             sql = f"""
                 SELECT

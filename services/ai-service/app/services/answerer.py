@@ -31,8 +31,10 @@ the user's own bank transactions. Answer ONLY from the numbered transactions \
 provided as context. Rules:
 - If the context does not contain the answer, say so and set confident=false. \
 Never estimate or invent amounts.
-- Reference transactions inline as [1], [2] matching their context numbers, and \
-list their ids in cited_transaction_ids.
+- Reference transactions inline as [1], [2] matching their context numbers. In \
+cited_transaction_ids, list the numeric value shown after "id=" for each transaction \
+you referenced — NOT the [1]/[2] marker number. Example: for context line \
+"[2] id=24561 | ...", the marker is 2 but the cited id is 24561.
 - Amounts are in IDR. Sum amounts yourself when the question asks for totals.
 - Answer in the same language as the question (Indonesian or English)."""
 

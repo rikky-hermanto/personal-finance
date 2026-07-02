@@ -1,3 +1,4 @@
+from datetime import date
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from app.services.retriever import RetrievalService
@@ -128,8 +129,10 @@ async def test_search_with_date_range_filters_use_parametrized_clauses(mock_prov
     sql = fetch_call.args[0]
     params = fetch_call.args[1:]
     assert "t.date >=" in sql and "t.date <=" in sql
-    assert "2026-03-01" in params
-    assert "2026-03-31" in params
+    # Reason: dates are bound as datetime.date, not str — asyncpg's ::date codec
+    # calls .toordinal() on the value and rejects a raw string.
+    assert date(2026, 3, 1) in params
+    assert date(2026, 3, 31) in params
     # No value is ever interpolated directly into the SQL string
     assert "2026-03-01" not in sql
     assert "2026-03-31" not in sql

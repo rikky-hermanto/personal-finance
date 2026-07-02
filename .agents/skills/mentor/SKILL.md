@@ -674,6 +674,68 @@ stage becomes what the next wall pushes against.}
 
 ---
 
+## Learning Material Style (versi belajar) — Progressive Learning (Required)
+
+> Confirmed 2026-07-02. Rikky asked for PF-AI004 rewritten as learning material and approved the
+> result as the standing standard. Canonical exemplar:
+> [PF-AI004-rag-reranking-generation-id.md](../../../.claude/plans/learning/PF-AI004-rag-reranking-generation-id.md).
+> Match its register and structure on every future "tulis ulang jadi materi" / "versi belajar" request.
+
+When asked to turn a learning plan (PF-AIxxx) into study material — a companion doc for
+*understanding*, distinct from the plan file which stays the authority for TODO steps, acceptance
+criteria, and the quiz — the driving approach is **progressive learning**: each section only makes
+sense after the one before it, and no concept appears before the reader has felt the problem it
+solves.
+
+### Structure — these exact `##` headings, in this exact order
+
+```
+Apa Masalah yang Ingin Diselesaikan?
+Konsep Sederhananya
+Cara Kerjanya
+Implementasi
+Optimisasi
+Best Practice
+Kesalahan Umum
+Summary
+```
+
+- **Never prefix headings with "Level 1 —" / stage numbers.** The heading IS the stage name.
+  Cross-reference sections by name ("lihat bagian Kesalahan Umum"), never by number.
+- Don't number sub-sections either (`### Chunking — …`, not `### 3.1 Chunking — …`).
+
+### Style rules
+
+- **Language:** Bahasa Indonesia sederhana, register santai-tapi-presisi (boleh "bikin", "nggak
+  nyambung", "ketipu"); technical terms stay English. Same natural-Indonesian rule as elsewhere —
+  no stiff literal translations.
+- **Opening blockquote** states: this is a rewrite of `{plan-file}` (link it), not a new plan; all
+  facts/numbers/bugs come from the original; the plan file remains the authority for TODO/AC/quiz;
+  plus the read-order warning ("jangan loncat ke Implementasi kalau tiga bagian pertama belum
+  kebayang").
+- **"Apa Masalah…"** opens with a *real* failure from this project (an actual query, an actual
+  wrong result — e.g. "makan" vs "MAKANAN TERNAK AYAM BROILER"), never an abstract definition.
+- **"Konsep Sederhananya"** = one plain-language analogy per concept + the high-level diagram(s).
+  No depth yet.
+- **"Cara Kerjanya"** = the ladder, per concept: **Versi 0 (cara paling bodoh yang masih jalan) →
+  "Masalahnya:" → Versi 1 → … → "Ini yang dipakai chapter ini"**, ending with a one-line teaser of
+  the next un-built stage. Same earn-the-jargon principle as the plan-file Introduction ladder.
+- **"Implementasi"** = the affected-files table + only the load-bearing code excerpts with
+  plain-Indonesian commentary (full code/tests/C# ports stay in the plan file — link to its STEPs).
+- **"Optimisasi"** = the real tuning decisions taken, each with its concrete reason (numbered list).
+- **"Best Practice"** = the rules held during the build and why each matters (bullet list).
+- **"Kesalahan Umum"** = REAL bugs that actually happened during the chapter (numbered), stated as
+  what-happened → why → fix. This is the most valuable section — never pad it with hypotheticals.
+- **"Summary"** = masalah → yang dibangun → real-numbers table → pelajaran terpenting → interview
+  one-liner → link back to the plan file for the rest.
+- **Glossary linking:** every new domain term links, at its first occurrence *per section*, to the
+  shared glossary ([glossary-rag-id.md](../../../.claude/plans/learning/glossary-rag-id.md)) via
+  explicit `<a id="slug"></a>` anchors. Extend that one glossary; never create a per-chapter one.
+  New glossary entries follow its existing format (`<a id>` + bold term + simple-Indonesian
+  definition, grouped by category not alphabet).
+- **File naming:** `{plan-filename}-id.md`, saved next to the plan in
+  `.claude/plans/learning/`. It's a learning-track file — the stays-in-learning rule applies.
+
 ## C# Equivalent Code Blocks (PF-AIxxx) — Required
 
 Rikky is a 10+ year C#/.NET engineer pivoting into Python/AI Engineering — his fastest path to
