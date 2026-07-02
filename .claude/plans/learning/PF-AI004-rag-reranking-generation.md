@@ -1,7 +1,7 @@
 # PF-AI004 — RAG Phase 2: Chunking, Re-ranking, Generation
 
 > **Learning Phase:** Phase 1 · Chapter 4 of 12 · Day ~14 of 90
-> **Status:** In Progress — code complete and unit-tested; live evals (P@5 delta, RAGAS faithfulness, /ask smoke test) blocked by execution-environment infra (see STEP 0/5/9/10 notes)
+> **Status:** In Progress — code complete and unit-tested; live evals done: P@5 rerank delta (STEP 5, 2026-06-23) and RAGAS faithfulness **0.900** (STEP 10, 2026-07-01) both measured against real Supabase data. Remaining live gap: `/ask` curl smoke test + Langfuse trace confirmation (STEP 9).
 > **Started:** 2026-06-10
 > **Planned from branch:** main
 > **Pivot goal:** Turn the toy into something defensible. Naive top-K retrieval is the demo version of RAG — hiring managers ask about chunking strategy, re-ranking, and grounded synthesis. After this chapter, `POST /ask {"query": "berapa pengeluaran makan bulan Maret?"}` returns a correct, *cited* answer, and you can quote two deltas: "re-ranking moved MRR@5 from 0.XX to 0.YY" and "RAGAS faithfulness on my generated answers is 0.ZZ."
@@ -397,12 +397,12 @@ This task builds the second half — **re-ranking and grounded generation**, plu
   > Not met: requires a reachable Postgres + a live provider call; blocked by the same infra gap as STEP 0 (Docker/Supabase unavailable in this execution environment).
 - [ ] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) `--rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
   > Not met: `--rerank` flag is implemented and ready; the run itself is blocked by the same Postgres-unreachable issue as STEP 0. The metrics doc records this gap explicitly rather than a fabricated delta.
-- [ ] [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) — RAGAS `Faithfulness` on 5 generated answers; mean score recorded (target ≥ 0.80)
-  > Not met: script written, but `ragas` cannot be installed in this Windows environment (its `scikit-network` dependency needs MSVC Build Tools to compile and ships no prebuilt wheel for this Python/platform combo); the DB blocker would also apply even if `ragas` were installed.
+- [x] [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) — RAGAS `Faithfulness` on 5 generated answers; mean score recorded (target ≥ 0.80)
+  > Met (2026-07-01): **mean faithfulness = 0.900** ≥ 0.80, live run with gpt-4o-mini judge over Gemini-generated answers against real Supabase data (4,467 embedded transactions). Recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md). See STEP 10 note for the three bugs the live run exposed (marker-vs-id citation, asyncpg date binding, fixture year).
 - [x] [test_reranker.py](../../../services/ai-service/tests/test_reranker.py) + [test_answerer.py](../../../services/ai-service/tests/test_answerer.py) pass (mocked FlashRank / mocked provider — no real API calls in tests)
   > Verified: `pytest tests/test_reranker.py tests/test_answerer.py -v` → 6/6 pass.
 - [x] [pyproject.toml](../../../services/ai-service/pyproject.toml) updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
-  > Verified: both entries present in `pyproject.toml`. Runtime note: `ragas`/`langchain-openai` are correctly *declared* but could not actually be *installed* in this environment (see STEP 10) — that's an environment limitation, not a pyproject error.
+  > Verified: entries present and now **pinned** (`ragas>=0.2,<0.3`, `langchain-openai>=0.2,<0.3`, `langchain-community>=0.3,<0.4`) — the unbounded `>=0.2` was the actual install-failure root cause (see STEP 10). Installed and ran cleanly in the cp311 venv on 2026-07-01.
 - [ ] Langfuse traces exist for the `/ask` generation step (cost + latency visible, same pattern as extraction)
   > Not met (unverified, not contradicted): `AnswerService` calls the existing `provider.generate_json()`, which already wraps every call in a Langfuse `generation` observation (confirmed by reading `gemini.py`) — so tracing should work automatically once `/ask` is actually invoked. No live call was made in this session to confirm a trace lands in the Langfuse dashboard.
 
@@ -1849,9 +1849,18 @@ Verify: the answer contains a real IDR total, `[n]` markers, `citations` lists r
 > **Why `502` and not `500` on LLM failure?** The error contract table in [.claude/rules/ai-service.md](../../rules/ai-service.md): provider failures and malformed LLM output are upstream-dependency errors → 502, which the .NET API maps to a user-visible "AI temporarily unavailable" rather than a generic crash. Returning 200 with an empty answer is explicitly forbidden — it would poison any downstream caching/eval with fake successes.
 
 
-### [!] STEP 10 — Write [evals/ask_questions.json](../../../services/ai-service/evals/ask_questions.json) + RAGAS faithfulness eval
+### [x] STEP 10 — Write [evals/ask_questions.json](../../../services/ai-service/evals/ask_questions.json) + RAGAS faithfulness eval
 
-> **Failure:** [ask_questions.json](../../../services/ai-service/evals/ask_questions.json) and [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) were written per spec, but `ragas` could not be installed in this environment — its hard dependency `scikit-network` ships no prebuilt wheel for Python 3.14/win_amd64 and fails to compile from source without the MSVC C++ Build Tools (`error: Microsoft Visual C++ 14.0 or greater is required`). `flashrank` installed and ran cleanly in the same venv, confirming this is specific to `ragas`'s dependency tree, not a general network/proxy block. Even with `ragas` installed, the run would still hit the same Postgres-unreachable blocker as STEP 0.
+> **Completed 2026-07-01 — mean faithfulness 0.900 (target ≥ 0.80), live cross-provider judge (Gemini generates, gpt-4o-mini scores).** The earlier "ragas needs scikit-network + MSVC" diagnosis was **wrong**. Two real root causes, both fixed:
+> 1. **Unbounded dep pin.** `ragas>=0.2` resolved to `ragas 0.4.x` + `langchain 1.x`, which are mutually incompatible (ragas 0.4.3 imports `ChatVertexAI` from a `langchain_community` path deleted in langchain 1.x). Fixed by pinning to the 0.2 line: `ragas>=0.2,<0.3`, `langchain-openai>=0.2,<0.3`, `langchain-community>=0.3,<0.4`.
+> 2. **Corrupted venv.** ~11 packages (pydantic_core, numpy, asyncpg, onnxruntime, grpcio, cffi, PyYAML, …) had **Python-3.14 `.pyd` binaries in a Python-3.11 venv** — a prior pip run had targeted the 3.14 interpreter. Fixed by force-reinstalling each as cp311 (`pip install --force-reinstall --only-binary=:all: --no-deps …`).
+>
+> **Running the eval live surfaced three real bugs that the mocked unit tests could not catch:**
+> - **Marker-vs-id citation bug:** the LLM put the `[2]` context *marker* into `cited_transaction_ids` instead of the real `id=24561`, so the hallucination guard dropped every citation → empty context → 0.00 faithfulness everywhere. Fixed by disambiguating `SYSTEM_PROMPT` in [answerer.py](../../../services/ai-service/app/services/answerer.py).
+> - **asyncpg date-binding bug:** [retriever.py](../../../services/ai-service/app/services/retriever.py) passed date *strings* to a `$n::date` parameter; asyncpg's date codec expects `datetime.date` (`'str' object has no attribute 'toordinal'`). Fixed with `date.fromisoformat()`; the unit test that asserted the old string behavior was corrected per THINK-04.
+> - **Fixture year mismatch:** `ask_questions.json` asked about March 2026 (0 rows — data runs 2024-01 → 2026-01). Retargeted to March 2025.
+>
+> **Results:** food-Maret-2025 1.00 · last-PLN-payment 1.00 · kopi-Maret-2025 refusal→1.00 (correct — 0 coffee rows that month) · biggest-expense-Maret-2025 **0.50** (real finding: superlative/aggregation questions are a known RAG weakness — semantic top-3 ≠ actual max amount) · sewa-2031 adversarial refusal→1.00 (canary passed). Recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
 
 Add eval-only dependencies to the `dev` extra in [pyproject.toml](../../../services/ai-service/pyproject.toml):
 

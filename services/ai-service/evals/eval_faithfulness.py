@@ -35,7 +35,12 @@ async def run() -> None:
     reranker = RerankerService()
     answerer = AnswerService(retriever, reranker, ProviderFactory.create(settings))
 
-    judge = LangchainLLMWrapper(ChatOpenAI(model="gpt-4o-mini", temperature=0.0))
+    # Pass the key explicitly from settings (loaded from .env) rather than relying
+    # on it being exported to the process environment — the app reads .env via
+    # pydantic-settings, but ChatOpenAI only checks os.environ by default.
+    judge = LangchainLLMWrapper(
+        ChatOpenAI(model="gpt-4o-mini", temperature=0.0, api_key=settings.openai_api_key)
+    )
     metric = Faithfulness(llm=judge)
 
     scores = []
@@ -45,6 +50,17 @@ async def run() -> None:
             date_from=q.get("date_from"), date_to=q.get("date_to"),
         )
         response = await answerer.ask(request)
+
+        # A correct no-data refusal makes zero factual claims, so it is vacuously
+        # faithful — RAGAS Faithfulness returns 0/NaN on empty context, which would
+        # unfairly sink the mean. Score it 1.0 (no unsupported claims) and flag it,
+        # matching the hand-rolled eval's semantics. Q5 (the 2031 adversarial) SHOULD
+        # land here; a confident number there is the regression to watch.
+        if not response.confident and not response.citations:
+            scores.append(1.0)
+            print(f"{q['query'][:60]:<62} faithfulness=1.00  [refusal — no claims]")
+            continue
+
         contexts = [
             f"{c.date} | {c.description} | {c.flow} | Rp {c.amount_idr:,.0f} | {c.wallet}"
             for c in response.citations

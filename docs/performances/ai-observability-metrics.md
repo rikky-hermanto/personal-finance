@@ -96,16 +96,40 @@ _Search latency numbers above are real query round-trips. Re-run: `PYTHONPATH=. 
 | Re-rank latency added per query | **not measured** |
 | /ask retrieval_ms (p50) | **not measured** |
 | /ask generation_ms (p50) | **not measured** |
-| RAGAS faithfulness (5 answers, gpt-4o-mini judge) | **not measured** |
+| RAGAS faithfulness (5 answers, gpt-4o-mini judge) | **0.900** (2026-07-01, Gemini generator) |
 
-**⚠ Note (execution environment, recorded honestly per THINK-04):** `eval_retrieval.py --rerank`,
-the `/ask` smoke test, and `eval_faithfulness.py` all require infrastructure this execution
-environment doesn't have: a running local Supabase Postgres (`supabase start` needs Docker
-Desktop, which this Windows sandbox cannot start — `net start com.docker.service` returns
-"Access is denied", and `supabase status` fails to reach the Docker engine pipe). Additionally,
-`ragas` (Step 10) depends on `scikit-network`, which requires the MSVC C++ Build Tools to compile
-on Windows — not installed in this environment, so `pip install ragas` fails at the wheel-build
-step even though `flashrank` installs and runs cleanly.
+**✅ Update (2026-07-01) — STEP 10 faithfulness measured live.** The earlier blocker notes were
+resolved: Docker Desktop started cleanly, `supabase start` brought Postgres up (4,467 transactions,
+all embedded), and `ragas` installed fine once pinned to the **0.2 line** (`ragas>=0.2,<0.3` +
+`langchain-openai>=0.2,<0.3`). The prior "scikit-network needs MSVC" diagnosis was **incorrect** —
+the real install failure was an unbounded `>=0.2` resolving to `ragas 0.4.x` + `langchain 1.x`
+(mutually incompatible), plus a venv polluted with Python-3.14 wheels in a 3.11 venv. `eval_faithfulness.py`
+now runs end-to-end with a cross-provider judge (Gemini generates, gpt-4o-mini scores):
+
+| Question | Faithfulness | Note |
+|----------|-------------|------|
+| total pengeluaran makan Maret 2025 | 1.00 | grounded |
+| kapan terakhir bayar listrik PLN | 1.00 | grounded |
+| pengeluaran kopi Maret 2025 | 1.00 (refusal) | correct — 0 coffee rows in March 2025 |
+| biggest expense March 2025 | 0.50 | **finding:** superlative/aggregation questions are a known RAG weakness — semantic top-3 ≠ actual max amount, so the "biggest" claim isn't fully supported by the 3 retrieved contexts |
+| sewa apartemen 2031 (adversarial) | 1.00 (refusal) | canary passed — `confident=false`, no invented number |
+
+**Mean faithfulness = 0.900** (target ≥ 0.80). Refusals score 1.0 (a no-data refusal makes zero
+claims → vacuously faithful); RAGAS returns 0/NaN on empty context, so the eval special-cases them.
+
+Three real bugs surfaced only by running the pipeline live (mocked unit tests couldn't catch them):
+1. **Marker-vs-id citation bug** — the LLM put the `[2]` context marker into `cited_transaction_ids`
+   instead of the real `id=24561`, so the hallucination guard dropped every citation. Fixed by
+   disambiguating `SYSTEM_PROMPT` (`answerer.py`).
+2. **asyncpg date-binding bug** — `RetrievalService.search()` passed date *strings* to a `$n::date`
+   parameter; asyncpg's date codec expects `datetime.date` (`'str' object has no attribute
+   'toordinal'`). Fixed with `date.fromisoformat()` (`retriever.py`).
+3. **Fixture year mismatch** — `ask_questions.json` targeted March 2026 (0 rows); data runs
+   2024-01 → 2026-01. Retargeted to March 2025.
+
+**Still open (separate session):** `eval_retrieval.py --rerank` P@5 was last measured 2026-06-23
+(reranked P@5 = 0.600 vs 0.657 baseline — negative delta, English-only ms-marco on Indonesian
+queries; see plan STEP 5). `/ask` p50 latency split not yet captured.
 
 **What *is* verified:** `chunker.py`, `reranker.py` (FlashRank, real cross-encoder, mocked only
 at the `Ranker` boundary in unit tests), `answerer.py`, and the `retriever.py` SQL-filter compiler
