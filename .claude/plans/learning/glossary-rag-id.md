@@ -4,7 +4,7 @@
 >
 > Diurutkan per kategori, bukan alfabet, supaya bisa dibaca runtut kalau kamu baru mulai. Kalau cuma mau cari satu istilah, `Ctrl+F` saja. Tiap entri punya anchor id (`#istilah`) supaya bisa di-link langsung dari file lain — lihat daftar id di komentar tiap entri kalau mau nambah link baru.
 >
-> Dipakai oleh: [PF-AI003-rag-embeddings-retrieval.md](PF-AI003-rag-embeddings-retrieval.md), [PF-AI004-rag-reranking-generation.md](PF-AI004-rag-reranking-generation.md), [PF-AI004-rag-reranking-generation-id.md](PF-AI004-rag-reranking-generation-id.md).
+> Dipakai oleh: [PF-AI003-rag-embeddings-retrieval.md](PF-AI003-rag-embeddings-retrieval.md), [PF-AI004-rag-reranking-generation.md](PF-AI004-rag-reranking-generation.md), [PF-AI004-rag-reranking-generation-id.md](PF-AI004-rag-reranking-generation-id.md), [PF-AI005-streaming-sse-todo-id.md](PF-AI005-streaming-sse-todo-id.md).
 
 ---
 
@@ -76,6 +76,8 @@
 
 <a id="citations"></a>**Citations (sitasi)** — rujukan eksplisit dari sebuah klaim di jawaban LLM ke sumber data aslinya (di project ini: `transaction_id` tertentu). Biasanya ditandai dengan angka seperti `[1]`, `[2]` di teks jawaban, lalu dijabarkan di field `citations` sebagai data terstruktur.
 
+![alt text](sitasi.png)
+
 <a id="hallucination-guard"></a>**Hallucination guard** — langkah validasi setelah LLM menjawab: setiap id yang disitasi LLM dicek ulang terhadap kumpulan id yang benar-benar ada di konteks yang dikirim. Kalau ada id yang tidak ditemukan (berarti dikarang LLM), id itu dibuang dan dicatat di log sebelum jawaban dikirim ke user.
 
 <a id="confident-flag"></a>**Confident flag** — field boolean (`true`/`false`) di response yang menandakan apakah LLM yakin jawabannya benar-benar didukung data. Dibuat sebagai boolean (bukan teks bebas) supaya program bisa langsung mengambil keputusan (misalnya menampilkan pesan "data tidak ditemukan" ke user) tanpa harus mem-parsing kalimat.
@@ -101,6 +103,52 @@
 <a id="self-preference-bias"></a>**Self-preference bias** — kecenderungan sebuah model memberi skor lebih bagus pada jawaban yang dihasilkan oleh dirinya sendiri (atau model yang mirip) dibanding jawaban dari model lain — bahkan kalau kualitasnya sebenarnya sama. Ini alasan kenapa judge model sebaiknya berbeda dari model generator.
 
 <a id="cross-provider-judge"></a>**Cross-provider judge** — praktik memakai judge model dari provider yang berbeda dari model generator (contoh di project ini: generator pakai Gemini, judge pakai `gpt-4o-mini` dari OpenAI) untuk menghindari self-preference bias.
+
+---
+
+## 6. Streaming & SSE
+
+<a id="streaming"></a>**Streaming (token streaming)** — mengirim jawaban LLM ke client potongan demi potongan (token demi token) begitu model menghasilkannya, bukan menunggu jawaban lengkap. Total durasi generation tidak berubah — yang berubah adalah [perceived latency](#ttft): user melihat kata pertama dalam ratusan milidetik, bukan menatap spinner beberapa detik.
+
+<a id="ttft"></a>**TTFT (Time To First Token)** — waktu dari request dikirim sampai potongan teks *pertama* tampil di client. Metrik utama yang membenarkan streaming: `/ask` blocking baru menampilkan apa pun setelah 2–6s; `/ask/stream` menargetkan TTFT ~150ms.
+
+<a id="sse"></a>**SSE (Server-Sent Events)** — satu response HTTP yang dibiarkan terbuka dan terus ditulisi server, sehingga server bisa mendorong banyak "event" kecil ke browser tanpa client bertanya ulang. Unidirectional (server → client saja), jalan di HTTP biasa (tanpa upgrade protokol), dan browser otomatis reconnect kalau putus. Dua aturan protokol yang sering menggigit: content type harus persis `text/event-stream`, dan tiap event diakhiri dua newline (`\n\n`).
+
+<a id="websocket"></a>**WebSocket** — kanal komunikasi **dua arah** (client dan server sama-sama bisa mengirim kapan saja) di atas koneksi yang di-upgrade dari HTTP. Tepat untuk chat room, multiplayer, collaborative editing. Untuk pola "client kirim satu query, server balas aliran token", dua-arah cuma overhead — [SSE](#sse) lebih pas.
+
+<a id="eventsource"></a>**EventSource** — API bawaan browser untuk konsumsi SSE. Keterbatasan kritisnya: **GET-only** — tidak bisa mengirim POST body atau custom header, jadi tidak bisa memulai request chat yang butuh JSON body.
+
+<a id="fetch-event-source"></a>**`@microsoft/fetch-event-source`** — library yang membungkus `fetch()` (bukan `EventSource`) untuk konsumsi SSE, jadi mendukung POST body, custom header, dan `AbortController`. Footgun-nya: dia menganggap koneksi yang ditutup server sebagai kondisi retry — tanpa `abort()` setelah event `done` (dan `throw` di `onclose`/`onerror`), dia diam-diam reconnect dan **mengirim ulang POST** (generation LLM dobel).
+
+<a id="abortcontroller"></a>**AbortController** — mekanisme standar browser untuk membatalkan request `fetch` yang sedang berjalan lewat `controller.abort()`. Di chapter streaming dipakai dua arah: tombol Stop user, dan mematikan koneksi setelah `done` supaya library SSE tidak reconnect.
+
+<a id="async-generator"></a>**Async generator** — fungsi `async def` yang memakai `yield` alih-alih `return`: tiap `yield` menyerahkan satu potongan ke pemanggil (yang iterasi dengan `async for`) sebelum fungsi lanjut. Ini yang memungkinkan provider LLM "mengantar tiap piring begitu matang" alih-alih menunggu semua selesai. Type-nya `AsyncGenerator[str, None]`. Jangan di-`await` — panggilannya langsung mengembalikan generator untuk `async for`.
+
+<a id="event-loop"></a>**Event loop** — "pelayan tunggal" di jantung asyncio/FastAPI yang bergiliran melayani semua request secara concurrent. Selama tidak ada yang menyanderanya, satu proses bisa melayani banyak request sekaligus.
+
+<a id="blocking-call"></a>**Blocking call** — panggilan sinkron yang tidak kembali sampai kerjaannya selesai (misalnya panggilan LLM sinkron 5 detik). Kalau dijalankan di dalam `async def` tanpa perlindungan, dia membekukan seluruh [event loop](#event-loop) — semua request lain ikut macet. Membungkusnya di `async def` **tidak** membuatnya non-blocking.
+
+<a id="asyncio-to-thread"></a>**`asyncio.to_thread()`** — memindahkan sebuah blocking call ke worker thread supaya event loop tetap bebas. Fallback saat SDK tidak punya API async asli — untuk streaming, ini kehilangan sifat inkremental (teks tetap datang sekaligus), tapi setidaknya tidak menyandera request lain.
+
+<a id="buffering"></a>**Buffering (pada streaming)** — lapisan di antara server dan browser (reverse proxy, stdout Python, library versi lama) yang menahan output dan mengirimkannya sekaligus di akhir — merusak streaming tanpa error. Verifikasi dengan `curl -N --no-buffer`: token harus datang progresif. Cek: `proxy_buffering off`, `PYTHONUNBUFFERED=1`, `sse-starlette>=2.1`.
+
+<a id="langfuse"></a>**Langfuse** — platform observability khusus LLM yang dipakai project ini sejak PF-AI001: tiap panggilan LLM dicatat sebagai "generation" dengan token usage, biaya, dan latency. Instrumentasinya *manual per method* — method provider baru (seperti `stream_generate()`) tidak otomatis ke-trace; tanpa span sendiri, panggilannya lenyap diam-diam dari dashboard biaya.
+
+---
+
+## 7. Realtime & Push vs Polling
+
+<a id="polling"></a>**Polling** — client bertanya berulang ke server ("ada yang baru?") pada interval tetap, misalnya tiap 2 detik. Sederhana, tapi boros: hampir semua request menjawab "tidak ada perubahan", dan data tetap bisa telat maksimal satu interval. Lawannya adalah **push** — server yang memberi tahu client saat ada perubahan.
+
+<a id="supabase-realtime"></a>**Supabase Realtime** — layanan Supabase yang meneruskan perubahan database Postgres ke client lewat WebSocket: subscribe sekali ke sebuah tabel, dan tiap baris yang di-commit didorong ke client dalam ~50ms — tanpa loop polling. Dua prasyarat independen yang gagal *tanpa error*: tabel harus ada di [publication](#publication) `supabase_realtime`, dan [RLS](#rls) harus mengizinkan role subscriber membaca barisnya.
+
+<a id="postgres-changes"></a>**`postgres_changes`** — jenis channel Supabase Realtime untuk menerima event perubahan tabel (INSERT / UPDATE / DELETE), difilter per schema + tabel (+ opsional filter kolom). Payload event membawa baris barunya (`payload.new`).
+
+<a id="publication"></a>**Publication (Postgres)** — daftar tabel yang perubahannya di-broadcast Postgres lewat logical replication. Supabase Realtime hanya meneruskan tabel yang terdaftar di publication `supabase_realtime` — tabel yang tidak terdaftar tidak pernah disiarkan, tanpa error apa pun. Ditambahkan lewat migration: `alter publication supabase_realtime add table public.transactions;`.
+
+<a id="rls"></a>**RLS (Row Level Security)** — fitur Postgres yang memfilter baris per role/user lewat policy (`USING (...)`). Untuk Realtime: event yang barisnya tidak boleh di-`SELECT` oleh role subscriber **dibuang diam-diam** — channel tetap SUBSCRIBED, tapi nol event. Lokal: policy permisif `USING (true)`; production (PF-S08): menyempit ke pemilik terautentikasi, dan "diam"-nya justru jadi perilaku yang benar.
+
+<a id="debounce"></a>**Debounce** — menunda dan menggabungkan banyak trigger yang datang berdekatan jadi satu aksi. Di chapter ini: satu commit statement meng-insert puluhan baris → puluhan event Realtime → tanpa debounce berarti puluhan refetch; dengan debounce 1 detik, cukup satu toast + satu query invalidation.
 
 ---
 

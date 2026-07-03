@@ -4,7 +4,8 @@
 > **Status:** To Do
 > **Started:** —
 > **Planned from branch:** main
-> **Pivot goal:** Ship token-by-token streaming. Every modern AI product streams — knowing how to implement SSE in FastAPI, wire it to both LLM providers, and consume it in React is a concrete differentiator. This chapter also replaces the polling-based upload status with Supabase Realtime, closing one of the oldest UX debt items in the codebase.
+> **Revised:** 2026-07-03 — architect-audit revisions applied (Realtime re-scoped to live transactions; CORS list fix; abort-on-done; Langfuse streaming spans; httpx test style)
+> **Pivot goal:** Ship token-by-token streaming. Every modern AI product streams — knowing how to implement SSE in FastAPI, wire it to both LLM providers, and consume it in React is a concrete differentiator. This chapter also ships the codebase's first Supabase Realtime subscription — commit an upload and watch the Transactions view update live, without a refetch.
 
 # 📖 Introduction
 
@@ -18,7 +19,7 @@ once, after retrieval, reranking, and generation are *all* done. This chapter tu
 live stream: the server pushes retrieved context the instant retrieval finishes, then pushes the
 answer one token at a time as the LLM generates it, over a single HTTP connection the browser
 keeps open. The same pattern — push small updates to the client without the client asking again —
-also replaces the upload-status polling loop with a real subscription.
+also powers a live Transactions view through a Supabase Realtime subscription.
 
 ```
 Client (ChatPage)                    AI Service (FastAPI /ask/stream)
@@ -110,30 +111,34 @@ streaming (all text still arrives at once) but at least stops it from stalling o
 
 ▶ **Watch/read for this concept:** https://docs.anthropic.com/en/api/messages-streaming
 
-## Realtime vs polling (upload status)
+## Realtime vs refetching (live transactions)
 
-**Rung 0 — the naive version that works.** The upload wizard polls `GET /api/uploads/{id}/status`
-every 2 seconds and updates the UI when the status changes. Simple, and it's been working.
+**Rung 0 — the naive version that works.** After the upload wizard commits, the Transactions tab
+shows the new rows the next time React Query refetches — on navigation, on mount, on manual
+refresh. Single tab, single user: fine, and it's what ships today.
 
-> **The wall:** that's up to 2 seconds of pure waiting between the backend actually finishing and
-> the UI noticing, *plus* the client is firing a request every 2 seconds for the entire processing
-> window even when nothing has changed yet — wasted requests, wasted load, for a one-time status
-> flip.
+> **The wall:** the data changed *server-side*, and nothing tells the client. A second tab stays
+> stale. Another device stays stale. And PF-S11's future async pipeline (202 Accepted → webhook →
+> results land minutes later) will finish entirely out-of-band — with no way to notify the UI at
+> all. The naive fix is polling: fire a request every 2 seconds forever, almost all of them
+> returning "nothing changed." Wasted requests, wasted load.
 
 **Rung 1 — Supabase Realtime.** Instead of asking repeatedly, open one subscription on the
-`uploads` table and let Postgres push the change the moment it happens — a `postgres_changes`
-event arrives in ~50ms instead of up to 2000ms, and there's no polling loop running at all.
+`transactions` table and let Postgres push each committed row the moment it lands — a
+`postgres_changes` INSERT event arrives in ~50ms, and there's no polling loop running at all.
 
-> **The wall:** subscribe with the anon key in local dev and... nothing arrives. No error, no
-> exception — the channel reports "subscribed" successfully, but zero events ever fire. The
-> subscription is silently filtered: Row Level Security quietly drops any row the subscribing role
-> can't `SELECT`, and the failure is invisible unless you already know to suspect RLS.
+> **The wall:** subscribe with the anon key and... nothing arrives. No error, no exception — the
+> channel reports SUBSCRIBED, but zero events ever fire. There are *two* independent silent
+> filters: (1) the table isn't in the `supabase_realtime` publication — Postgres never broadcasts
+> its changes; (2) Row Level Security quietly drops any row the subscribing role can't `SELECT`.
+> Both failures are invisible unless you already know to suspect them.
 
-**Rung 2 — RLS scoped to actually allow the read (what ships).** A permissive `USING (true)`
-policy on `uploads` for local dev lets the anon key read (and therefore receive change events for)
-every row; in production this narrows to a policy scoped to the authenticated owner of the upload.
-*This is the fix `useUploadStatus.ts` ships with for local dev — production scoping is called out
-explicitly as a follow-up.*
+**Rung 2 — publication + RLS both open (what ships).** A migration adds `public.transactions` to
+the `supabase_realtime` publication (no table is in it today), and the existing permissive
+`allow_all_transactions USING (true)` policy (`20260101000001_rls_setup.sql`) lets the anon key
+receive every event locally. In production (PF-S08) that policy narrows to the authenticated
+owner — and the subscription silently goes quiet for other users' rows, which is exactly the
+behavior you want.
 
 ▶ **Watch/read for this concept:** https://supabase.com/docs/guides/realtime
 
@@ -148,7 +153,7 @@ This chapter:
 1. **Adds `stream_generate()` to the `LlmProvider` protocol** — Anthropic and Gemini both support async streaming; this wires it into the existing provider abstraction without touching anything that calls `generate_json`.
 2. **Builds `POST /ask/stream`** — an SSE endpoint that streams tokens from the retrieval + generation pipeline. Three event types: `metadata` (retrieved contexts, sent before generation so citations appear immediately), `token` (each text chunk as it arrives), `done` (signal with grounding summary).
 3. **Builds the React chat UI** on `/chat` — `@microsoft/fetch-event-source` (POST support, header support, auto-reconnect) consuming the SSE stream; token-by-token rendering with a blinking cursor; citation panel that populates from the `metadata` event.
-4. **Replaces polling upload status with Supabase Realtime** — installs `@supabase/supabase-js` (pre-empting PF-S09), subscribes to the `uploads` table for real-time processing status. The polling loop in the upload wizard becomes a subscription.
+4. **Adds a live Transactions subscription via Supabase Realtime** — installs `@supabase/supabase-js` (pre-empting PF-S09), enables Realtime on `public.transactions` with a migration, and subscribes to INSERT events: committing an upload pops a toast and invalidates the transactions query in real time.
 
 **Depends on:** PF-AI004 (`POST /ask`, `AnswerService`, `RerankerService`, `app.state.reranker`, `app.state.answerer` — must be wired before `POST /ask/stream` can be built in Step 5)
 **Unblocks:** Chapter 8 (LangGraph agent needs a streaming interface); Chapter 10 demo Loom (the "RAG chat: ask and see it stream" segment requires this chapter)
@@ -163,11 +168,13 @@ This chapter:
 - [ ] React `chatApi.ts` uses `@microsoft/fetch-event-source` (POST-capable); `onToken`, `onMetadata`, `onDone`, `onError` handlers; `AbortController` exposed to callers
 - [ ] `/chat` route exists in `App.tsx` and renders `ChatPage`
 - [ ] `ChatPage` streams tokens into the assistant bubble in real-time; citations render from the `metadata` event; a blinking cursor shows while streaming
-- [ ] Upload wizard replaces polling with a Supabase Realtime subscription (channel on the `uploads` table); `@supabase/supabase-js` installed
+- [ ] Realtime: migration adds `public.transactions` to the `supabase_realtime` publication; `useRealtimeTransactions` receives INSERT events; committing an upload shows a live toast + invalidates the transactions query; `@supabase/supabase-js` installed
 - [ ] `tests/test_streaming.py` passes (mocked `stream_generate`, verifies event order + payload shape via `httpx.AsyncClient`)
 - [ ] `pyproject.toml` updated: `sse-starlette>=2.1`
 - [ ] `apps/frontend/package.json`: `@microsoft/fetch-event-source`, `@supabase/supabase-js`
 - [ ] No buffering verified: `curl --no-buffer` shows tokens arriving progressively, not in a single burst
+- [ ] Streamed calls visible in Langfuse: both `stream_generate()` impls record a generation with token usage + estimated cost (PF-AI001 parity); final `stop_reason`/`finish_reason` recorded — truncation is logged, never silent
+- [ ] Exactly one `POST /ask/stream` per question — connection aborted after `done`; `fetch-event-source` never auto-reconnects and re-POSTs (verify in browser devtools Network tab)
 
 ## 🧭 Approach
 
@@ -179,11 +186,13 @@ This chapter:
 
 **Why the `metadata`-first pattern works:** The retrieval step (pgvector + rerank) is already complete before the first token is yielded. We know the top-3 contexts. Surfacing them immediately lets the user see *where the answer will come from* — trust-building, not just UX. This pattern is the right mental model for grounded RAG chat.
 
-**CORS for the AI service.** `CORS_ORIGINS` env var is already in `app/config.py`. Add `http://localhost:8080` (the frontend dev server) to allow the direct SSE call.
+**CORS for the AI service.** `cors_origins` in `app/config.py` is a `list[str]` (default `["http://localhost:7208"]`) passed straight to `CORSMiddleware`. Add `http://localhost:8080` (the Vite dev server) to that default list. It is already a list — never `.split(",")` it — and an env override must be JSON (`CORS_ORIGINS=["http://localhost:8080","http://localhost:7208"]`) because pydantic-settings JSON-decodes list fields.
 
-**Supabase Realtime for upload status.** The upload wizard currently polls `GET /api/uploads/{id}/status` every 2s. Replacing it with a Supabase Realtime subscription on the `uploads` table eliminates the polling loop and surfaces status changes in ~50ms instead of up to 2s. This also installs `@supabase/supabase-js` on the frontend (pre-empting PF-S09's Supabase Auth work — acceptable, it's the same package).
+**Observability parity (PF-AI001).** Langfuse is instrumented *manually inside each provider method* — a new `stream_generate()` bypasses it entirely unless it carries its own generation span. Both implementations must record usage + cost after the stream ends (Anthropic: `await stream.get_final_message()`; Gemini: the final chunk's `usage_metadata`), mirroring the existing `generate_json` blocks. Streamed answers must not vanish from the cost dashboard.
 
-Out of scope: conversation memory (Chapter 8), streaming the categorization step (not needed), hybrid BM25 search (Chapter 6), .NET proxy for `/ask/stream` with auth (PF-S08).
+**Supabase Realtime on `transactions`, not upload status.** There is no upload-status pipeline today — no `uploads` table, no status column, no status endpoint, and no polling loop (the wizard's `uploadPreview` call is synchronous; the async 202 path is the PF-S11 dead-code stub). So this chapter teaches Realtime on data that actually mutates: `public.transactions` receives INSERTs the moment the .NET API commits an upload. One migration adds the table to the `supabase_realtime` publication; RLS is already enabled with a permissive `allow_all_transactions USING (true)` policy (`20260101000001_rls_setup.sql`), so the anon key receives events locally. This also installs `@supabase/supabase-js` on the frontend (pre-empting PF-S09's Supabase Auth work — acceptable, it's the same package).
+
+Out of scope: conversation memory (Chapter 8), streaming the categorization step (not needed), hybrid BM25 search (Chapter 6), .NET proxy for `/ask/stream` with auth (PF-S08), upload-status Realtime (PF-S11 — the status table + writeback don't exist yet; that ticket builds them).
 
 ## 📂 Affected Files
 
@@ -193,7 +202,7 @@ Out of scope: conversation memory (Chapter 8), streaming the categorization step
 | `services/ai-service/app/providers/anthropic.py` | Edit — implement `stream_generate()` via messages.stream() |
 | `services/ai-service/app/providers/gemini.py` | Edit — implement `stream_generate()` via async streaming |
 | `services/ai-service/app/main.py` | Edit — add `POST /ask/stream`; wire `app.state.provider` in lifespan |
-| `services/ai-service/app/config.py` | Edit — verify `cors_origins` includes frontend origin |
+| `services/ai-service/app/config.py` | Edit — add `http://localhost:8080` to the `cors_origins` default list |
 | `services/ai-service/pyproject.toml` | Edit — add `sse-starlette>=2.1` |
 | `services/ai-service/tests/test_streaming.py` | Create — unit tests for SSE event order + payload shape |
 | `apps/frontend/src/api/chatApi.ts` | Create — `streamAsk()` using fetch-event-source |
@@ -201,7 +210,9 @@ Out of scope: conversation memory (Chapter 8), streaming the categorization step
 | `apps/frontend/src/App.tsx` | Edit — add `/chat` route |
 | `apps/frontend/package.json` | Edit — add `@microsoft/fetch-event-source`, `@supabase/supabase-js` |
 | `apps/frontend/src/lib/supabase.ts` | Create — Supabase client singleton |
-| `apps/frontend/src/hooks/useUploadStatus.ts` | Edit — replace polling with Realtime subscription |
+| `apps/frontend/src/hooks/useRealtimeTransactions.ts` | Create — Realtime INSERT subscription on `transactions` |
+| `supabase/migrations/20260703000001_enable_realtime_transactions.sql` | Create — add `transactions` to the `supabase_realtime` publication |
+| `apps/frontend/.env.example` | Create — document `VITE_API_URL`, `VITE_AI_SERVICE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
 
 
 ## 📋 TODO
@@ -249,7 +260,7 @@ from typing import Protocol, runtime_checkable
 @runtime_checkable
 class LlmProvider(Protocol):
     async def extract_structured(
-        self, system_prompt: str, user_text: str, schema: dict, image=None
+        self, system_prompt: str, user_text: str, schema: dict, image: tuple[bytes, str] | None = None
     ) -> dict: ...
 
     async def generate_json(
@@ -279,18 +290,39 @@ class AnthropicProvider:
     async def stream_generate(
         self, system_prompt: str, user_prompt: str
     ) -> AsyncGenerator[str, None]:
-        """Stream raw tokens from the Anthropic messages API."""
-        async with self._client.messages.stream(
-            model=self._model,
-            max_tokens=1024,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_prompt}],
-        ) as stream:
-            async for text in stream.text_stream:
-                yield text
+        """Stream raw tokens from the Anthropic messages API (Langfuse-instrumented)."""
+        generation = langfuse.start_observation(
+            as_type="generation", name="anthropic-stream-generate",
+            model=self._model, input={"system": system_prompt, "user": user_prompt},
+        )
+        try:
+            async with self._client.messages.stream(
+                model=self._model,
+                max_tokens=1024,
+                temperature=0.0,   # parity with generate_json — grounded RAG, not creative writing
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield text
+                final = await stream.get_final_message()
+        except Exception as exc:
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
+            raise
+        generation.update(
+            output="<streamed>",
+            usage_details={"input": final.usage.input_tokens, "output": final.usage.output_tokens},
+            metadata={"stop_reason": final.stop_reason},
+        )
+        generation.end()
+        if final.stop_reason == "max_tokens":
+            logger.warning("stream_generate truncated at max_tokens — answer incomplete")
 ```
 
-The Anthropic SDK's `messages.stream()` async context manager returns a `Stream` object whose `.text_stream` is an async iterator of text deltas. The context manager handles cleanup on exit — including on cancelled/aborted streams.
+The Anthropic SDK's `messages.stream()` async context manager returns a `Stream` object whose `.text_stream` is an async iterator of text deltas; `await stream.get_final_message()` after iteration yields the complete message with `usage` and `stop_reason`. The context manager handles cleanup on exit — including on cancelled/aborted streams.
+
+> **Mirror, don't invent.** The Langfuse block above is the *shape* — the authoritative call pattern (including `estimate_cost_usd` for `cost_details`) is the existing `generate_json` instrumentation in `anthropic.py` (~lines 117–149). Copy that block and adapt; add a module `logger` per ERR-02 if one doesn't exist yet.
 
 ```bash
 # Quick smoke test (service running, not the main test suite)
@@ -301,7 +333,7 @@ from app.providers.anthropic import AnthropicProvider
 
 async def test():
     p = AnthropicProvider(settings.anthropic_api_key)
-    async for tok in await p.stream_generate('You are brief.', 'Say hi in one word.'):
+    async for tok in p.stream_generate('You are brief.', 'Say hi in one word.'):
         print(tok, end='', flush=True)
     print()
 
@@ -309,7 +341,11 @@ asyncio.run(test())
 "
 ```
 
-> **Why `max_tokens=1024` and not higher?** Chat answers are short (1–3 sentences with citations); 1024 tokens gives ~750 words. The extraction pipeline uses 4096 because statements can be long. For streaming answers, budget 1024 — it's cheaper and the stop signal comes naturally from the model when the answer is complete.
+> **No `await` on the generator call.** `stream_generate(...)` is an async *generator* function — calling it returns an async generator you feed straight to `async for`. `await p.stream_generate(...)` raises `TypeError: object async_generator can't be used in 'await' expression`. (Contrast with Gemini's `client.aio.models.generate_content_stream(...)`, which is a coroutine that *resolves to* an iterator — there the `await` is required.)
+
+> **Why `max_tokens=1024` and not higher?** Chat answers are short (1–3 sentences with citations); 1024 tokens gives ~750 words. The extraction pipeline uses 4096 because statements can be long (and `generate_json` uses 256). For streaming answers, budget 1024 — cheap, and the stop signal comes naturally from the model. If the model *does* hit the cap, the truncation is logged and recorded in Langfuse metadata — never silent.
+
+> **Why log truncation instead of raising?** The ai-service rule "treat `max_tokens` as a hard error" is written for extraction, where partial data creates phantom duplicates. A half-streamed chat answer has already been sent to the user's screen — it can't be un-sent. Logging + Langfuse metadata is the documented deviation.
 
 > **C# equivalent of `async foreach` over a stream:**
 >
@@ -328,44 +364,55 @@ Edit `services/ai-service/app/providers/gemini.py`:
 
 ```python
 from collections.abc import AsyncGenerator
-from google import genai
 
 class GeminiProvider:
-    # ... existing methods unchanged ...
+    # ... existing methods unchanged (file already imports `from google.genai import types`) ...
 
     async def stream_generate(
         self, system_prompt: str, user_prompt: str
     ) -> AsyncGenerator[str, None]:
-        """Stream raw tokens from the Gemini async streaming API."""
+        """Stream raw tokens from the Gemini async streaming API (Langfuse-instrumented)."""
         client = self._get_client()
-        async for chunk in await client.aio.models.generate_content_stream(
-            model=self._model,
-            contents=user_prompt,
-            config=genai.types.GenerateContentConfig(
-                system_instruction=system_prompt,
-                temperature=0.7,
-                max_output_tokens=1024,
+        generation = langfuse.start_observation(
+            as_type="generation", name="gemini-stream-generate",
+            model=self._model, input={"system": system_prompt, "user": user_prompt},
+        )
+        last_chunk = None
+        try:
+            async for chunk in await client.aio.models.generate_content_stream(
+                model=self._model,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.0,   # parity with generate_json — same question, same determinism as /ask
+                    max_output_tokens=1024,
+                ),
+            ):
+                last_chunk = chunk
+                if chunk.text:
+                    yield chunk.text
+        except Exception as exc:
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
+            raise
+        usage = getattr(last_chunk, "usage_metadata", None)
+        finish = None
+        if last_chunk is not None and getattr(last_chunk, "candidates", None):
+            finish = str(last_chunk.candidates[0].finish_reason)
+        generation.update(
+            output="<streamed>",
+            usage_details=(
+                {"input": usage.prompt_token_count, "output": usage.candidates_token_count}
+                if usage else None
             ),
-        ):
-            if chunk.text:
-                yield chunk.text
+            metadata={"finish_reason": finish},
+        )
+        generation.end()
 ```
 
-> **⚠ SDK version note:** The `client.aio.models.generate_content_stream()` call is the async variant in `google-genai>=1.0`. If your installed version uses a different async pattern (`generate_content_async` or the old `GenerativeModel` class), adjust accordingly. Run `pip show google-generativeai google-genai` to confirm which package and version is installed.
->
-> If the async streaming call isn't available in the installed version, fall back:
-> ```python
-> # Sync fallback — runs off the event loop to avoid blocking
-> import asyncio
-> chunks = await asyncio.to_thread(
->     client.models.generate_content,
->     model=self._model, contents=user_prompt,
->     config=genai.types.GenerateContentConfig(system_instruction=system_prompt, temperature=0.7),
->     # Note: this loses true streaming — all tokens arrive at once after generation
-> )
-> yield chunks.text
-> ```
-> If you hit this, document it in `docs/performances/ai-observability-metrics.md` and note that Gemini streaming will be a no-op until the SDK supports async streaming in your version.
+> **Mirror, don't invent.** As in Step 2: the authoritative Langfuse + `estimate_cost_usd` call shapes live in `gemini.py`'s existing `generate_json` block (~lines 101–131). Copy and adapt.
+
+> **SDK note (simplified):** The repo already runs the new `google-genai` SDK with the async surface — `gemini.py` calls `await client.aio.models.generate_content(...)` today, and `generate_content_stream` is its streaming sibling (a coroutine that resolves to an async iterator — hence the `await` before `async for`). If the method is missing, upgrade `google-genai`; only as a last resort wrap the sync call in `asyncio.to_thread(...)` (keeps the event loop free but loses true incremental streaming) and note it in `docs/performances/ai-observability-metrics.md`.
 
 
 ### [ ] STEP 4 — Install `sse-starlette`; expose `app.state.provider`
@@ -464,19 +511,14 @@ async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
 
 **Key: `req: Request` injection.** FastAPI injects the Starlette `Request` object alongside the Pydantic body. `await req.is_disconnected()` polls the ASGI transport — when the client closes the connection (browser tab closed, `AbortController.abort()`), this returns `True` and the generator exits cleanly. Without this check, the LLM call continues burning tokens for a disconnected client.
 
-**CORS config.** In `app/main.py`, verify `CORSMiddleware` allows the frontend origin:
+**CORS config.** `main.py` already registers `CORSMiddleware` with `allow_origins=settings.cors_origins` — leave it alone. The fix goes in `app/config.py`, where `cors_origins` is a `list[str]`:
 
 ```python
-# In main.py (already present — add the Vite dev server if not there)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),  # env: CORS_ORIGINS=http://localhost:8080
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# app/config.py — cors_origins is list[str]; NEVER .split(",") it
+cors_origins: list[str] = ["http://localhost:7208", "http://localhost:8080"]
 ```
 
-Add `CORS_ORIGINS=http://localhost:8080` to `.env` for local dev.
+If you override via env instead, the value must be JSON — pydantic-settings JSON-decodes list fields: `CORS_ORIGINS=["http://localhost:8080","http://localhost:7208"]`. A bare comma-separated string fails to parse and crashes startup.
 
 Smoke test (service running, embeddings backfilled):
 
@@ -498,15 +540,14 @@ Expected output: `metadata` event first, then a stream of `token` events, then `
 ```python
 """Unit tests for POST /ask/stream SSE endpoint.
 
-Uses httpx.AsyncClient with the FastAPI test transport — no real LLM, no DB.
+httpx.AsyncClient + ASGITransport — the house pattern (see test_health.py). No real LLM, no DB.
 """
 import json
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import httpx
-from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 
 from app.main import app
 from app.models import SearchResult
@@ -525,7 +566,9 @@ async def _fake_stream(*args, **kwargs) -> AsyncGenerator[str, None]:
 
 
 @pytest.fixture(autouse=True)
-def wire_app_state(monkeypatch):
+def wire_app_state():
+    saved = {name: getattr(app.state, name, None) for name in ("retriever", "reranker", "provider")}
+
     mock_retriever = AsyncMock()
     mock_retriever.search = AsyncMock(return_value=[_make_result(1)])
     mock_reranker = AsyncMock()
@@ -536,58 +579,70 @@ def wire_app_state(monkeypatch):
     app.state.retriever = mock_retriever
     app.state.reranker = mock_reranker
     app.state.provider = mock_provider
+    yield
+    for name, value in saved.items():
+        setattr(app.state, name, value)
 
 
-def test_ask_stream_event_order():
+def _client() -> AsyncClient:
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+
+@pytest.mark.anyio
+async def test_ask_stream_event_order():
     """Events must arrive as: metadata → token(s) → done."""
-    client = TestClient(app)
-    with client.stream("POST", "/ask/stream", json={"query": "makan maret"}) as r:
-        assert r.status_code == 200
-        assert "text/event-stream" in r.headers["content-type"]
+    async with _client() as client:
+        async with client.stream("POST", "/ask/stream", json={"query": "makan maret"}) as r:
+            assert r.status_code == 200
+            assert "text/event-stream" in r.headers["content-type"]
 
-        events = []
-        for line in r.iter_lines():
-            if line.startswith("event:"):
-                events.append(line.split(":", 1)[1].strip())
+            events = []
+            async for line in r.aiter_lines():
+                if line.startswith("event:"):
+                    events.append(line.split(":", 1)[1].strip())
 
     assert events[0] == "metadata"
     assert "token" in events
     assert events[-1] == "done"
 
 
-def test_ask_stream_metadata_contains_contexts():
+@pytest.mark.anyio
+async def test_ask_stream_metadata_contains_contexts():
     """The metadata event payload must include transaction context."""
-    client = TestClient(app)
     metadata_data = None
-    with client.stream("POST", "/ask/stream", json={"query": "makan maret"}) as r:
-        event_type = None
-        for line in r.iter_lines():
-            if line.startswith("event:"):
-                event_type = line.split(":", 1)[1].strip()
-            elif line.startswith("data:") and event_type == "metadata":
-                metadata_data = json.loads(line.split(":", 1)[1].strip())
-                break
+    async with _client() as client:
+        async with client.stream("POST", "/ask/stream", json={"query": "makan maret"}) as r:
+            event_type = None
+            async for line in r.aiter_lines():
+                if line.startswith("event:"):
+                    event_type = line.split(":", 1)[1].strip()
+                elif line.startswith("data:") and event_type == "metadata":
+                    metadata_data = json.loads(line.split(":", 1)[1].strip())
+                    break
 
     assert metadata_data is not None
     assert "contexts" in metadata_data
     assert metadata_data["contexts"][0]["transaction_id"] == 1
 
 
-def test_ask_stream_no_contexts_sends_done_with_not_confident():
+@pytest.mark.anyio
+async def test_ask_stream_no_contexts_sends_done_with_not_confident():
     """Empty retrieval → single done event with confident=False, no token events."""
     app.state.retriever.search = AsyncMock(return_value=[])
     app.state.reranker.rerank = AsyncMock(return_value=[])
 
-    client = TestClient(app)
     events = []
-    with client.stream("POST", "/ask/stream", json={"query": "future 2031"}) as r:
-        for line in r.iter_lines():
-            if line.startswith("event:"):
-                events.append(line.split(":", 1)[1].strip())
+    async with _client() as client:
+        async with client.stream("POST", "/ask/stream", json={"query": "future 2031"}) as r:
+            async for line in r.aiter_lines():
+                if line.startswith("event:"):
+                    events.append(line.split(":", 1)[1].strip())
 
     assert "token" not in events
     assert "done" in events
 ```
+
+> **Why `httpx.AsyncClient` + `ASGITransport`, not `fastapi.TestClient`?** Every existing endpoint test in this service uses that pattern with `@pytest.mark.anyio` (see `tests/test_health.py`) — zero `TestClient` usages exist. Matching the house style keeps the suite uniform, and the fixture's save/restore of `app.state` prevents the mocks from leaking into other test modules that share the imported `app`.
 
 ```bash
 cd services/ai-service && PYTHONPATH=. pytest tests/test_streaming.py -v
@@ -631,7 +686,7 @@ export function streamAsk(
   handlers: {
     onMetadata: (contexts: ContextItem[]) => void;
     onToken: (token: string) => void;
-    onDone: () => void;
+    onDone: (payload?: { confident?: boolean }) => void;
     onError: (err: unknown) => void;
   }
 ): AbortController {
@@ -650,10 +705,21 @@ export function streamAsk(
       } else if (msg.event === "token") {
         handlers.onToken(msg.data);
       } else if (msg.event === "done") {
-        handlers.onDone();
+        const payload = msg.data
+          ? (JSON.parse(msg.data) as { confident?: boolean })
+          : undefined;
+        handlers.onDone(payload);
+        controller.abort();   // stream finished — kill the connection so the
+                              // library can't reconnect and re-POST the query
       } else if (msg.event === "error") {
         handlers.onError(new Error(msg.data));
+        controller.abort();
       }
+    },
+    onclose() {
+      // Server closed without a done event (crash, redeploy). Throwing stops
+      // the default silent reconnect, which would re-run the LLM generation.
+      throw new Error("stream closed unexpectedly");
     },
     onerror(err) {
       handlers.onError(err);
@@ -670,6 +736,8 @@ Add `VITE_AI_SERVICE_URL=http://localhost:8000` to `apps/frontend/.env` (or `.en
 > **Why `openWhenHidden: true`?** By default `fetch-event-source` pauses the connection when the browser tab is hidden (Page Visibility API). For a finance chat, the user might switch tabs while waiting — we don't want to lose the streaming answer mid-sentence. Set `openWhenHidden: true` to keep the connection open.
 
 > **Why `throw err` in `onerror`?** `fetch-event-source` auto-retries on network errors. For a chat app, silent retries are bad UX — the user already sees the chat stuck. Throw to break the retry loop; the `onError` handler surfaces the error to the UI.
+
+> **Why `controller.abort()` on `done`?** The library treats a server-closed connection as retriable: unless the signal is aborted or `onclose` throws, it silently reconnects and **re-issues the POST** — a duplicate LLM generation whose tokens would append onto the finished answer (and double your token bill). Aborting after `done`, with the throwing `onclose` as the safety net for unexpected closes, guarantees exactly one request per question. Verify in devtools: one `POST /ask/stream` per send. (Note: the package's last release is v2.0.1, Apr 2021 — stable and widely used, but unmaintained; this reconnect footgun will never be "fixed" upstream.)
 
 
 ### [ ] STEP 8 — Build `ChatPage.tsx` and wire the `/chat` route
@@ -690,7 +758,7 @@ interface Message {
   content: string;
 }
 
-export default function ChatPage() {
+const ChatPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [contexts, setContexts] = useState<ContextItem[]>([]);
   const [input, setInput] = useState("");
@@ -718,12 +786,26 @@ export default function ChatPage() {
         onToken: (token) => {
           setMessages(prev => {
             const msgs = [...prev];
-            const last = msgs[msgs.length - 1];
-            if (last?.role === "assistant") last.content += token;
-            return [...msgs];
+            const lastIdx = msgs.length - 1;
+            const last = msgs[lastIdx];
+            if (last?.role === "assistant")
+              msgs[lastIdx] = { ...last, content: last.content + token };
+            return msgs;
           });
         },
-        onDone: () => setStreaming(false),
+        onDone: (payload) => {
+          setStreaming(false);
+          if (payload?.confident === false) {
+            setMessages(prev => {
+              const msgs = [...prev];
+              const lastIdx = msgs.length - 1;
+              const last = msgs[lastIdx];
+              if (last?.role === "assistant" && last.content === "")
+                msgs[lastIdx] = { ...last, content: "Tidak ada transaksi yang relevan untuk pertanyaan itu." };
+              return msgs;
+            });
+          }
+        },
         onError: () => setStreaming(false),
       }
     );
@@ -800,24 +882,43 @@ export default function ChatPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ChatPage;
 ```
 
-Edit `apps/frontend/src/App.tsx` — add the `/chat` route:
+Edit `apps/frontend/src/App.tsx` — add the `/chat` route **inside the `AppShell` layout route** (the `<Route element={<ErrorBoundary><AppShell /></ErrorBoundary>}>` wrapper, ~line 56), so the page renders with the sidebar:
 
 ```tsx
 import ChatPage from "@/pages/ChatPage";
 
-// Inside <Routes>:
+// Inside the AppShell layout route, alongside /journey, /cashflow, ...:
 <Route path="/chat" element={<ChatPage />} />
 ```
 
-Also add "Chat" to the sidebar nav in the layout component.
+Also add a "Chat" nav item in `apps/frontend/src/components/AppShell.tsx` — the sidebar lives there, not in App.tsx.
+
+> **Mutation note:** `onToken` replaces the last message object instead of mutating `last.content` in place. `main.tsx` has no `React.StrictMode` today, so in-place mutation *happens* to work — but StrictMode's double-invoked updaters would append every token twice the day it's enabled. Immutable updates cost nothing now and remove the trap. Also match house style: pages are `const ChatPage = () => { ... };` + `export default ChatPage;` (see `UploadTab.tsx`).
 
 > **Lazy import:** if the frontend grows, wrap `ChatPage` in `React.lazy()` + `Suspense` to avoid adding it to the initial bundle. Not needed now.
 
 
-### [ ] STEP 9 — Supabase Realtime: replace upload status polling
+### [ ] STEP 9 — Supabase Realtime: live transactions subscription
+
+Enable Realtime on `transactions` via a **migration** — never the Studio toggle (schema changes live in `supabase/migrations/`, per the governance rules):
+
+```sql
+-- supabase/migrations/20260703000001_enable_realtime_transactions.sql
+-- No table is in the supabase_realtime publication yet — this is the first.
+-- RLS is already enabled on transactions with the permissive
+-- allow_all_transactions USING (true) policy (20260101000001_rls_setup.sql),
+-- so the anon key receives events locally. PF-S08 narrows this per-user.
+alter publication supabase_realtime add table public.transactions;
+```
+
+```bash
+supabase db push
+```
 
 Create `apps/frontend/src/lib/supabase.ts`:
 
@@ -834,7 +935,7 @@ if (!url || !key) {
 export const supabase = createClient(url, key);
 ```
 
-Add to `apps/frontend/.env`:
+Add to `apps/frontend/.env` (and create `apps/frontend/.env.example` with placeholder values — it doesn't exist yet):
 ```
 VITE_SUPABASE_URL=http://localhost:54321
 VITE_SUPABASE_ANON_KEY=<your-local-anon-key>
@@ -842,49 +943,64 @@ VITE_SUPABASE_ANON_KEY=<your-local-anon-key>
 
 (The local anon key is in `apps/api/appsettings.Development.json` or output from `supabase status`.)
 
-Edit `apps/frontend/src/hooks/useUploadStatus.ts` — replace the polling interval with a Realtime subscription:
+Create `apps/frontend/src/hooks/useRealtimeTransactions.ts`:
 
 ```typescript
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-export type UploadStatus = "processing" | "done" | "failed";
+export interface TransactionInsert {
+  id: number;
+  date: string;
+  description: string;
+  amount_idr: number;
+  flow: "DB" | "CR";
+}
 
-export function useUploadStatus(uploadId: string | null) {
-  const [status, setStatus] = useState<UploadStatus | null>(null);
-
+export function useRealtimeTransactions(onInsert: (row: TransactionInsert) => void) {
   useEffect(() => {
-    if (!uploadId) return;
-
-    // Subscribe to changes on the uploads row
     const channel = supabase
-      .channel(`upload-${uploadId}`)
+      .channel("transactions-inserts")
       .on(
         "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "uploads",
-          filter: `id=eq.${uploadId}`,
-        },
-        (payload) => {
-          setStatus((payload.new as { status: UploadStatus }).status);
-        }
+        { event: "INSERT", schema: "public", table: "transactions" },
+        (payload) => onInsert(payload.new as TransactionInsert)
       )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [uploadId]);
-
-  return status;
+  }, [onInsert]);
 }
 ```
 
-> **Supabase Realtime prerequisites:** the `uploads` table must have Realtime enabled. In Supabase Studio → Table Editor → `uploads` → Realtime toggle. For local dev, also ensure `supabase start` is running (it includes the Realtime service).
+Wire it in `TransactionsTab.tsx` — debounced toast + query invalidation:
 
-> **If the `uploads` table doesn't track processing status yet:** the current upload flow writes to a Supabase bucket but doesn't write a `status` column back (this is the PF-S11 dead-code stub). The Realtime hook will silently never fire. For now, wire the hook but keep the existing polling as a fallback — the hook is the right direction, and it will activate when PF-S11 wires the webhook → status update flow.
+```tsx
+const queryClient = useQueryClient();
+const pendingCount = useRef(0);
+const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-> **The interview frame:** "I replaced polling-based upload status with a Supabase Realtime subscription. The client opens a WebSocket channel to Supabase and receives table-change events within ~50ms of the backend writing a status update, instead of the previous 2-second polling interval. This also installed `@supabase/supabase-js` on the frontend, pre-empting the Supabase Auth integration work."
+const onInsert = useCallback((_row: TransactionInsert) => {
+  pendingCount.current += 1;
+  if (flushTimer.current) return;          // debounce: a commit inserts many rows at once
+  flushTimer.current = setTimeout(() => {
+    toast({ title: "Transaksi baru", description: `${pendingCount.current} transaksi masuk` });
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+    pendingCount.current = 0;
+    flushTimer.current = null;
+  }, 1000);
+}, [queryClient]);
+
+useRealtimeTransactions(onInsert);
+```
+
+Verify end-to-end: run the app, commit an upload in the wizard, and watch the toast fire + the table refresh with **no manual reload** — each committed row is one Realtime INSERT event.
+
+> **The two silent failure modes (the actual lesson):** if events don't arrive, the channel still reports SUBSCRIBED with no error. Check, in order: (1) is the table in the `supabase_realtime` publication? (`select * from pg_publication_tables where pubname = 'supabase_realtime';` — nothing was in it before this migration); (2) can the subscribing role `SELECT` the row? RLS silently filters events — locally the permissive policy covers it; in production a scoped policy makes other users' rows silently invisible, which is correct behavior.
+
+> **Why not upload status?** The original plan targeted upload-status polling — but no `uploads` status table, no status endpoint, and no polling loop exist (the wizard's parse call is synchronous; the async 202 path is the PF-S11 stub). Realtime for upload status lands with PF-S11 when the status pipeline exists. `transactions` INSERTs are real events happening today.
+
+> **The interview frame:** "I added Supabase Realtime so committed transactions push to the UI in ~50ms instead of waiting for the next client refetch. Two production gotchas: the table has to be added to the `supabase_realtime` publication — I did that in a versioned migration, not a dashboard toggle — and RLS silently filters events the subscriber can't SELECT, which is invisible unless you know to suspect it. I also debounced the query invalidation, because one statement commit inserts dozens of rows and naive per-event refetching would hammer the API."
 
 
 ### [ ] STEP 10 — No-buffer verification + load test check
@@ -955,18 +1071,20 @@ git add apps/frontend/src/api/chatApi.ts
 git add apps/frontend/src/pages/ChatPage.tsx
 git add apps/frontend/src/App.tsx
 git add apps/frontend/src/lib/supabase.ts
-git add apps/frontend/src/hooks/useUploadStatus.ts
+git add apps/frontend/src/hooks/useRealtimeTransactions.ts
+git add apps/frontend/.env.example
+git add supabase/migrations/20260703000001_enable_realtime_transactions.sql
 git add apps/frontend/package.json
 git add docs/performances/ai-observability-metrics.md
 git status    # verify no .env files
-git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase Realtime upload status"
+git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase Realtime live transactions"
 ```
 
 
 ### [ ] STEP 12 — Log progress
 
 ```
-/mentor log Built streaming SSE chapter: stream_generate() on Anthropic+Gemini providers, POST /ask/stream (metadata→token→done event protocol, disconnect guard), React chat UI with @microsoft/fetch-event-source (TTFT ~XXXms), Supabase Realtime upload status replacing polling. Chapter 5 complete.
+/mentor log Built streaming SSE chapter: stream_generate() on Anthropic+Gemini providers with Langfuse spans + usage capture, POST /ask/stream (metadata→token→done event protocol, disconnect guard), React chat UI with @microsoft/fetch-event-source (TTFT ~XXXms, abort-on-done single-POST guarantee), Supabase Realtime live-transactions subscription (publication migration + RLS gotcha). Chapter 5 complete.
 ```
 
 
@@ -974,11 +1092,13 @@ git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase 
 
 - **Chapter 4 gate.** `POST /ask/stream` reuses `SYSTEM_PROMPT` and `_format_context()` from `answerer.py`. Make sure PF-AI004 is committed and the functions are importable before Step 5.
 - **`app.state.provider` vs `app.state.answerer.provider`.** The streaming endpoint calls `provider.stream_generate()` directly — not via `AnswerService`. That's fine: `AnswerService.ask()` returns a complete `AskResponse`; a streaming variant would need a different return type. For now, keep them separate. If a streaming `AnswerService.stream_ask()` method is added later, it's the right seam.
-- **Gemini streaming maturity.** As of early 2026, Gemini's async streaming API is stable but the exact method path differs across `google-genai` SDK versions. If `client.aio.models.generate_content_stream()` doesn't exist, check the installed SDK changelog and adjust. Note the installed version in the metrics doc.
+- **Gemini SDK.** The repo already runs the new `google-genai` SDK with the async surface — `gemini.py` calls `await client.aio.models.generate_content(...)` today, and `generate_content_stream()` is its streaming sibling. If it's missing, upgrade `google-genai`; the `asyncio.to_thread` fallback in Step 3 is the last resort.
+- **Langfuse is manual, per-method.** PF-AI001 instrumented each provider method by hand (`langfuse.start_observation` / `update` / `end`) — nothing auto-instruments new methods. `stream_generate()` carries its own generation span; without it, streamed calls silently vanish from the cost dashboard.
+- **Truncation policy for streams.** The ai-service rule "treat `max_tokens` as a hard error" targets extraction, where partial data poisons dedup. Mid-stream chat truncation can't be un-sent — so we log a warning and record the stop reason in Langfuse metadata instead of raising. Documented deviation, not an oversight.
 - **VITE_AI_SERVICE_URL env var.** The frontend's `.env` needs this for direct AI service access. It's new — add it to `.env.example` as well. Don't commit real values.
 - **TTFT is the demo metric.** For the Chapter 10 Loom demo, the streaming segment is most effective if you visibly delay the question and let the viewer watch the first token appear in ~150ms. Quote TTFT in the demo narration.
-- **Supabase Realtime + RLS.** The `postgres_changes` subscription on `uploads` will silently return no events if RLS is enabled and the anon key can't read the row. For local dev with permissive `USING (true)` RLS policies, this works. In production, either use the service role key (server-side only) or scope the policy.
-- **Deferred:** streaming the categorization step (not needed — it's fast), streaming the portfolio review (Chapter 10 demo), conversation history (Chapter 8), .NET `/ask/stream` proxy with auth (PF-S08).
+- **Supabase Realtime prerequisites — two independent gates.** The table must be in the `supabase_realtime` publication (the Step 9 migration — nothing was in it before), AND RLS must allow the subscriber to `SELECT` the row (`allow_all_transactions USING (true)` covers local dev). Either one missing = SUBSCRIBED channel, zero events, no error.
+- **Deferred:** streaming the categorization step (not needed — it's fast), streaming the portfolio review (Chapter 10 demo), conversation history (Chapter 8), .NET `/ask/stream` proxy with auth (PF-S08), upload-status Realtime (PF-S11 — needs the status table + writeback that ticket builds).
 - **THINK-05 (frozen contract):** `AskRequest` / `AskResponse` / `Citation` were frozen when `.NET` could proxy `/ask`. The streaming endpoint introduces a new SSE protocol — document it separately if `.NET` ever proxies `/ask/stream`.
 
 
@@ -1009,7 +1129,7 @@ Organized by concept — pull when building the relevant step, not all upfront.
 **Daily loop for Chapter 5:**
 - **Day 1 (3h):** Steps 0–4 — theory pre-read + provider streaming. Finish when both `stream_generate()` impls pass a smoke test.
 - **Day 2 (3h):** Steps 5–6 — `POST /ask/stream` endpoint + `test_streaming.py`. Finish when `pytest tests/test_streaming.py` is green and `curl --no-buffer` shows progressive tokens.
-- **Day 3 (3h):** Steps 7–9 — React chat UI + Supabase Realtime. Finish when `/chat` renders in the browser with streaming, and the upload wizard uses the Realtime hook.
+- **Day 3 (3h):** Steps 7–9 — React chat UI + Realtime transactions. Finish when `/chat` streams in the browser and committing an upload pops the live toast without a refetch.
 - **Day 4 (1h):** Steps 10–12 — metrics + commit.
 
 **The 5 principles applied to Chapter 5:**
@@ -1030,7 +1150,7 @@ Organized by concept — pull when building the relevant step, not all upfront.
 
 **The Sunday metric:**
 > "What can I say in an interview today that I couldn't say last Sunday?"
-> Target: *"I built SSE streaming for our RAG chat endpoint — `/ask/stream` emits contexts before generation starts so citations render before the first token, which is better UX and better architecture than post-generation citation validation. Time-to-first-token dropped from ~3s (blocking `/ask`) to ~150ms. I also handled connection drops by polling `request.is_disconnected()` between yields, which stops the LLM call when the user closes the tab — a concrete cost-control pattern. On the React side I used `@microsoft/fetch-event-source` because native `EventSource` is GET-only, then wired Supabase Realtime to replace a 2-second upload polling loop."*
+> Target: *"I built SSE streaming for our RAG chat endpoint — `/ask/stream` emits contexts before generation starts so citations render before the first token, which is better UX and better architecture than post-generation citation validation. Time-to-first-token dropped from ~3s (blocking `/ask`) to ~150ms. I also handled connection drops by polling `request.is_disconnected()` between yields, which stops the LLM call when the user closes the tab — a concrete cost-control pattern. On the React side I used `@microsoft/fetch-event-source` because native `EventSource` is GET-only — and aborted the connection on `done`, because the library otherwise reconnects and re-POSTs the query. Then I wired a Supabase Realtime subscription so committed transactions appear live, debugging the two silent failure modes: the table missing from the `supabase_realtime` publication, and RLS filtering events."*
 
 
 ## 📝 Knowledge Check
@@ -1134,7 +1254,7 @@ Organized by concept — pull when building the relevant step, not all upfront.
 
 ### 6. Supabase Realtime vs polling — tradeoffs (Azure AI-102 · Google Cloud PMLE)
 
-*Scenario:* The upload wizard previously polled `GET /api/uploads/{id}/status` every 2 seconds. After switching to a Supabase Realtime subscription on the `uploads` table, a user reports they sometimes see no status update even when the backend finishes processing.
+*Scenario:* You add a Supabase Realtime `postgres_changes` subscription on the `transactions` table. The channel reports SUBSCRIBED with no errors — the table is confirmed present in the `supabase_realtime` publication — yet in production a user sees no events arrive even though rows are being inserted.
 
 *Question:* What is the most likely cause of the silent Realtime subscription failure?
 

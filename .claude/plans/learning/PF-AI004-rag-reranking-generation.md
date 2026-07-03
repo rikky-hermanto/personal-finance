@@ -1,7 +1,7 @@
 # PF-AI004 — RAG Phase 2: Chunking, Re-ranking, Generation
 
 > **Learning Phase:** Phase 1 · Chapter 4 of 12 · Day ~14 of 90
-> **Status:** In Progress — code complete and unit-tested; live evals done: P@5 rerank delta (STEP 5, 2026-06-23) and RAGAS faithfulness **0.900** (STEP 10, 2026-07-01) both measured against real Supabase data. Remaining live gap: `/ask` curl smoke test + Langfuse trace confirmation (STEP 9).
+> **Status:** Done — code complete, unit-tested, and fully live-verified against real Supabase data: P@5 rerank delta (STEP 5, 2026-06-23), RAGAS faithfulness **0.900** (STEP 10, 2026-07-01), and `/ask` curl smoke test + Langfuse trace confirmation (STEP 9, 2026-07-03 — all 5 eval questions returned correct cited answers, Langfuse API confirmed `gemini-generate-json` GENERATION observations with cost/latency).
 > **Started:** 2026-06-10
 > **Planned from branch:** main
 > **Pivot goal:** Turn the toy into something defensible. Naive top-K retrieval is the demo version of RAG — hiring managers ask about chunking strategy, re-ranking, and grounded synthesis. After this chapter, `POST /ask {"query": "berapa pengeluaran makan bulan Maret?"}` returns a correct, *cited* answer, and you can quote two deltas: "re-ranking moved MRR@5 from 0.XX to 0.YY" and "RAGAS faithfulness on my generated answers is 0.ZZ."
@@ -393,18 +393,18 @@ This task builds the second half — **re-ranking and grounded generation**, plu
   > Verified: 4 new tests in `test_retriever.py` (8/8 pass) assert the WHERE clause text and that values appear only as bound params, never in the SQL string.
 - [x] `POST /ask` — accepts `{query, top_k, filters...}`, returns `{answer, citations[], model, retrieval_ms, generation_ms}`; answer text references citations as `[1]`, `[2]`; LLM failures return 502 (never 200-with-empty per ai-service rules)
   > Verification note: endpoint wired and import-clean; response shape and 502-on-exception path confirmed by reading `main.py`/`answerer.py` and the 3 passing `test_answerer.py` cases. Not exercised with a live LLM call (see STEP 9 note) — the citation-marker behavior depends on the LLM actually following `SYSTEM_PROMPT`, which is mocked in tests, not live-verified.
-- [ ] Demo question works end-to-end: a food-spending question in Indonesian returns a correct IDR total with cited transactions
-  > Not met: requires a reachable Postgres + a live provider call; blocked by the same infra gap as STEP 0 (Docker/Supabase unavailable in this execution environment).
-- [ ] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) `--rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
-  > Not met: `--rerank` flag is implemented and ready; the run itself is blocked by the same Postgres-unreachable issue as STEP 0. The metrics doc records this gap explicitly rather than a fabricated delta.
+- [x] Demo question works end-to-end: a food-spending question in Indonesian returns a correct IDR total with cited transactions
+  > Met (2026-07-03): live curl to `POST /ask` with `{"query": "berapa total pengeluaran makan bulan Maret 2025?", "date_from": "2025-03-01", "date_to": "2025-03-31"}` returned `confident=true`, `"Total pengeluaran makan Anda pada bulan Maret 2025 adalah Rp 77.200,00 dari transaksi [1] dan [2]."` with 2 real cited transactions.
+- [x] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) `--rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
+  > Met: run live 2026-06-23 (see STEP 5) — P@5 baseline 0.657 → reranked 0.600 (delta **-0.057**), MRR@5 1.000 → 0.857. Negative delta from the English-only `ms-marco` cross-encoder mis-scoring Indonesian queries — a documented finding, not a blank. The metrics doc table was previously left stale ("not measured") despite this run existing; corrected in this session (2026-07-03) to reflect the real recorded numbers.
 - [x] [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) — RAGAS `Faithfulness` on 5 generated answers; mean score recorded (target ≥ 0.80)
   > Met (2026-07-01): **mean faithfulness = 0.900** ≥ 0.80, live run with gpt-4o-mini judge over Gemini-generated answers against real Supabase data (4,467 embedded transactions). Recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md). See STEP 10 note for the three bugs the live run exposed (marker-vs-id citation, asyncpg date binding, fixture year).
 - [x] [test_reranker.py](../../../services/ai-service/tests/test_reranker.py) + [test_answerer.py](../../../services/ai-service/tests/test_answerer.py) pass (mocked FlashRank / mocked provider — no real API calls in tests)
   > Verified: `pytest tests/test_reranker.py tests/test_answerer.py -v` → 6/6 pass.
 - [x] [pyproject.toml](../../../services/ai-service/pyproject.toml) updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
   > Verified: entries present and now **pinned** (`ragas>=0.2,<0.3`, `langchain-openai>=0.2,<0.3`, `langchain-community>=0.3,<0.4`) — the unbounded `>=0.2` was the actual install-failure root cause (see STEP 10). Installed and ran cleanly in the cp311 venv on 2026-07-01.
-- [ ] Langfuse traces exist for the `/ask` generation step (cost + latency visible, same pattern as extraction)
-  > Not met (unverified, not contradicted): `AnswerService` calls the existing `provider.generate_json()`, which already wraps every call in a Langfuse `generation` observation (confirmed by reading `gemini.py`) — so tracing should work automatically once `/ask` is actually invoked. No live call was made in this session to confirm a trace lands in the Langfuse dashboard.
+- [x] Langfuse traces exist for the `/ask` generation step (cost + latency visible, same pattern as extraction)
+  > Met (2026-07-03): queried the Langfuse public API directly after the live `/ask` smoke test — `POST /ask` traces exist with a nested `gemini-generate-json` GENERATION observation showing `model: gemini-2.5-flash`, `cost_usd`, `usageDetails` (input/output/total tokens), and per-call latency. Confirms `AnswerService` → `provider.generate_json()` tracing works end-to-end with zero new code.
 
 ## 🧭 Approach
 
@@ -1784,7 +1784,7 @@ PYTHONPATH=. pytest tests/test_answerer.py -v
 
 ### [x] STEP 9 — Wire `POST /ask` in [app/main.py](../../../services/ai-service/app/main.py)
 
-> **Verification note:** the endpoint, lifespan wiring (`app.state.reranker`, `app.state.answerer`), and imports are in place and confirmed import-clean (`python -c "import app.main"` succeeds). The `curl` smoke test against a running service with backfilled embeddings was **not run** — same Postgres-unreachable blocker as STEP 0.
+> **Verification note (updated 2026-07-03):** live curl smoke test run against the running service with 4,467 backfilled embeddings. All 5 questions from `ask_questions.json` returned correct results: food-Maret-2025 → confident=true, Rp 77,200 cited across 2 transactions; last-PLN-payment → confident=true, correct 2025-03-06 row cited; kopi-Maret-2025 → confident=false (genuinely no strong match that month); biggest-expense-Maret-2025 → confident=true, correct max cited; sewa-2031 adversarial → confident=false, no invented number. Queried the Langfuse public API directly (`GET /api/public/traces` + `/observations`) and confirmed `POST /ask` traces land with a nested `gemini-generate-json` GENERATION observation carrying `cost_usd`, token usage, and latency — tracing confirmed end-to-end. Full detail in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
 
 In the lifespan, after the existing embedder/retriever wiring:
 
