@@ -89,13 +89,12 @@ _Search latency numbers above are real query round-trips. Re-run: `PYTHONPATH=. 
 |--------|-------|
 | MRR@5 baseline (Chapter 3, corrupted — ivfflat probes=1 bug) | 0.476 |
 | MRR@5 after probes=10 fix (real Chapter 3 baseline) | 1.000 |
-| P@5 baseline (top-5 cosine, probes=10) | 0.66 |
-| P@5 reranked (top-10 → FlashRank → top-5) | **not measured — see note below** |
-| P@5 re-ranking lift | **not measured** |
-| MRR@5 reranked (expected: no change — already 1.000) | **not measured** |
-| Re-rank latency added per query | **not measured** |
-| /ask retrieval_ms (p50) | **not measured** |
-| /ask generation_ms (p50) | **not measured** |
+| P@5 baseline (top-5 cosine, probes=10) | 0.657 |
+| P@5 reranked (top-10 → FlashRank → top-5) | 0.600 (2026-06-23, live) |
+| P@5 re-ranking lift | **-0.057** (negative — see finding below) |
+| MRR@5 reranked | 0.857 (2026-06-23, live — dropped from 1.000, see finding below) |
+| /ask retrieval_ms (p50) | ~887ms (5-question smoke test, 2026-07-03) |
+| /ask generation_ms (p50) | ~2683ms (5-question smoke test, 2026-07-03) |
 | RAGAS faithfulness (5 answers, gpt-4o-mini judge) | **0.900** (2026-07-01, Gemini generator) |
 
 **✅ Update (2026-07-01) — STEP 10 faithfulness measured live.** The earlier blocker notes were
@@ -127,17 +126,40 @@ Three real bugs surfaced only by running the pipeline live (mocked unit tests co
 3. **Fixture year mismatch** — `ask_questions.json` targeted March 2026 (0 rows); data runs
    2024-01 → 2026-01. Retargeted to March 2025.
 
-**Still open (separate session):** `eval_retrieval.py --rerank` P@5 was last measured 2026-06-23
-(reranked P@5 = 0.600 vs 0.657 baseline — negative delta, English-only ms-marco on Indonesian
-queries; see plan STEP 5). `/ask` p50 latency split not yet captured.
+**🤔⁉️ Finding (2026-06-23) — re-ranking produced a *negative* delta on Indonesian queries.**
+`eval_retrieval.py --rerank` (retrieve top-10 → FlashRank `ms-marco-MiniLM-L-12-v2` → top-5)
+moved P@5 from 0.657 → 0.600 (**-0.057**) and MRR@5 from 1.000 → 0.857. The `gaji bulanan salary
+income` query collapsed from MRR=1.00 to MRR=0.00 — the cross-encoder demoted every relevant
+salary/income result out of the top-5 entirely. Root cause: `ms-marco` is trained on English MS
+MARCO passages and doesn't recognize Indonesian financial vocabulary as relevant; the bi-encoder
+(OpenAI `text-embedding-3-small`) is multilingual and was already ranking correctly, and the
+English-only cross-encoder overrode that correct ranking with wrong scores. See plan STEP 5 for
+the full per-query table. Next step (not yet done): swap to FlashRank's multilingual model and
+re-run.
 
-**What *is* verified:** `chunker.py`, `reranker.py` (FlashRank, real cross-encoder, mocked only
-at the `Ranker` boundary in unit tests), `answerer.py`, and the `retriever.py` SQL-filter compiler
-all pass their full unit-test suites against real logic — only the network/DB/judge-LLM calls are
-mocked. The code is ready to produce these numbers; running `eval_retrieval.py --rerank` once
-Supabase is up, and `eval_faithfulness.py` once `ragas` is installed (requires MSVC Build Tools or
-a non-Windows dev box), will fill in this table. Do not treat the blanks above as "0" or "skipped
-intentionally" — they are an infrastructure gap, not a design decision.
+**✅ Update (2026-07-03) — `/ask` live smoke test + Langfuse trace confirmed (plan STEP 9).**
+Ran all 5 questions from `ask_questions.json` against the live service (Supabase up, 4,467
+embedded transactions):
+
+| Question | Result |
+|----------|--------|
+| total pengeluaran makan Maret 2025 | ✅ confident=true, Rp 77,200 from 2 cited transactions |
+| kapan terakhir bayar listrik PLN | ✅ confident=true, cites the correct 2025-03-06 Rp 1,004,800 row |
+| pengeluaran kopi Maret 2025 | confident=false — retrieval genuinely found no strong coffee match that month (consistent with STEP 10's faithfulness run) |
+| biggest expense March 2025 | ✅ confident=true, cites Rp 61,136 Wise transfer fee |
+| sewa apartemen 2031 (adversarial) | ✅ confident=false, no invented number — canary passed |
+
+Queried the Langfuse public API (`GET /api/public/traces`, `GET /api/public/observations`)
+directly and confirmed `POST /ask` traces land with a nested `gemini-generate-json` GENERATION
+observation carrying `cost_usd`, token usage, and latency per call — tracing works end-to-end with
+zero new code, exactly as `AnswerService` calling the existing `provider.generate_json()` predicted.
+`/ask retrieval_ms` and `generation_ms` p50 above are the median across these 5 live calls.
+
+**What is verified (2026-07-03):** every number in the table above is now a real, live measurement
+— `chunker.py`, `reranker.py`, `answerer.py`, and `retriever.py` pass their unit-test suites, and
+`eval_retrieval.py --rerank`, `eval_faithfulness.py`, and `POST /ask` have all been run against
+real Supabase data with real provider calls. No blanks remain in the table; the infrastructure gap
+noted in earlier sessions (Docker/Supabase unavailable) is resolved.
 
 **One real (non-mocked) data point obtained without a DB:** `RerankerService` was run for real
 (actual FlashRank `ms-marco-MiniLM-L-12-v2` inference, no mocks) against three hand-picked

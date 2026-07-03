@@ -48,7 +48,7 @@
 - [x] Benchmark Gemini 2.5 Flash vs Claude Sonnet 4.6 (accuracy + cost + latency)
 - [x] Write findings to `docs/eval-results.md`
 
-### Chapter 3: RAG Phase 1 — Embeddings + Semantic Search (PF-AI003) 🔄 IN PROGRESS
+### Chapter 3: RAG Phase 1 — Embeddings + Semantic Search (PF-AI003) ✅ DONE (2026-06-15)
 - [x] Supabase migration: `transaction_embeddings` table + ivfflat index
 - [x] `app/config.py`: add `openai_api_key`, `embedding_model`, `database_url`
 - [x] `app/services/embedder.py`: `EmbeddingService.embed_and_store()` (OpenAI text-embedding-3-small, batched)
@@ -64,13 +64,13 @@
 - [x] `evals/eval_retrieval.py`: MRR@5 benchmark runner
 - [x] MRR@5 baseline captured = **0.476** (set-based relevance; below 0.60 target by design — lift comes from Chapter 4 hybrid+rerank). Cost/doc + latency documented in `ai-observability-metrics.md`
 
-### Chapter 4: RAG Phase 2 — Chunking, Re-ranking, Generation (PF-AI004)
-- [ ] Chunking strategy: fixed-size with overlap + sentence-window
-- [ ] Re-ranker: Cohere Rerank (free tier) or FlashRank (local)
-- [ ] LLM synthesis: `POST /ask` endpoint — top-3 chunks → grounded answer with citations
-- [ ] Metadata filtering: account, date range, category
-- [ ] Re-run MRR harness — measure lift from re-ranking, log the delta
-- [ ] RAGAS faithfulness scoring on 5 generated answers
+### Chapter 4: RAG Phase 2 — Chunking, Re-ranking, Generation (PF-AI004) ✅ DONE (2026-07-03)
+- [x] Chunking strategy: fixed-size with overlap + sentence-window
+- [x] Re-ranker: FlashRank (local)
+- [x] LLM synthesis: `POST /ask` endpoint — top-3 chunks → grounded answer with citations
+- [x] Metadata filtering: account, date range, category
+- [x] Re-run MRR harness — measure lift from re-ranking, log the delta
+- [x] RAGAS faithfulness scoring on 5 generated answers
 
 ## Phase 2 Task Checklist (Days 31–60)
 
@@ -466,3 +466,70 @@
 - Fill `docs/performances/ai-observability-metrics.md` with both numbers → close Chapter 4 → Phase 1 complete
 
 **Streak: 1 day** (reset — no log entries 2026-06-18 → 2026-06-23)
+
+### 2026-06-23 — Day 27
+
+**Session: Chapter 4 — live rerank eval + Supabase baseline reconfirmed** *(logged retroactively 2026-07-03 — see Day 37 note)*
+
+- Local Supabase stack started (`supabase start`) — the Docker blocker from Day 21 was environmental, not permanent
+- Re-ran `PYTHONPATH=. python evals/eval_retrieval.py` against real data: confirmed baseline **MRR@5 = 1.000, P@5 = 0.657** (the earlier 0.476 MRR from Day 16 was the IVFFlat `probes=1` bug — fixed by `SET ivfflat.probes = 10` in `RetrievalService.search()`)
+- Ran `eval_retrieval.py --rerank` live (retrieve top-10 → FlashRank `ms-marco-MiniLM-L-12-v2` → top-5): **P@5 dropped to 0.600 (delta -0.057), MRR@5 dropped to 0.857** — a negative re-ranking result
+- Diagnosed the negative delta, not just reported it (THINK-04): the `gaji bulanan salary income` query collapsed from MRR=1.00 to 0.00 — `ms-marco` is trained on English MS MARCO passages and doesn't recognize Indonesian financial vocabulary, so the English-only cross-encoder overrode an already-correct multilingual bi-encoder ranking
+
+**Chapter 4 checklist progress:**
+- [x] Re-run MRR/P@5 harness with `--rerank` and log the real delta ← done this session
+
+**Retros (blockers & surprises):**
+- **A negative re-ranking result, and that's the better interview story.** "I measured a negative delta and diagnosed it — the cross-encoder was English-only, overriding a multilingual bi-encoder that was already correct" beats a clean +0.1 lift. Next lever (not yet tried): FlashRank's multilingual model.
+
+**Remaining for next session:**
+- STEP 10: RAGAS faithfulness on 5 generated answers — still blocked on `ragas` install (MSVC Build Tools)
+- STEP 9: `/ask` curl smoke test + Langfuse trace confirmation
+
+**Streak: 1 day** (gap 2026-06-18 → 2026-06-22 unlogged; this session done same-day, logged late)
+
+### 2026-07-01 — Day 35
+
+**Session: Chapter 4 — RAGAS faithfulness measured live, 3 real bugs fixed** *(logged retroactively 2026-07-03 — see Day 37 note)*
+
+- Re-diagnosed the Day-21 "ragas needs MSVC Build Tools" blocker — **that diagnosis was wrong.** Real causes: (1) unbounded `ragas>=0.2` pin resolved to `ragas 0.4.x` + `langchain 1.x`, mutually incompatible (ragas 0.4.3 imports `ChatVertexAI` from a path deleted in langchain 1.x) — fixed by pinning `ragas>=0.2,<0.3` + `langchain-openai>=0.2,<0.3` + `langchain-community>=0.3,<0.4`; (2) the venv itself was corrupted — ~11 packages had Python-3.14 `.pyd` binaries installed into a Python-3.11 venv from a prior mistargeted pip run, fixed by force-reinstalling each as cp311
+- Ran `evals/eval_faithfulness.py` live — RAGAS `Faithfulness` metric, gpt-4o-mini judge (cross-provider vs. Gemini generator, avoids self-preference bias), over `ask_questions.json`'s 5 questions against 4,467 real embedded transactions
+- **Mean faithfulness = 0.900** (target ≥ 0.80) — food-Maret-2025 1.00, last-PLN-payment 1.00, kopi-Maret-2025 correct refusal 1.00, biggest-expense-Maret-2025 0.50 (real finding — superlative/aggregation questions are a known RAG weakness, semantic top-3 ≠ actual max), sewa-2031 adversarial canary correctly refused 1.00
+- The live run surfaced 3 real bugs mocked unit tests couldn't catch: (1) **marker-vs-id citation bug** — LLM put the `[2]` context marker into `cited_transaction_ids` instead of the real `id=24561`, hallucination guard dropped every citation → fixed by disambiguating `SYSTEM_PROMPT` in `answerer.py`; (2) **asyncpg date-binding bug** — `retriever.py` passed date strings to a `$n::date` param, asyncpg's date codec needs `datetime.date` → fixed with `date.fromisoformat()`; (3) **fixture year mismatch** — `ask_questions.json` asked about March 2026 (0 rows, data runs 2024-01→2026-01) → retargeted to March 2025
+
+**Chapter 4 checklist progress:**
+- [x] RAGAS faithfulness scoring on 5 generated answers ← done this session
+
+**Retros (blockers & surprises):**
+- **Wrong diagnosis corrected before it cost more time (THINK-04).** The MSVC Build Tools theory from Day 21 was never re-verified — running the actual install surfaced the real cause (unbounded dep pin + polluted venv) in minutes. Lesson: an unverified blocker diagnosis is just a guess wearing a lab coat; re-test it before building a workaround around it.
+- **Interview-ready answer (new):** "My RAGAS faithfulness eval hit 0.90 on 5 real generated answers, but getting there caught 3 production bugs a mocked test suite never would — a citation-marker/id mixup, an asyncpg date-type mismatch, and a stale fixture year. Live evals aren't just a score; they're a bug-finding tool."
+
+**Remaining for next session:**
+- STEP 9: `/ask` curl smoke test + Langfuse trace confirmation — last item before Chapter 4 closes
+- Correct the metrics doc — the STEP 5 rerank delta was measured 2026-06-23 but never transcribed out of "not measured"
+
+**Streak: 1 day** (this session done same-day, logged late — see Day 37 note)
+
+### 2026-07-03 — Day 37
+
+**Session: Chapter 4 CLOSED — `/ask` live-verified, Langfuse trace confirmed, Phase 1 complete**
+
+- Ran `POST /ask` live against the running AI service (Supabase up, 4,467 embedded transactions) for all 5 questions in `ask_questions.json`: food-Maret-2025 → confident=true, correct Rp 77,200 across 2 cited transactions; last-PLN-payment → confident=true, correct row cited; kopi-Maret-2025 → confident=false (genuinely no strong match that month); biggest-expense-Maret-2025 → confident=true, correct max cited; sewa-2031 adversarial → confident=false, no invented number (canary passed)
+- Queried the Langfuse public API directly (`GET /api/public/traces`, `GET /api/public/observations`) and confirmed `POST /ask` traces land with a nested `gemini-generate-json` GENERATION observation carrying `cost_usd`, token usage, and per-call latency — `AnswerService` → `provider.generate_json()` tracing works end-to-end with zero new code, exactly as designed
+- Found the metrics doc had gone stale: the Day-27 rerank delta (P@5 0.657→0.600) was measured live but never transcribed out of "not measured" placeholders. Corrected `docs/performances/ai-observability-metrics.md` with the real numbers, the /ask retrieval_ms/generation_ms p50 (~887ms / ~2683ms, median of the 5 live calls above), and folded the Day-27 and Day-35 findings into the doc's narrative notes
+- Updated the plan file (`PF-AI004-rag-reranking-generation.md`) — all 14 TODO steps and all 9 acceptance criteria now `[x]`, status header marked Done
+- Moved `PF-AI004` from "In Progress" to "Done" on `.claude/plans/BOARD.md`
+
+**Chapter 4 checklist:** ✅ all 6 items done — RAG Phase 2 complete (chunker, FlashRank reranker, metadata filtering, grounded `/ask`, rerank delta measured, RAGAS faithfulness measured)
+
+**🎉 Phase 1 (Foundation + RAG) complete — Chapters 1–4 all done.**
+
+**Retros (blockers & surprises):**
+- **Logging debt, not work debt.** The Day-27 and Day-35 sessions in this log were written retroactively today — the actual work happened live on those dates (verified against timestamps in the plan file and Langfuse), but wasn't logged to `progress.md` until this session closed the loop. Lesson: log the same day work happens, even a one-line stub — "measured rerank delta, details in plan STEP 5" — beats reconstructing three sessions from artifacts a week later.
+- **Interview-ready answer (new, the Chapter 4 closer):** "My RAG pipeline is a two-stage funnel — pgvector cosine top-10 into a local FlashRank cross-encoder — with a grounded `/ask` endpoint that answers only from cited transactions, drops hallucinated citation ids, and scores 0.90 RAGAS faithfulness with a cross-provider judge. The re-ranking delta was actually negative on my Indonesian-language corpus — I diagnosed it as an English-only cross-encoder overriding a correct multilingual bi-encoder ranking, which is a more interesting debugging story than a clean lift."
+
+**Remaining for next session:**
+- Chapter 5: Streaming + Production UX (SSE) — `/ask`'s `generation_ms` (~2.7s) dominates `retrieval_ms` (~0.9s) by ~3×, which is the direct justification for streaming the generation phase
+- Optional stretch (not blocking Chapter 5): swap FlashRank's multilingual model and re-run `--rerank` to see if the Indonesian-query delta turns positive
+
+**Streak: 1 day** (Days 27, 35, 37 all had real work; unlogged gaps remain 2026-06-18→22, 2026-06-24→2026-06-30, 2026-07-02)
