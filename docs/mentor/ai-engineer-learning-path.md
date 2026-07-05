@@ -1,7 +1,8 @@
 # The Generative AI Engineer Learning Path — Final (Personalized)
 
 > **Status:** Personalized for Rikky's pivot from Senior Backend (.NET) → AI Engineer.
-> **Horizon:** 12 active weeks (Phases 2–3 are the critical path). Phase 1 is retained for context but mostly already covered. Phase 4 is deferred.
+> **Horizon:** 12 chapters over ~90 days. Chapters 1–9 (the Application + Specialization build layers) are the critical path. Foundations is a skim; Chapters 10–12 are positioning/apply; the Fine-Tuning layer is deferred.
+> **Chapter numbers are the single cross-doc coordinate** — they line up with the execution task file and `docs/mentor/progress.md`. This doc's sections are *named layers*, not numbered phases, to avoid colliding with the execution track's 30-day "Phase 1/2/3" blocks.
 > **Implementation vehicle:** Personal Finance Platform (`C:\workspaces\personal-finance`). Every concept ships as a real feature — no toy scripts, no next-day deferral.
 > **Companion doc:** Use-case mapping (which feature in Personal Finance proves each concept) lives in the Personal Finance repo, not here. This doc stays curriculum-only.
 
@@ -21,28 +22,31 @@ Synthesized from the curriculums of DeepLearning.AI, Coursera (IBM, AWS), Micros
 
 ## Topic Index — full study order (scan this first)
 
-The entire path on one screen. Follow the numbers. Phases 1→3 are the active spine; Phase 4 is deferred. URLs for every resource live in the companion task file `.agents/skills/mentor/learning-path.md`, under each week's **Resources**.
+The entire path on one screen. Follow the numbers. The build + positioning layers are the active spine; the Fine-Tuning layer is deferred. `Status` reflects the execution track (`docs/mentor/progress.md`); it stays canonical for detail — this column is just the frontier at a glance. URLs for every resource live in the companion task file `.agents/skills/mentor/learning-path.md`, under each chapter's **Resources**.
 
-| # | Phase · Chapter | Topic | Why it sits here | Primary resource |
-|---|-----------------|-------|------------------|------------------|
-| — | P1 · skim | LLM API mechanics + structured output (tool_use / JSON mode) | Already on CV — skim for gaps only | Anthropic Academy: *Building with the Claude API* |
-| — | P1 · skim | Prompt engineering + prompt caching | One-evening polish | Anthropic Academy · OpenAI Quickstart |
-| 1 | P2 · Ch1 | **AI observability** (tracing, cost, latency) | Measure *before* you build, so every later topic produces a quotable number | Langfuse docs |
-| 2 | P2 · Ch2 | **LLM eval harness** (golden sets, accuracy, faithfulness) | "How do you know it's correct?" — must exist before you can claim any RAG number | RAGAS docs · Promptfoo docs |
-| 3 | P2 · Ch3 | **Embeddings + vector search** | The retrieval foundation everything in RAG stands on | Google Cloud Skills Boost: *Vector Search and Embeddings* |
-| 4 | P2 · Ch3–4 | **RAG core**: chunk → retrieve → re-rank → grounded generation | The #1 applied AI-Eng skill | Coursera (LlamaIndex): *RAG with LlamaIndex* · NVIDIA: *Building RAG Agents with LLMs* |
-| 5 | P2 · Ch5 | **Streaming (SSE)** | Production UX; cheap once RAG works | FastAPI docs (`StreamingResponse` / `sse-starlette`) |
-| 6 | P2 · Ch6 | **Advanced RAG**: hybrid search, sentence-window, auto-merging | Squeeze accuracy; measure the lift with the harness from #2 | Google Cloud / LlamaIndex courses (advanced sections) |
-| 7 | P3 · Ch7 | **Tool-calling agents** (smolagents) | Smallest agent surface — grok the Thought-Action-Observation loop first | Hugging Face: *Agents Course* |
-| 8 | P3 · Ch8 | **Stateful orchestration** (LangGraph) | State, routing, memory, error handling — "industrial smolagents" | LangGraph docs · Coursera (IBM): *RAG & Agentic AI* |
-| 9 | P3 · Ch8 | **Agent evaluation** | Tool-call accuracy + trajectory — closes the "how do you eval an agent?" gap | RAGAS · HF Agents Course (eval units) |
-| 10 | P3 · Ch9 | **Model Context Protocol (MCP)** | Interop frontier signal; server + client | Anthropic Academy: *The MCP Series* |
-| 11 | P3 · Ch9–10 | Multi-agent over MCP (stretch) | Orchestration over a standard protocol | Anthropic *MCP Series* |
-| ⏸ | P4 | Fine-tuning / MLOps / guardrails-at-scale | Deferred to month 4+ unless a JD demands it | (see Phase 4) |
+| # | Chapter | Status | Topic | Why it sits here | Primary resource |
+|---|---------|--------|-------|------------------|------------------|
+| — | skim | — | LLM API mechanics + structured output (tool_use / JSON mode) | Already on CV — skim for gaps only | Anthropic Academy: *Building with the Claude API* |
+| — | skim | — | Prompt engineering + prompt caching | One-evening polish | Anthropic Academy · OpenAI Quickstart |
+| 1 | Ch1 | ✅ | **AI observability** (tracing, cost, latency) | Measure *before* you build, so every later topic produces a quotable number | Langfuse docs |
+| 2 | Ch2 | ✅ | **LLM eval harness** (golden sets, accuracy, faithfulness) | "How do you know it's correct?" — must exist before you can claim any RAG number | RAGAS docs · Promptfoo docs |
+| 3 | Ch3 | ✅ | **Embeddings + vector search** | The retrieval foundation everything in RAG stands on | Google Cloud Skills Boost: *Vector Search and Embeddings* |
+| 4 | Ch3–4 | ✅ | **RAG core**: chunk → retrieve → re-rank → grounded generation | The #1 applied AI-Eng skill | Coursera (LlamaIndex): *RAG with LlamaIndex* · NVIDIA: *Building RAG Agents with LLMs* |
+| 5 | Ch5 | ⏳ | **Streaming (SSE)** | Production UX; cheap once RAG works | FastAPI docs (`StreamingResponse` / `sse-starlette`) |
+| 6 | Ch6 | ⏳ | **Advanced RAG**: hybrid search, sentence-window, auto-merging | Squeeze accuracy; measure the lift on P@5 + faithfulness (MRR is already saturated) | Google Cloud / LlamaIndex courses (advanced sections) |
+| 7 | Ch7 | ⏳ | **Tool-calling agents** (smolagents) | Smallest agent surface — grok the Thought-Action-Observation loop first | Hugging Face: *Agents Course* |
+| 8 | Ch8 | ⏳ | **Stateful orchestration** (LangGraph) | State, routing, memory, error handling — "industrial smolagents" | LangGraph docs · Coursera (IBM): *RAG & Agentic AI* |
+| 9 | Ch8 | ⏳ | **Agent evaluation** | Tool-call accuracy + trajectory — closes the "how do you eval an agent?" gap | RAGAS · HF Agents Course (eval units) |
+| 10 | Ch9 | ⏳ | **Model Context Protocol (MCP)** | Interop frontier signal; server + client | Anthropic Academy: *The MCP Series* |
+| 11 | Ch9 | ⏳ | Multi-agent over MCP (stretch) | Orchestration over a standard protocol | Anthropic *MCP Series* |
+| — | Ch10 | ⏳ | Public presence + certification | Make the work findable; add the credential if ROI is there | Databricks GenAI Eng Associate / Azure AI-102 |
+| — | Ch11 | ⏳ | Interview prep (STAR stories + deep-dives) | Translate the build into interview-ready narratives | self-authored — see task file |
+| — | Ch12 | ⏳ | Active applications | Ship applications like code — deliberate, not spam | career-ops — handled separately |
+| ⏸ | — | ⏸ | Fine-tuning / MLOps / guardrails-at-scale | Deferred to month 4+ unless a JD demands it | see the Fine-Tuning layer below |
 
 ---
 
-## Phase 1 — Generative AI Foundations & API Engineering
+## Foundations & API Engineering — Skim (pre-Chapter 1)
 
 **Status:** ✅ Largely covered already (Tier 2 reached). Retain for context and gap-skim only.
 
@@ -65,13 +69,13 @@ API setup, system-prompt design, few-shot formatting, multimodal inputs (text, i
 
 ---
 
-## Phase 2 — The Application Layer (RAG, Evals & Observability)
+## The Application Layer (RAG, Evals & Observability) — Chapters 1–6
 
-**Status:** 🎯 Critical path. Weeks 1–6. This is where most production work happens and where the biggest gaps are.
+**Status:** 🎯 Critical path — Chapters 1–6. Chapters 1–4 ✅ shipped and measured; Chapters 5–6 are next. This is where most production work happens and where the biggest gaps are.
 
-You're going to give an LLM access to your own data (RAG) **and** instrument the whole loop so every claim is a measured number. The order is forced by one rule: **install the measuring tools before the thing you measure.** So observability and the eval harness come first (a few hours each), then RAG is built on top — which means every week of RAG work produces a quotable metric ("reranking lifted MRR from X to Y", "extraction costs $X/doc at Yms p95") instead of a vibe.
+You're going to give an LLM access to your own data (RAG) **and** instrument the whole loop so every claim is a measured number. The order is forced by one rule: **install the measuring tools before the thing you measure.** So observability and the eval harness come first (a few hours each), then RAG is built on top — which means every chapter of RAG work produces a quotable metric ("extraction costs $X/doc at Yms p95", "faithfulness scores 0.90 on cited answers", "hybrid search lifted P@5 from X to Y") instead of a vibe.
 
-The phase title says *"RAG, Evals & Observability"* because **RAG is the most important skill** — but you *build* it last of the three. Title order ≠ build order. (Basic retrieval *can* start in Chapter 1 for momentum — just don't quote RAG numbers before the eval exists.)
+The layer title says *"RAG, Evals & Observability"* because **RAG is the most important skill** — but you *build* it last of the three. Title order ≠ build order. (Basic retrieval *can* start in Chapter 1 for momentum — just don't quote RAG numbers before the eval exists.)
 
 ### Learning Order (study top to bottom)
 
@@ -86,21 +90,26 @@ Golden sets, regression tests, field-level accuracy, and faithfulness/relevance 
 **3. Text embeddings + vector databases** — *Chapter 3.*
 What an embedding is, how semantic similarity works, and how a vector DB (pgvector, FAISS, ChromaDB) stores and queries them. This is the foundation the entire RAG topic stands on — you cannot retrieve before you can embed and index.
 → *Resource:* **Google Cloud Skills Boost** — *Vector Search and Embeddings*.
-> Its own table of contents: Introduction → Vector search basics → Encode with embeddings → Index and search → Vertex AI Vector Search → RAG and grounded agent → Hybrid search → Summary. **Note:** this single course also covers topics #4 and #6 below — it does **not** cover observability or evals. That's why #1–#2 are taught by tool docs, not by this course. (If you only do one platform course in Phase 2, it's this one.)
+> Its own table of contents: Introduction → Vector search basics → Encode with embeddings → Index and search → Vertex AI Vector Search → RAG and grounded agent → Hybrid search → Summary. **Note:** this single course also covers topics #4 and #6 below — it does **not** cover observability or evals. That's why #1–#2 are taught by tool docs, not by this course. (If you only do one platform course in this layer, it's this one.)
 
 **4. RAG core: chunk → retrieve → re-rank → grounded generation** — *Chapters 3–4.*
 The end-to-end pipeline: chunking strategies, top-K retrieval, re-ranking the candidates, then grounded synthesis with citations and metadata filtering (account, date range, category). The #1 applied AI-Engineering skill in current JDs.
 → *Resources:* **Coursera (Activeloop / LlamaIndex)** — *Retrieval Augmented Generation with LlamaIndex* · **NVIDIA** — *Building RAG Agents with LLMs*.
 
 **5. Streaming responses (SSE)** — *Chapter 5.*
-Server-sent events / async generators so the answer renders token-by-token. A production-UX *pattern*, not a feature — and cheap to add once RAG works. Same week: swap polling status for event-driven updates (Supabase Realtime).
+Server-sent events / async generators so the answer renders token-by-token. A production-UX *pattern*, not a feature — and cheap to add once RAG works. Same chapter: swap polling status for event-driven updates (Supabase Realtime).
 → *Resource:* **FastAPI docs** — `StreamingResponse` / `sse-starlette`.
 
 **6. Advanced RAG: hybrid search, sentence-window, auto-merging** — *Chapter 6.*
-Three accuracy techniques, each benchmarked against the Week-3 MRR baseline using the harness from #2. Ship the winner by the numbers, not by which sounds most impressive. Add RAGAS faithfulness scoring here too.
+Three accuracy techniques, each benchmarked with the harness from #2 — but **not on MRR@5.** The Chapter-3 baseline is already saturated at 1.000, so there is no MRR headroom to show. The real levers, straight from the Chapter 3–4 findings:
+- **P@5** (0.657 baseline) — still has room; this is the metric hybrid search should move.
+- **Faithfulness on superlative/aggregation questions** — "biggest expense in March" scored 0.50 because semantic top-K can't do MAX. Metadata filtering + a wider retrieval window is the fix to measure.
+- **A rerank rematch** — the English-only FlashRank `ms-marco` model *demoted* correct Indonesian results (negative delta on `gaji bulanan`); swapping in FlashRank's multilingual model is the retry to benchmark.
+
+Hybrid search (pgvector + Postgres `tsvector`) directly targets the terse bank-code misses (listrik, streaming, Mansek). Ship the winner by the numbers, not by which sounds most impressive. Keep RAGAS faithfulness in the loop as the second axis.
 → *Resources:* the advanced sections of the **Google Cloud** and **LlamaIndex** courses above; hybrid search = pgvector + Postgres `tsvector`.
 
-### Key skills (what you can claim after Phase 2)
+### Key skills (what you can claim after the Application layer)
 - End-to-end RAG pipelines: chunking, embedding, retrieval, re-ranking, generation.
 - Eval suites (golden sets, regression tests, faithfulness/relevance scoring).
 - Tracing every LLM call (latency, cost, prompt/response, tool invocations).
@@ -115,11 +124,11 @@ Three accuracy techniques, each benchmarked against the Week-3 MRR baseline usin
 
 ---
 
-## Phase 3 — The Specialization Layer (Agents & Orchestration)
+## The Specialization Layer (Agents & Orchestration) — Chapters 7–9
 
-**Status:** 🎯 Critical path. Weeks 7–10. The Tier 3 → Tier 4 jump.
+**Status:** 🎯 Critical path — Chapters 7–9. The Tier 3 → Tier 4 jump.
 
-Move from reactive apps (answer a question) to agentic apps (take an action). The order is smallest-surface-first: tool-calling loops in smolagents (grok the Thought→Action→Observation cycle in a day), then LangGraph as "industrial smolagents" (state, routing, memory), then how to *evaluate* an agent, then MCP to expose your tools over a standard protocol. Everything you build here is logged to the Langfuse you installed in Phase 2 — the traces are your demo material.
+Move from reactive apps (answer a question) to agentic apps (take an action). The order is smallest-surface-first: tool-calling loops in smolagents (grok the Thought→Action→Observation cycle in a day), then LangGraph as "industrial smolagents" (state, routing, memory), then how to *evaluate* an agent, then MCP to expose your tools over a standard protocol. Everything you build here is logged to the Langfuse you installed in Chapter 1 — the traces are your demo material.
 
 ### Learning Order (study top to bottom)
 
@@ -132,14 +141,14 @@ State machines for multi-step workflows: a state object, conditional routing, ch
 → *Resources:* **LangGraph official docs + tutorials** — state graphs, checkpointing, human-in-the-loop · **Coursera (IBM)** — *RAG and Agentic AI Professional Certificate* (LangGraph, CrewAI, MCP clients/servers).
 
 **9. Agent evaluation** — *Chapter 8.*
-Beyond extraction accuracy: tool-call accuracy (right tool, right args?) and a trajectory check over fixture scenarios, logged to Langfuse. This is the answer to *"how do you eval an agent?"* — a question most candidates can't answer. Reuses the Week-2 harness.
-→ *Resources:* the Week-2 eval harness + **RAGAS**; **HF Agents Course** evaluation units.
+Beyond extraction accuracy: tool-call accuracy (right tool, right args?) and a trajectory check over fixture scenarios, logged to Langfuse. This is the answer to *"how do you eval an agent?"* — a question most candidates can't answer. Reuses the Chapter-2 harness.
+→ *Resources:* the Chapter-2 eval harness + **RAGAS**; **HF Agents Course** evaluation units.
 
 **10. Model Context Protocol (MCP)** — *Chapter 9.*
 Anthropic's tool/agent interop standard, adopted across the industry. Build a server that exposes your domain tools, then connect a client (Claude Desktop). Server up first, spec later.
 → *Resources:* **Anthropic Academy** — *The MCP Series* and *Introduction to Agent Skills* · MCP quickstart + Python SDK.
 
-**11. Multi-agent over MCP (stretch)** — *Chapters 9–10.*
+**11. Multi-agent over MCP (stretch)** — *Chapter 9 stretch.*
 Wire one LangGraph tool to call the MCP server; a second sub-agent handles the MCP interaction. Multi-agent orchestration over a standard protocol — the interop boundary is explicit and inspectable in Langfuse.
 → *Resource:* **Anthropic** — *The MCP Series*.
 
@@ -148,11 +157,11 @@ Building specialists/sub-agents, state machines for long-running workflows, MCP 
 
 ### Suggested cadence
 - **Chapters 7–8** — Topics #7–#9: smolagents → LangGraph → agent eval. First agent shipped.
-- **Chapters 9–10** — Topics #10–#11: MCP server exposing domain tools, then the 2-agent + MCP workflow.
+- **Chapter 9** — Topics #10–#11: MCP server exposing domain tools, then the 2-agent + MCP workflow.
 
 ---
 
-## Phase 4 — Advanced Fine-Tuning & Generative MLOps (Production AI)
+## Advanced Fine-Tuning & Generative MLOps (Production AI) — Deferred
 
 **Status:** ⏸️ Deferred to month 4+. Retained for context — none of the target Staff/Senior AI Engineer roles in the current pipeline (Grafana, GitLab, Datadog, Anthropic, Intercom) require fine-tuning or SageMaker. Revisit only if a specific role demands it.
 
@@ -166,8 +175,8 @@ The lifecycle of deploying, scaling, evaluating, and fine-tuning models securely
   - **DeepLearning.AI** — *Generative AI with Large Language Models* (transformer mechanics, full fine-tuning lifecycle).
   - **Hugging Face** — *LLM Course* (Transformers, Datasets, TRL).
 
-### Chapters 11–12 (instead of starting Phase 4): Positioning & proof
-- Blog post + demo video on the RAG + Agent system shipped in Phases 2–3.
+### Chapters 10–12 (instead of starting this layer): Positioning & proof
+- Blog post + demo video on the RAG + Agent system shipped in the Application + Specialization layers (Chapters 1–9).
 - CV update with new proof points.
 - Certification, if ROI is there (Databricks GenAI Engineer Associate or Azure AI-102).
 - Apply to roles in the pipeline (Datadog, Grafana, Anthropic, GitLab, Intercom).
@@ -178,7 +187,7 @@ The lifecycle of deploying, scaling, evaluating, and fine-tuning models securely
 
 1. **Follow the Learning Order, not the resource catalog.** The numbered topics are the path. Courses are references attached to a step — a single course may span several topics, and some topics live only in tool docs.
 2. **One concept → one Personal Finance commit, same day.** No deferral, no toy scripts.
-3. **Phase 1 is a skim, not a study block.** Use it as a reference map; don't sit through the courses.
-4. **Phase 2 + 3 are non-negotiable.** They close every critical gap (RAG, evals, observability, agents, MCP).
-5. **Phase 4 stays on the shelf** until a target JD demands it. Don't burn weeks on an AWS ML cert for roles that don't ask for it.
-6. **Use-case mapping lives in Personal Finance**, not in this doc. Each phase gets a "what we built and why" page in that repo, with links back to the commits and the curriculum item that motivated them.
+3. **The Foundations layer is a skim, not a study block.** Use it as a reference map; don't sit through the courses.
+4. **The Application + Specialization layers (Chapters 1–9) are non-negotiable.** They close every critical gap (RAG, evals, observability, agents, MCP).
+5. **The Fine-Tuning layer stays on the shelf** until a target JD demands it. Don't burn weeks on an AWS ML cert for roles that don't ask for it.
+6. **Use-case mapping lives in Personal Finance**, not in this doc. Each layer gets a "what we built and why" page in that repo, with links back to the commits and the curriculum item that motivated them.
