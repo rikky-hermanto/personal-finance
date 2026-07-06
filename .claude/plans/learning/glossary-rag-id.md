@@ -4,7 +4,7 @@
 >
 > Diurutkan per kategori, bukan alfabet, supaya bisa dibaca runtut kalau kamu baru mulai. Kalau cuma mau cari satu istilah, `Ctrl+F` saja. Tiap entri punya anchor id (`#istilah`) supaya bisa di-link langsung dari file lain — lihat daftar id di komentar tiap entri kalau mau nambah link baru.
 >
-> Dipakai oleh: [PF-AI003-rag-embeddings-retrieval.md](PF-AI003-rag-embeddings-retrieval.md), [PF-AI004-rag-reranking-generation.md](PF-AI004-rag-reranking-generation.md), [PF-AI004-rag-reranking-generation-id.md](PF-AI004-rag-reranking-generation-id.md), [PF-AI005-streaming-sse-todo-id.md](PF-AI005-streaming-sse-todo-id.md).
+> Dipakai oleh: [PF-AI003-rag-embeddings-retrieval.md](PF-AI003-rag-embeddings-retrieval.md), [PF-AI004-rag-reranking-generation.md](PF-AI004-rag-reranking-generation.md), [PF-AI004-rag-reranking-generation-id.md](PF-AI004-rag-reranking-generation-id.md), [PF-AI005-streaming-sse-todo-id.md](PF-AI005-streaming-sse-todo-id.md), [PF-AI006-advanced-rag-patterns-todo-id.md](PF-AI006-advanced-rag-patterns-todo-id.md).
 
 ---
 
@@ -149,6 +149,38 @@
 <a id="rls"></a>**RLS (Row Level Security)** — fitur Postgres yang memfilter baris per role/user lewat policy (`USING (...)`). Untuk Realtime: event yang barisnya tidak boleh di-`SELECT` oleh role subscriber **dibuang diam-diam** — channel tetap SUBSCRIBED, tapi nol event. Lokal: policy permisif `USING (true)`; production (PF-S08): menyempit ke pemilik terautentikasi, dan "diam"-nya justru jadi perilaku yang benar.
 
 <a id="debounce"></a>**Debounce** — menunda dan menggabungkan banyak trigger yang datang berdekatan jadi satu aksi. Di chapter ini: satu commit statement meng-insert puluhan baris → puluhan event Realtime → tanpa debounce berarti puluhan refetch; dengan debounce 1 detik, cukup satu toast + satu query invalidation.
+
+---
+
+## 8. Hybrid Search & Advanced Retrieval
+
+<a id="bm25"></a>**BM25** — algoritme scoring kata kunci klasik dari dunia search engine: dokumen dapat skor tinggi kalau kata di query muncul **persis** di dalamnya, dibobot frekuensi kemunculan dan kelangkaan kata itu di seluruh koleksi (kata langka = lebih informatif). Tidak paham sinonim atau makna sama sekali — justru itu kekuatannya untuk query penuh istilah eksak seperti "tagihan listrik PLN". Di project ini didekati pakai [tsvector](#tsvector) + [ts_rank](#ts-rank) bawaan PostgreSQL.
+
+<a id="tsvector"></a>**tsvector** — tipe data full-text search PostgreSQL: teks yang sudah dipecah jadi daftar token (lexeme) siap-cari. Di project ini: kolom `description_tsv` yang dihitung otomatis dari `description` lewat [generated column](#generated-column). Config `'simple'` = tokenisasi per kata tanpa stemming; config `'indonesian'` (dengan stemming) belum tentu terpasang di instance Supabase — cek `SELECT cfgname FROM pg_ts_config;`.
+
+<a id="tsquery"></a>**tsquery / `plainto_tsquery`** — bentuk query untuk mencari di [tsvector](#tsvector). `to_tsquery` menuntut format operator (`kata & kata`, `:*`) dan error kalau disodori kalimat biasa; `plainto_tsquery` menerima kalimat natural dan meng-AND-kan kata-katanya — itu yang benar untuk input user.
+
+<a id="ts-rank"></a>**ts_rank** — fungsi PostgreSQL yang memberi skor relevansi kata kunci pada hasil pencarian tsvector; dipakai project ini sebagai pendekatan [BM25](#bm25). Penting: nilainya bobot log-frekuensi yang **tidak** dinormalisasi 0–1 dan bergeser per query — inilah alasan skornya tidak bisa dijumlahkan langsung dengan cosine similarity (lihat [RRF](#rrf)).
+
+<a id="gin-index"></a>**GIN index** — jenis index PostgreSQL (Generalized Inverted Index) yang memetakan tiap kata → daftar baris yang mengandungnya, seperti indeks di halaman belakang buku. Membuat pencarian tsvector cepat tanpa memindai semua baris.
+
+<a id="generated-column"></a>**Generated column** — kolom PostgreSQL yang nilainya dihitung otomatis dari kolom lain (`GENERATED ALWAYS AS ... STORED`) dan ter-update sendiri di tiap INSERT/UPDATE — tanpa kode aplikasi, tanpa trigger yang harus dirawat.
+
+<a id="hybrid-search"></a>**Hybrid search** — menjalankan dua pencarian sekaligus (semantic/vector + keyword/[BM25](#bm25)) lalu menggabungkan hasilnya, karena keduanya saling melengkapi: vector menang di parafrase makna ("makan siang di kantor" → "WARUNG", "RESTO"), BM25 menang di kata kunci eksak (nama merek seperti PLN, OVO, GoPay).
+
+<a id="rrf"></a>**RRF (Reciprocal Rank Fusion)** — cara menggabungkan dua (atau lebih) daftar ranking **tanpa** menormalkan skor: tiap dokumen menyumbang `1/(k + posisi)` di tiap daftar tempat dia muncul, lalu dijumlahkan. Posisi selalu 1, 2, 3, … di daftar mana pun, jadi masalah beda skala skor hilang total. k=60 adalah konstanta kanonik dari paper Cormack et al. (SIGIR 2009) — makin kecil k, makin dominan posisi #1.
+
+<a id="sentence-window-retrieval"></a>**Sentence-window retrieval** — wiring produksi dari [sentence-window chunking](#sentence-window-chunking): yang di-embed dan dicari adalah `chunk_text` (satu kalimat — kecil, presisi), yang dikembalikan ke LLM adalah `window_text` (kalimat itu ± N tetangganya — konteks cukup). "Kecil untuk dicari, besar untuk dibaca" yang benar-benar jalan, bukan cuma fungsi murni di rak.
+
+<a id="auto-merging"></a>**Auto-merging retrieval** — kalau cukup banyak kalimat dari paragraf yang sama sama-sama terambil saat retrieval, itu bukti paragrafnya sendiri yang relevan — sistem "mempromosikan" chunk parent (paragraf utuh) menggantikan serpihan-serpihan kalimatnya. Bedanya dengan sentence-window: sentence-window *selalu* melebar ±N; auto-merging cuma melebar **kalau ada bukti** (saudara-saudara se-paragraf ikut terambil).
+
+<a id="chunk-hierarchy"></a>**Chunk hierarchy (parent/child)** — struktur bertingkat pada tabel chunk: level 0 = kalimat, level 1 = paragraf (level 2 = halaman, disediakan tapi belum dipakai), disambungkan lewat kolom `parent_id`. Dibangun saat indexing supaya keputusan merge saat retrieval tinggal pengelompokan in-memory, tanpa round-trip DB tambahan.
+
+<a id="sibling-threshold"></a>**Sibling / merge threshold** — ambang keputusan [auto-merging](#auto-merging): `jumlah kalimat se-parent yang terambil ÷ total kalimat parent itu (sibling_count)`. Rasio ≥ threshold (0.5 di project ini) → serpihan diganti parent. Threshold 0.0 = selalu merge (logika selektifnya mati); 1.0 = hampir tidak pernah merge.
+
+<a id="adversarial-queries"></a>**Adversarial queries (eval)** — query uji yang sengaja dirancang supaya tiap teknik punya kasus di mana dia *seharusnya* menang (keyword-wins, semantic-wins, date-crossing, mixed-language, no-answer). Tanpa ini, eval set yang homogen membuat dua teknik berbeda kelihatan "sama saja" — kesimpulan yang salah dari soal ujian yang bias, bukan dari tekniknya.
+
+<a id="backfill"></a>**Backfill** — script satu kali yang mengindeks mundur data yang sudah ada (di project ini: semua PDF lama di Supabase Storage → extract → chunk → embed → insert). Wajib idempotent (cek dulu apa yang sudah ter-index) supaya aman dijalankan ulang kalau terputus, dan sebaiknya punya flag `--dry-run`.
 
 ---
 

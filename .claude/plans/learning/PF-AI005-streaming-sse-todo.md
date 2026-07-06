@@ -160,21 +160,21 @@ This chapter:
 
 ## ✅ Acceptance Criteria
 
-- [ ] `LlmProvider` protocol (base.py) has `stream_generate(system_prompt, user_prompt) -> AsyncGenerator[str, None]`
-- [ ] `AnthropicProvider.stream_generate()` yields tokens via `client.messages.stream()` async context manager
-- [ ] `GeminiProvider.stream_generate()` yields tokens via async streaming call; tested against the installed SDK version
-- [ ] `POST /ask/stream` exists; emits `metadata`, `token`, and `done` SSE events in that order; never buffers; returns `text/event-stream` content type
-- [ ] Connection drop is handled cleanly: the generator checks `request.is_disconnected()` each yield and exits without error
-- [ ] React `chatApi.ts` uses `@microsoft/fetch-event-source` (POST-capable); `onToken`, `onMetadata`, `onDone`, `onError` handlers; `AbortController` exposed to callers
-- [ ] `/chat` route exists in `App.tsx` and renders `ChatPage`
-- [ ] `ChatPage` streams tokens into the assistant bubble in real-time; citations render from the `metadata` event; a blinking cursor shows while streaming
-- [ ] Realtime: migration adds `public.transactions` to the `supabase_realtime` publication; `useRealtimeTransactions` receives INSERT events; committing an upload shows a live toast + invalidates the transactions query; `@supabase/supabase-js` installed
-- [ ] `tests/test_streaming.py` passes (mocked `stream_generate`, verifies event order + payload shape via `httpx.AsyncClient`)
-- [ ] `pyproject.toml` updated: `sse-starlette>=2.1`
-- [ ] `apps/frontend/package.json`: `@microsoft/fetch-event-source`, `@supabase/supabase-js`
-- [ ] No buffering verified: `curl --no-buffer` shows tokens arriving progressively, not in a single burst
-- [ ] Streamed calls visible in Langfuse: both `stream_generate()` impls record a generation with token usage + estimated cost (PF-AI001 parity); final `stop_reason`/`finish_reason` recorded — truncation is logged, never silent
-- [ ] Exactly one `POST /ask/stream` per question — connection aborted after `done`; `fetch-event-source` never auto-reconnects and re-POSTs (verify in browser devtools Network tab)
+- [x] `LlmProvider` protocol (base.py) has `stream_generate(system_prompt, user_prompt) -> AsyncGenerator[str, None]`
+- [x] `AnthropicProvider.stream_generate()` yields tokens via `client.messages.stream()` async context manager
+- [x] `GeminiProvider.stream_generate()` yields tokens via async streaming call; tested against the installed SDK version
+- [x] `POST /ask/stream` exists; emits `metadata`, `token`, and `done` SSE events in that order; never buffers; returns `text/event-stream` content type
+- [x] Connection drop is handled cleanly: the generator checks `request.is_disconnected()` each yield and exits without error
+- [x] React `chatApi.ts` uses `@microsoft/fetch-event-source` (POST-capable); `onToken`, `onMetadata`, `onDone`, `onError` handlers; `AbortController` exposed to callers
+- [x] `/chat` route exists in `App.tsx` and renders `ChatPage`
+- [x] `ChatPage` streams tokens into the assistant bubble in real-time; citations render from the `metadata` event; a blinking cursor shows while streaming
+- [x] Realtime: migration adds `public.transactions` to the `supabase_realtime` publication; `useRealtimeTransactions` receives INSERT events; committing an upload shows a live toast + invalidates the transactions query; `@supabase/supabase-js` installed
+- [x] `tests/test_streaming.py` passes (mocked `stream_generate`, verifies event order + payload shape via `httpx.AsyncClient`)
+- [x] `pyproject.toml` updated: `sse-starlette>=2.1`
+- [x] `apps/frontend/package.json`: `@microsoft/fetch-event-source`, `@supabase/supabase-js`
+- [x] No buffering verified: `curl --no-buffer` shows tokens arriving progressively, not in a single burst
+- [x] Streamed calls visible in Langfuse: both `stream_generate()` impls record a generation with token usage + estimated cost (PF-AI001 parity); final `stop_reason`/`finish_reason` recorded — truncation is logged, never silent
+- [x] Exactly one `POST /ask/stream` per question — connection aborted after `done`; `fetch-event-source` never auto-reconnects and re-POSTs (verify in browser devtools Network tab)
 
 ## 🧭 Approach
 

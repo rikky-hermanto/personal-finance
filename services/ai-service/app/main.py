@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
+import json
 
-from fastapi import FastAPI, Form, HTTPException, UploadFile, File
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from sse_starlette.sse import EventSourceResponse
 
 # In the lifespan context manager or @app.on_event("shutdown"):
 from app.observability import langfuse
@@ -11,7 +13,7 @@ from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseRes
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
 from app.services.reranker import RerankerService
-from app.services.answerer import AnswerService
+from app.services.answerer import AnswerService, SYSTEM_PROMPT, _format_context
 from app.providers.factory import ProviderFactory
 from app.providers.embedding_factory import create_embedding_provider
 from app.services.llm_parser import LlmParser, LlmParseError
@@ -60,6 +62,7 @@ async def lifespan(app: FastAPI):
         reranker=app.state.reranker,
         provider=provider,
     )
+    app.state.provider = provider
     logger.info(
         "AI service starting up | provider=%s | model=%s | embedding_provider=%s | embedding_model=%s",
         settings.ai_provider, settings.ai_model,
@@ -277,3 +280,64 @@ async def ask(request: AskRequest) -> AskResponse:
     except Exception as exc:
         logger.exception("ask failed")
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
+
+
+@app.post("/ask/stream")
+async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
+    """Stream the RAG answer token-by-token over SSE.
+
+    Event protocol:
+      metadata  → JSON: {contexts: [{transaction_id, date, description, amount_idr, flow, wallet},...]}
+      token     → string: one text chunk from the LLM
+      done      → empty string: generation complete
+    """
+    async def event_generator():
+        # 1. Retrieval + reranking
+        candidates = await app.state.retriever.search(
+            query=request.query, top_k=10,
+            category=request.category, account=request.account,
+            date_from=request.date_from, date_to=request.date_to,
+        )
+        contexts = await app.state.reranker.rerank(
+            request.query, candidates, top_k=request.top_k or 3
+        )
+
+        if not contexts:
+            yield {"event": "done", "data": json.dumps({"confident": False, "contexts": []})}
+            return
+
+        # 2. Send contexts BEFORE generation — client can render citations immediately
+        context_payload = [
+            {
+                "transaction_id": r.transaction_id,
+                "date": r.date,
+                "description": r.description,
+                "amount_idr": r.amount_idr,
+                "flow": r.flow,
+                "wallet": r.wallet,
+            }
+            for r in contexts
+        ]
+        yield {"event": "metadata", "data": json.dumps(context_payload)}
+
+        # 3. Build the same user prompt as AnswerService
+        user_prompt = (
+            f"Context transactions:\n{_format_context(contexts)}\n\n"
+            f"Question: {request.query}"
+        )
+
+        # 4. Stream generation tokens
+        try:
+            async for token in app.state.provider.stream_generate(SYSTEM_PROMPT, user_prompt):
+                if await req.is_disconnected():
+                    break
+                yield {"event": "token", "data": token}
+        except Exception:
+            logger.exception("stream_generate failed")
+            yield {"event": "error", "data": json.dumps({"detail": "generation_failed"})}
+            return
+
+        yield {"event": "done", "data": ""}
+
+    return EventSourceResponse(event_generator())
+

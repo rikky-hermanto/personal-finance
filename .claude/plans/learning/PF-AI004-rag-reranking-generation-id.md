@@ -77,20 +77,20 @@ Contoh teks mentah dari statement bank (`bca_01.txt`):
 16/03/2024 ALFAMART CIPETE RAYA                                      47.000,00
 ```
 
-**Versi 0 — potong tiap 35 karakter, tanpa peduli isinya.** Ini cara paling bodoh: jalan terus dan potong setiap 35 karakter.
+**Potong tiap 35 karakter, tanpa peduli isinya.** Ini cara paling bodoh: jalan terus dan potong setiap 35 karakter.
 
 ```
 Chunk 0: "14/03/2024 GOFOOD GEPREK BENSU GA"   ← nama merchant kepotong
 Chunk 1: "DING                         85.00"   ← "GADING" kehilangan awalnya
 ```
 
-**Masalahnya:** karakter ke-35 jatuh persis di tengah nama merchant. `"GADI"` dan `"NG"` di-embed sebagai dua potongan yang tidak nyambung — model embedding tidak tahu keduanya sebenarnya satu kata ("GADING"), jadi pencarian untuk merchant ini bisa gagal di kedua chunk.
+Celakanya, karakter ke-35 jatuh persis di tengah nama merchant. `"GADI"` dan `"NG"` di-embed sebagai dua potongan yang tidak nyambung — model embedding tidak tahu keduanya sebenarnya satu kata ("GADING"), jadi pencarian untuk merchant ini bisa gagal di kedua chunk.
 
-**Versi 1 — pakai [overlap](glossary-rag-id.md#overlap).** [`fixed_size_chunks(text, chunk_size, overlap)`](glossary-rag-id.md#fixed-size-chunking) masih menghitung karakter, tapi sisa ekor satu chunk dibawa juga ke chunk berikutnya, jadi fakta yang kepotong di batas tetap muncul utuh di salah satu chunk.
+**Pakai [overlap](glossary-rag-id.md#overlap) — bawa sisa ekor ke chunk berikutnya.** [`fixed_size_chunks(text, chunk_size, overlap)`](glossary-rag-id.md#fixed-size-chunking) masih menghitung karakter, tapi sisa ekor satu chunk dibawa juga ke chunk berikutnya, jadi fakta yang kepotong di batas tetap muncul utuh di salah satu chunk.
 
-**Masalahnya:** overlap mencegah fakta *hilang*, tapi si pemotong masih buta terhadap struktur kalimat. Deskripsi transaksi masih bisa terpisah dari nominalnya kalau batas potongan jatuh di antara keduanya.
+Overlap mencegah fakta *hilang*, tapi tidak membuat si pemotong paham struktur — dia masih buta terhadap batas kalimat. Deskripsi transaksi masih bisa terpisah dari nominalnya kalau batas potongan jatuh di antara keduanya.
 
-**Versi 2 — potong berdasarkan struktur, bukan hitungan karakter.** [`sentence_window_chunks(text, window_size)`](glossary-rag-id.md#sentence-window-chunking) memotong berdasarkan baris baru (`\n`) dan tanda baca kalimat, jadi tiap chunk adalah **satu baris lengkap** — nama merchant tidak pernah kepotong, deskripsi tidak pernah terpisah dari nominalnya. Ditambah lagi ada [`window`](glossary-rag-id.md#window): ±N baris tetangga ikut dibawa, jadi unit yang **dicari** kecil dan presisi, tapi unit yang **dikirim ke LLM** cukup konteksnya. Prinsipnya: **"kecil untuk dicari, besar untuk dibaca."** → *Ini yang dipakai chapter ini.*
+**Potong berdasarkan struktur, bukan hitungan karakter.** [`sentence_window_chunks(text, window_size)`](glossary-rag-id.md#sentence-window-chunking) memotong berdasarkan baris baru (`\n`) dan tanda baca kalimat, jadi tiap chunk adalah **satu baris lengkap** — nama merchant tidak pernah kepotong, deskripsi tidak pernah terpisah dari nominalnya. Ditambah lagi ada [`window`](glossary-rag-id.md#window): ±N baris tetangga ikut dibawa, jadi unit yang **dicari** kecil dan presisi, tapi unit yang **dikirim ke LLM** cukup konteksnya. Prinsipnya: **"kecil untuk dicari, besar untuk dibaca."** → *Ini yang dipakai chapter ini.*
 
 ```
 sentence_window_chunks(text, window_size=1)
@@ -108,7 +108,7 @@ Hasilnya: setiap chunk = satu transaksi utuh, merchant dan nominal tidak pernah 
 
 ### Re-ranking — kenapa juri kedua dibutuhkan
 
-**Versi 0 — [cosine top-K](glossary-rag-id.md#cosine-top-k) saja (baseline dari Chapter 3).** Embed query `"berapa pengeluaran makan bulan Maret?"`, cari [cosine similarity](glossary-rag-id.md#cosine-similarity) di `transaction_embeddings`, ambil 10 teratas.
+**[Cosine top-K](glossary-rag-id.md#cosine-top-k) saja (baseline dari Chapter 3).** Embed query `"berapa pengeluaran makan bulan Maret?"`, cari [cosine similarity](glossary-rag-id.md#cosine-similarity) di `transaction_embeddings`, ambil 10 teratas.
 
 ```
 Rank | tx_id | similarity | description                      | amount_idr
@@ -119,9 +119,9 @@ Rank | tx_id | similarity | description                      | amount_idr
   5  |  44   |   0.803    | ALFAMART CIPETE RAYA             |  47.000
 ```
 
-**Masalahnya:** model embedding itu **[bi-encoder](glossary-rag-id.md#bi-encoder)** — dia meng-encode query dan tiap deskripsi transaksi **secara terpisah**, tidak pernah bareng-bareng. Hasilnya cuma membandingkan dua titik yang sudah dihitung duluan di ruang vektor. Kata "makan" dan "makanan ternak" berbagi cukup banyak akar kata sehingga posisinya berdekatan di ruang vektor — bi-encoder tidak pernah punya kesempatan mempertimbangkan bedanya secara langsung.
+Akar soalnya, model embedding itu **[bi-encoder](glossary-rag-id.md#bi-encoder)** — dia meng-encode query dan tiap deskripsi transaksi **secara terpisah**, tidak pernah bareng-bareng. Hasilnya cuma membandingkan dua titik yang sudah dihitung duluan di ruang vektor. Kata "makan" dan "makanan ternak" berbagi cukup banyak akar kata sehingga posisinya berdekatan di ruang vektor — bi-encoder tidak pernah punya kesempatan mempertimbangkan bedanya secara langsung.
 
-**Versi 1 — re-rank top-10 pakai cross-encoder.** **[Cross-encoder](glossary-rag-id.md#cross-encoder)** membaca query dan dokumen kandidat **bersamaan**, dalam satu kali proses — jadi bisa benar-benar mempertimbangkan apakah "makanan ternak" itu menjawab pertanyaan tentang "makan" atau tidak. Polanya berbentuk corong ([funnel](glossary-rag-id.md#funnel)): bi-encoder yang murah-dan-lebar mengambil 10 kandidat dulu, baru cross-encoder yang mahal-dan-sempit menilai ulang 10 itu.
+**Re-rank top-10 pakai cross-encoder (hosted).** **[Cross-encoder](glossary-rag-id.md#cross-encoder)** membaca query dan dokumen kandidat **bersamaan**, dalam satu kali proses — jadi bisa benar-benar mempertimbangkan apakah "makanan ternak" itu menjawab pertanyaan tentang "makan" atau tidak. Polanya berbentuk corong ([funnel](glossary-rag-id.md#funnel)): bi-encoder yang murah-dan-lebar mengambil 10 kandidat dulu, baru cross-encoder yang mahal-dan-sempit menilai ulang 10 itu.
 
 ```
 ["berapa pengeluaran makan bulan Maret?" + "GOFOOD GEPREK BENSU GADING"]        → skor 0.94  (restoran makanan)
@@ -130,15 +130,15 @@ Rank | tx_id | similarity | description                      | amount_idr
 
 Hasil setelah re-ranking: transaksi pakan ternak (skor 0.12) tersingkir dari top-3, digantikan transaksi makanan yang benar.
 
-**Masalahnya:** cross-encoder berkualitas yang di-hosting (misalnya Cohere Rerank) itu berbayar dan butuh round-trip jaringan setiap kali dipanggil. Untuk traffic produksi itu wajar, tapi menyulitkan kalau kamu mau menjalankan eval harness berkali-kali sambil iterasi — tiap run bisa kena biaya atau kena rate limit.
+Wajar untuk produksi, merepotkan untuk eval: cross-encoder berkualitas yang di-hosting (misalnya Cohere Rerank) itu berbayar dan butuh round-trip jaringan setiap kali dipanggil. Kalau kamu mau menjalankan eval harness berkali-kali sambil iterasi, tiap run bisa kena biaya atau kena rate limit.
 
-**Versi 2 — [FlashRank](glossary-rag-id.md#flashrank), ide sama tapi jalan lokal.** Model cross-encoder [MiniLM](glossary-rag-id.md#minilm) ~34 MB yang jalan di CPU lokal, tanpa API key, tanpa rate limit, hasilnya deterministik — bebas dijalankan ulang berkali-kali untuk eval. → *Ini yang dipakai chapter ini.*
+**[FlashRank](glossary-rag-id.md#flashrank) — ide sama tapi jalan lokal.** Model cross-encoder [MiniLM](glossary-rag-id.md#minilm) ~34 MB yang jalan di CPU lokal, tanpa API key, tanpa rate limit, hasilnya deterministik — bebas dijalankan ulang berkali-kali untuk eval. → *Ini yang dipakai chapter ini.*
 
 > **Temuan nyata dari eksperimen (bukan teori, ini kejadian betulan):** `ms-marco-MiniLM-L-12-v2` adalah model yang dilatih khusus Bahasa Inggris. Pada query Bahasa Indonesia, model ini justru **menurunkan** [P@5](glossary-rag-id.md#p-5) dari 0.657 menjadi 0.600 — dia tidak memahami kosakata keuangan Indonesia. Lihat bagian Kesalahan Umum untuk detailnya — ini salah satu temuan paling berharga di chapter ini.
 
 ### Grounded Generation + Citations — dari dump data mentah sampai jawaban tervalidasi
 
-**Versi 0 — sodorkan baris mentah ke user.**
+**Sodorkan baris mentah ke user.**
 
 ```
 GOFOOD GEPREK BENSU GADING — Rp 85.000
@@ -146,13 +146,13 @@ GRABFOOD ORDER 7FHJS8 — Rp 62.500
 GRABFOOD WARUNG PADANG — Rp 55.000
 ```
 
-**Masalahnya:** baris data bukan jawaban. User nanya "berapa" — sebuah angka — bukan "ini daftar, jumlahkan sendiri ya."
+Tapi baris data bukan jawaban. User nanya "berapa" — sebuah angka — bukan "ini daftar, jumlahkan sendiri ya."
 
-**Versi 1 — minta LLM merangkum jadi jawaban.** Kirim data ke model, minta dijumlahkan dan dijelaskan dengan bahasa biasa.
+**Minta LLM merangkum jadi jawaban.** Kirim data ke model, minta dijumlahkan dan dijelaskan dengan bahasa biasa.
 
-**Masalahnya:** tanpa batasan yang ketat, model bisa **[halusinasi](glossary-rag-id.md#hallucination)** — menyebut total yang tidak cocok dengan data yang dikasih (misalnya bilang "Rp 500.000" padahal datanya cuma Rp 202.500), atau bahkan menyebut transaksi yang sebenarnya tidak ada di data yang dikirim.
+Bahayanya, tanpa batasan yang ketat model bisa **[halusinasi](glossary-rag-id.md#hallucination)** — menyebut total yang tidak cocok dengan data yang dikasih (misalnya bilang "Rp 500.000" padahal datanya cuma Rp 202.500), atau bahkan menyebut transaksi yang sebenarnya tidak ada di data yang dikirim.
 
-**Versi 2 — pakai [grounding prompt](glossary-rag-id.md#grounding-prompt).** Instruksikan model secara eksplisit: jawab **hanya** dari data yang diberikan, dan boleh bilang "saya tidak tahu" ([`confident: false`](glossary-rag-id.md#confident-flag)) daripada menebak-nebak.
+**[Grounding prompt](glossary-rag-id.md#grounding-prompt) — larang model menebak.** Instruksikan model secara eksplisit: jawab **hanya** dari data yang diberikan, dan boleh bilang "saya tidak tahu" ([`confident: false`](glossary-rag-id.md#confident-flag)) daripada menebak-nebak.
 
 ```
 SYSTEM: "Jawab HANYA dari transaksi bernomor yang diberikan sebagai konteks.
@@ -160,9 +160,9 @@ SYSTEM: "Jawab HANYA dari transaksi bernomor yang diberikan sebagai konteks.
          Jangan pernah menaksir atau mengarang nominal."
 ```
 
-**Masalahnya:** bahkan model yang sudah diberi grounding prompt sekalipun kadang tetap menyebut `transaction_id` yang sebenarnya tidak pernah ada di konteks yang dikirim — angka yang dia pattern-match dari data latihannya atau digit terdekat, bukan sesuatu yang benar-benar dia baca.
+Grounding prompt belum menutup celah terakhir: model kadang tetap menyebut `transaction_id` yang sebenarnya tidak pernah ada di konteks yang dikirim — angka yang dia pattern-match dari data latihannya atau digit terdekat, bukan sesuatu yang benar-benar dia baca.
 
-**Versi 3 — validasi setiap id yang disitasi terhadap konteks yang benar-benar dikirim.** Cek satu-satu setiap `cited_transaction_ids` terhadap kumpulan id yang benar-benar ada di prompt; kalau ada yang tidak ada, buang diam-diam (dan catat di log). → *Ini yang dipakai chapter ini* — disebut **[hallucination guard](glossary-rag-id.md#hallucination-guard)**.
+**Validasi tiap id yang disitasi terhadap konteks yang benar-benar dikirim.** Cek satu-satu setiap `cited_transaction_ids` terhadap kumpulan id yang benar-benar ada di prompt; kalau ada yang tidak ada, buang diam-diam (dan catat di log). → *Ini yang dipakai chapter ini* — disebut **[hallucination guard](glossary-rag-id.md#hallucination-guard)**.
 
 ```python
 by_id = {42: (1, tx42), 43: (2, tx43), 47: (3, tx47)}

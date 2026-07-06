@@ -1,3 +1,5 @@
+from __future__ import annotations
+from collections.abc import AsyncGenerator
 from typing import Protocol, runtime_checkable
 
 
@@ -26,4 +28,10 @@ class LlmProvider(Protocol):
 
     async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
         """Return a JSON object matching the given schema."""
+        ...
+
+    async def stream_generate(
+        self, system_prompt: str, user_prompt: str
+    ) -> AsyncGenerator[str, None]:
+        """Stream raw text tokens from the LLM."""
         ...
