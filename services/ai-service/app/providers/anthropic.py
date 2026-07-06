@@ -2,6 +2,7 @@ import base64
 import logging
 
 from anthropic import AsyncAnthropic
+from collections.abc import AsyncGenerator
 
 from app.observability import langfuse, estimate_cost_usd
 
@@ -148,3 +149,40 @@ class AnthropicProvider:
             generation.update(level="ERROR", status_message=str(exc))
             generation.end()
             raise
+
+    async def stream_generate(
+        self, system_prompt: str, user_prompt: str
+    ) -> AsyncGenerator[str, None]:
+        """Stream raw tokens from the Anthropic messages API (Langfuse-instrumented)."""
+        generation = langfuse.start_observation(
+            as_type="generation", name="anthropic-stream-generate",
+            model=self._model, input={"system": system_prompt, "user": user_prompt},
+        )
+        try:
+            async with self._client.messages.stream(
+                model=self._model,
+                max_tokens=1024,
+                temperature=0.0,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            ) as stream:
+                async for text in stream.text_stream:
+                    yield text
+                final = await stream.get_final_message()
+        except Exception as exc:
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
+            raise
+        input_tokens = final.usage.input_tokens
+        output_tokens = final.usage.output_tokens
+        cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
+        generation.update(
+            output="<streamed>",
+            usage_details={"input": input_tokens, "output": output_tokens},
+            cost_details={"usd": cost},
+            metadata={"stop_reason": final.stop_reason, "cost_usd": cost},
+        )
+        generation.end()
+        if final.stop_reason == "max_tokens":
+            logger.warning("stream_generate truncated at max_tokens — answer incomplete")
+

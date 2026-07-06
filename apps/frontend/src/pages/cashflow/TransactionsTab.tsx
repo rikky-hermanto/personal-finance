@@ -38,6 +38,7 @@ const TransactionsTab = () => {
     // category edits — TransactionTable manages its own rows server-side
   }, []);
 
+
   const { data: countData } = useQuery({
     queryKey: ['transactions-count'],
     queryFn: () => getTransactionPage({ pageSize: 1 }),

@@ -717,9 +717,21 @@ Summary
   wrong result — e.g. "makan" vs "MAKANAN TERNAK AYAM BROILER"), never an abstract definition.
 - **"Konsep Sederhananya"** = one plain-language analogy per concept + the high-level diagram(s).
   No depth yet.
-- **"Cara Kerjanya"** = the ladder, per concept: **Versi 0 (cara paling bodoh yang masih jalan) →
-  "Masalahnya:" → Versi 1 → … → "Ini yang dipakai chapter ini"**, ending with a one-line teaser of
-  the next un-built stage. Same earn-the-jargon principle as the plan-file Introduction ladder.
+- **"Cara Kerjanya"** = the ladder, per concept: a short **bold lead-in naming what the approach
+  IS** (not a version number — e.g. **"Response sekali jadi"**, not "Versi 0") → a transition
+  sentence marking where it hits a wall → next named approach → … → the final one marked
+  **"→ Ini yang dipakai chapter ini"**, ending with a one-line teaser of the next un-built stage.
+  Two things carry no meaning and must not be templated:
+  - **Never label steps "Versi 0/1/2"** — that reads as software-release numbering, not a person
+    narrating how they arrived at a solution; the approach's name should carry the meaning on its own.
+  - **Never open every wall-transition with the same word (e.g. "Masalahnya:").** Repeating one
+    connective 5–7 times down a section is a verbal tic that grates. Vary the rhetorical move each
+    time — concession ("Ganjalannya,", "Celakanya,"), a contrast pair ("Cocok untuk X, buntu untuk
+    Y:", "Wajar untuk produksi, merepotkan untuk eval:"), a reveal ("Ada jebakan halus di sini:"),
+    a "seemed done until…" beat ("Kedengarannya tinggal implementasi — sampai ketabrak…"). The
+    transition still has to *do its job* (name the limitation that forces the next rung); just don't
+    reach for the same word to do it. Same earn-the-jargon principle as the plan-file Introduction
+    ladder.
 - **"Implementasi"** = the affected-files table + only the load-bearing code excerpts with
   plain-Indonesian commentary (full code/tests/C# ports stay in the plan file — link to its STEPs).
 - **"Optimisasi"** = the real tuning decisions taken, each with its concrete reason (numbered list).

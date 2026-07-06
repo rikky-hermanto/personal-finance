@@ -37,6 +37,7 @@ import InvestmentAnalysis from '@/pages/investment/InvestmentAnalysis';
 import HoldingsTab from '@/pages/investment/HoldingsTab';
 import SnapshotsTab from '@/pages/investment/SnapshotsTab';
 import AIReviewTab from '@/pages/investment/AIReviewTab';
+import ChatPage from '@/pages/ChatPage';
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/transactions" element={<Navigate to="/cashflow/transactions" replace />} />
           <Route path="/categories" element={<Navigate to="/settings/categories" replace />} />
           <Route element={<ErrorBoundary><AppShell /></ErrorBoundary>}>
+            <Route path="/chat" element={<ChatPage />} />
             <Route path="/journey" element={<JourneyPage />} />
             <Route path="/journey/achievements" element={<AchievementsPage />} />
             <Route path="/cashflow" element={<CashflowLayout />}>

@@ -3,6 +3,7 @@ import logging
 
 from google import genai
 from google.genai import types
+from collections.abc import AsyncGenerator
 
 from app.observability import langfuse, estimate_cost_usd
 
@@ -130,3 +131,49 @@ class GeminiProvider:
             generation.update(level="ERROR", status_message=str(exc))
             generation.end()
             raise
+
+    async def stream_generate(
+        self, system_prompt: str, user_prompt: str
+    ) -> AsyncGenerator[str, None]:
+        """Stream raw tokens from the Gemini async streaming API (Langfuse-instrumented)."""
+        client = self._get_client()
+        generation = langfuse.start_observation(
+            as_type="generation", name="gemini-stream-generate",
+            model=self._model, input={"system": system_prompt, "user": user_prompt},
+        )
+        last_chunk = None
+        try:
+            async for chunk in await client.aio.models.generate_content_stream(
+                model=self._model,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.0,
+                    max_output_tokens=1024,
+                ),
+            ):
+                last_chunk = chunk
+                if chunk.text:
+                    yield chunk.text
+        except Exception as exc:
+            generation.update(level="ERROR", status_message=str(exc))
+            generation.end()
+            raise
+        usage = getattr(last_chunk, "usage_metadata", None)
+        finish = None
+        if last_chunk is not None and getattr(last_chunk, "candidates", None):
+            finish = str(last_chunk.candidates[0].finish_reason)
+        input_tokens = usage.prompt_token_count if usage else 0
+        output_tokens = usage.candidates_token_count if usage else 0
+        cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
+        generation.update(
+            output="<streamed>",
+            usage_details=(
+                {"input": input_tokens, "output": output_tokens}
+                if usage else None
+            ),
+            cost_details={"usd": cost},
+            metadata={"finish_reason": finish, "cost_usd": cost},
+        )
+        generation.end()
+
