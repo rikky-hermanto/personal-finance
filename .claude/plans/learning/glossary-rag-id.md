@@ -4,7 +4,7 @@
 >
 > Diurutkan per kategori, bukan alfabet, supaya bisa dibaca runtut kalau kamu baru mulai. Kalau cuma mau cari satu istilah, `Ctrl+F` saja. Tiap entri punya anchor id (`#istilah`) supaya bisa di-link langsung dari file lain — lihat daftar id di komentar tiap entri kalau mau nambah link baru.
 >
-> Dipakai oleh: [PF-AI003-rag-embeddings-retrieval.md](PF-AI003-rag-embeddings-retrieval.md), [PF-AI004-rag-reranking-generation.md](PF-AI004-rag-reranking-generation.md), [PF-AI004-rag-reranking-generation-id.md](PF-AI004-rag-reranking-generation-id.md), [PF-AI005-streaming-sse-todo-id.md](PF-AI005-streaming-sse-todo-id.md), [PF-AI006-advanced-rag-patterns-todo-id.md](PF-AI006-advanced-rag-patterns-todo-id.md).
+> Dipakai oleh: [PF-AI003-rag-embeddings-retrieval.md](PF-AI003-rag-embeddings-retrieval.md), [PF-AI004-rag-reranking-generation.md](PF-AI004-rag-reranking-generation.md), [PF-AI004-rag-reranking-generation-id.md](PF-AI004-rag-reranking-generation-id.md), [PF-AI005-streaming-sse-todo-id.md](PF-AI005-streaming-sse-todo-id.md), [PF-AI006-advanced-rag-patterns-todo-id.md](PF-AI006-advanced-rag-patterns-todo-id.md), [PF-AI007-tool-calling-agents-smolagents-todo-id.md](PF-AI007-tool-calling-agents-smolagents-todo-id.md), [PF-AI009-mcp-personal-finance-server-todo-id.md](PF-AI009-mcp-personal-finance-server-todo-id.md).
 
 ---
 
@@ -181,6 +181,74 @@
 <a id="adversarial-queries"></a>**Adversarial queries (eval)** — query uji yang sengaja dirancang supaya tiap teknik punya kasus di mana dia *seharusnya* menang (keyword-wins, semantic-wins, date-crossing, mixed-language, no-answer). Tanpa ini, eval set yang homogen membuat dua teknik berbeda kelihatan "sama saja" — kesimpulan yang salah dari soal ujian yang bias, bukan dari tekniknya.
 
 <a id="backfill"></a>**Backfill** — script satu kali yang mengindeks mundur data yang sudah ada (di project ini: semua PDF lama di Supabase Storage → extract → chunk → embed → insert). Wajib idempotent (cek dulu apa yang sudah ter-index) supaya aman dijalankan ulang kalau terputus, dan sebaiknya punya flag `--dry-run`.
+
+---
+
+## 9. Agents & Tool Calling
+
+<a id="agent"></a>**Agent (AI agent)** — bukan satu panggilan LLM, tapi sebuah **loop**: LLM mengamati state saat ini (input + hasil tool sebelumnya), memutuskan langkah berikutnya, memanggil sebuah tool, mengamati hasilnya, lalu mengulang — sampai dia punya cukup bukti untuk menjawab. Bedanya dengan satu panggilan LLM biasa: agent bisa *mengubah rencananya* di tengah jalan berdasarkan apa yang baru dia pelajari, bukan cuma menjawab satu kali tembak.
+
+<a id="react"></a>**ReAct (Reason + Act)** — nama pola loop di atas, dari paper Yao et al. 2022: **Reason** (LLM mikir langkah berikutnya) → **Act** (panggil satu tool) → **Observe** (lihat hasilnya) → ulangi. Ini istilah baku yang dipakai di interview kalau ditanya "agent kamu kerjanya gimana?"
+
+<a id="tool-calling"></a>**Tool calling / `tool_use`** — mekanisme di mana LLM tidak menjawab langsung, tapi mengeluarkan permintaan terstruktur ("panggil `search_category_rules` dengan keyword='grab'"), kode aplikasi yang benar-benar menjalankannya, lalu hasilnya dikembalikan ke LLM sebagai konteks tambahan. Primitive yang sama dengan `tool_use` yang sudah dipakai di pipeline ekstraksi PDF ([lihat aturan ai-service.md](../../rules/ai-service.md)) — agent cuma menaruh primitive ini di dalam sebuah loop.
+
+<a id="tool-calling-agent"></a>**`ToolCallingAgent`** (smolagents) — jenis agent yang dibatasi cuma boleh mengeluarkan **tool call berformat JSON** — LLM tidak bisa menjalankan apa pun di luar daftar tool yang didaftarkan secara eksplisit. Ini pilihan yang aman untuk web service produksi.
+
+<a id="code-agent"></a>**`CodeAgent`** (smolagents) — jenis agent yang membiarkan LLM **menulis kode Python** untuk memanggil tool — jauh lebih fleksibel, tapi kalau dijalankan di server produksi, tidak ada yang mencegah kode itu memuat sesuatu seperti `os.system("rm -rf /")` dan benar-benar dieksekusi. Alasan utama kenapa web service memilih [`ToolCallingAgent`](#tool-calling-agent), bukan ini.
+
+<a id="tool-docstring-as-schema"></a>**Tool docstring sebagai skema** — satu-satunya informasi yang dilihat LLM saat memutuskan *apakah* dan *kapan* memanggil sebuah tool adalah teks docstring-nya — bukan nama fungsi, bukan isi kodenya. Docstring yang samar ("mencari rules") membuat LLM tidak tahu tool ini harus dipanggil duluan atau belakangan; docstring yang eksplisit ("Use this tool FIRST", "gunakan kalau X mengembalikan kosong") memberi LLM dasar untuk memilih urutan yang benar.
+
+<a id="litellm"></a>**LiteLLM** — library wrapper yang menyeragamkan cara memanggil banyak provider LLM (Gemini, Anthropic, OpenAI, dll) di balik satu antarmuka yang sama. smolagents memakainya sebagai provider backend default lewat `LiteLLMModel(model_id="gemini/...")` atau `"anthropic/..."` — key yang sudah ada di `config.py` langsung jalan tanpa setup tambahan.
+
+<a id="max-steps"></a>**`max_steps`** — batas jumlah iterasi [ReAct loop](#react) sebelum agent dipaksa berhenti dan menjawab dengan bukti yang sudah dia punya. Mencegah loop tak berkesudahan (misalnya LLM terus memanggil tool yang sama dengan keyword berbeda-beda). Kalau agent sering mentok di batas ini, itu biasanya gejala [docstring](#tool-docstring-as-schema) yang ambigu — bukan alasan untuk asal menaikkan angkanya.
+
+<a id="otel"></a>**OpenTelemetry (OTel)** — standar instrumentasi observability yang sudah dipakai project ini sejak PF-AI001 untuk mengirim trace/metric ke tujuan manapun (di sini: Langfuse) lewat protokol OTLP. Framework yang "OTel-aware" (seperti smolagents lewat `instrument_smolagents()`) otomatis mengirim span begitu instrumentasinya diaktifkan — tanpa perlu menulis kode tracing manual di tiap pemanggilan.
+
+<a id="span"></a>**Span (parent/child span)** — satu unit kerja yang tercatat di sebuah trace observability, punya waktu mulai-selesai dan bisa berisi input/output. Satu run agent membentuk satu **parent span**; tiap tool call di dalamnya (dan tiap panggilan LLM) muncul sebagai **child span** bersarang di bawahnya — bentuk pohon ini yang dibuka di dashboard Langfuse untuk melihat urutan pengambilan keputusan agent langkah demi langkah.
+
+---
+
+## 10. LangGraph — Graph, State, dan Memori Percakapan
+
+<a id="stategraph"></a>**StateGraph** (LangGraph) — cara menulis loop agent sebagai graf eksplisit: tiap langkah loop jadi satu **node** (fungsi biasa), dan aturan lompat dari satu langkah ke langkah berikutnya jadi satu **edge** (fungsi routing). Bedanya dengan agent smolagents ([`ToolCallingAgent.run()`](#tool-calling-agent)) yang membungkus seluruh loop di satu pemanggilan library: di `StateGraph`, tiap node dan edge bisa dites sendiri-sendiri tanpa memanggil LLM sama sekali.
+
+<a id="node"></a>**Node** (LangGraph) — satu langkah di dalam `StateGraph`, ditulis sebagai fungsi Python biasa yang menerima state saat ini dan mengembalikan potongan state yang berubah. Contoh di chapter ini: node `agent` (memanggil LLM), node `tools` (menjalankan tool yang diminta LLM), node `fallback` (mengembalikan pesan error yang ramah).
+
+<a id="edge"></a>**Edge / conditional edge** (LangGraph) — aturan yang menentukan node mana yang dijalankan berikutnya. Edge biasa selalu menuju node yang sama (`tools → agent`); *conditional edge* memanggil sebuah fungsi routing (di chapter ini: `should_continue`) yang membaca state dan memutuskan tujuannya di antara beberapa pilihan (`tools`, `fallback`, atau selesai).
+
+<a id="reducer"></a>**Reducer** (LangGraph) — fungsi yang dipakai LangGraph untuk **menggabungkan** nilai baru yang dikembalikan sebuah node ke dalam state yang sudah ada, bukan menimpanya begitu saja. Tanpa reducer, field bertipe list di state akan **diganti total** tiap kali sebuah node mengembalikan nilai baru untuknya — lihat [`add_messages`](#add-messages) untuk contoh konkretnya.
+
+<a id="add-messages"></a>**`add_messages`** — reducer bawaan LangGraph khusus untuk field riwayat percakapan (`messages`). Field yang dianotasi `Annotated[list, add_messages]` akan **menambahkan** (append) pesan baru ke daftar yang sudah ada, bukan menggantinya. Ini jebakan paling umum di build LangGraph pertama: kalau lupa anotasi ini, riwayat percakapan turn sebelumnya hilang diam-diam tanpa error apa pun.
+
+<a id="toolnode"></a>**`ToolNode`** (LangGraph, prebuilt) — node siap-pakai dari LangGraph yang otomatis menjalankan tool apa pun yang diminta LLM lewat `tool_calls`, lalu mengembalikan hasilnya sebagai `ToolMessage`. Kamu tidak perlu menulis logika dispatch tool secara manual — `ToolNode` yang melakukannya, mirip peran `ToolCallingAgent` di smolagents tapi sebagai satu node yang bisa dipasang di posisi mana pun dalam graf.
+
+<a id="checkpointer"></a>**Checkpointer** (LangGraph) — komponen yang menyimpan state graf setelah tiap eksekusi selesai, dan memuatnya kembali sebelum eksekusi berikutnya — dikunci dengan sebuah [`thread_id`](#thread-id). Ini yang membuat percakapan turn ke-2 bisa melanjutkan tepat dari state turn ke-1, tanpa perlu mengirim ulang seluruh riwayat dari frontend.
+
+<a id="memorysaver"></a>**`MemorySaver`** (LangGraph) — implementasi checkpointer paling sederhana: menyimpan state di memori proses (bukan database). Cukup untuk skala personal-use atau development; hilang total kalau service di-restart. Upgrade produksinya `PostgresSaver` — tinggal ganti satu baris, bentuk pemakaiannya sama.
+
+<a id="thread-id"></a>**`thread_id`** — kunci opak (boleh string apa saja, biasanya UUID) yang dikirim tiap kali memanggil graf lewat `config={"configurable": {"thread_id": ...}}`. Checkpointer memakainya untuk memisahkan satu percakapan dari percakapan lain — kirim `thread_id` yang sama dua kali, dapat state yang sama; kirim yang beda, dapat percakapan yang benar-benar baru dan terisolasi.
+
+<a id="fallback-node"></a>**Fallback node** — node khusus yang dituju lewat [conditional edge](#edge) ketika node lain gagal (menyetel `state["error"]`, bukan langsung `raise`). Alih-alih exception yang menjalar sampai meledakkan seluruh request, kegagalan jadi satu langkah graf yang eksplisit, bisa dites dengan fixture state biasa (tanpa mocking exception), dan tetap muncul sebagai node nyata di trace Langfuse.
+
+---
+
+## 10. MCP (Model Context Protocol)
+
+<a id="mcp"></a>**MCP (Model Context Protocol)** — protokol terbuka dari Anthropic yang mendefinisikan kosakata tetap yang dipahami bersama oleh AI client (mis. Claude Desktop) dan server: [Tool](#mcp-tool), [Resource](#mcp-resource), [Prompt](#mcp-prompt). Server mendeklarasikan primitive mana yang dia punya; client menemukannya otomatis lewat protokol — tanpa kode integrasi bespoke per caller, beda dengan endpoint REST hand-wired yang cuma dipahami satu caller yang sudah tahu bentuknya.
+
+<a id="mcp-tool"></a>**Tool (MCP primitive)** — aksi yang bisa dipanggil AI lewat MCP: query, komputasi, atau operasi tulis, dengan input/output bertipe. Contoh di project ini: `get_transactions`, `get_cashflow_summary`, `get_pyramid_scores`, `search_transactions_semantic`. Analogi REST: mirip endpoint `POST`/aksi, bukan data statis.
+
+<a id="mcp-resource"></a>**Resource (MCP primitive)** — data ber-URI yang dibaca AI secara pasif (mis. `finance://pyramid-scores`), bukan dipanggil sebagai aksi. Analogi REST: mirip `GET` ke data yang sudah dihitung/statis. Belum diimplementasikan di chapter ini — cuma teaser stretch masa depan.
+
+<a id="mcp-prompt"></a>**Prompt (MCP primitive)** — template siap pakai dengan variabel yang diisi AI, disediakan server supaya client tidak perlu menulis ulang instruksi yang sama tiap kali. Belum diimplementasikan di chapter ini.
+
+<a id="fastmcp"></a>**FastMCP** — library Python yang menyederhanakan pembuatan MCP server: dekorator `@mcp.tool()` mengubah fungsi biasa jadi MCP Tool, dan menyediakan cara mounting ke aplikasi ASGI (FastAPI) yang sudah ada lewat SSE. Skema JSON tiap tool di-generate otomatis dari anotasi tipe Python — lihat [Skema tool](#tool-schema).
+
+<a id="tool-schema"></a>**Skema tool (tool schema)** — deskripsi JSON tentang sebuah MCP Tool (nama, parameter + tipenya, bentuk hasil) yang dibaca AI client *sebelum* dia memanggil tool itu. FastMCP men-generate skema ini dari anotasi tipe Python: `dict`/`Any` polos menghasilkan skema `{}` kosong (AI menebak nama field); tipe eksplisit (`list[dict[str, Any]]` + docstring per-field, atau `TypedDict`) menghasilkan skema dengan field bernama dan bertipe. Prinsip yang sama dengan [tool docstring sebagai skema](#tool-docstring-as-schema) di Chapter 7 — bedanya di sini skemanya jadi kontrak protokol yang dipakai banyak client, bukan cuma satu agent.
+
+<a id="stdio"></a>**stdio transport (MCP)** — cara koneksi MCP di mana client men-spawn server sebagai subprocess lokal dan bicara lewat stdin/stdout-nya. Mandiri, tapi proses (dan koneksi/cache di dalamnya) dibangun ulang dari nol tiap sesi baru — lihat perbandingannya dengan [SSE](#sse) di [PF-AI009-mcp-personal-finance-server-todo-id.md](PF-AI009-mcp-personal-finance-server-todo-id.md#cara-kerjanya).
+
+<a id="mcp-inspector"></a>**MCP Inspector** — tool browser resmi (`npx @modelcontextprotocol/inspector`) untuk memanggil sebuah MCP server secara interaktif tanpa perlu Claude Desktop — dipakai untuk quickstart sebelum membangun server sungguhan, supaya protokolnya (daftar tool, panggilan, hasil) terasa konkret lebih dulu.
 
 ---
 
