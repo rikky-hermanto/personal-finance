@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Upload, MoreHorizontal, Trash2, FileDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import TransactionTable from '@/components/TransactionTable';
+import { useRealtimeTransactions, type TransactionInsert } from '@/hooks/useRealtimeTransactions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -38,6 +39,21 @@ const TransactionsTab = () => {
     // category edits — TransactionTable manages its own rows server-side
   }, []);
 
+  const pendingCount = useRef(0);
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onInsert = useCallback((_row: TransactionInsert) => {
+    pendingCount.current += 1;
+    if (flushTimer.current) return;          // debounce: a commit inserts many rows at once
+    flushTimer.current = setTimeout(() => {
+      toast({ title: 'Transaksi baru', description: `${pendingCount.current} transaksi masuk` });
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      pendingCount.current = 0;
+      flushTimer.current = null;
+    }, 1000);
+  }, [queryClient, toast]);
+
+  useRealtimeTransactions(onInsert);
 
   const { data: countData } = useQuery({
     queryKey: ['transactions-count'],

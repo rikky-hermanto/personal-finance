@@ -159,7 +159,7 @@ The PF-AI series is the delivery vehicle for this map (one ticket per chapter). 
 | [PF-AI004](../../.claude/plans/learning/PF-AI004-rag-reranking-generation.md) | Chunking + rerank + `/ask` | UC-2.9, UC-2.10, UC-2.16 (RAG half) | ✅ Done 2026-07-03 |
 | [PF-AI005](../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md) | SSE streaming + production UX | UC-2.11, UC-2.13 | To Do — next up |
 | [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) | Advanced RAG patterns | UC-2.14 | To Do |
-| [PF-AI007](../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents.md) | smolagents Categorizer Agent | UC-3.1, UC-2.16 (agent half) | To Do |
+| [PF-AI007](../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) | smolagents Categorizer Agent | UC-3.1, UC-2.16 (agent half) | To Do |
 | [PF-AI008](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md) | LangGraph Financial Health Advisor | UC-3.3 | To Do |
 | [PF-AI009](../../.claude/plans/learning/PF-AI009-mcp-personal-finance-server-todo.md) | MCP server | UC-3.6 | To Do |
 | PF-118 | Semantic categorization fallback | UC-2.7 | Ready ⚠️ board also lists it Obsolete — reconcile |

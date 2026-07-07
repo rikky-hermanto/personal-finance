@@ -6,9 +6,129 @@
 > **Planned from branch:** main
 > **Pivot goal:** Close the single biggest gap on current AI Eng JDs. "Agentic systems" is the hard one to fake. smolagents is the minimum-surface entry: one LLM, a set of tools, a loop. Grok the ReAct loop here — the state machines, routing, and multi-agent patterns in Chapter 8 (LangGraph) make sense only after you've seen what they're abstracting. After this chapter you can say: "I built a tool-calling agent that categorizes transactions by iterating over rule-matching, semantic similarity search, and spending-pattern context — every tool call is traced in Langfuse."
 
-## Objective
+# 📑 Table of Contents
 
-The existing 4-layer categorizer (`categorizer.py`, PF-103) runs silently: rule match → preset → history cache → LLM fallback. It's correct ~85% of the time but opaque — when it's wrong, there's no reasoning trace to debug, and nothing to demo in an interview.
+- [📖 Introduction](#-introduction)
+  - [High level — what is this?](#high-level--what-is-this)
+  - [What is an agent?](#what-is-an-agent)
+  - [ToolCallingAgent vs CodeAgent](#toolcallingagent-vs-codeagent)
+  - [The tool docstring is the schema](#the-tool-docstring-is-the-schema)
+- [🔧 Implementation](#-implementation)
+  - [🎯 Objective](#-objective)
+  - [✅ Acceptance Criteria](#-acceptance-criteria)
+  - [🧭 Approach](#-approach)
+  - [📂 Affected Files](#-affected-files)
+  - [📋 TODO](#-todo)
+    - [STEP 0 — Learn: the agent mental model (theory anchor, 60–90 min)](#--step-0--learn-the-agent-mental-model-theory-anchor-6090-min)
+    - [STEP 1 — Install smolagents + litellm](#--step-1--install-smolagents--litellm)
+    - [STEP 2 — Create the package structure + three tool files](#--step-2--create-the-package-structure--three-tool-files)
+    - [STEP 3 — Build `CategorizerAgent` in `app/agents/categorizer_agent.py`](#--step-3--build-categorizeragent-in-appagentscategorizer_agentpy)
+    - [STEP 4 — Wire OTel tracing (Langfuse auto-capture)](#--step-4--wire-otel-tracing-langfuse-auto-capture)
+    - [STEP 5 — Add models + wire `POST /categorize-agent` in `main.py`](#--step-5--add-models--wire-post-categorize-agent-in-mainpy)
+    - [STEP 6 — Write unit tests in `tests/test_categorizer_agent.py`](#--step-6--write-unit-tests-in-teststest_categorizer_agentpy)
+    - [STEP 7 — Write + run the 5-transaction smoke test](#--step-7--write--run-the-5-transaction-smoke-test)
+    - [STEP 8 — Stretch: DeepLearning.AI Functions, Tools and Agents with LangChain](#--step-8--stretch-deeplearningai-functions-tools-and-agents-with-langchain)
+    - [STEP 9 — Full test pass + commit](#--step-9--full-test-pass--commit)
+    - [STEP 10 — Log progress](#--step-10--log-progress)
+  - [📌 Notes](#-notes)
+  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
+  - [🧠 Learning Strategy](#-learning-strategy)
+  - [📝 Knowledge Check](#-knowledge-check)
+
+# 📖 Introduction
+
+> Read this before the implementation steps. The goal is to *understand* the concept by watching
+> it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
+
+## High level — what is this?
+
+An **agent** is a loop, not a function. The existing categorizer sends a description to the LLM and
+takes back whatever category it guesses. This chapter replaces that silent guess with a loop where
+the LLM gathers evidence — it calls a tool, looks at what came back, decides what to do next, calls
+another tool — and only answers once it has enough. Same inputs and outputs as `/categorize`, but
+now the reasoning is visible: every tool call becomes a span you can open in Langfuse.
+
+```
+  transaction ───►┌──────────────────────────┐───► category + confidence
+  (desc/wallet/    │   Agent = LLM + tools    │      + reasoning + trace
+   amount)         │                          │
+                   │   observe ◄──┐           │
+                   │      │       │           │   loops up to 3× (ReAct):
+                   │   reason      │ tool      │   rules → history → vocabulary
+                   │      │       │ output    │
+                   │      ▼       │           │
+                   │    act ──────┘           │
+                   │  (call a tool)           │
+                   └──────────────────────────┘
+```
+
+## What is an agent?
+
+**Stage 0 — one LLM call.** The current LLM-fallback layer (Layer 4 of `categorizer.py`) sends the
+description to the model and takes back a category. It works when the description is obvious —
+"STARBUCKS COFFEE" → Food & Dining.
+
+> **The wall:** when it's wrong, there's no record of *why*. The model never checked the 106 rules
+> or the user's past transactions — it guessed from the description string alone. Feed it
+> "GJ*GRAB CAR JAKARTA" and it might say "Shopping"; nothing shows what it considered or lets you
+> correct the reasoning.
+
+**Stage 1 — give the model tools.** Instead of guessing, let the model call functions: search the
+rules, look up similar past transactions. **Tool calling** = the LLM emits a structured request
+("call `search_category_rules` with keyword='grab'"), your code runs it, and hands the result back
+to the model.
+
+> **The wall:** one tool call usually isn't enough. Rules might return "No rules matched", so the
+> model needs to *see that result* and then decide to try similarity search instead. A single
+> request → response can't branch on what it just learned.
+
+**Stage 2 — the ReAct loop.** **ReAct** (Reason + Act) runs the model in a loop: it observes the
+latest tool output, reasons about the next step, acts by calling another tool, observes again —
+until it has enough evidence to produce a final answer. smolagents runs this loop for you.
+*This is what the chapter ships.*
+
+> **Teaser, not taught here:** Chapter 8's LangGraph turns this implicit loop into an explicit state
+> graph with routing and retry nodes — the same loop, made inspectable and controllable.
+
+▶ **Watch/read for this concept:** HF Agents Course Unit 1 → https://huggingface.co/learn/agents-course/unit1/introduction
+
+## ToolCallingAgent vs CodeAgent
+
+**Stage 0 — `CodeAgent`.** smolagents' `CodeAgent` lets the LLM *write Python* to call tools —
+maximally flexible, and genuinely clever for data-science notebooks.
+
+> **The wall:** in a web service that generated code runs on your server. Nothing stops the model —
+> or a prompt-injected transaction description — from emitting `os.system("rm -rf /")` and having it
+> execute. Flexibility becomes arbitrary code execution.
+
+**Stage 1 — `ToolCallingAgent`.** Constrain the model to emit **JSON tool calls** — the exact
+`tool_use` shape already used throughout the extraction pipeline. The model can only invoke declared
+tools with typed arguments; no arbitrary code path exists. *This is what the chapter ships.* The
+bridge to what you already know: the `tool_use` primitive from PDF extraction is the same building
+block the agent loop runs on — you're seeing where that primitive lives inside a reasoning loop.
+
+▶ **Watch/read for this concept:** smolagents — Agent types → https://huggingface.co/docs/smolagents/en/conceptual_guides/react_and_code_agents
+
+## The tool docstring is the schema
+
+**Stage 0 — a bare function.** Write `search_category_rules(keyword)` and register it as a tool.
+
+> **The wall:** the model decides *whether and when* to call a tool purely from its docstring — that
+> is the only description it sees. A vague docstring ("searches rules") gives it no basis to check
+> rules *before* similarity search, so it fires them in the wrong order and you get worse answers
+> with no obvious bug.
+
+**Stage 1 — docstring as contract.** Write the docstring to state *when* to use the tool ("Use this
+tool FIRST", "Use this when rules return No rules matched"), the argument meaning, and the return
+shape. The docstring **is** the schema the LLM plans against. *This is what the chapter ships.*
+
+▶ **Watch/read for this concept:** smolagents — Writing good tools → https://huggingface.co/docs/smolagents/en/tutorials/building_good_tools
+
+# 🔧 Implementation
+
+## 🎯 Objective
+
+The existing 4-layer categorizer ([categorizer.py](../../../services/ai-service/app/services/categorizer.py), PF-103) runs silently: rule match → preset → history cache → LLM fallback. It's correct ~85% of the time but opaque — when it's wrong, there's no reasoning trace to debug, and nothing to demo in an interview.
 
 The **Transaction Categorizer Agent** replaces the silent LLM-fallback layer with a smolagents `ToolCallingAgent`. Same inputs and outputs as the existing `/categorize` endpoint, but the agent:
 
@@ -68,7 +188,7 @@ This is what "observable AI reasoning" looks like in a job interview demo.
 **Depends on:** PF-AI003 (pgvector + `/search` endpoint — `find_similar_transactions` calls it directly), PF-AI001 (Langfuse + OTel setup — traces hook into the existing OTLP pipeline).
 **Unblocks:** Chapter 8 (LangGraph Financial Advisor — you'll understand exactly what LangGraph adds to this simpler loop), Chapter 9 (MCP server — `search_category_rules` becomes an MCP tool in that chapter).
 
-## Acceptance Criteria
+## ✅ Acceptance Criteria
 
 - [ ] `pip install "smolagents[litellm]" litellm` succeeds; both added to `pyproject.toml` main deps
 - [ ] `app/agents/categorizer_agent.py` — `CategorizerAgent` wrapping a `ToolCallingAgent` with 3 tools; accepts `description`, `wallet`, `amount_idr`; returns `CategorizationResult(category, confidence, reasoning, tool_calls_count)`
@@ -79,9 +199,9 @@ This is what "observable AI reasoning" looks like in a job interview demo.
 - [ ] Langfuse traces: every `/categorize-agent` call produces ≥1 tool-call child span visible in the Langfuse dashboard (parent = agent run; children = individual tool calls)
 - [ ] `scripts/test_agent.py` — 5-transaction smoke test runs and prints category + confidence + reasoning + tool count for each; all 5 get a non-null category from the known vocabulary
 - [ ] `tests/test_categorizer_agent.py` — unit tests with mocked smolagents agent (no real LLM calls); covers: normal categorization, fallback to "Other" on empty output, 502-propagating exception re-raise
-- [ ] HF Agents Course Units 1–2 read; active-retrieval notes written in `docs/mentor/progress.md`
+- [ ] HF Agents Course Units 1–2 read; active-retrieval notes written in [progress.md](../../../docs/mentor/progress.md)
 
-## Approach
+## 🧭 Approach
 
 **ToolCallingAgent, not CodeAgent — and why this matters for production.**
 smolagents has two agent types: `CodeAgent` (generates executable Python to call tools) and `ToolCallingAgent` (generates JSON tool calls — the same JSON format as OpenAI function calling and Anthropic `tool_use`). `CodeAgent` is clever but dangerous in a production web service — the generated code can include `os.system("rm -rf /")` and it will run. `ToolCallingAgent` constrains the LLM to structured tool invocations only, matching the `tool_use` pattern already used throughout the project. The architectural bridge: the "tool_use" primitive you learned in the extraction pipeline is the same building block the agent loop runs on. You're not learning something new — you're seeing where that primitive lives inside a reasoning loop.
@@ -98,25 +218,23 @@ smolagents uses LiteLLM as its default provider backend, which means `LiteLLMMod
 **Langfuse traces via OTel hook.**
 smolagents v1.9+ ships with OpenTelemetry instrumentation. One call to `instrument_smolagents()` at service startup pushes every agent run, tool call, and LLM completion to our OTLP endpoint (already configured for Langfuse in PF-AI001). Each tool call appears as a child span of the agent run — the trace tree is the demo artifact that makes "I built an observable agent" concrete and defensible.
 
-## Affected Files
+## 📂 Affected Files
 
 | File | Change |
 |------|--------|
-| `services/ai-service/app/agents/__init__.py` | Create — empty package |
-| `services/ai-service/app/agents/categorizer_agent.py` | Create — `CategorizerAgent` + `CategorizationResult` + `_parse_result` |
-| `services/ai-service/app/agents/tools/__init__.py` | Create — empty package |
-| `services/ai-service/app/agents/tools/category_rules.py` | Create — `search_category_rules` `@tool` + `load_rules()` |
-| `services/ai-service/app/agents/tools/similarity.py` | Create — `find_similar_transactions` `@tool` + `configure()` |
-| `services/ai-service/app/agents/tools/categories.py` | Create — `list_all_categories` `@tool` + `KNOWN_CATEGORIES` |
-| `services/ai-service/app/models.py` | Edit — add `CategorizeAgentRequest`, `CategorizeAgentResponse` |
-| `services/ai-service/app/main.py` | Edit — add `POST /categorize-agent`; wire agent in lifespan; call `instrument_smolagents()` |
-| `services/ai-service/pyproject.toml` | Edit — add `smolagents[litellm]`, `litellm` to main deps |
-| `services/ai-service/tests/test_categorizer_agent.py` | Create — unit tests (mocked ToolCallingAgent, no real LLM) |
-| `services/ai-service/scripts/test_agent.py` | Create — 5-transaction smoke test via httpx |
+| [\_\_init\_\_.py](../../../services/ai-service/app/agents/__init__.py) (`app/agents/`) | Create — empty package |
+| [categorizer_agent.py](../../../services/ai-service/app/agents/categorizer_agent.py) | Create — `CategorizerAgent` + `CategorizationResult` + `_parse_result` |
+| [\_\_init\_\_.py](../../../services/ai-service/app/agents/tools/__init__.py) (`app/agents/tools/`) | Create — empty package |
+| [category_rules.py](../../../services/ai-service/app/agents/tools/category_rules.py) | Create — `search_category_rules` `@tool` + `load_rules()` |
+| [similarity.py](../../../services/ai-service/app/agents/tools/similarity.py) | Create — `find_similar_transactions` `@tool` + `configure()` |
+| [categories.py](../../../services/ai-service/app/agents/tools/categories.py) | Create — `list_all_categories` `@tool` + `KNOWN_CATEGORIES` |
+| [models.py](../../../services/ai-service/app/models.py) | Edit — add `CategorizeAgentRequest`, `CategorizeAgentResponse` |
+| [main.py](../../../services/ai-service/app/main.py) | Edit — add `POST /categorize-agent`; wire agent in lifespan; call `instrument_smolagents()` |
+| [pyproject.toml](../../../services/ai-service/pyproject.toml) | Edit — add `smolagents[litellm]`, `litellm` to main deps |
+| [test_categorizer_agent.py](../../../services/ai-service/tests/test_categorizer_agent.py) | Create — unit tests (mocked ToolCallingAgent, no real LLM) |
+| [test_agent.py](../../../services/ai-service/scripts/test_agent.py) | Create — 5-transaction smoke test via httpx |
 
----
-
-## TODO
+## 📋 TODO
 
 ### [ ] STEP 0 — Learn: the agent mental model (theory anchor, 60–90 min)
 
@@ -134,7 +252,7 @@ The Hugging Face Agents Course is the fastest way to grok the ReAct loop before 
 
 3. **Skim Unit 3 intro only** — enough to see where multi-step reasoning goes; you'll revisit in Chapter 8.
 
-**Active-retrieval task (mandatory — don't skip):** Close all tabs. In `docs/mentor/progress.md` under today's date, write from memory:
+**Active-retrieval task (mandatory — don't skip):** Close all tabs. In [progress.md](../../../docs/mentor/progress.md) under today's date, write from memory:
 - What does ReAct stand for? What happens at each step (Observe, Reason, Act)?
 - Why does `ToolCallingAgent` produce JSON tool calls instead of arbitrary Python? What's the security implication of the alternative?
 - What is the difference between how a tool is *described* to the LLM (docstring) vs how it *executes* (Python function body)?
@@ -142,11 +260,9 @@ The Hugging Face Agents Course is the fastest way to grok the ReAct loop before 
 
 > **The interview frame:** "An AI agent is a loop: the LLM observes tool output, reasons about what to do next, and acts by calling another tool — until it has enough evidence to produce a final answer. ReAct is the standard framing: Reason → Act → Observe → repeat. smolagents runs this loop explicitly; LangGraph (Chapter 8) makes the loop a directed graph so you can add conditional routing, retry nodes, and parallel tool calls. I built the categorizer in smolagents first — so when I explain LangGraph, I can say exactly what it adds."
 
----
-
 ### [ ] STEP 1 — Install smolagents + litellm
 
-Add to `pyproject.toml` main dependencies (runtime — not dev):
+Add to [pyproject.toml](../../../services/ai-service/pyproject.toml) main dependencies (runtime — not dev):
 
 ```toml
     "smolagents[litellm]>=1.9",
@@ -166,8 +282,6 @@ python -c "from smolagents import ToolCallingAgent, tool, LiteLLMModel; print('s
 
 > **Why `smolagents[litellm]`?** The `[litellm]` extra bundles LiteLLM as smolagents' provider backend. Without it, smolagents defaults to OpenAI only. With it, `LiteLLMModel(model_id="gemini/gemini-2.5-flash")` and `"anthropic/claude-sonnet-4-6"` both work — the same keys already in `config.py`, zero extra setup.
 
----
-
 ### [ ] STEP 2 — Create the package structure + three tool files
 
 ```bash
@@ -176,7 +290,7 @@ touch services/ai-service/app/agents/__init__.py
 touch services/ai-service/app/agents/tools/__init__.py
 ```
 
-**Tool 1 — `search_category_rules`** (`app/agents/tools/category_rules.py`):
+**Tool 1 — `search_category_rules`** ([category_rules.py](../../../services/ai-service/app/agents/tools/category_rules.py)):
 
 ```python
 """Tool: search existing category rules by keyword."""
@@ -189,12 +303,10 @@ from smolagents import tool
 # snapshot is better than a live DB call on every agent iteration.
 _CATEGORY_RULES: dict[str, str] = {}
 
-
 def load_rules(rules: dict[str, str]) -> None:
     """Called from main.py lifespan to populate the rules snapshot at startup."""
     global _CATEGORY_RULES
     _CATEGORY_RULES = {k.lower(): v for k, v in rules.items()}
-
 
 @tool
 def search_category_rules(keyword: str) -> str:
@@ -220,7 +332,41 @@ def search_category_rules(keyword: str) -> str:
     return "Matched rules:\n" + "\n".join(lines)
 ```
 
-**Tool 2 — `find_similar_transactions`** (`app/agents/tools/similarity.py`):
+**C# equivalent** (Python `@tool` decorator + docstring-as-schema → a `[Description]`-annotated method the framework reflects over — e.g. Semantic Kernel's `[KernelFunction]`; module-level `dict` snapshot → `static IReadOnlyDictionary` behind a `Load` method):
+
+```csharp
+public static class CategoryRulesTool
+{
+    // Populated at startup — same 106 rules the 4-layer categorizer uses.
+    private static IReadOnlyDictionary<string, string> _categoryRules =
+        new Dictionary<string, string>();
+
+    public static void LoadRules(IDictionary<string, string> rules) =>
+        _categoryRules = rules.ToDictionary(kv => kv.Key.ToLowerInvariant(), kv => kv.Value);
+
+    [KernelFunction("search_category_rules")]
+    [Description("Search the category rule base for a keyword match. Use this tool FIRST. " +
+                 "Returns matching category names and the rule patterns that triggered them. " +
+                 "Returns 'No rules matched.' when empty.")]
+    public static string SearchCategoryRules(
+        [Description("Single word or short phrase from the transaction description")] string keyword)
+    {
+        keyword = keyword.ToLowerInvariant().Trim();
+        var matches = _categoryRules
+            .Where(kv => kv.Key.Contains(keyword) || keyword.Contains(kv.Key))
+            .Take(5)
+            .Select(kv => $"  pattern='{kv.Key}' → category='{kv.Value}'")
+            .ToList();
+        return matches.Count == 0
+            ? "No rules matched."
+            : "Matched rules:\n" + string.Join("\n", matches);
+    }
+}
+```
+
+> The `[Description]` attribute plays the exact role the Python docstring does — it's the only text the LLM sees when deciding whether to call the tool.
+
+**Tool 2 — `find_similar_transactions`** ([similarity.py](../../../services/ai-service/app/agents/tools/similarity.py)):
 
 ```python
 """Tool: find semantically similar past transactions via the RAG /search endpoint."""
@@ -233,11 +379,9 @@ from smolagents import tool
 
 _SEARCH_URL = "http://localhost:8000/search"
 
-
 def configure(search_url: str) -> None:
     global _SEARCH_URL
     _SEARCH_URL = search_url
-
 
 @tool
 def find_similar_transactions(description: str) -> str:
@@ -268,9 +412,42 @@ def find_similar_transactions(description: str) -> str:
     return asyncio.run(_fetch())
 ```
 
+**C# equivalent** (Python `httpx.AsyncClient` → `HttpClient`; `asyncio.run()` bridging sync→async → `.GetAwaiter().GetResult()` — the same "sync wrapper over an async call" compromise, with the same caveat):
+
+```csharp
+public static class SimilarityTool
+{
+    private static string _searchUrl = "http://localhost:8000/search";
+    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
+
+    public static void Configure(string searchUrl) => _searchUrl = searchUrl;
+
+    [KernelFunction("find_similar_transactions")]
+    [Description("Find semantically similar past transactions and their historical categories. " +
+                 "Use this when rule matching returns 'No rules matched.' or the match is ambiguous.")]
+    public static string FindSimilarTransactions(
+        [Description("The transaction description to search for similarities")] string description)
+    {
+        // Framework calls tools synchronously — block on the async HTTP call,
+        // same trade-off as asyncio.run() in the Python version.
+        var response = _http.PostAsJsonAsync(_searchUrl, new { query = description, top_k = 3 })
+            .GetAwaiter().GetResult();
+        response.EnsureSuccessStatusCode();
+        var data = response.Content.ReadFromJsonAsync<SearchResponse>().GetAwaiter().GetResult();
+
+        if (data?.Results is not { Count: > 0 } results)
+            return "No similar past transactions found.";
+
+        var lines = results.Select((r, i) =>
+            $"  [{i + 1}] '{r.Description}' — {r.Category ?? "unknown"} (similarity={r.Similarity:F2})");
+        return "Similar past transactions:\n" + string.Join("\n", lines);
+    }
+}
+```
+
 > **Why `asyncio.run()` inside a sync tool?** smolagents calls `@tool` functions synchronously. `httpx.AsyncClient` is async. `asyncio.run()` spins a new event loop for this blocking call — same pattern as `asyncio.to_thread` in reverse (sync wrapping async, not async wrapping sync). In a real service, use `httpx.Client` (sync) directly to avoid the overhead. For this chapter, `asyncio.run()` keeps the code simple and correct.
 
-**Tool 3 — `list_all_categories`** (`app/agents/tools/categories.py`):
+**Tool 3 — `list_all_categories`** ([categories.py](../../../services/ai-service/app/agents/tools/categories.py)):
 
 ```python
 """Tool: return the full known category vocabulary."""
@@ -292,7 +469,6 @@ KNOWN_CATEGORIES = [
     "Transfer", "ATM Withdrawal", "Other",
 ]
 
-
 @tool
 def list_all_categories() -> str:
     """Return the complete list of valid category names.
@@ -304,11 +480,32 @@ def list_all_categories() -> str:
     return "Valid categories:\n" + "\n".join(f"  - {c}" for c in KNOWN_CATEGORIES)
 ```
 
+**C# equivalent** (Python module-level `list` constant → `static readonly string[]`; generator expression → LINQ `Select` + `string.Join`):
+
+```csharp
+public static class CategoriesTool
+{
+    // Static list — categories change rarely; constrains the agent's final
+    // pick to known names (prevents category hallucination).
+    public static readonly string[] KnownCategories =
+    [
+        "Food & Dining", "Food & Dining (Café)", "Food & Dining (Fast Food)",
+        "Transportation", "Transportation (Online)", "Transportation (Fuel)",
+        // ... same list as the Python version ...
+        "Transfer", "ATM Withdrawal", "Other",
+    ];
+
+    [KernelFunction("list_all_categories")]
+    [Description("Return the complete list of valid category names. Your final CATEGORY must " +
+                 "exactly match one of these names — do NOT invent category names.")]
+    public static string ListAllCategories() =>
+        "Valid categories:\n" + string.Join("\n", KnownCategories.Select(c => $"  - {c}"));
+}
+```
+
 > **Why a static list vs a DB query?** Categories rarely change, and a DB call on every agent iteration adds latency + connection overhead. The agent's constraint is behavioral: the system prompt tells it "your final category MUST be from `list_all_categories()`." Hallucinated names fail downstream validation and appear in Langfuse — they're easy to catch. A future version can make this dynamic without changing the tool signature.
 
 > **The tool docstring IS the schema description.** The LLM sees only what's written in the docstring when it decides whether to call a tool. Ambiguous docstrings produce ambiguous tool choice. Each docstring here explicitly states when to use the tool ("Use this tool FIRST", "Use this when rules return No rules matched") to steer the agent toward the intended call order.
-
----
 
 ### [ ] STEP 3 — Build `CategorizerAgent` in `app/agents/categorizer_agent.py`
 
@@ -349,14 +546,12 @@ Strategy — follow this order:
 CRITICAL: CATEGORY must exactly match one name from list_all_categories().
 Never invent a category name. If truly uncertain, use 'Other'."""
 
-
 @dataclass
 class CategorizationResult:
     category: str
     confidence: float
     reasoning: str
     tool_calls_count: int
-
 
 def _parse_result(raw: str) -> CategorizationResult:
     """Parse the agent's final text into a structured result."""
@@ -371,7 +566,6 @@ def _parse_result(raw: str) -> CategorizationResult:
         reasoning=lines.get("REASONING", raw[:200]),
         tool_calls_count=0,  # set from the caller based on Langfuse span count
     )
-
 
 class CategorizerAgent:
     def __init__(self) -> None:
@@ -410,15 +604,81 @@ class CategorizerAgent:
             raise
 ```
 
+**C# equivalent** (no smolagents package exists in .NET — the nearest real equivalent is Semantic Kernel with `FunctionChoiceBehavior.Auto()`, which runs the same tool-calling loop; Python `@dataclass` → C# `record`; `_parse_result` → private static method; `logger.exception` → `ILogger.LogError(ex, ...)` per ERR-04):
+
+```csharp
+public record CategorizationResult(
+    string Category, double Confidence, string Reasoning, int ToolCallsCount);
+
+public class CategorizerAgent
+{
+    private readonly Kernel _kernel;
+    private readonly ILogger<CategorizerAgent> _logger;
+
+    private const string SystemPrompt = """
+        You are a personal finance transaction categorizer.
+        Strategy: 1. search_category_rules first. 2. find_similar_transactions if
+        ambiguous. 3. list_all_categories to pick the exact name. Return EXACTLY:
+        CATEGORY: <name> / CONFIDENCE: <0.0-1.0> / REASONING: <1-2 sentences>
+        """;
+
+    public CategorizerAgent(Kernel kernel, ILogger<CategorizerAgent> logger)
+    {
+        _kernel = kernel;   // tools registered as KernelFunctions at DI setup
+        _logger = logger;
+    }
+
+    public async Task<CategorizationResult> CategorizeAsync(
+        string description, string wallet, double amountIdr)
+    {
+        var task = $"Categorize this bank transaction:\n  Description: {description}\n" +
+                   $"  Bank: {wallet}\n  Amount (IDR): {amountIdr:N0}";
+        try
+        {
+            // FunctionChoiceBehavior.Auto() = the ReAct loop: the model calls
+            // tools, observes results, repeats — SK caps iterations internally
+            // (the max_steps analogue).
+            var settings = new PromptExecutionSettings
+                { FunctionChoiceBehavior = FunctionChoiceBehavior.Auto() };
+            var result = await _kernel.InvokePromptAsync(
+                $"{SystemPrompt}\n\n{task}", new(settings));
+            var parsed = ParseResult(result.ToString());
+            _logger.LogInformation(
+                "agent_categorized description={Description} category={Category}",
+                description, parsed.Category);
+            return parsed;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "agent categorization failed description={Description}", description);
+            throw;
+        }
+    }
+
+    private static CategorizationResult ParseResult(string raw)
+    {
+        var lines = raw.Trim().Split('\n')
+            .Where(l => l.Contains(':'))
+            .Select(l => l.Split(':', 2))
+            .ToDictionary(p => p[0].Trim().ToUpperInvariant(), p => p[1].Trim());
+        return new CategorizationResult(
+            Category: lines.GetValueOrDefault("CATEGORY", "Other"),
+            Confidence: double.TryParse(lines.GetValueOrDefault("CONFIDENCE"), out var c) ? c : 0.5,
+            Reasoning: lines.GetValueOrDefault("REASONING", raw[..Math.Min(200, raw.Length)]),
+            ToolCallsCount: 0);
+    }
+}
+```
+
+> Note the async difference: SK's loop is natively `async Task` — no `asyncio.to_thread` bridge needed, because .NET's tool-calling stack doesn't have a sync-only `run()` like smolagents does.
+
 > **Why `max_steps=3`?** The three tools are sequenced: rules → history → vocabulary. In practice 1–2 iterations suffice — rules match or they don't. `max_steps=3` caps runaway loops where the LLM keeps calling the same tool with different keywords. Chapter 8's LangGraph replaces this with explicit `END` routing nodes — you'll see exactly what that solves.
 
 > **Why is `categorize()` synchronous?** `smolagents.ToolCallingAgent.run()` is synchronous (it manages its own internal async where needed). Called directly inside `async def`, it blocks the FastAPI event loop. The endpoint calls it via `asyncio.to_thread()` — same fix as FlashRank in Chapter 4. Don't force it async; trust the thread pool.
 
----
-
 ### [ ] STEP 4 — Wire OTel tracing (Langfuse auto-capture)
 
-In `app/main.py`, add ONE line after the existing OTel exporter setup (from PF-AI001):
+In [main.py](../../../services/ai-service/app/main.py), add ONE line after the existing OTel exporter setup (from PF-AI001):
 
 ```python
 from smolagents.monitoring import instrument_smolagents   # smolagents >= 1.9
@@ -438,11 +698,9 @@ This registers a hook that wraps `ToolCallingAgent.run()`, tool dispatch, and ev
 
 > **If smolagents < 1.9 (check `smolagents.__version__`):** the `monitoring` module may not exist. Fallback: wrap `CategorizerAgent.categorize()` with a manual Langfuse span using the existing `langfuse` client from PF-AI001. A 5-line decorator achieves the same parent/child trace shape.
 
----
-
 ### [ ] STEP 5 — Add models + wire `POST /categorize-agent` in `main.py`
 
-Extend `app/models.py`:
+Extend [models.py](../../../services/ai-service/app/models.py):
 
 ```python
 # ── Chapter 7: Agent Categorization ────────────────────────────────────────────
@@ -453,7 +711,6 @@ class CategorizeAgentRequest(BaseModel):
     wallet: str = Field(default="Unknown")
     amount_idr: float = Field(default=0.0, ge=0.0)
 
-
 class CategorizeAgentResponse(BaseModel):
     category: str
     confidence: float
@@ -461,7 +718,19 @@ class CategorizeAgentResponse(BaseModel):
     tool_calls_count: int
 ```
 
-In `main.py` lifespan, after the existing services are wired:
+**C# equivalent** (Pydantic `BaseModel` + `Field` constraints → C# record DTOs with DataAnnotations; `str_strip_whitespace` has no attribute equivalent — normalize in the validator or a custom binder):
+
+```csharp
+public record CategorizeAgentRequest(
+    [property: Required, StringLength(500, MinimumLength = 1)] string Description,
+    string Wallet = "Unknown",
+    [property: Range(0.0, double.MaxValue)] double AmountIdr = 0.0);
+
+public record CategorizeAgentResponse(
+    string Category, double Confidence, string Reasoning, int ToolCallsCount);
+```
+
+In [main.py](../../../services/ai-service/app/main.py) lifespan, after the existing services are wired:
 
 ```python
 from app.agents.categorizer_agent import CategorizerAgent
@@ -511,11 +780,48 @@ async def categorize_with_agent(request: CategorizeAgentRequest) -> CategorizeAg
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
 ```
 
+**C# equivalent** (FastAPI route + lifespan wiring → ASP.NET Core controller action + DI registration in `Program.cs`; `asyncio.to_thread` → nothing — the agent call is already `async Task`; `HTTPException(502)` → `StatusCode(502, ...)`):
+
+```csharp
+// Program.cs — DI registration replaces the lifespan wiring
+builder.Services.AddSingleton<CategorizerAgent>();
+
+// CategorizeAgentController.cs
+[ApiController]
+[Route("api/[controller]")]
+public class CategorizeAgentController : ControllerBase
+{
+    private readonly CategorizerAgent _agent;
+    private readonly ILogger<CategorizeAgentController> _logger;
+
+    public CategorizeAgentController(CategorizerAgent agent, ILogger<CategorizeAgentController> logger)
+    {
+        _agent = agent;
+        _logger = logger;
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<CategorizeAgentResponse>> Categorize(CategorizeAgentRequest request)
+    {
+        try
+        {
+            var result = await _agent.CategorizeAsync(
+                request.Description, request.Wallet, request.AmountIdr);
+            return Ok(new CategorizeAgentResponse(
+                result.Category, result.Confidence, result.Reasoning, result.ToolCallsCount));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "agent categorization failed");
+            return StatusCode(502, new { detail = "llm_parse_error" });
+        }
+    }
+}
+```
+
 > **Why a separate `/categorize-agent` endpoint (not replacing `/categorize`)?** The existing `/categorize` is the production path — fast, 4-layer, no agent overhead. The agent path is slower (1–3 LLM calls per request) and is invoked for debugging, edge cases, and demos. Both being live lets you compare: "same transaction, fast path says 'Shopping', agent says 'Shopping (Online)' with reasoning: 'Tokopedia rule matched + 3 past similar transactions confirmed Shopping (Online).' " That comparison is itself interview content.
 
 > **Why 502 on agent failure (not 500)?** The error contract in `.claude/rules/ai-service.md`: LLM/provider failures are upstream-dependency errors → 502. Returning 200-with-empty is explicitly forbidden — it would poison any downstream evaluation with fake successes.
-
----
 
 ### [ ] STEP 6 — Write unit tests in `tests/test_categorizer_agent.py`
 
@@ -525,7 +831,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from app.agents.categorizer_agent import CategorizationResult, CategorizerAgent, _parse_result
-
 
 def test_parse_result_extracts_structured_fields():
     raw = (
@@ -538,12 +843,10 @@ def test_parse_result_extracts_structured_fields():
     assert result.confidence == pytest.approx(0.9)
     assert "starbucks" in result.reasoning.lower()
 
-
 def test_parse_result_falls_back_to_other_on_garbage_output():
     result = _parse_result("nothing useful here at all")
     assert result.category == "Other"
     assert result.confidence == pytest.approx(0.5)
-
 
 @patch("app.agents.categorizer_agent.ToolCallingAgent")
 @patch("app.agents.categorizer_agent.LiteLLMModel")
@@ -563,7 +866,6 @@ def test_categorize_calls_agent_run(mock_model_cls, mock_agent_cls):
     assert result.category == "Transportation"
     assert result.confidence == pytest.approx(0.85)
 
-
 @patch("app.agents.categorizer_agent.ToolCallingAgent")
 @patch("app.agents.categorizer_agent.LiteLLMModel")
 def test_categorize_re_raises_on_agent_error(mock_model_cls, mock_agent_cls):
@@ -576,17 +878,65 @@ def test_categorize_re_raises_on_agent_error(mock_model_cls, mock_agent_cls):
         agent.categorize("TX", "BCA", 0)
 ```
 
+**C# equivalent** (pytest functions → xUnit `[Fact]` with `Method_Condition_ExpectedResult` naming; `@patch` class-level mocking → `Mock<T>` constructor injection via Moq; `pytest.approx` → `Assert.Equal` with precision; `pytest.raises` → `Assert.ThrowsAsync`):
+
+```csharp
+public class CategorizerAgentTests
+{
+    [Fact]
+    public void ParseResult_StructuredOutput_ExtractsAllFields()
+    {
+        // Arrange
+        var raw = "CATEGORY: Food & Dining\nCONFIDENCE: 0.9\n" +
+                  "REASONING: Rule matched 'starbucks' → Food & Dining (Café).";
+
+        // Act
+        var result = CategorizerAgent.ParseResult(raw);
+
+        // Assert
+        Assert.Equal("Food & Dining", result.Category);
+        Assert.Equal(0.9, result.Confidence, precision: 2);
+        Assert.Contains("starbucks", result.Reasoning, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ParseResult_GarbageOutput_FallsBackToOther()
+    {
+        // Act
+        var result = CategorizerAgent.ParseResult("nothing useful here at all");
+
+        // Assert
+        Assert.Equal("Other", result.Category);
+        Assert.Equal(0.5, result.Confidence, precision: 2);
+    }
+
+    [Fact]
+    public async Task CategorizeAsync_AgentError_ReThrows()
+    {
+        // Arrange — inject a kernel whose prompt invocation throws
+        var mockKernel = new Mock<IAgentRunner>();   // thin interface over Kernel for testability
+        mockKernel.Setup(k => k.RunAsync(It.IsAny<string>()))
+                  .ThrowsAsync(new TimeoutException("model timeout"));
+        var agent = new CategorizerAgent(mockKernel.Object, NullLogger<CategorizerAgent>.Instance);
+
+        // Act + Assert
+        await Assert.ThrowsAsync<TimeoutException>(
+            () => agent.CategorizeAsync("TX", "BCA", 0));
+    }
+}
+```
+
+> Argument-order trap: `Assert.Equal(expected, actual)` — the Python `assert result.category == "Other"` reads the opposite way. Also note SK's `Kernel` isn't mock-friendly directly; wrapping it behind a thin `IAgentRunner` interface is the Moq-compatible pattern (the analogue of patching `ToolCallingAgent` at the class level).
+
 ```bash
 cd services/ai-service && PYTHONPATH=. pytest tests/test_categorizer_agent.py -v
 ```
 
 > **Why mock `ToolCallingAgent` at the class level?** smolagents' `ToolCallingAgent.__init__` may attempt to validate or initialize the LiteLLM model, which fails in CI without API keys. Patching the class at import prevents that initialization. Same pattern as mocking `anthropic.AsyncAnthropic` in the extraction tests — per `.claude/rules/ai-service.md`.
 
----
-
 ### [ ] STEP 7 — Write + run the 5-transaction smoke test
 
-Create `services/ai-service/scripts/test_agent.py`:
+Create [test_agent.py](../../../services/ai-service/scripts/test_agent.py):
 
 ```python
 """Smoke test: run the categorizer agent on 5 hand-picked transactions.
@@ -610,7 +960,6 @@ TEST_TRANSACTIONS = [
 
 URL = "http://localhost:8000/categorize-agent"
 
-
 async def main() -> None:
     async with httpx.AsyncClient(timeout=30.0) as client:
         for tx in TEST_TRANSACTIONS:
@@ -623,9 +972,38 @@ async def main() -> None:
             print(f"  Reasoning   : {r['reasoning'][:120]}...")
             print(f"  Tool calls  : {r['tool_calls_count']}")
 
-
 if __name__ == "__main__":
     asyncio.run(main())
+```
+
+**C# equivalent** (`asyncio.run(main())` → `async Task Main`; `httpx.AsyncClient` → `HttpClient` + `System.Net.Http.Json`; f-string report → interpolated strings):
+
+```csharp
+using System.Net.Http.Json;
+
+var testTransactions = new[]
+{
+    new { description = "STARBUCKS COFFEE GRAND INDONESIA", wallet = "BCA", amount_idr = 72000 },
+    new { description = "TOKOPEDIA*BELANJA ELEKTRONIK", wallet = "BCA", amount_idr = 1500000 },
+    new { description = "PLN PREPAID TOKEN LISTRIK", wallet = "Superbank", amount_idr = 200000 },
+    new { description = "GJ*GRAB CAR JAKARTA SELATAN", wallet = "BCA", amount_idr = 35000 },
+    new { description = "TRANSFER MASUK DARI RIKKY", wallet = "BCA", amount_idr = 5000000 },
+};
+
+using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+const string url = "http://localhost:8000/categorize-agent";
+
+foreach (var tx in testTransactions)
+{
+    var resp = await client.PostAsJsonAsync(url, tx);
+    resp.EnsureSuccessStatusCode();
+    var r = await resp.Content.ReadFromJsonAsync<CategorizeAgentResponse>();
+    Console.WriteLine(new string('─', 70));
+    Console.WriteLine($"  Description : {tx.description}");
+    Console.WriteLine($"  Category    : {r!.Category}  (confidence={r.Confidence:F2})");
+    Console.WriteLine($"  Reasoning   : {r.Reasoning[..Math.Min(120, r.Reasoning.Length)]}...");
+    Console.WriteLine($"  Tool calls  : {r.ToolCallsCount}");
+}
 ```
 
 Run:
@@ -644,15 +1022,11 @@ Expected output: all 5 transactions get a non-null category from `KNOWN_CATEGORI
 
 > **Comparison story:** run the same 5 transactions against `/categorize` (the fast 4-layer path) and note where the two diverge. Identical result + different latency = the agent's cost for explainability. That tradeoff is interview content.
 
----
-
 ### [ ] STEP 8 — Stretch: DeepLearning.AI Functions, Tools and Agents with LangChain
 
 If time allows (this is optional — don't let it block the commit): complete DeepLearning.AI *Functions, Tools and Agents with LangChain* (free, ~3h) → https://learn.deeplearning.ai (search "Functions, Tools and Agents").
 
 This course bridges smolagents' tool-calling primitives to LangChain's function-calling API, which LangGraph (Chapter 8) builds on. Complete it between STEP 7 and the Chapter 8 start — not as a blocker to this chapter's commit.
-
----
 
 ### [ ] STEP 9 — Full test pass + commit
 
@@ -669,17 +1043,24 @@ git status    # verify NO .env, NO credentials
 git commit -m "PF-AI007: Chapter 7 — Transaction Categorizer Agent (smolagents ToolCallingAgent, 3 tools, Langfuse traces)"
 ```
 
----
-
 ### [ ] STEP 10 — Log progress
 
 ```
 /mentor log Built Transaction Categorizer Agent (smolagents ToolCallingAgent, 3 tools: search_category_rules / find_similar_transactions / list_all_categories); all 5 smoke-test transactions categorized correctly; tool calls visible as Langfuse child spans. Chapter 7 complete.
 ```
 
----
+## 📌 Notes
 
-## Resources / Theory to Learn
+- **smolagents version check first.** `instrument_smolagents()` lives in `smolagents.monitoring` from v1.9+. Run `python -c "import smolagents; print(smolagents.__version__)"` before STEP 4. If the module doesn't exist, upgrade: `pip install --upgrade smolagents`.
+- **`find_similar_transactions` requires the AI service running.** It calls `/search` via httpx in a `asyncio.run()`. In unit tests this tool is never called (the agent is mocked). In the smoke test, start the service first on port 8000. Alternative: import `RetrievalService` directly and call `asyncio.run(service.search(...))` to avoid the HTTP roundtrip.
+- **Category rules DB column name.** The `load_rules()` call in the lifespan uses `row["keyword"]` and `row["category_name"]` — match these to the actual column names in the `category_rules` table (check the Supabase schema). If the column is named differently (e.g. `pattern` or `category`), update the query in [main.py](../../../services/ai-service/app/main.py).
+- **`max_steps=3` may need tuning.** If the agent hits the step limit (you'll see "Max iterations reached" in the logs), investigate *why* before raising the limit. Usually it's an ambiguous tool docstring — the LLM doesn't know when to stop. Fix the docstring; don't just raise `max_steps`.
+- **Why not LangChain / LlamaIndex for this chapter?** Those frameworks arrive in Chapter 8+ (LangGraph) and later. Building in raw smolagents first means you understand what the frameworks abstract. "I know what LangGraph adds because I built the raw version first" is a stronger position than "I just used LangChain from day one."
+- **THINK-05 (frozen contract):** `CategorizeAgentRequest` and `CategorizeAgentResponse` are new contract surface. When .NET grows a `/categorize-agent` proxy (future feature, not in this chapter), freeze these fields and update [ai-service.md](../../rules/ai-service.md).
+- **Next chapter (8 — LangGraph):** the `CategorizerAgent` becomes one *node* in the Financial Advisor graph. The 3 tools become graph tools. `max_steps=3` becomes explicit `END` routing. You'll understand what LangGraph adds — and why — because you've now seen what it replaces.
+- **Deferred:** conversation memory within a categorization session (Chapter 8), MCP server exposing tools to Claude Desktop (Chapter 9), streaming the reasoning steps token-by-token (Chapter 5 streaming applies to `/ask` first).
+
+## 📚 Resources / Theory to Learn
 
 Organized by when you need them — read just before the step that uses it.
 
@@ -700,9 +1081,7 @@ Organized by when you need them — read just before the step that uses it.
 - **LangChain blog — *Introduction to LangGraph*** → https://blog.langchain.dev/langgraph/ — read the first two sections only ("What is LangGraph" + "Motivation"). The key insight: LangGraph replaces the implicit `max_steps` loop with an explicit state graph. Everything you built in Chapter 7 becomes one node in Chapter 8's graph.
 - **DeepLearning.AI — *Functions, Tools and Agents with LangChain*** → https://learn.deeplearning.ai — the STEP 8 stretch task; bridges smolagents to LangChain primitives that LangGraph sits on top of.
 
----
-
-## Learning Strategy
+## 🧠 Learning Strategy
 
 **Daily loop for Chapter 7:**
 - **Morning (60–90 min, deep block #1):** STEP 0 (HF Agents Course) + STEP 1 (install). Stop when you can explain the ReAct loop from memory without looking at notes.
@@ -728,21 +1107,6 @@ Organized by when you need them — read just before the step that uses it.
 **The Sunday metric:**
 > "What can I say in an interview today that I couldn't say last Sunday?"
 > Target answer: *"I built a transaction categorizer agent using smolagents ToolCallingAgent with 3 tools: rule-based keyword search, semantic similarity search via pgvector (from Chapter 3), and a category vocabulary guard. The agent runs a ReAct loop — max 3 iterations — and every tool call is a Langfuse child span. I can show you the trace where it called search_category_rules, got 'No rules matched', then called find_similar_transactions, found 3 past 'Shopping (Online)' transactions, and returned that category with 0.7 confidence. That's observable agentic reasoning — not just a demo, a debuggable production artifact."*
-
----
-
-## Notes
-
-- **smolagents version check first.** `instrument_smolagents()` lives in `smolagents.monitoring` from v1.9+. Run `python -c "import smolagents; print(smolagents.__version__)"` before STEP 4. If the module doesn't exist, upgrade: `pip install --upgrade smolagents`.
-- **`find_similar_transactions` requires the AI service running.** It calls `/search` via httpx in a `asyncio.run()`. In unit tests this tool is never called (the agent is mocked). In the smoke test, start the service first on port 8000. Alternative: import `RetrievalService` directly and call `asyncio.run(service.search(...))` to avoid the HTTP roundtrip.
-- **Category rules DB column name.** The `load_rules()` call in the lifespan uses `row["keyword"]` and `row["category_name"]` — match these to the actual column names in the `category_rules` table (check the Supabase schema). If the column is named differently (e.g. `pattern` or `category`), update the query in `main.py`.
-- **`max_steps=3` may need tuning.** If the agent hits the step limit (you'll see "Max iterations reached" in the logs), investigate *why* before raising the limit. Usually it's an ambiguous tool docstring — the LLM doesn't know when to stop. Fix the docstring; don't just raise `max_steps`.
-- **Why not LangChain / LlamaIndex for this chapter?** Those frameworks arrive in Chapter 8+ (LangGraph) and later. Building in raw smolagents first means you understand what the frameworks abstract. "I know what LangGraph adds because I built the raw version first" is a stronger position than "I just used LangChain from day one."
-- **THINK-05 (frozen contract):** `CategorizeAgentRequest` and `CategorizeAgentResponse` are new contract surface. When .NET grows a `/categorize-agent` proxy (future feature, not in this chapter), freeze these fields and update `.claude/rules/ai-service.md`.
-- **Next chapter (8 — LangGraph):** the `CategorizerAgent` becomes one *node* in the Financial Advisor graph. The 3 tools become graph tools. `max_steps=3` becomes explicit `END` routing. You'll understand what LangGraph adds — and why — because you've now seen what it replaces.
-- **Deferred:** conversation memory within a categorization session (Chapter 8), MCP server exposing tools to Claude Desktop (Chapter 9), streaming the reasoning steps token-by-token (Chapter 5 streaming applies to `/ask` first).
-
----
 
 ## 📝 Knowledge Check
 
@@ -772,15 +1136,15 @@ Organized by when you need them — read just before the step that uses it.
 
 *Question:* What is the primary reason to use `ToolCallingAgent` instead of `CodeAgent` in a production web service?
 
-- **A.** `ToolCallingAgent` is faster because it skips the reasoning step
+- **A.** `CodeAgent` generates and executes arbitrary Python code — which can include dangerous system calls; `ToolCallingAgent` constrains the LLM to structured JSON tool calls only, matching the `tool_use` pattern already used in the extraction pipeline
 - **B.** `CodeAgent` requires GPU access; `ToolCallingAgent` runs on CPU
-- **C.** `CodeAgent` generates and executes arbitrary Python code — which can include dangerous system calls; `ToolCallingAgent` constrains the LLM to structured JSON tool calls only, matching the `tool_use` pattern already used in the extraction pipeline
+- **C.** `ToolCallingAgent` is faster because it skips the reasoning step
 - **D.** `ToolCallingAgent` has built-in rate limiting that prevents overuse
 
 <details>
 <summary>Show answer</summary>
 
-**C** — `CodeAgent` can generate `os.system("rm -rf /")` or arbitrary network calls and execute them — a critical vulnerability in any multi-tenant or internet-facing service. `ToolCallingAgent` limits the LLM's actions to the declared tool list, expressed as JSON. This is the same reason the extraction pipeline uses `tool_use` with explicit schema validation instead of free-text parsing.
+**A** — `CodeAgent` can generate `os.system("rm -rf /")` or arbitrary network calls and execute them — a critical vulnerability in any multi-tenant or internet-facing service. `ToolCallingAgent` limits the LLM's actions to the declared tool list, expressed as JSON. This is the same reason the extraction pipeline uses `tool_use` with explicit schema validation instead of free-text parsing.
 *Maps to: Azure AI-102 · Responsible AI & Security; Databricks GenAI Engineer Associate · Production AI Security*
 </details>
 
@@ -826,15 +1190,15 @@ Organized by when you need them — read just before the step that uses it.
 
 *Question:* What is the most likely cause?
 
-- **A.** OTel spans are emitted only for LLM calls, not tool calls — you need a separate manual tracer for tools
-- **B.** `instrument_smolagents()` was called before the OTLP exporter was configured; it registered a hook with no destination, so tool spans are silently dropped
+- **A.** `instrument_smolagents()` was called before the OTLP exporter was configured; it registered a hook with no destination, so tool spans are silently dropped
+- **B.** OTel spans are emitted only for LLM calls, not tool calls — you need a separate manual tracer for tools
 - **C.** smolagents emits only one parent span per run by design; tool spans require a separate SDK
 - **D.** The Langfuse dashboard paginates; scroll down to find tool spans under the parent
 
 <details>
 <summary>Show answer</summary>
 
-**B** — `instrument_smolagents()` registers the OTel hook at call time, binding to whatever `TracerProvider` is active at that moment. If the OTLP exporter (pointing at Langfuse) is configured *after* this call, the hook fires into a no-op provider — parent traces may appear from a different pre-existing tracer, but tool-call child spans are lost. Fix: ensure `OTEL_EXPORTER_OTLP_ENDPOINT` is set and the provider is initialized *before* `instrument_smolagents()` in the startup sequence.
+**A** — `instrument_smolagents()` registers the OTel hook at call time, binding to whatever `TracerProvider` is active at that moment. If the OTLP exporter (pointing at Langfuse) is configured *after* this call, the hook fires into a no-op provider — parent traces may appear from a different pre-existing tracer, but tool-call child spans are lost. Fix: ensure `OTEL_EXPORTER_OTLP_ENDPOINT` is set and the provider is initialized *before* `instrument_smolagents()` in the startup sequence.
 *Maps to: Databricks GenAI Engineer Associate · AI Observability; AWS Certified ML Engineer – Associate · Model monitoring*
 </details>
 

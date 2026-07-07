@@ -571,17 +571,78 @@ distractions instead.
 ### Section order (REQUIRED)
 
 1. Title + metadata blockquote
-2. **`# 📖 Introduction`** — the concept walkthrough (the on-ramp). Rules below.
-3. **`# 🔧 Implementation`** — `## 🎯 Objective` → `## ✅ Acceptance Criteria` → `## 🧭 Approach` →
+2. **`# 📑 Table of Contents`** — the navigation index. Sits between the metadata blockquote and
+   the Introduction. Rules below.
+3. **`# 📖 Introduction`** — the concept walkthrough (the on-ramp). Rules below.
+4. **`# 🔧 Implementation`** — `## 🎯 Objective` → `## ✅ Acceptance Criteria` → `## 🧭 Approach` →
    `## 📂 Affected Files` → `## 📋 TODO` (steps) → reference tables → `## 📌 Notes`
-4. `## 📚 Resources / Theory to Learn` — reference / deeper dives (now SECONDARY; the *one* best
+5. `## 📚 Resources / Theory to Learn` — reference / deeper dives (now SECONDARY; the *one* best
    hands-on resource per concept is pulled UP into the ladder, the rest stay here)
-5. `## 🧠 Learning Strategy` — daily loop, the 5 principles, anti-patterns, the Sunday metric
-6. `## 📝 Knowledge Check` — the quiz (always the FINAL section; see below)
+6. `## 🧠 Learning Strategy` — daily loop, the 5 principles, anti-patterns, the Sunday metric
+7. `## 📝 Knowledge Check` — the quiz (always the FINAL section; see below)
 
 **Heading style:** every `#`/`##` section heading gets a leading emoji (above) — scannable at a
 glance, no two sections share an icon. Skip `---` horizontal rules between TODO steps and between
 sections; the emoji headings + whitespace already separate them, dividers just add visual noise.
+
+### `# 📑 Table of Contents` — rules
+
+A learning plan runs 1,000+ lines across a dozen sections and a dozen-plus build steps; the reader
+needs a jump-map before the ladder starts. **Every plan carries a Table of Contents immediately
+after the title + metadata blockquote and immediately before `# 📖 Introduction`** — required on
+new plans and added when revising any plan that lacks one. Canonical exemplar:
+[PF-AI005-streaming-sse-todo.md](../../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md).
+
+- **Heading:** `# 📑 Table of Contents` — its own H1 with the 📑 icon (used by no other section).
+  The TOC never lists itself, and there is no `---` divider around it.
+- **Depth:** mirror the heading tree down to `##`. Each `#` section is a top-level bullet; each
+  `##` under it nests one level (the `## 📚 Resources`, `## 🧠 Learning Strategy`, `## 📝 Knowledge
+  Check` sections are `##` children of `# 🔧 Implementation`, so they nest under it). **Under
+  `## 📋 TODO`, nest every `### STEP N` heading** — the steps are the build's backbone and the
+  longest stretch of the file, so they earn direct links. Do *not* expand the `###` items under any
+  other `##` section (Resources concepts, Knowledge Check questions) — the section link is enough;
+  only TODO's steps get third-level entries.
+- **Links are GitHub-slug anchors.** Compute each `#anchor` with GitHub's rule: lowercase → drop
+  every character that isn't `[a-z0-9]`, space, hyphen, or underscore → replace spaces with
+  hyphens. The consequences below are correct output, not bugs to "clean up":
+  - a leading emoji becomes a leading hyphen — `## 🎯 Objective` → `#-objective`
+  - the `[x]` done-marker becomes `x` — `### [x] STEP 0 …` → `#x-step-0-…`
+  - a removed `—` or `+` sitting between spaces leaves a **double** hyphen — `## Why stream + the
+    SSE choice` → `#why-stream--the-sse-choice`
+  - dots and slashes vanish with no separator — `app.state.provider` → `appstateprovider`,
+    `/ask/stream` → `askstream`; underscores survive — `stream_generate`
+  - backticks are dropped, their content stays — `` `LlmProvider` `` → `llmprovider`
+- **Link text keeps the emoji and backticks** for fidelity with the heading, but **drops the
+  `[x]` checkbox** — a literal `[ ]` inside `[link text]` breaks markdown link parsing. Write
+  `[STEP 0 — Prerequisite gate …]`, never `[[x] STEP 0 …]`.
+- **Keep it in sync.** If a later edit adds, removes, or renames a section or a STEP, fix the TOC
+  entry in the same edit — a stale TOC that points at anchors that no longer exist is worse than none.
+- **Language matches the file** — the section emojis + names are identical across English and `-id`
+  files, so the TOC labels are too; the same anchor mechanics apply if a TOC is ever added to a
+  `-id` versi-belajar study doc (over its 8 progressive-learning headings).
+
+### `# 📑 Table of Contents` — template
+
+```markdown
+# 📑 Table of Contents
+
+- [📖 Introduction](#-introduction)
+  - [{Concept A heading}](#concept-a-heading)
+  - [{Concept B heading}](#concept-b-heading)
+- [🔧 Implementation](#-implementation)
+  - [🎯 Objective](#-objective)
+  - [✅ Acceptance Criteria](#-acceptance-criteria)
+  - [🧭 Approach](#-approach)
+  - [📂 Affected Files](#-affected-files)
+  - [📋 TODO](#-todo)
+    - [STEP 0 — {title}](#x-step-0--title)
+    - [STEP 1 — {title}](#x-step-1--title)
+    - … one entry per STEP, in order …
+  - [📌 Notes](#-notes)
+  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
+  - [🧠 Learning Strategy](#-learning-strategy)
+  - [📝 Knowledge Check](#-knowledge-check)
+```
 
 ### `# 📖 Introduction` — rules
 

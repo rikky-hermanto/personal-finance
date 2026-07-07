@@ -331,7 +331,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 | Functions, Tools and Agents with LangChain | DeepLearning.AI | 3h | Chapter 7 stretch |
 | LangChain for LLM Application Development | DeepLearning.AI | 4h | Chapter 8 |
 | LangGraph: Multi-Agent Workflows | DeepLearning.AI | 3h | Chapter 8 |
-| Building Agentic RAG with LlamaIndex | DeepLearning.AI | 3h | Chapter 6 |
+| Building and Evaluating Advanced RAG Applications | DeepLearning.AI | 3h | Chapter 6 |
 | Anthropic MCP Series | Anthropic Academy | ~4h | Chapter 9 |
 | Generative AI with Large Language Models | Coursera/DeepLearning.AI | 16h | optional Phase 4 background |
 

@@ -81,8 +81,8 @@ async def test_ask_stream_metadata_contains_contexts():
                     break
 
     assert metadata_data is not None
-    assert isinstance(metadata_data, list)
-    assert metadata_data[0]["transaction_id"] == 1
+    assert "contexts" in metadata_data
+    assert metadata_data["contexts"][0]["transaction_id"] == 1
 
 
 @pytest.mark.anyio
