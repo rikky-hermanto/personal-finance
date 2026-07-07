@@ -111,7 +111,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 |----|-------|-------|
 | PF-AI005 | Streaming + Production UX (SSE) | Depends on PF-AI004; plan revised 2026-07-03 after architect audit (Realtime re-scoped to live transactions): [`.claude/plans/learning/PF-AI005-streaming-sse-todo.md`](.claude/plans/learning/PF-AI005-streaming-sse-todo.md) |
 | PF-AI006 | Advanced RAG Patterns | Depends on PF-AI004+PF-AI005; plan: [`.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md`](.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) |
-| PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents.md) |
+| PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) |
 
 ---
 

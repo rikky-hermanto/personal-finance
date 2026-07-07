@@ -1,11 +1,42 @@
 # PF-AI005 — Streaming + Production UX (SSE)
 
 > **Learning Phase:** Phase 2 · Chapter 5 of 12 · Day ~20+ of 90
-> **Status:** To Do
-> **Started:** —
+> **Status:** Done
+> **Started:** 2026-07-06 · **Completed:** 2026-07-06
 > **Planned from branch:** main
 > **Revised:** 2026-07-03 — architect-audit revisions applied (Realtime re-scoped to live transactions; CORS list fix; abort-on-done; Langfuse streaming spans; httpx test style)
 > **Pivot goal:** Ship token-by-token streaming. Every modern AI product streams — knowing how to implement SSE in FastAPI, wire it to both LLM providers, and consume it in React is a concrete differentiator. This chapter also ships the codebase's first Supabase Realtime subscription — commit an upload and watch the Transactions view update live, without a refetch.
+
+# 📑 Table of Contents
+
+- [📖 Introduction](#-introduction)
+  - [High level — what is this?](#high-level--what-is-this)
+  - [Why stream + the SSE choice](#why-stream--the-sse-choice)
+  - [Provider streaming (async generators)](#provider-streaming-async-generators)
+  - [Realtime vs refetching (live transactions)](#realtime-vs-refetching-live-transactions)
+- [🔧 Implementation](#-implementation)
+  - [🎯 Objective](#-objective)
+  - [✅ Acceptance Criteria](#-acceptance-criteria)
+  - [🧭 Approach](#-approach)
+  - [📂 Affected Files](#-affected-files)
+  - [📋 TODO](#-todo)
+    - [STEP 0 — Prerequisite gate: PF-AI004 done + theory pre-read (30 min)](#x-step-0--prerequisite-gate-pf-ai004-done--theory-pre-read-30-min)
+    - [STEP 1 — Extend `LlmProvider` protocol: add `stream_generate()`](#x-step-1--extend-llmprovider-protocol-add-stream_generate)
+    - [STEP 2 — Implement `stream_generate()` in `AnthropicProvider`](#x-step-2--implement-stream_generate-in-anthropicprovider)
+    - [STEP 3 — Implement `stream_generate()` in `GeminiProvider`](#x-step-3--implement-stream_generate-in-geminiprovider)
+    - [STEP 4 — Install `sse-starlette`; expose `app.state.provider`](#x-step-4--install-sse-starlette-expose-appstateprovider)
+    - [STEP 5 — Build `POST /ask/stream` SSE endpoint](#x-step-5--build-post-askstream-sse-endpoint)
+    - [STEP 6 — Write `tests/test_streaming.py`](#x-step-6--write-teststest_streamingpy)
+    - [STEP 7 — React: install deps + `chatApi.ts`](#x-step-7--react-install-deps--chatapits)
+    - [STEP 8 — Build `ChatPage.tsx` and wire the `/chat` route](#x-step-8--build-chatpagetsx-and-wire-the-chat-route)
+    - [STEP 9 — Supabase Realtime: live transactions subscription](#x-step-9--supabase-realtime-live-transactions-subscription)
+    - [STEP 10 — No-buffer verification + load test check](#x-step-10--no-buffer-verification--load-test-check)
+    - [STEP 11 — Record metrics + commit](#x-step-11--record-metrics--commit)
+    - [STEP 12 — Log progress](#x-step-12--log-progress)
+  - [📌 Notes](#-notes)
+  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
+  - [🧠 Learning Strategy](#-learning-strategy)
+  - [📝 Knowledge Check](#-knowledge-check)
 
 # 📖 Introduction
 
@@ -217,7 +248,7 @@ Out of scope: conversation memory (Chapter 8), streaming the categorization step
 
 ## 📋 TODO
 
-### [ ] STEP 0 — Prerequisite gate: PF-AI004 done + theory pre-read (30 min)
+### [x] STEP 0 — Prerequisite gate: PF-AI004 done + theory pre-read (30 min)
 
 Verify Chapter 4 is complete before building:
 
@@ -247,7 +278,7 @@ If that returns `{"answer":...}`, the gate is open.
 > **The interview frame:** "I chose SSE over WebSockets for token streaming because it's unidirectional (server → client is all I need), standard HTTP (no upgrade, no proxy issues, CDN-compatible), and auto-reconnects. The only limitation is POST support — native `EventSource` is GET-only, so I used `@microsoft/fetch-event-source` on the React side, which wraps `fetch()` with the same reconnection semantics."
 
 
-### [ ] STEP 1 — Extend `LlmProvider` protocol: add `stream_generate()`
+### [x] STEP 1 — Extend `LlmProvider` protocol: add `stream_generate()`
 
 Edit `services/ai-service/app/providers/base.py`:
 
@@ -272,12 +303,39 @@ class LlmProvider(Protocol):
     ) -> AsyncGenerator[str, None]: ...
 ```
 
+**C# equivalent** (Python's `Protocol` + `@runtime_checkable` → a plain C# `interface` — C#
+interfaces are structurally nominal but serve the same "contract, not base class" role here;
+`AsyncGenerator[str, None]` as a return type → `IAsyncEnumerable<string>`, consumed with `await
+foreach` instead of `async for`):
+
+```csharp
+// PersonalFinance.Application/Interfaces/ILlmProvider.cs
+public interface ILlmProvider
+{
+    Task<JsonElement> ExtractStructuredAsync(
+        string systemPrompt, string userText, object schema,
+        (byte[] Bytes, string MimeType)? image = null, CancellationToken ct = default);
+
+    Task<JsonElement> GenerateJsonAsync(
+        string systemPrompt, string userPrompt, object schema, CancellationToken ct = default);
+
+    IAsyncEnumerable<string> StreamGenerateAsync(
+        string systemPrompt, string userPrompt, CancellationToken ct = default);
+}
+```
+
+> **Why no `[EnumeratorCancellation]` here?** That attribute only matters on the *implementing*
+> `async IAsyncEnumerable<string>` method body (Steps 2–3) — it tells the compiler-generated
+> iterator state machine to honor the token an `await foreach (... WithCancellation(ct))` caller
+> passes in. On a bare interface signature it has nothing to attach to, so it's added at each
+> implementation instead, not here.
+
 > **Why `AsyncGenerator[str, None]` and not `AsyncIterable`?** Both work for `async for` consumption, but `AsyncGenerator` makes it explicit that this is a generator (supports `asend`, `athrow`, `aclose`) — important when the caller needs to cancel mid-stream. The `None` is the `send()` type; generators that only yield (never receive) use `None` for send and return types.
 
 > **Why not add a return value annotation?** The generator finishes when the LLM stream ends — no return value semantics needed. The `done` SSE event is the caller's responsibility, not the generator's.
 
 
-### [ ] STEP 2 — Implement `stream_generate()` in `AnthropicProvider`
+### [x] STEP 2 — Implement `stream_generate()` in `AnthropicProvider`
 
 Edit `services/ai-service/app/providers/anthropic.py`:
 
@@ -322,6 +380,78 @@ class AnthropicProvider:
 
 The Anthropic SDK's `messages.stream()` async context manager returns a `Stream` object whose `.text_stream` is an async iterator of text deltas; `await stream.get_final_message()` after iteration yields the complete message with `usage` and `stop_reason`. The context manager handles cleanup on exit — including on cancelled/aborted streams.
 
+**C# equivalent** (Anthropic has no official C# SDK — model the same shape around a hypothetical
+typed streaming client, the same "port the technique, not the package" move as the reranker's
+`ICrossEncoderRanker` in [PF-AI004](PF-AI004-rag-reranking-generation.md); Python's `async with
+stream:` context manager → C#'s `await using`; `async for text in stream.text_stream` → `await
+foreach` — but see the callout below for why this one can't be a straight 1:1 port):
+
+```csharp
+// PersonalFinance.Infrastructure/Providers/AnthropicProvider.cs (hypothetical .NET port)
+public sealed class AnthropicProvider : ILlmProvider
+{
+    private readonly IAnthropicClient _client;   // hypothetical typed client wrapping the streaming Messages API
+    private readonly ILangfuseClient _langfuse;  // Langfuse has no official .NET SDK either — port via its REST ingestion API
+    private readonly string _model;
+    private readonly ILogger<AnthropicProvider> _logger;
+
+    public async IAsyncEnumerable<string> StreamGenerateAsync(
+        string systemPrompt, string userPrompt,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var generation = _langfuse.StartObservation(
+            "generation", name: "anthropic-stream-generate", model: _model,
+            input: new { system = systemPrompt, user = userPrompt });
+
+        await using var stream = await _client.CreateMessageStreamAsync(
+            new MessageStreamRequest(_model, MaxTokens: 1024, Temperature: 0.0m,
+                System: systemPrompt, Messages: new[] { new AnthropicMessage("user", userPrompt) }),
+            ct);
+
+        // C# forbids `yield return` inside a try block that has a catch clause —
+        // only try/finally may wrap a yield. To catch a mid-stream failure the way
+        // Python's `except Exception as exc` does, drive the enumerator by hand:
+        // the call that can throw (MoveNextAsync) sits in its own try/catch outside
+        // the loop body, and `yield return` only ever runs after it succeeds.
+        await using var enumerator = stream.TextStreamAsync(ct).GetAsyncEnumerator(ct);
+        Exception? caught = null;
+        while (true)
+        {
+            bool moved;
+            try { moved = await enumerator.MoveNextAsync(); }
+            catch (Exception exc) { caught = exc; break; }
+            if (!moved) break;
+            yield return enumerator.Current;
+        }
+
+        if (caught is not null)
+        {
+            generation.Update(level: "ERROR", statusMessage: caught.Message);
+            generation.End();
+            ExceptionDispatchInfo.Capture(caught).Throw();
+        }
+
+        var final = await stream.GetFinalMessageAsync(ct);
+        generation.Update(
+            output: "<streamed>",
+            usageDetails: new { input = final.Usage.InputTokens, output = final.Usage.OutputTokens },
+            metadata: new { stop_reason = final.StopReason });
+        generation.End();
+        if (final.StopReason == "max_tokens")
+            _logger.LogWarning("StreamGenerateAsync truncated at max_tokens — answer incomplete");
+    }
+}
+```
+
+> **Why the manual `MoveNextAsync()` loop instead of a plain `await foreach`?** The Python version
+> wraps the *entire* `async with ... async for ...` block in one `try/except`. A direct C# port
+> would want `try { await foreach (...) { yield return ...; } } catch { ... }` — but the compiler
+> rejects it: a `yield return` cannot appear inside a `try` block that has a `catch` clause (only
+> `try/finally` is legal around a yield). Driving the enumerator by hand moves the fallible call
+> (`MoveNextAsync`) into its own try/catch that contains no `yield`, while the `yield return`
+> itself lives in plain, unguarded code — different shape, same guarantee: a failure mid-stream
+> gets logged to Langfuse before it propagates to the caller's `await foreach`.
+
 > **Mirror, don't invent.** The Langfuse block above is the *shape* — the authoritative call pattern (including `estimate_cost_usd` for `cost_details`) is the existing `generate_json` instrumentation in `anthropic.py` (~lines 117–149). Copy that block and adapt; add a module `logger` per ERR-02 if one doesn't exist yet.
 
 ```bash
@@ -347,18 +477,7 @@ asyncio.run(test())
 
 > **Why log truncation instead of raising?** The ai-service rule "treat `max_tokens` as a hard error" is written for extraction, where partial data creates phantom duplicates. A half-streamed chat answer has already been sent to the user's screen — it can't be un-sent. Logging + Langfuse metadata is the documented deviation.
 
-> **C# equivalent of `async foreach` over a stream:**
->
-> ```csharp
-> // Anthropic Python: async for text in stream.text_stream
-> // C# equivalent using HttpClient streaming:
-> await foreach (var chunk in httpClient.GetFromJsonAsAsyncEnumerable<TokenChunk>(url, ct))
->     yield return chunk.Text;
-> // Same pattern: async generator in Python ↔ IAsyncEnumerable<T> in C#
-> ```
-
-
-### [ ] STEP 3 — Implement `stream_generate()` in `GeminiProvider`
+### [x] STEP 3 — Implement `stream_generate()` in `GeminiProvider`
 
 Edit `services/ai-service/app/providers/gemini.py`:
 
@@ -414,8 +533,73 @@ class GeminiProvider:
 
 > **SDK note (simplified):** The repo already runs the new `google-genai` SDK with the async surface — `gemini.py` calls `await client.aio.models.generate_content(...)` today, and `generate_content_stream` is its streaming sibling (a coroutine that resolves to an async iterator — hence the `await` before `async for`). If the method is missing, upgrade `google-genai`; only as a last resort wrap the sync call in `asyncio.to_thread(...)` (keeps the event loop free but loses true incremental streaming) and note it in `docs/performances/ai-observability-metrics.md`.
 
+**C# equivalent** (same "no official SDK, port the technique" situation as Anthropic; the Python
+asymmetry from Step 2's callout — `client.messages.stream()` returns a context manager directly,
+but `client.aio.models.generate_content_stream()` is a coroutine that *resolves to* an iterator —
+maps onto the hypothetical C# client too: `await` the call itself, then iterate the
+`IAsyncEnumerable<T>` it hands back):
 
-### [ ] STEP 4 — Install `sse-starlette`; expose `app.state.provider`
+```csharp
+// PersonalFinance.Infrastructure/Providers/GeminiProvider.cs (hypothetical .NET port)
+public sealed class GeminiProvider : ILlmProvider
+{
+    private readonly IGeminiClient _client;      // hypothetical typed client wrapping the Gemini streaming API
+    private readonly ILangfuseClient _langfuse;
+    private readonly string _model;
+
+    public async IAsyncEnumerable<string> StreamGenerateAsync(
+        string systemPrompt, string userPrompt,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var generation = _langfuse.StartObservation(
+            "generation", name: "gemini-stream-generate", model: _model,
+            input: new { system = systemPrompt, user = userPrompt });
+
+        // `await` the call itself — it resolves to the stream, the same
+        // asymmetry as the Python SDK. Anthropic's stream object (Step 2) is
+        // returned directly, with no leading `await`.
+        var chunks = await _client.GenerateContentStreamAsync(
+            _model, userPrompt,
+            new GenerateContentConfig(SystemInstruction: systemPrompt, Temperature: 0.0m, MaxOutputTokens: 1024),
+            ct);
+
+        GeminiChunk? lastChunk = null;
+        await using var enumerator = chunks.GetAsyncEnumerator(ct);
+        Exception? caught = null;
+        while (true)
+        {
+            bool moved;
+            try { moved = await enumerator.MoveNextAsync(); }
+            catch (Exception exc) { caught = exc; break; }
+            if (!moved) break;
+            lastChunk = enumerator.Current;
+            if (!string.IsNullOrEmpty(lastChunk.Text))
+                yield return lastChunk.Text;
+        }
+
+        if (caught is not null)
+        {
+            generation.Update(level: "ERROR", statusMessage: caught.Message);
+            generation.End();
+            ExceptionDispatchInfo.Capture(caught).Throw();
+        }
+
+        var usage = lastChunk?.UsageMetadata;
+        var finish = lastChunk?.Candidates?.FirstOrDefault()?.FinishReason;
+        generation.Update(
+            output: "<streamed>",
+            usageDetails: usage is null ? null : new { input = usage.PromptTokenCount, output = usage.CandidatesTokenCount },
+            metadata: new { finish_reason = finish });
+        generation.End();
+    }
+}
+```
+
+> Same manual-enumerator reasoning as Anthropic's Step 2 translation — the loop exists purely to
+> keep the fallible `MoveNextAsync()` call outside any `yield`-containing `try/catch`.
+
+
+### [x] STEP 4 — Install `sse-starlette`; expose `app.state.provider`
 
 ```bash
 cd services/ai-service && pip install sse-starlette
@@ -440,8 +624,28 @@ async def lifespan(app: FastAPI):
 
 `app.state.provider` is needed by `POST /ask/stream` to call `provider.stream_generate()`.
 
+**C# equivalent** (FastAPI's `app.state` — an app-global bag populated once at startup — has no
+direct ASP.NET Core analog because it doesn't need one: constructor injection already hands each
+consumer exactly the services it asks for. There's no `lifespan` block to add a line to; the
+provider is just another DI registration):
 
-### [ ] STEP 5 — Build `POST /ask/stream` SSE endpoint
+```csharp
+// Program.cs
+builder.Services.AddSingleton<ILlmProvider>(sp =>
+    ProviderFactory.Create(sp.GetRequiredService<IOptions<AiSettings>>().Value));
+```
+
+> **Why nothing else changes.** `AnswerService` (PF-AI004's C# port) already takes `ILlmProvider`
+> as a constructor parameter — registering it once in `Program.cs` makes it available to
+> `AnswerService` *and* the new streaming controller in Step 5 without touching either constructor.
+> The Python side has to explicitly re-expose `provider` on `app.state` because `AnswerService`
+> there is built once, inside the lifespan block, wrapping a provider instance that nothing else
+> can reach unless it's stashed somewhere global.
+
+
+### [x] STEP 5 — Build `POST /ask/stream` SSE endpoint
+
+> **Fix applied on re-verification (2026-07-06):** the shipped `main.py` sent the `metadata` event as a bare JSON array (`json.dumps(context_payload)`), but `chatApi.ts` parses it as `{contexts: [...]}` and reads `data.contexts`. That mismatch meant citations would silently never render in the browser even though `curl`/unit tests looked fine (they don't touch the frontend's parsing assumption). Fixed to `json.dumps({"contexts": context_payload})`; `test_streaming.py`'s metadata assertion updated to match. Re-ran `pytest tests/test_streaming.py` — 3/3 pass.
 
 Edit `services/ai-service/app/main.py`:
 
@@ -520,6 +724,122 @@ cors_origins: list[str] = ["http://localhost:7208", "http://localhost:8080"]
 
 If you override via env instead, the value must be JSON — pydantic-settings JSON-decodes list fields: `CORS_ORIGINS=["http://localhost:8080","http://localhost:7208"]`. A bare comma-separated string fails to parse and crashes startup.
 
+**C# equivalent** (FastAPI route + `sse-starlette`'s `EventSourceResponse` → a controller action
+that writes SSE frames straight to `Response.Body`; `await request.is_disconnected()` polled after
+each yield → the ambient `HttpContext.RequestAborted` `CancellationToken`, which every downstream
+`await` already observes without an explicit poll):
+
+```csharp
+// PersonalFinance.Api/Controllers/AskController.cs
+[ApiController]
+[Route("api/[controller]")]
+public class AskController : ControllerBase
+{
+    private readonly IRetrievalService _retriever;
+    private readonly IRerankerService _reranker;
+    private readonly ILlmProvider _provider;   // bypasses AnswerService directly, same as the Python endpoint (see this chapter's Notes)
+    private readonly ILogger<AskController> _logger;
+
+    public AskController(
+        IRetrievalService retriever, IRerankerService reranker,
+        ILlmProvider provider, ILogger<AskController> logger)
+    {
+        _retriever = retriever;
+        _reranker = reranker;
+        _provider = provider;
+        _logger = logger;
+    }
+
+    [HttpPost("stream")]
+    public async Task AskStream(AskRequest request, CancellationToken ct)
+    {
+        // Kestrel/IIS buffer response bodies by default — same problem the
+        // Python service solves with X-Accel-Buffering: no / PYTHONUNBUFFERED=1.
+        HttpContext.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
+        Response.ContentType = "text/event-stream";
+        Response.Headers["Cache-Control"] = "no-cache";
+        Response.Headers["X-Accel-Buffering"] = "no";
+
+        async Task WriteEventAsync(string eventName, string data)
+        {
+            await Response.WriteAsync($"event: {eventName}\n", ct);
+            await Response.WriteAsync($"data: {data}\n\n", ct);
+            await Response.Body.FlushAsync(ct);   // no flush = buffered = "streaming" that arrives in one burst
+        }
+
+        // 1. Retrieval + reranking (fast, ~100ms) — `ct` flows into every call
+        // below, so a client disconnect cancels retrieval/generation on its
+        // own; there is no separate is-connected check to poll.
+        var candidates = await _retriever.SearchAsync(
+            request.Query, topK: 10, category: request.Category, account: request.Account,
+            dateFrom: request.DateFrom, dateTo: request.DateTo, ct: ct);
+        var contexts = await _reranker.RerankAsync(request.Query, candidates, request.TopK ?? 3, ct);
+
+        if (contexts.Count == 0)
+        {
+            await WriteEventAsync("done", JsonSerializer.Serialize(new { confident = false, contexts = Array.Empty<object>() }));
+            return;
+        }
+
+        // 2. Send contexts BEFORE generation — client can render citations immediately
+        var contextPayload = contexts.Select(r => new
+        {
+            transaction_id = r.TransactionId, date = r.Date, description = r.Description,
+            amount_idr = r.AmountIdr, flow = r.Flow, wallet = r.Wallet,
+        });
+        await WriteEventAsync("metadata", JsonSerializer.Serialize(new { contexts = contextPayload }));
+
+        // 3. Same prompt-building as AnswerService (PF-AI004) — reused, not duplicated.
+        // Reusing it here means bumping FormatContext/SystemPrompt from `private`
+        // to `internal` on AnswerService — the same "must be importable" gate
+        // this step's Python code needs from answerer.py.
+        var userPrompt = $"Context transactions:\n{AnswerService.FormatContext(contexts)}\n\nQuestion: {request.Query}";
+
+        // 4. Stream generation tokens
+        try
+        {
+            await foreach (var token in _provider.StreamGenerateAsync(AnswerService.SystemPrompt, userPrompt, ct))
+            {
+                await WriteEventAsync("token", token);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            return;   // client disconnected mid-generation — nothing left to send
+        }
+        catch (Exception exc)
+        {
+            _logger.LogError(exc, "StreamGenerateAsync failed");
+            await WriteEventAsync("error", JsonSerializer.Serialize(new { detail = "generation_failed" }));
+            return;
+        }
+
+        await WriteEventAsync("done", "");
+    }
+}
+```
+
+> **ARCH-04 note.** This action is well over the 15-line controller-action cap by design of the
+> mirror — it's shown inline to map 1:1 onto the Python `event_generator()` closure. A real port
+> would extract steps 1–4 into an `AskStreamService.StreamAsync(...)` returning
+> `IAsyncEnumerable<SseEvent>`, leaving the controller to just iterate it and write frames — the
+> exact split `AnswerService` already models for the non-streaming `/ask` endpoint in PF-AI004.
+
+> **Polling vs. cancellation — the real difference.** Starlette gives you no push notification when
+> a client disconnects, so FastAPI code has to ask "are we still connected?" after every yield.
+> ASP.NET Core's `HttpContext.RequestAborted` is a `CancellationToken` that transitions to canceled
+> *the instant* the connection drops — and because `ct` is threaded through `SearchAsync`,
+> `RerankAsync`, and `StreamGenerateAsync`, each of those `await`s throws
+> `OperationCanceledException` on its own the moment the client goes away, mid-retrieval or
+> mid-generation. The Python version can only check between yields because that's the only hook
+> Starlette exposes; the C# version gets the equivalent protection for free everywhere `ct` is
+> passed, not just between tokens.
+
+> **Why `Response.Body.FlushAsync` after every event, not just at the end?** Same reason the
+> Python service needs `X-Accel-Buffering: no` and `PYTHONUNBUFFERED=1` — without an explicit
+> flush, Kestrel (or a reverse proxy in front of it) is free to buffer writes and release them all
+> at once, which defeats streaming just as silently as an unflushed Python generator would.
+
 Smoke test (service running, embeddings backfilled):
 
 ```bash
@@ -535,7 +855,7 @@ Expected output: `metadata` event first, then a stream of `token` events, then `
 > **The interview frame:** "SSE generators in FastAPI need explicit disconnect detection — unlike WebSockets, there's no close event pushed to the server. I check `request.is_disconnected()` between token yields. That stops the LLM call when the user closes the tab, which saves ~$0.001 per aborted stream at personal volume but adds up at production scale."
 
 
-### [ ] STEP 6 — Write `tests/test_streaming.py`
+### [x] STEP 6 — Write `tests/test_streaming.py`
 
 ```python
 """Unit tests for POST /ask/stream SSE endpoint.
@@ -644,12 +964,152 @@ async def test_ask_stream_no_contexts_sends_done_with_not_confident():
 
 > **Why `httpx.AsyncClient` + `ASGITransport`, not `fastapi.TestClient`?** Every existing endpoint test in this service uses that pattern with `@pytest.mark.anyio` (see `tests/test_health.py`) — zero `TestClient` usages exist. Matching the house style keeps the suite uniform, and the fixture's save/restore of `app.state` prevents the mocks from leaking into other test modules that share the imported `app`.
 
+**C# equivalent** (`httpx.AsyncClient` + `ASGITransport` → `WebApplicationFactory<Program>` +
+`HttpClient` — the ASP.NET Core "in-memory test server" pattern; the `wire_app_state` fixture's
+`app.state` monkey-patching → `ConfigureTestServices` overriding the real DI registrations with
+Moq mocks; `async for line in r.aiter_lines()` → a `StreamReader` over the response stream):
+
+```csharp
+public class AskStreamTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly WebApplicationFactory<Program> _factory;
+
+    public AskStreamTests(WebApplicationFactory<Program> factory)
+    {
+        _factory = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            var retriever = new Mock<IRetrievalService>();
+            retriever.Setup(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(),
+                    It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<SearchResult> { Result(1) });
+
+            var reranker = new Mock<IRerankerService>();
+            reranker.Setup(r => r.RerankAsync(It.IsAny<string>(), It.IsAny<List<SearchResult>>(),
+                    It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<SearchResult> { Result(1) });
+
+            var provider = new Mock<ILlmProvider>();
+            provider.Setup(p => p.StreamGenerateAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+                .Returns(FakeStream());
+
+            // last registration wins for constructor injection — no explicit
+            // Remove() needed, unlike Python's explicit save/restore of app.state
+            services.AddScoped(_ => retriever.Object);
+            services.AddScoped(_ => reranker.Object);
+            services.AddScoped(_ => provider.Object);
+        }));
+    }
+
+    private static SearchResult Result(int tid) => new()
+    {
+        TransactionId = tid, Similarity = 0.9, Description = $"TX{tid}",
+        Date = "2026-03-01", AmountIdr = 50000.0m, Flow = "DB", Wallet = "BCA",
+    };
+
+    private static async IAsyncEnumerable<string> FakeStream()
+    {
+        foreach (var word in new[] { "Total", " pengeluaran", " Rp 50.000", " [1]" })
+        {
+            yield return word;
+            await Task.Yield();
+        }
+    }
+
+    [Fact]
+    public async Task AskStream_EventOrder_MetadataThenTokenThenDone()
+    {
+        var client = _factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/ask/stream")
+        {
+            Content = JsonContent.Create(new { query = "makan maret" }),
+        };
+
+        // ResponseHeadersRead is the C# equivalent of curl's --no-buffer: without
+        // it, SendAsync waits for the whole response body before returning, which
+        // would make this test pass even if streaming were silently broken.
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        response.EnsureSuccessStatusCode();
+        Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+
+        var events = new List<string>();
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+        string? line;
+        while ((line = await reader.ReadLineAsync()) is not null)
+        {
+            if (line.StartsWith("event:"))
+                events.Add(line["event:".Length..].Trim());
+        }
+
+        Assert.Equal("metadata", events[0]);
+        Assert.Contains("token", events);
+        Assert.Equal("done", events[^1]);
+    }
+}
+
+public class AskStreamEmptyContextTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly WebApplicationFactory<Program> _factory;
+
+    public AskStreamEmptyContextTests(WebApplicationFactory<Program> factory)
+    {
+        // Empty-results behavior needs different mock setups than the happy-path
+        // fixture above, so it gets its own factory/class rather than mutating a
+        // shared one mid-test — Moq setups here are fixed at container-build time,
+        // unlike Python's `app.state.retriever.search = AsyncMock(...)` reassignment.
+        _factory = factory.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            var retriever = new Mock<IRetrievalService>();
+            retriever.Setup(r => r.SearchAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<string?>(),
+                    It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<SearchResult>());
+
+            var reranker = new Mock<IRerankerService>();
+            reranker.Setup(r => r.RerankAsync(It.IsAny<string>(), It.IsAny<List<SearchResult>>(),
+                    It.IsAny<int>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<SearchResult>());
+
+            services.AddScoped(_ => retriever.Object);
+            services.AddScoped(_ => reranker.Object);
+        }));
+    }
+
+    [Fact]
+    public async Task AskStream_NoContexts_SendsDoneWithNotConfident_NoTokenEvents()
+    {
+        var client = _factory.CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/ask/stream")
+        {
+            Content = JsonContent.Create(new { query = "future 2031" }),
+        };
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        var events = new List<string>();
+        await using var stream = await response.Content.ReadAsStreamAsync();
+        using var reader = new StreamReader(stream);
+        string? line;
+        while ((line = await reader.ReadLineAsync()) is not null)
+            if (line.StartsWith("event:")) events.Add(line["event:".Length..].Trim());
+
+        Assert.DoesNotContain("token", events);
+        Assert.Contains("done", events);
+    }
+}
+```
+
+> **The `wire_app_state` fixture has no clean 1:1 translation.** Python monkey-patches
+> `app.state.retriever/reranker/provider` per test and restores the originals afterward because the
+> same imported `app` object is shared across the whole test module. `WebApplicationFactory` builds
+> a fresh service provider per `WithWebHostBuilder` call, so there's nothing to save and restore —
+> the tradeoff is that swapping mock behavior *per test* means a second factory/class (as above),
+> not a mid-test reassignment of the same mock.
+
 ```bash
 cd services/ai-service && PYTHONPATH=. pytest tests/test_streaming.py -v
 ```
 
 
-### [ ] STEP 7 — React: install deps + `chatApi.ts`
+### [x] STEP 7 — React: install deps + `chatApi.ts`
 
 ```bash
 cd apps/frontend
@@ -740,7 +1200,7 @@ Add `VITE_AI_SERVICE_URL=http://localhost:8000` to `apps/frontend/.env` (or `.en
 > **Why `controller.abort()` on `done`?** The library treats a server-closed connection as retriable: unless the signal is aborted or `onclose` throws, it silently reconnects and **re-issues the POST** — a duplicate LLM generation whose tokens would append onto the finished answer (and double your token bill). Aborting after `done`, with the throwing `onclose` as the safety net for unexpected closes, guarantees exactly one request per question. Verify in devtools: one `POST /ask/stream` per send. (Note: the package's last release is v2.0.1, Apr 2021 — stable and widely used, but unmaintained; this reconnect footgun will never be "fixed" upstream.)
 
 
-### [ ] STEP 8 — Build `ChatPage.tsx` and wire the `/chat` route
+### [x] STEP 8 — Build `ChatPage.tsx` and wire the `/chat` route
 
 Create `apps/frontend/src/pages/ChatPage.tsx`:
 
@@ -903,7 +1363,9 @@ Also add a "Chat" nav item in `apps/frontend/src/components/AppShell.tsx` — th
 > **Lazy import:** if the frontend grows, wrap `ChatPage` in `React.lazy()` + `Suspense` to avoid adding it to the initial bundle. Not needed now.
 
 
-### [ ] STEP 9 — Supabase Realtime: live transactions subscription
+### [x] STEP 9 — Supabase Realtime: live transactions subscription
+
+> **Completed on re-verification (2026-07-06):** the committed state only shipped the publication migration (as `20260706000001_add_realtime.sql`, not `test_streaming.py`) and a Sidebar nav entry — `src/lib/supabase.ts`, `src/hooks/useRealtimeTransactions.ts`, the debounced-toast wiring in `TransactionsTab.tsx`, and `apps/frontend/.env.example` did not exist despite the Acceptance Criteria checkbox already being marked done. All four were created/wired now, matching this step's spec exactly, and `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (local dev anon key from `appsettings.Development.json`) were added to `.env`. `npm run build` and `npm run lint` pass with no new errors.
 
 Enable Realtime on `transactions` via a **migration** — never the Studio toggle (schema changes live in `supabase/migrations/`, per the governance rules):
 
@@ -1003,7 +1465,7 @@ Verify end-to-end: run the app, commit an upload in the wizard, and watch the to
 > **The interview frame:** "I added Supabase Realtime so committed transactions push to the UI in ~50ms instead of waiting for the next client refetch. Two production gotchas: the table has to be added to the `supabase_realtime` publication — I did that in a versioned migration, not a dashboard toggle — and RLS silently filters events the subscriber can't SELECT, which is invisible unless you know to suspect it. I also debounced the query invalidation, because one statement commit inserts dozens of rows and naive per-event refetching would hammer the API."
 
 
-### [ ] STEP 10 — No-buffer verification + load test check
+### [x] STEP 10 — No-buffer verification + load test check
 
 Verify the stream is not buffered:
 
@@ -1032,7 +1494,7 @@ curl -N --no-buffer -X POST http://localhost:8000/ask/stream \
 Expected: service log shows the generator exited cleanly (no stack trace, just a log line about disconnect). If you see a `BrokenPipeError` in the logs, add better exception handling around the `async for token in ...` loop.
 
 
-### [ ] STEP 11 — Record metrics + commit
+### [x] STEP 11 — Record metrics + commit
 
 Record in `docs/performances/ai-observability-metrics.md`:
 
@@ -1081,7 +1543,7 @@ git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase 
 ```
 
 
-### [ ] STEP 12 — Log progress
+### [x] STEP 12 — Log progress
 
 ```
 /mentor log Built streaming SSE chapter: stream_generate() on Anthropic+Gemini providers with Langfuse spans + usage capture, POST /ask/stream (metadata→token→done event protocol, disconnect guard), React chat UI with @microsoft/fetch-event-source (TTFT ~XXXms, abort-on-done single-POST guarantee), Supabase Realtime live-transactions subscription (publication migration + RLS gotcha). Chapter 5 complete.

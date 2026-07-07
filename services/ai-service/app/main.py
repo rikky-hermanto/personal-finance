@@ -318,7 +318,7 @@ async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
             }
             for r in contexts
         ]
-        yield {"event": "metadata", "data": json.dumps(context_payload)}
+        yield {"event": "metadata", "data": json.dumps({"contexts": context_payload})}
 
         # 3. Build the same user prompt as AnswerService
         user_prompt = (

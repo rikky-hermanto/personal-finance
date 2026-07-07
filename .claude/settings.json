@@ -33,6 +33,7 @@
     ]
   },
   "model": "opusplan",
+  "includeCoAuthoredBy": false,
   "hooks": {
     "Stop": [
       {
