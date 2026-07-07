@@ -4,9 +4,125 @@
 > **Status:** To Do
 > **Started:** —
 > **Planned from branch:** main
+> **Revised:** 2026-07-07 — mentor-skill audit revisions applied (ladder-first Introduction + Table of Contents added, Implementation wrapped under one H1, C# equivalents added for every tool/test code block, Knowledge Check answers reshuffled off all-B, `---` dividers removed)
 > **Pivot goal:** Ship a personal-finance MCP server callable from Claude Desktop. MCP is Anthropic's open protocol for giving AI assistants structured tool access to external systems — companies building AI features in 2026 use it to connect LLMs to their data without custom tool plumbing. After this chapter, Claude Desktop can query your transactions, run semantic search, and read your pyramid scores. You can explain the protocol, design a tool schema from scratch, and articulate the tradeoffs (stdio vs SSE, tool granularity, auth surface) — the vocabulary that shows up in AI engineering JDs and staff-level interviews.
 
-## Objective
+# 📑 Table of Contents
+
+- [📖 Introduction](#-introduction)
+  - [MCP primitives and transport](#mcp-primitives-and-transport)
+  - [Typed tool schemas vs `dict`](#typed-tool-schemas-vs-dict)
+- [🔧 Implementation](#-implementation)
+  - [🎯 Objective](#-objective)
+  - [✅ Acceptance Criteria](#-acceptance-criteria)
+  - [🧭 Approach](#-approach)
+  - [📂 Affected Files](#-affected-files)
+  - [📋 TODO](#-todo)
+    - [STEP 0 — Theory: MCP concepts (30 min, read before building)](#--step-0--theory-mcp-concepts-30-min-read-before-building)
+    - [STEP 1 — Install FastMCP + run the quickstart](#--step-1--install-fastmcp--run-the-quickstart)
+    - [STEP 2 — THINK-03 gate: design the tool schemas field-by-field](#--step-2--think-03-gate-design-the-tool-schemas-field-by-field)
+    - [STEP 3 — Create `app/mcp_server.py` with `get_transactions`](#--step-3--create-appmcp_serverpy-with-get_transactions)
+    - [STEP 4 — Add `get_cashflow_summary` tool](#--step-4--add-get_cashflow_summary-tool)
+    - [STEP 5 — Add `get_pyramid_scores` tool (calls .NET API)](#--step-5--add-get_pyramid_scores-tool-calls-net-api)
+    - [STEP 6 — Add `search_transactions_semantic` tool (reuses PF-AI003)](#--step-6--add-search_transactions_semantic-tool-reuses-pf-ai003)
+    - [STEP 7 — Wire MCP server into `main.py`](#--step-7--wire-mcp-server-into-mainpy)
+    - [STEP 8 — Configure Claude Desktop + test end-to-end](#--step-8--configure-claude-desktop--test-end-to-end)
+    - [STEP 9 — Full test pass + commit](#--step-9--full-test-pass--commit)
+    - [STEP 10 — Stretch: 2-agent MCP workflow](#--step-10--stretch-2-agent-mcp-workflow)
+    - [STEP 11 — Log progress](#--step-11--log-progress)
+  - [📌 Notes](#-notes)
+  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
+  - [🧠 Learning Strategy](#-learning-strategy)
+  - [📝 Knowledge Check](#-knowledge-check)
+
+# 📖 Introduction
+
+> Read this before the implementation steps. The goal is to *understand* the concept by watching
+> it evolve from the dumbest version to the one you'll ship — not to memorize jargon up front.
+
+## High level — what is this?
+
+Chapters 1–8 gave the AI service real capabilities — extraction, categorization, RAG search, a 2-agent
+workflow — but every one of them is reached the same way: a caller (the .NET API, a script) sends an
+HTTP request to an endpoint you hand-wrote, and the shape of what that endpoint expects lives only in
+your code. **MCP (Model Context Protocol)** flips that: instead of one bespoke integration per caller,
+you publish a small, typed, discoverable server that *any* MCP-compatible client — Claude Desktop,
+Claude Code, another agent — can connect to, see what's available, and call. This chapter wraps four
+existing capabilities (transaction queries, spending summaries, pyramid scores, semantic search) as MCP
+Tools and mounts them on the AI service so Claude Desktop can talk to them directly.
+
+```
+Claude Desktop (MCP client)
+        │  "berapa pengeluaran makan bulan ini?"
+        ▼
+   MCP Server  ── mounted at /mcp on the AI service, port 8000 ──
+   (FastMCP, SSE transport)
+        │
+        ├── get_transactions ────────────┐
+        ├── get_cashflow_summary ────────┤── asyncpg pool ──▶ Supabase (transactions, accounts)
+        ├── search_transactions_semantic ┘── RetrievalService (PF-AI003, pgvector)
+        │
+        └── get_pyramid_scores ──────────── httpx ──▶ .NET API GET /api/journey/scores
+```
+
+## MCP primitives and transport
+
+**Stage 0 — what you already have: hand-wired endpoints.** `POST /categorize`, `POST /ask`, the 2-agent
+demo — every AI capability in this project so far is a specific HTTP route with a specific request/response
+shape, called by exactly one caller (the .NET API) that already knows the shape because you wrote both sides.
+
+> **The wall:** Claude Desktop is not the .NET API. It doesn't know `/categorize` exists, doesn't know the
+> request body shape, and can't be taught per-conversation — there's no shared, machine-readable place that
+> says "here's what tools exist and how to call them." Every new AI client you want to support means another
+> bespoke integration.
+
+**Stage 1 — MCP's three primitives.** MCP defines a small, fixed vocabulary that any client and server both
+speak: **Tools** (callable actions the AI invokes — a query, a computation, a write), **Resources**
+(URI-addressed data the AI reads passively, like a static lookup table), and **Prompts** (reusable templates
+with variables the AI fills in). A server declares which of these it exposes; a client discovers them
+automatically over the protocol — no per-caller integration code. This chapter exposes four **Tools**:
+`get_transactions`, `get_cashflow_summary`, `get_pyramid_scores`, `search_transactions_semantic` — all four
+are live queries against real data, which is exactly what Tools are for.
+
+> **The wall:** once you have tools, *how* does a client actually reach the process running them? MCP
+> defines transports — the wire format for that connection — and you have to pick one.
+
+**Stage 2 — stdio vs SSE.** **stdio transport** has the client spawn your server as a local subprocess and
+talk over its stdin/stdout — self-contained, but a fresh process (and a fresh asyncpg pool, a cold
+`RetrievalService` with no warm embedding cache) on every connection. **SSE transport** (Server-Sent Events —
+the same long-lived-HTTP-response mechanism behind PF-AI005's `/ask/stream`) has the client connect to a
+server that's *already running*. The AI service is already a long-running process with a warm asyncpg pool
+and a warm `RetrievalService` — SSE reuses both; stdio would throw them away and rebuild per connection.
+→ *This is what the chapter ships*: FastMCP mounted at `/mcp` on the existing AI service, SSE transport,
+sharing `app.state.pool` and `app.state.retriever`.
+
+▶ **Watch/read for this concept:** https://modelcontextprotocol.io/introduction and
+https://modelcontextprotocol.io/docs/concepts/tools
+
+## Typed tool schemas vs `dict`
+
+**Stage 0 — return whatever `dict` you want.** In ordinary Python code, a function like
+`get_pyramid_scores()` returning `dict` is completely normal — the caller reads `result["tier"]` and moves
+on, and if a key is missing or misnamed, you find out at the call site.
+
+> **The wall:** an MCP tool's "caller" isn't a line of Python you control — it's an LLM deciding, from a
+> generated JSON schema, what a tool returns and how to use the result in a follow-up call. `dict` as a
+> return-type annotation carries no field information — FastMCP generates an opaque `{}` schema. The model
+> sees a tool that returns *something*, with no names and no types, and starts guessing field names when it
+> tries to format the answer or chain a second call.
+
+**Stage 1 — typed returns.** Annotate the real shape — `list[dict[str, Any]]` with a docstring that lists
+every field and its type (as STEP 3's `get_transactions` docstring does: `{date, description, category,
+amount_idr (float), flow, account}`), or a richer `TypedDict`/dataclass. FastMCP turns that into a JSON
+schema with named, typed fields — the same schema Claude Desktop reads *before* it ever calls the tool, so
+it picks the right field name on the first try instead of guessing. → *This is what the chapter ships*:
+every tool below returns an explicit typed shape with a field-by-field docstring, never a bare `dict`.
+
+▶ **Watch/read for this concept:** https://github.com/jlowin/fastmcp (README — tool schema generation)
+
+# 🔧 Implementation
+
+## 🎯 Objective
 
 Chapters 1–8 built a complete RAG + agent stack within one service. MCP lifts that capability into a protocol — a stable, typed interface that lets any MCP-compatible client (Claude Desktop, Claude Code, other agents) use your financial tools without custom integration per caller. The chapter delivers:
 
@@ -22,9 +138,7 @@ Chapters 1–8 built a complete RAG + agent stack within one service. MCP lifts 
 **Depends on:** PF-AI003 (`RetrievalService`, pgvector semantic search — `search_transactions_semantic` reuses it directly)
 **Unblocks:** Chapter 10 demo Loom (the MCP server is the "look at what I built" segment)
 
----
-
-## Acceptance Criteria
+## ✅ Acceptance Criteria
 
 - [ ] `fastmcp>=2.0` and `httpx>=0.27` in `pyproject.toml`; installed in venv; `import fastmcp` works
 - [ ] `app/mcp_server.py` defines a `FastMCP` instance with all 4 tools; no `Any` types on tool signatures — all parameters typed, all tools have docstrings
@@ -38,9 +152,7 @@ Chapters 1–8 built a complete RAG + agent stack within one service. MCP lifts 
 - [ ] `tests/test_mcp_server.py` passes — all 4 tools tested with mocked asyncpg / mocked httpx (no real API calls in tests)
 - [ ] No `.env` / credentials in any committed file; `claude_desktop_config.json` not committed
 
----
-
-## Approach
+## 🧭 Approach
 
 **FastMCP inside the existing AI service — not a standalone process.** The AI service already manages the asyncpg pool, `RetrievalService`, and embedding provider. Co-locating the MCP server reuses all of that without a second process. FastMCP mounts onto the existing FastAPI app — the same lifespan starts both the RAG endpoints and the MCP server, so tool handlers share `app.state.retriever` directly. Single port (`8000`), single process, simpler Claude Desktop config.
 
@@ -54,9 +166,7 @@ Chapters 1–8 built a complete RAG + agent stack within one service. MCP lifts 
 
 Out of scope: MCP Resources (URI-addressed data), MCP Prompts (pre-baked templates), remote MCP deployment, auth (PF-S08), conversation memory in tools. Don't add them.
 
----
-
-## Affected Files
+## 📂 Affected Files
 
 | File | Change |
 |------|--------|
@@ -67,9 +177,7 @@ Out of scope: MCP Resources (URI-addressed data), MCP Prompts (pre-baked templat
 | `services/ai-service/tests/test_mcp_server.py` | Create — unit tests (mocked asyncpg + mocked httpx) |
 | Claude Desktop config (user machine only) | Configure — `%APPDATA%\Claude\claude_desktop_config.json` (not committed) |
 
----
-
-## TODO
+## 📋 TODO
 
 ### [ ] STEP 0 — Theory: MCP concepts (30 min, read before building)
 
@@ -86,8 +194,6 @@ The spec is short and worth reading once — it defines the vocabulary for every
 - Why does typing tool parameters and return values matter specifically in MCP (vs just using `dict`)?
 
 > **The interview frame:** "MCP is the protocol layer above tool use. In standard `tool_use` API calls, tools are one-shot — you define them per request, the model calls them, you get a result. MCP turns tools into a persistent typed server any MCP client can discover and call, without re-defining the schema each time. Three primitives: Tools (functions the AI calls), Resources (data the AI reads), Prompts (pre-baked templates). For personal finance I exposed four Tools — the same operations a financial analyst would reach for first: transactions, spending summary, pyramid scores, semantic search."
-
----
 
 ### [ ] STEP 1 — Install FastMCP + run the quickstart
 
@@ -135,8 +241,6 @@ Expected: the inspector browser page shows a `hello` tool listed; calling it ret
 
 > **Why quickstart before the real server?** The inspector exercise makes the protocol concrete — you see the JSON-RPC handshake, the tool list, and the call/response cycle before you're also fighting asyncpg and httpx. This is the mental model anchor, not a detour.
 
----
-
 ### [ ] STEP 2 — THINK-03 gate: design the tool schemas field-by-field
 
 Before writing any tool code, list every parameter and return field (THINK-03 discipline — wrong types here are silently wrong in the client):
@@ -172,8 +276,6 @@ Before writing any tool code, list every parameter and return field (THINK-03 di
 | | `similarity` | return | `float` | Rounded to 3dp |
 
 > **Why this table before code?** A tool schema is the contract between your server and every MCP client that ever calls it. Wrong types (e.g., `Decimal` instead of `float`) produce JSON serialization errors that are confusing to diagnose client-side. Getting the types right in 5 minutes of table work prevents 20 minutes of "why is this field null in Claude Desktop" debugging.
-
----
 
 ### [ ] STEP 3 — Create `app/mcp_server.py` with `get_transactions`
 
@@ -290,6 +392,86 @@ async def get_transactions(
     return [dict(r) for r in rows]
 ```
 
+**C# equivalent** (asyncpg pool + parametrized WHERE-clause builder → Npgsql + Dapper's `DynamicParameters`; `dict` rows → a typed `record`):
+
+```csharp
+public sealed record TransactionRow(
+    string Date,
+    string Description,
+    string Category,
+    double AmountIdr,
+    string Flow,
+    string Account);
+
+public sealed class TransactionMcpTools
+{
+    private readonly NpgsqlDataSource _dataSource;
+    private readonly ILogger<TransactionMcpTools> _logger;
+
+    public TransactionMcpTools(NpgsqlDataSource dataSource, ILogger<TransactionMcpTools> logger)
+    {
+        _dataSource = dataSource;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<TransactionRow>> GetTransactionsAsync(
+        string? dateFrom = null,
+        string? dateTo = null,
+        string? category = null,
+        string? account = null,
+        int limit = 20)
+    {
+        limit = Math.Min(limit, 100);
+
+        var where = new List<string> { "1=1" };
+        var parameters = new DynamicParameters();
+
+        if (dateFrom is not null)
+        {
+            where.Add("t.date >= @DateFrom::date");
+            parameters.Add("DateFrom", dateFrom);
+        }
+        if (dateTo is not null)
+        {
+            where.Add("t.date <= @DateTo::date");
+            parameters.Add("DateTo", dateTo);
+        }
+        if (category is not null)
+        {
+            where.Add("t.category ILIKE '%' || @Category || '%'");
+            parameters.Add("Category", category);
+        }
+        if (account is not null)
+        {
+            where.Add("a.name ILIKE '%' || @Account || '%'");
+            parameters.Add("Account", account);
+        }
+        parameters.Add("Limit", limit);
+
+        var sql = $"""
+            SELECT
+                t.date::text          AS Date,
+                t.description         AS Description,
+                COALESCE(t.category, '') AS Category,
+                t.amount_idr::float   AS AmountIdr,
+                t.flow                AS Flow,
+                COALESCE(a.name, '')  AS Account
+            FROM transactions t
+            LEFT JOIN accounts a ON a.id = t.account_id
+            WHERE {string.Join(" AND ", where)}
+            ORDER BY t.date DESC, t.id DESC
+            LIMIT @Limit
+            """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync();
+        var rows = await conn.QueryAsync<TransactionRow>(sql, parameters);
+        return rows.AsList();
+    }
+}
+```
+
+> Note: this project's real .NET API talks to Postgres via `supabase-csharp` (PostgREST), never Npgsql directly — the AI service's C# twin uses Npgsql/Dapper here because the *Python* AI service also talks to Postgres directly via asyncpg, not through PostgREST. Same "direct driver" seam on both sides, different SDKs.
+
 Create `services/ai-service/tests/test_mcp_server.py`:
 
 ```python
@@ -333,13 +515,57 @@ async def test_get_transactions_hard_caps_limit(mock_pool):
     assert 100 in call_args.args
 ```
 
+**C# equivalent** (`pytest` fixtures + `AsyncMock` → xUnit `[Fact]` + `Mock<T>` constructor injection; asserting a captured SQL parameter → `Callback<>` capturing the `DynamicParameters` passed to `QueryAsync`):
+
+```csharp
+public class TransactionMcpToolsTests
+{
+    [Fact]
+    public async Task GetTransactionsAsync_CategoryFilter_ReturnsMatchingRows()
+    {
+        // Arrange
+        var expected = new[]
+        {
+            new TransactionRow("2026-03-01", "GOPAY MERCHANT", "Food & Dining", 25000.0, "DB", "BCA"),
+        };
+        var mockDb = new Mock<IDbQueryExecutor>(); // thin wrapper around Dapper's QueryAsync<T>
+        mockDb.Setup(d => d.QueryAsync<TransactionRow>(It.IsAny<string>(), It.IsAny<object>()))
+            .ReturnsAsync(expected);
+        var sut = new TransactionMcpTools(mockDb.Object, Mock.Of<ILogger<TransactionMcpTools>>());
+
+        // Act
+        var results = await sut.GetTransactionsAsync(category: "makan", limit: 5);
+
+        // Assert
+        Assert.Single(results);
+        Assert.Contains(results, r => r.Flow is "DB" or "CR");
+    }
+
+    [Fact]
+    public async Task GetTransactionsAsync_LimitAboveCap_HardCapsAt100()
+    {
+        // Arrange
+        DynamicParameters? captured = null;
+        var mockDb = new Mock<IDbQueryExecutor>();
+        mockDb.Setup(d => d.QueryAsync<TransactionRow>(It.IsAny<string>(), It.IsAny<object>()))
+            .Callback<string, object>((_, p) => captured = (DynamicParameters)p)
+            .ReturnsAsync(Array.Empty<TransactionRow>());
+        var sut = new TransactionMcpTools(mockDb.Object, Mock.Of<ILogger<TransactionMcpTools>>());
+
+        // Act
+        await sut.GetTransactionsAsync(limit: 9999);
+
+        // Assert
+        Assert.Equal(100, captured!.Get<int>("Limit"));
+    }
+}
+```
+
 ```bash
 cd services/ai-service && PYTHONPATH=. pytest tests/test_mcp_server.py::test_get_transactions_returns_list -v
 ```
 
 > **Why a hard limit cap?** MCP tools are called by an AI with no concept of "how big is this table." Without a cap, `get_transactions(limit=10000)` reads the entire transactions table on every LLM call — a 5,000-row result bloats the context window and adds unnecessary Supabase load. 100 is the generous upper bound for what a single chat turn can usefully process. This pattern appears in every production RAG / tool API.
-
----
 
 ### [ ] STEP 4 — Add `get_cashflow_summary` tool
 
@@ -396,6 +622,44 @@ async def get_cashflow_summary(period: str = "this_month") -> list[dict[str, Any
     return [dict(r) for r in rows]
 ```
 
+**C# equivalent** (Python `dict[str, tuple[str, str]]` lookup table → a C# `Dictionary<string, (string From, string To)>`; the closed-literal-set SQL interpolation stays the same shape):
+
+```csharp
+public sealed record CashflowSummaryRow(string Category, double TotalDebit, double TotalCredit, int Count);
+
+private static readonly Dictionary<string, (string From, string To)> PeriodSql = new()
+{
+    ["this_month"] = ("date_trunc('month', CURRENT_DATE)", "CURRENT_DATE"),
+    ["last_month"] = ("date_trunc('month', CURRENT_DATE - INTERVAL '1 month')",
+                       "date_trunc('month', CURRENT_DATE) - INTERVAL '1 day'"),
+    ["this_year"]  = ("date_trunc('year', CURRENT_DATE)", "CURRENT_DATE"),
+};
+
+public async Task<IReadOnlyList<CashflowSummaryRow>> GetCashflowSummaryAsync(string period = "this_month")
+{
+    if (!PeriodSql.TryGetValue(period, out var window))
+    {
+        window = PeriodSql["this_month"];
+    }
+
+    var sql = $"""
+        SELECT
+            COALESCE(t.category, 'Uncategorized') AS Category,
+            SUM(CASE WHEN t.flow = 'DB' THEN t.amount_idr ELSE 0 END)::float AS TotalDebit,
+            SUM(CASE WHEN t.flow = 'CR' THEN t.amount_idr ELSE 0 END)::float AS TotalCredit,
+            COUNT(*)::int AS Count
+        FROM transactions t
+        WHERE t.date BETWEEN {window.From} AND {window.To}
+        GROUP BY t.category
+        ORDER BY TotalDebit DESC
+        """;
+
+    await using var conn = await _dataSource.OpenConnectionAsync();
+    var rows = await conn.QueryAsync<CashflowSummaryRow>(sql);
+    return rows.AsList();
+}
+```
+
 Add to `tests/test_mcp_server.py`:
 
 ```python
@@ -422,9 +686,51 @@ async def test_get_cashflow_summary_unknown_period_defaults_gracefully(mock_pool
     await srv.get_cashflow_summary("decade")
 ```
 
-> **Why embed SQL date expressions instead of computing dates in Python?** `date_trunc('month', CURRENT_DATE)` evaluates in Postgres timezone context — no risk of Python-side date arithmetic drifting relative to the DB. The period key is a closed literal set (not user input), so there's no injection risk in interpolating the expression name. If `period` were user-supplied, approach would differ.
+**C# equivalent**:
 
----
+```csharp
+public class CashflowSummaryToolTests
+{
+    [Fact]
+    public async Task GetCashflowSummaryAsync_ThisMonth_GroupsByCategory()
+    {
+        // Arrange
+        var expected = new[]
+        {
+            new CashflowSummaryRow("Food & Dining", 500000.0, 0.0, 10),
+            new CashflowSummaryRow("Income", 0.0, 15000000.0, 1),
+        };
+        var mockDb = new Mock<IDbQueryExecutor>();
+        mockDb.Setup(d => d.QueryAsync<CashflowSummaryRow>(It.IsAny<string>(), null))
+            .ReturnsAsync(expected);
+        var sut = new TransactionMcpTools(mockDb.Object, Mock.Of<ILogger<TransactionMcpTools>>());
+
+        // Act
+        var result = await sut.GetCashflowSummaryAsync("this_month");
+
+        // Assert
+        Assert.Contains(result, r => r.Category == "Income");
+    }
+
+    [Fact]
+    public async Task GetCashflowSummaryAsync_UnknownPeriod_DefaultsGracefullyToThisMonth()
+    {
+        // Arrange
+        var mockDb = new Mock<IDbQueryExecutor>();
+        mockDb.Setup(d => d.QueryAsync<CashflowSummaryRow>(It.IsAny<string>(), null))
+            .ReturnsAsync(Array.Empty<CashflowSummaryRow>());
+        var sut = new TransactionMcpTools(mockDb.Object, Mock.Of<ILogger<TransactionMcpTools>>());
+
+        // Act
+        var exception = await Record.ExceptionAsync(() => sut.GetCashflowSummaryAsync("decade"));
+
+        // Assert — unknown period falls back to this_month, must not throw
+        Assert.Null(exception);
+    }
+}
+```
+
+> **Why embed SQL date expressions instead of computing dates in Python?** `date_trunc('month', CURRENT_DATE)` evaluates in Postgres timezone context — no risk of Python-side date arithmetic drifting relative to the DB. The period key is a closed literal set (not user input), so there's no injection risk in interpolating the expression name. If `period` were user-supplied, approach would differ.
 
 ### [ ] STEP 5 — Add `get_pyramid_scores` tool (calls .NET API)
 
@@ -459,6 +765,37 @@ async def get_pyramid_scores() -> list[dict[str, Any]]:
         return response.json()
 ```
 
+**C# equivalent** (`httpx.AsyncClient` → a typed `HttpClient` — this is structurally identical to the existing [`JourneyAdvisorClient`](../../../apps/api/src/PersonalFinance.Infrastructure/External/JourneyAdvisorClient.cs) / `PortfolioReviewClient` typed-HttpClient pattern already in this codebase; the only difference is direction — here Python is the *caller* of a .NET endpoint instead of the other way around):
+
+```csharp
+public sealed record PyramidScore(string Tier, double Score, string Status);
+
+public interface IPyramidScoresClient
+{
+    Task<IReadOnlyList<PyramidScore>> GetScoresAsync(CancellationToken ct = default);
+}
+
+public sealed class PyramidScoresClient : IPyramidScoresClient
+{
+    private readonly HttpClient _httpClient;
+    private readonly ILogger<PyramidScoresClient> _logger;
+
+    public PyramidScoresClient(HttpClient httpClient, ILogger<PyramidScoresClient> logger)
+    {
+        _httpClient = httpClient;
+        _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<PyramidScore>> GetScoresAsync(CancellationToken ct = default)
+    {
+        var response = await _httpClient.GetAsync("/api/journey/scores", ct);
+        response.EnsureSuccessStatusCode();
+        var scores = await response.Content.ReadFromJsonAsync<List<PyramidScore>>(cancellationToken: ct);
+        return scores ?? [];
+    }
+}
+```
+
 Add to `tests/test_mcp_server.py`:
 
 ```python
@@ -482,6 +819,38 @@ async def test_get_pyramid_scores_calls_net_api():
         mock_client.get.assert_called_once_with("/api/journey/scores")
 ```
 
+**C# equivalent** (`patch("app.mcp_server.httpx.AsyncClient")` → mocking the `HttpMessageHandler` behind `HttpClient`, the standard xUnit pattern for typed-client tests):
+
+```csharp
+public class PyramidScoresClientTests
+{
+    [Fact]
+    public async Task GetScoresAsync_CallsJourneyScoresEndpoint_ReturnsDeserializedScores()
+    {
+        // Arrange
+        const string json = """
+            [{"tier":"L1","score":0.95,"status":"achieved"},{"tier":"L2","score":0.72,"status":"in_progress"}]
+            """;
+        var handler = new Mock<HttpMessageHandler>();
+        handler.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK,
+                Content = new StringContent(json, Encoding.UTF8, "application/json"),
+            });
+        var httpClient = new HttpClient(handler.Object) { BaseAddress = new Uri("http://localhost:7208") };
+        var sut = new PyramidScoresClient(httpClient, Mock.Of<ILogger<PyramidScoresClient>>());
+
+        // Act
+        var result = await sut.GetScoresAsync();
+
+        // Assert
+        Assert.Equal("L1", result[0].Tier);
+    }
+}
+```
+
 > **Why call the .NET API instead of querying Supabase directly?** `JourneyScoringService` computes tier scores from transactions, assets, and investments with business logic spread across MediatR handlers. Duplicating that logic in Python creates a maintenance split — change the scoring formula and forget to update the Python copy. The HTTP boundary is deliberate: Python owns embeddings and MCP tooling; .NET owns scoring. The 10ms HTTP overhead is negligible in a chat interaction.
 
 > **If the .NET API is not running:** the tool raises `httpx.ConnectError` — FastMCP propagates this as a tool error to the client. That's correct: the tool should not silently return empty. In Claude Desktop, the user sees "tool call failed." Start the .NET API before demoing pyramid scores (`cd apps/api && dotnet run --project src/PersonalFinance.Api`).
@@ -491,8 +860,6 @@ async def test_get_pyramid_scores_calls_net_api():
 curl http://localhost:7208/api/journey/scores
 ```
 If 404: check `JourneyController.cs` for the actual route name and adjust the path.
-
----
 
 ### [ ] STEP 6 — Add `search_transactions_semantic` tool (reuses PF-AI003)
 
@@ -535,6 +902,40 @@ async def search_transactions_semantic(
     ]
 ```
 
+**C# equivalent** (`RetrievalService.search()` → an injected `IRetrievalService`; the list comprehension mapping to typed dicts → LINQ `.Select()` into a `record`):
+
+```csharp
+public sealed record SemanticSearchResult(
+    int TransactionId, string Date, string Description, double AmountIdr,
+    string Flow, string Account, double Similarity);
+
+public sealed class TransactionSearchMcpTools
+{
+    private readonly IRetrievalService _retriever;
+
+    public TransactionSearchMcpTools(IRetrievalService retriever)
+    {
+        _retriever = retriever;
+    }
+
+    public async Task<IReadOnlyList<SemanticSearchResult>> SearchTransactionsSemanticAsync(
+        string query, int topK = 5)
+    {
+        if (_retriever is null)
+        {
+            throw new InvalidOperationException("RetrievalService not initialised — start the AI service first");
+        }
+
+        topK = Math.Min(topK, 20);
+        var results = await _retriever.SearchAsync(query, topK);
+
+        return results.Select(r => new SemanticSearchResult(
+            r.TransactionId, r.Date, r.Description, (double)r.AmountIdr,
+            r.Flow, r.Wallet, Math.Round(r.Similarity, 3))).ToList();
+    }
+}
+```
+
 Add to `tests/test_mcp_server.py`:
 
 ```python
@@ -564,13 +965,56 @@ async def test_search_transactions_semantic_caps_top_k():
     mock_retriever.search.assert_called_once_with(query="test", top_k=20)
 ```
 
+**C# equivalent**:
+
+```csharp
+public class TransactionSearchMcpToolsTests
+{
+    [Fact]
+    public async Task SearchTransactionsSemanticAsync_DelegatesToRetrievalService()
+    {
+        // Arrange
+        var mockRetriever = new Mock<IRetrievalService>();
+        mockRetriever.Setup(r => r.SearchAsync("kopi", 3))
+            .ReturnsAsync(new List<RetrievedTransaction>
+            {
+                new(TransactionId: 1, Similarity: 0.92m, Description: "STARBUCKS",
+                    Date: "2026-03-10", AmountIdr: 45000.0m, Flow: "DB", Wallet: "BCA"),
+            });
+        var sut = new TransactionSearchMcpTools(mockRetriever.Object);
+
+        // Act
+        var results = await sut.SearchTransactionsSemanticAsync("kopi", topK: 3);
+
+        // Assert
+        Assert.Equal("STARBUCKS", results[0].Description);
+        Assert.Equal(0.92, results[0].Similarity);
+        mockRetriever.Verify(r => r.SearchAsync("kopi", 3), Times.Once);
+    }
+
+    [Fact]
+    public async Task SearchTransactionsSemanticAsync_TopKAboveCap_HardCapsAt20()
+    {
+        // Arrange
+        var mockRetriever = new Mock<IRetrievalService>();
+        mockRetriever.Setup(r => r.SearchAsync("test", 20))
+            .ReturnsAsync(new List<RetrievedTransaction>());
+        var sut = new TransactionSearchMcpTools(mockRetriever.Object);
+
+        // Act
+        await sut.SearchTransactionsSemanticAsync("test", topK: 999);
+
+        // Assert
+        mockRetriever.Verify(r => r.SearchAsync("test", 20), Times.Once);
+    }
+}
+```
+
 ```bash
 PYTHONPATH=. pytest tests/test_mcp_server.py -v
 ```
 
 > **Why reuse `RetrievalService` instead of embedding again?** The retriever already manages the asyncpg pool, handles Gemini/OpenAI embedding via `EmbeddingProvider`, applies the model-match guard (`WHERE te.model = $4`), and is Langfuse-traced. Adding a second embed call in the MCP tool would duplicate all of that. This is "thin tool, fat service" — the MCP tool is a controller, not a service; same pattern as ASP.NET Core controllers calling services.
-
----
 
 ### [ ] STEP 7 — Wire MCP server into `main.py`
 
@@ -613,6 +1057,8 @@ async def lifespan(app: FastAPI):
     await pool.close()
 ```
 
+> **C# equivalent — not applicable here.** Mounting a sub-application onto an ASGI app (`app.mount("/mcp", mcp_app)`) is a Python/ASGI-specific concept; ASP.NET Core's closest cousin (`MapWhen` / branching middleware) solves request routing, not embedding a second protocol server, so it isn't a faithful port. If this AI service were a .NET host instead, the same 4 tools would be exposed as a typed controller or a gRPC service, not "mounted" as a second app — noting the technique instead of forcing an equivalent per the "no real equivalent exists" rule.
+
 Smoke test:
 ```bash
 cd services/ai-service && uvicorn app.main:app --reload --port 8000
@@ -623,8 +1069,6 @@ curl -v http://localhost:8000/mcp
 ```
 
 > **FastMCP version drift note.** If `sse_app()` doesn't exist or mounting fails, fall back to running a separate stdio entry point (see Step 8 fallback). Document which version you installed in the Notes section at the bottom of this plan.
-
----
 
 ### [ ] STEP 8 — Configure Claude Desktop + test end-to-end
 
@@ -692,8 +1136,6 @@ For each: verify in Claude Desktop's tool panel that the correct tool was called
 > 3. Verify the AI service is running: `curl http://localhost:8000/mcp`
 > 4. If using SSE and it fails, fall back to stdio config above
 
----
-
 ### [ ] STEP 9 — Full test pass + commit
 
 ```bash
@@ -709,8 +1151,6 @@ git add services/ai-service/tests/test_mcp_server.py
 git status    # verify NO .env, NO claude_desktop_config.json
 git commit -m "PF-AI009: MCP server — get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic (FastMCP SSE)"
 ```
-
----
 
 ### [ ] STEP 10 — Stretch: 2-agent MCP workflow
 
@@ -799,6 +1239,81 @@ async def main():
 asyncio.run(main())
 ```
 
+**C# equivalent** (no official Anthropic .NET SDK exists — same situation as PF-AI005 — `AnthropicClient` here is a hand-rolled `HttpClient` wrapper around the Messages API, not a real NuGet package; `asyncio.run(main())` → a console app's `async Task Main`):
+
+```csharp
+public sealed class FinancialHealthWorkflow
+{
+    private readonly AnthropicClient _client; // hand-rolled Messages-API wrapper, not an official SDK
+
+    public FinancialHealthWorkflow(AnthropicClient client) => _client = client;
+
+    public async Task<string> RunAnalystAsync()
+    {
+        var messages = new List<AnthropicMessage>
+        {
+            new("user", "Analyze my current financial health. Call both tools."),
+        };
+
+        while (true)
+        {
+            var response = await _client.CreateMessageAsync(new MessageRequest
+            {
+                Model = "claude-haiku-4-5-20251001", // Haiku: data gathering, not reasoning
+                MaxTokens = 1024,
+                Tools = AnalystTools,
+                Messages = messages,
+            });
+
+            if (response.StopReason == "end_turn")
+            {
+                return response.Content.OfType<TextBlock>().First().Text;
+            }
+
+            // Process tool calls — in a real implementation, call your actual MCP tools
+            var toolResults = response.Content
+                .OfType<ToolUseBlock>()
+                .Select(block => new ToolResultMessage(
+                    block.Id,
+                    JsonSerializer.Serialize(new { note = $"[stub result for {block.Name}({block.Input})]" })))
+                .ToList();
+
+            messages.Add(new("assistant", response.Content));
+            messages.Add(new("user", toolResults));
+        }
+    }
+
+    public async Task<string> RunAdvisorAsync(string analystReport)
+    {
+        var response = await _client.CreateMessageAsync(new MessageRequest
+        {
+            Model = "claude-haiku-4-5-20251001",
+            MaxTokens = 512,
+            Messages =
+            [
+                new("user", $"Based on this financial analysis:\n{analystReport}\n\n" +
+                             "Provide 3 concrete next steps the user should take this week."),
+            ],
+        });
+        return response.Content.OfType<TextBlock>().First().Text;
+    }
+}
+
+public static class Program
+{
+    public static async Task Main()
+    {
+        var workflow = new FinancialHealthWorkflow(new AnthropicClient());
+        Console.WriteLine("=== Running Analyst ===");
+        var report = await workflow.RunAnalystAsync();
+        Console.WriteLine(report);
+        Console.WriteLine("\n=== Running Advisor ===");
+        var advice = await workflow.RunAdvisorAsync(report);
+        Console.WriteLine(advice);
+    }
+}
+```
+
 ```bash
 PYTHONPATH=. python scratch/mcp_agent_demo.py
 ```
@@ -807,17 +1322,23 @@ PYTHONPATH=. python scratch/mcp_agent_demo.py
 
 > **Why this stretch matters for interviews:** "I built a 2-agent workflow where the Analyst calls MCP tools to gather data, then passes a structured report to the Advisor for synthesis" is a concrete multi-agent answer. The pattern — one agent calls tools, another does synthesis — is the scaffolding for every multi-agent pipeline, and it maps directly to the "how do you design an AI system that needs multiple capabilities?" interview question.
 
----
-
 ### [ ] STEP 11 — Log progress
 
 ```
 /mentor log Built personal-finance MCP server: 4 tools (get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic), FastMCP SSE mounted at /mcp on AI service port 8000, Claude Desktop configured and tested end-to-end, stretch 2-agent demo. Chapter 9 complete.
 ```
 
----
+## 📌 Notes
 
-## Resources / Theory to Learn
+- **FastMCP 2.x API drift.** The mounting method (`sse_app()`, `get_mcp_app()`, `streamable_http_app()`) has changed across versions. Run the `dir(mcp)` check in Step 7 before writing the `app.mount()` call — don't guess the method name. Record which version you installed and which method you used here: `fastmcp version: ___`, `mount method: ___`.
+- **`/api/journey/scores` route.** Verify this endpoint exists and returns `[{tier, score, status}]` before coding Step 5. Check `JourneyController.cs` for the actual route if the curl returns 404.
+- **asyncpg pool sharing.** The `set_pool()` / `set_retriever()` module-global pattern is intentionally simple. In production you'd use DI; for this learning chapter, globals are fine and mirror the existing `_pool` pattern in `retriever.py`. Don't over-engineer it.
+- **Windows Claude Desktop config path.** `%APPDATA%\Claude\claude_desktop_config.json` = `C:\Users\rikky\AppData\Roaming\Claude\claude_desktop_config.json`. Restart Claude Desktop after every config edit.
+- **Auth is deliberately deferred.** When PF-S08 wires Supabase Auth, the MCP SSE endpoint will need a bearer token guard + RLS enforcement. It's a 3-line FastAPI middleware addition once the auth plumbing exists. Note it; don't build it now.
+- **THINK-05 (frozen contract).** The MCP tool schemas are a public interface. Once Claude Desktop (or another agent) starts using your MCP tools, renaming a return field (e.g., `account` → `bank`) breaks any prompt or workflow that references that field name. Treat tool schemas as stable as `TransactionDto` fields.
+- **Stretch: MCP Resources.** If you go further after the stretch agent demo, expose `finance://pyramid-scores` as a Resource (read-only URI-addressed data the AI fetches proactively) alongside the `get_pyramid_scores` Tool (an action it calls on demand). Resources vs Tools = GET vs POST in REST: Resources are for data that's already computed; Tools are for live operations. Interesting interview angle; defer to after Chapter 12.
+
+## 📚 Resources / Theory to Learn
 
 Organized by concept — read when building the relevant step, not all upfront.
 
@@ -842,9 +1363,7 @@ Organized by concept — read when building the relevant step, not all upfront.
 - **MCP architecture docs** → https://modelcontextprotocol.io/docs/concepts/architecture — the "MCP client vs MCP server" boundary; how agents call MCP servers programmatically (not just Claude Desktop).
 - **anthropic-sdk-python MCP client** → https://github.com/anthropics/anthropic-sdk-python — the `MCPClient` class for calling MCP servers from agent code (if you want to wire the 2-agent demo to call your actual server rather than stubs).
 
----
-
-## Learning Strategy
+## 🧠 Learning Strategy
 
 **Daily loop for Chapter 9:**
 
@@ -874,20 +1393,6 @@ Organized by concept — read when building the relevant step, not all upfront.
 > "What can I say in an interview today that I couldn't say last Sunday?"
 > Target: *"I built a personal-finance MCP server exposing 4 typed tools — transaction queries with SQL pre-filtering, spending summaries by period, pyramid tier scores via the .NET API, and semantic search reusing the PF-AI003 pgvector retriever. I mounted it on the existing FastAPI service over SSE transport and configured Claude Desktop to use it. The key design decision was co-locating the MCP server with the AI service to share the asyncpg connection pool and RetrievalService, rather than building a standalone process — same Clean Architecture boundary principle, applied to MCP. Claude Desktop can now answer 'how much did I spend on food this month?' with a tool call, not hallucination, citing real transaction data."*
 
----
-
-## Notes
-
-- **FastMCP 2.x API drift.** The mounting method (`sse_app()`, `get_mcp_app()`, `streamable_http_app()`) has changed across versions. Run the `dir(mcp)` check in Step 7 before writing the `app.mount()` call — don't guess the method name. Record which version you installed and which method you used here: `fastmcp version: ___`, `mount method: ___`.
-- **`/api/journey/scores` route.** Verify this endpoint exists and returns `[{tier, score, status}]` before coding Step 5. Check `JourneyController.cs` for the actual route if the curl returns 404.
-- **asyncpg pool sharing.** The `set_pool()` / `set_retriever()` module-global pattern is intentionally simple. In production you'd use DI; for this learning chapter, globals are fine and mirror the existing `_pool` pattern in `retriever.py`. Don't over-engineer it.
-- **Windows Claude Desktop config path.** `%APPDATA%\Claude\claude_desktop_config.json` = `C:\Users\rikky\AppData\Roaming\Claude\claude_desktop_config.json`. Restart Claude Desktop after every config edit.
-- **Auth is deliberately deferred.** When PF-S08 wires Supabase Auth, the MCP SSE endpoint will need a bearer token guard + RLS enforcement. It's a 3-line FastAPI middleware addition once the auth plumbing exists. Note it; don't build it now.
-- **THINK-05 (frozen contract).** The MCP tool schemas are a public interface. Once Claude Desktop (or another agent) starts using your MCP tools, renaming a return field (e.g., `account` → `bank`) breaks any prompt or workflow that references that field name. Treat tool schemas as stable as `TransactionDto` fields.
-- **Stretch: MCP Resources.** If you go further after the stretch agent demo, expose `finance://pyramid-scores` as a Resource (read-only URI-addressed data the AI fetches proactively) alongside the `get_pyramid_scores` Tool (an action it calls on demand). Resources vs Tools = GET vs POST in REST: Resources are for data that's already computed; Tools are for live operations. Interesting interview angle; defer to after Chapter 12.
-
----
-
 ## 📝 Knowledge Check
 
 > Original practice questions modeled on the published exam domains of official AI Engineering certifications (Databricks Generative AI Engineer Associate, Azure AI Engineer AI-102, AWS Certified ML Engineer – Associate). Not verbatim exam items. Answers are hidden — recall first, then reveal.
@@ -898,19 +1403,17 @@ Organized by concept — read when building the relevant step, not all upfront.
 
 *Question:* Which MCP primitive maps to each use case?
 
-- **A.** All three are Tools — MCP doesn't distinguish between callable actions and read-only data
-- **B.** (a) Tool, (b) Resource, (c) Prompt — Tools for callable actions, Resources for data the AI reads, Prompts for reusable templates
-- **C.** (a) Resource, (b) Tool, (c) Prompt — Resources are for dynamic data; Tools are for static lookups
-- **D.** (a) Prompt, (b) Resource, (c) Tool — Prompts trigger actions; Resources store data; Tools generate text
+- **A.** (a) Resource, (b) Tool, (c) Prompt — Resources are for dynamic data; Tools are for static lookups
+- **B.** (a) Prompt, (b) Resource, (c) Tool — Prompts trigger actions; Resources store data; Tools generate text
+- **C.** (a) Tool, (b) Resource, (c) Prompt — Tools for callable actions, Resources for data the AI reads, Prompts for reusable templates
+- **D.** All three are Tools — MCP doesn't distinguish between callable actions and read-only data
 
 <details>
 <summary>Show answer</summary>
 
-**B** — the MCP spec defines three primitives for three purposes: Tools (callable actions that return results — queries, writes, computations), Resources (URI-addressed data the AI reads passively — files, static tables, configs), Prompts (reusable templates with variables the AI fills in). Account balance query = Tool (live, dynamic); bank code table = Resource (static read); month summary template = Prompt.
+**C** — the MCP spec defines three primitives for three purposes: Tools (callable actions that return results — queries, writes, computations), Resources (URI-addressed data the AI reads passively — files, static tables, configs), Prompts (reusable templates with variables the AI fills in). Account balance query = Tool (live, dynamic); bank code table = Resource (static read); month summary template = Prompt.
 *Maps to: Databricks GenAI Engineer Associate · Application Development (tool/agent design); Azure AI-102 · Implement AI agents*
 </details>
-
----
 
 ### 2. SSE vs stdio transport — shared state tradeoff (Databricks · AWS ML Engineer)
 
@@ -918,19 +1421,17 @@ Organized by concept — read when building the relevant step, not all upfront.
 
 *Question:* What is the main operational problem with stdio transport in this case?
 
-- **A.** stdio transport is not supported by the MCP spec for Python servers
-- **B.** Claude Desktop spawns a new process on every connection — each process creates a new asyncpg pool, losing connection reuse and the warm `RetrievalService` embedding cache that the AI service running on port 8000 maintains. SSE connects to the already-running process.
-- **C.** stdio servers cannot make outbound HTTP calls (e.g., to the .NET API)
-- **D.** stdio transport limits tool return payloads to 4KB
+- **A.** Claude Desktop spawns a new process on every connection — each process creates a new asyncpg pool, losing connection reuse and the warm `RetrievalService` embedding cache that the AI service running on port 8000 maintains. SSE connects to the already-running process.
+- **B.** stdio servers cannot make outbound HTTP calls (e.g., to the .NET API)
+- **C.** stdio transport limits tool return payloads to 4KB
+- **D.** stdio transport is not supported by the MCP spec for Python servers
 
 <details>
 <summary>Show answer</summary>
 
-**B** — stdio spawns a fresh process per session; a new asyncpg pool means no connection reuse and a cold `RetrievalService` (no warm embedding cache). SSE connects to the running AI service, which already has a warm pool and shared state. The trade-off: SSE requires the service to be running; stdio is self-contained but stateless and pool-hungry.
+**A** — stdio spawns a fresh process per session; a new asyncpg pool means no connection reuse and a cold `RetrievalService` (no warm embedding cache). SSE connects to the running AI service, which already has a warm pool and shared state. The trade-off: SSE requires the service to be running; stdio is self-contained but stateless and pool-hungry.
 *Maps to: Databricks GenAI Engineer Associate · Application Development (deployment); AWS Certified ML Engineer – Associate · ML infrastructure / cost*
 </details>
-
----
 
 ### 3. Tool schema typing — why it matters (Azure AI-102 · Databricks)
 
@@ -939,18 +1440,16 @@ Organized by concept — read when building the relevant step, not all upfront.
 *Question:* Why does the return type annotation matter for MCP tool reliability?
 
 - **A.** FastMCP requires typed returns — `dict` causes a schema generation error at server startup
-- **B.** The MCP client sends the tool's JSON schema to the AI as part of the tool definition. `dict` generates an opaque schema `{}` that describes no fields — the AI must guess. Typed returns (explicit `list[dict[str, ...]]` with a docstring listing fields, or TypedDict) generate named fields that the AI uses to generate accurate follow-up calls and format output correctly.
-- **C.** Typed returns add latency because FastMCP validates them against the schema on every call
-- **D.** Claude's tool-use API only accepts typed returns; `dict` causes a server-side error
+- **B.** Typed returns add latency because FastMCP validates them against the schema on every call
+- **C.** Claude's tool-use API only accepts typed returns; `dict` causes a server-side error
+- **D.** The MCP client sends the tool's JSON schema to the AI as part of the tool definition. `dict` generates an opaque schema `{}` that describes no fields — the AI must guess. Typed returns (explicit `list[dict[str, ...]]` with a docstring listing fields, or TypedDict) generate named fields that the AI uses to generate accurate follow-up calls and format output correctly.
 
 <details>
 <summary>Show answer</summary>
 
-**B** — the JSON schema exposed by the MCP server is the AI client's only signal about what a tool returns. `dict` produces `{}` — no fields, no types. An explicit type (or a thorough docstring of the returned fields) produces a schema with named keys and types, which the AI uses to generate correct parameter selection in follow-up calls and to display structured data. The reliability difference is measurable in practice.
+**D** — the JSON schema exposed by the MCP server is the AI client's only signal about what a tool returns. `dict` produces `{}` — no fields, no types. An explicit type (or a thorough docstring of the returned fields) produces a schema with named keys and types, which the AI uses to generate correct parameter selection in follow-up calls and to display structured data. The reliability difference is measurable in practice.
 *Maps to: Azure AI-102 · Implement AI agents (tool design); Databricks GenAI Engineer Associate · Application Development (schema design)*
 </details>
-
----
 
 ### 4. SQL pre-filtering in MCP tool queries (Databricks · AWS ML Engineer)
 
@@ -970,8 +1469,6 @@ Organized by concept — read when building the relevant step, not all upfront.
 *Maps to: Databricks GenAI Engineer Associate · Data Preparation (efficient retrieval); AWS Certified ML Engineer – Associate · ML infrastructure*
 </details>
 
----
-
 ### 5. Calling .NET API vs querying Supabase directly (Azure AI-102 · Google Cloud PMLE)
 
 *Scenario:* `get_pyramid_scores()` could either (a) query the `journey_scores` Supabase table directly via asyncpg, or (b) call `GET /api/journey/scores` on the .NET API via httpx.
@@ -979,18 +1476,16 @@ Organized by concept — read when building the relevant step, not all upfront.
 *Question:* Why is option (b) the architecturally correct choice?
 
 - **A.** asyncpg cannot query computed columns; the .NET API pre-computes them
-- **B.** `JourneyScoringService` computes tier scores from transactions, assets, and investments using business logic spread across MediatR handlers. Duplicating that computation in Python creates a maintenance split: change the scoring formula once, forget to update the Python copy. The HTTP call is a deliberate boundary — Python owns embeddings and MCP tooling; .NET owns scoring logic. The 10ms overhead is negligible in a chat interaction.
-- **C.** Supabase RLS blocks asyncpg connections from Python
+- **B.** Supabase RLS blocks asyncpg connections from Python
+- **C.** `JourneyScoringService` computes tier scores from transactions, assets, and investments using business logic spread across MediatR handlers. Duplicating that computation in Python creates a maintenance split: change the scoring formula once, forget to update the Python copy. The HTTP call is a deliberate boundary — Python owns embeddings and MCP tooling; .NET owns scoring logic. The 10ms overhead is negligible in a chat interaction.
 - **D.** The MCP spec requires all tool data to come from REST APIs
 
 <details>
 <summary>Show answer</summary>
 
-**B** — the boundary reflects ownership. The .NET API owns the `JourneyScoringService` business logic (multi-source aggregation, tier threshold rules). Duplicating it in Python creates drift — exactly the THINK-05 "both sides must update" problem, extended to business logic. The httpx call makes the boundary explicit and keeps the source of truth in one place, at negligible latency cost for an interactive chat tool.
+**C** — the boundary reflects ownership. The .NET API owns the `JourneyScoringService` business logic (multi-source aggregation, tier threshold rules). Duplicating it in Python creates drift — exactly the THINK-05 "both sides must update" problem, extended to business logic. The httpx call makes the boundary explicit and keeps the source of truth in one place, at negligible latency cost for an interactive chat tool.
 *Maps to: Azure AI-102 · Design AI solutions (integration patterns); Google Cloud PMLE · MLOps / data governance*
 </details>
-
----
 
 ### 6. Multi-agent MCP — single responsibility (Databricks · AWS ML Engineer)
 
@@ -998,14 +1493,14 @@ Organized by concept — read when building the relevant step, not all upfront.
 
 *Question:* Why is giving the Advisor direct MCP tool access an anti-pattern here?
 
-- **A.** The MCP protocol only allows one agent per server connection
-- **B.** The Advisor receives a structured report from the Analyst — it doesn't need live data access because the Analyst already fetched and formatted it. Giving both agents MCP access doubles tool calls and latency, forces the Advisor to understand the financial data schema, and muddies the agent's single responsibility (synthesis, not retrieval). The "report hand-off" pattern keeps data gathering and synthesis cleanly separated.
-- **C.** FastMCP does not support concurrent connections from multiple agents
-- **D.** Only Claude Desktop is permitted to call MCP servers; other agents must use the REST API
+- **A.** The Advisor receives a structured report from the Analyst — it doesn't need live data access because the Analyst already fetched and formatted it. Giving both agents MCP access doubles tool calls and latency, forces the Advisor to understand the financial data schema, and muddies the agent's single responsibility (synthesis, not retrieval). The "report hand-off" pattern keeps data gathering and synthesis cleanly separated.
+- **B.** FastMCP does not support concurrent connections from multiple agents
+- **C.** Only Claude Desktop is permitted to call MCP servers; other agents must use the REST API
+- **D.** The MCP protocol only allows one agent per server connection
 
 <details>
 <summary>Show answer</summary>
 
-**B** — single responsibility applied to agents: the Analyst handles tool calls (data access); the Advisor handles synthesis (reasoning over the report). Giving both MCP access doubles retrieval calls, adds latency at every synthesis step, and couples the Advisor to the data schema. The hand-off pattern (Analyst produces structured report → Advisor receives it as a text message) is the building block of every multi-agent pipeline — and the answer to "how do you design a system that needs multiple AI capabilities?"
+**A** — single responsibility applied to agents: the Analyst handles tool calls (data access); the Advisor handles synthesis (reasoning over the report). Giving both MCP access doubles retrieval calls, adds latency at every synthesis step, and couples the Advisor to the data schema. The hand-off pattern (Analyst produces structured report → Advisor receives it as a text message) is the building block of every multi-agent pipeline — and the answer to "how do you design a system that needs multiple AI capabilities?"
 *Maps to: Databricks GenAI Engineer Associate · Application Development (multi-agent design); AWS Certified ML Engineer – Associate · Model deployment*
 </details>
