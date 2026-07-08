@@ -71,16 +71,16 @@ the conversation on the next turn.
 
 ## StateGraph vs. a hand-rolled loop
 
-**Stage 0 — smolagents' `ToolCallingAgent.run()`.** Chapter 7 wraps the whole ReAct loop inside one
+**smolagents' `ToolCallingAgent.run()`.** Chapter 7 wraps the whole ReAct loop inside one
 library call — you call `.run()` and get a categorized transaction back. The loop exists, but it's
 opaque: you can't see or reuse its internal steps.
 
-> **The wall:** the advisor needs things `.run()` doesn't give you — a dedicated error path that
-> returns a graceful message instead of raising, and state that survives *between separate HTTP
-> requests* (turn 1's fetched pyramid scores need to still be there on turn 2). Forking into
-> `.run()`'s internals to add that isn't realistic.
+Good enough until the requirements grow, though: the advisor needs things `.run()` doesn't give you — a dedicated error path that
+returns a graceful message instead of raising, and state that survives *between separate HTTP
+requests* (turn 1's fetched pyramid scores need to still be there on turn 2). Forking into
+`.run()`'s internals to add that isn't realistic.
 
-**Stage 1 — LangGraph's `StateGraph`.** Instead of one opaque call, you write the loop's steps as
+**LangGraph's `StateGraph`.** Instead of one opaque call, you write the loop's steps as
 plain functions (**nodes**) and the routing between them as a plain function too (**edges**): an
 `agent` node that calls the LLM, a `tools` node that dispatches whatever the LLM asked for
 (**ToolNode**, a prebuilt node — you don't write the dispatch logic by hand), and a routing function
@@ -91,16 +91,16 @@ pieces is independently testable — Step 9 tests the routing function with zero
 
 ## The add_messages reducer
 
-**Stage 0 — a plain list field.** `messages: list[BaseMessage]` in the state TypedDict, appended to
+**A plain list field.** `messages: list[BaseMessage]` in the state TypedDict, appended to
 by hand each turn.
 
-> **The wall:** LangGraph doesn't merge dict updates the way you'd expect. When a node returns
-> `{"messages": [new_msg]}`, LangGraph's default behavior for a plain list field is to **replace**
-> the old value with the new one — not append. Turn 2 of a conversation ("Apa yang harus saya
-> lakukan dulu untuk mencapai L3?") would start from an empty list, and the agent would have no idea
-> what "L3" refers to — turn 1's history is simply gone.
+Reasonable assumption, wrong in practice: LangGraph doesn't merge dict updates the way you'd expect. When a node returns
+`{"messages": [new_msg]}`, LangGraph's default behavior for a plain list field is to **replace**
+the old value with the new one — not append. Turn 2 of a conversation ("Apa yang harus saya
+lakukan dulu untuk mencapai L3?") would start from an empty list, and the agent would have no idea
+what "L3" refers to — turn 1's history is simply gone.
 
-**Stage 1 — `Annotated[list, add_messages]`.** **`add_messages`** is a *reducer*: a function
+**`Annotated[list, add_messages]`.** **`add_messages`** is a *reducer*: a function
 LangGraph calls to merge a node's returned value into existing state, instead of overwriting it. For
 a `messages` field annotated this way, new messages are appended to the existing list. *This is what
 the chapter ships,* and it's the single most common silent-bug source in a first LangGraph build —
@@ -110,15 +110,15 @@ the graph runs without error, it just quietly forgets everything from previous t
 
 ## Conditional routing and the fallback node
 
-**Stage 0 — try/except in the endpoint.** Every existing AI-service endpoint (`/parse-pdf`,
+**Try/except in the endpoint.** Every existing AI-service endpoint (`/parse-pdf`,
 `/journey/advise`) wraps its logic in one try/except and returns HTTP 502 on failure.
 
-> **The wall:** that pattern works for a single call. It doesn't work for a multi-step graph — an
-> exception raised inside a tool call, three hops deep into a conversation, bubbles all the way up
-> and kills the whole turn with no graceful message, and there's no way to unit-test "what happens
-> when a tool fails" without actually raising an exception through several call layers.
+Fine for one call, not for a graph: that pattern works for a single call. It doesn't work for a multi-step graph — an
+exception raised inside a tool call, three hops deep into a conversation, bubbles all the way up
+and kills the whole turn with no graceful message, and there's no way to unit-test "what happens
+when a tool fails" without actually raising an exception through several call layers.
 
-**Stage 1 — nodes catch their own exceptions, edges route around them.** A node that fails sets
+**Nodes catch their own exceptions, edges route around them.** A node that fails sets
 `state["error"]` instead of raising. A conditional edge (`should_continue`) checks that field first
 and routes to a dedicated `fallback` node when it's set — a plain function, testable with a state
 fixture and no mocking of exceptions at all (see Step 9). *This is what the chapter ships.* The
@@ -129,14 +129,14 @@ trace buried in a log.
 
 ## Memory across turns — MemorySaver and thread_id
 
-**Stage 0 — a stateless call.** `advisor_graph.ainvoke(initial_state)` with nothing else. Every
+**A stateless call.** `advisor_graph.ainvoke(initial_state)` with nothing else. Every
 request starts from zero.
 
-> **The wall:** a real advisor conversation needs turn 2 to remember what turn 1 already fetched —
-> re-fetching pyramid scores and cashflow data on every follow-up wastes tool calls and can't answer
-> "how do I fix that category from before" without asking the user to repeat themselves.
+That's fine for one turn — a real advisor conversation needs turn 2 to remember what turn 1 already fetched —
+re-fetching pyramid scores and cashflow data on every follow-up wastes tool calls and can't answer
+"how do I fix that category from before" without asking the user to repeat themselves.
 
-**Stage 1 — `MemorySaver` + `thread_id`.** A **checkpointer** saves the graph's state after every
+**`MemorySaver` + `thread_id`.** A **checkpointer** saves the graph's state after every
 run and loads it back in before the next one, keyed by an opaque `thread_id` you pass in
 `config`. Pass the same `thread_id` (mapped from `session_id`) on turn 2, and LangGraph resumes
 exactly where turn 1 left off — no re-fetching, no repeated context. *This is what the chapter

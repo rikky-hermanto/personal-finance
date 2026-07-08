@@ -66,65 +66,64 @@ the same eval harness — the chapter ends by picking the winner with numbers, n
 
 ## Hybrid search
 
-**Rung 0 — the naive version that works.** What ships today (Ch3/4): embed the query with
-`text-embedding-3-small`, cosine-compare against every transaction embedding in pgvector, keep the
-top-10. It genuinely works — semantic paraphrases like "pengeluaran makan mirip warung padang"
-find `WARUNG PADANG SEDERHANA` rows no keyword match ever would.
+**Pure vector search.** What ships today (Ch3/4): embed the query with `text-embedding-3-small`,
+cosine-compare against every transaction embedding in pgvector, keep the top-10. It genuinely
+works — semantic paraphrases like "pengeluaran makan mirip warung padang" find `WARUNG PADANG
+SEDERHANA` rows no keyword match ever would.
 
-> **The wall:** type "tagihan listrik PLN". In embedding space that query is mostly "a bill" — so
-> `tagihan internet Indihome` and `tagihan air PDAM` score nearly as high as the actual PLN rows.
-> The one token that matters most, the exact brand keyword `PLN`, carries no special weight in
-> cosine similarity. The user watches the right answer lose to look-alike bills.
+Type "tagihan listrik PLN" and the cracks show: in embedding space that query is mostly "a bill" —
+so `tagihan internet Indihome` and `tagihan air PDAM` score nearly as high as the actual PLN rows.
+The one token that matters most, the exact brand keyword `PLN`, carries no special weight in cosine
+similarity. The user watches the right answer lose to look-alike bills.
 
-**Rung 1 — a keyword searcher.** **BM25** (the classic keyword-ranking function: score exact term
-matches, weighted by how frequent the term is in the row and how rare it is across the table) wins
-that query instantly — `PLN` appears verbatim in the description or it doesn't. PostgreSQL
-approximates it with `tsvector` + `ts_rank`, so it's one GIN index away, no new infrastructure.
+**A keyword searcher.** **BM25** (the classic keyword-ranking function: score exact term matches,
+weighted by how frequent the term is in the row and how rare it is across the table) wins that
+query instantly — `PLN` appears verbatim in the description or it doesn't. PostgreSQL approximates
+it with `tsvector` + `ts_rank`, so it's one GIN index away, no new infrastructure.
 
-> **The wall:** now flip the query back to "makan siang di kantor". Descriptions say `WARUNG`,
-> `RESTO`, `MAKANAN` — zero keyword overlap, so BM25 returns nothing at all. Each searcher wins
-> exactly the queries the other loses. You need both, at the same time.
+Good for `PLN`, useless for "makan siang di kantor": descriptions say `WARUNG`, `RESTO`, `MAKANAN`
+— zero keyword overlap, so BM25 returns nothing at all. Each searcher wins exactly the queries the
+other loses. You need both, at the same time.
 
-**Rung 2 — run both, add the scores.** The obvious combination: `0.7 * cosine + 0.3 * ts_rank`.
+**Run both, add the scores.** The obvious combination: `0.7 * cosine + 0.3 * ts_rank`.
 
-> **The wall:** the two scores live on incomparable scales — cosine is bounded 0–1, `ts_rank` is
-> an unbounded log-frequency weight that changes range per query. No fixed alpha works for both
-> "PLN" and "makan siang"; one searcher silently dominates or disappears depending on the query.
+Except the two scores don't live on comparable scales: cosine is bounded 0–1, `ts_rank` is an
+unbounded log-frequency weight that changes range per query. No fixed alpha works for both "PLN"
+and "makan siang"; one searcher silently dominates or disappears depending on the query.
 
-**Rung 3 — Reciprocal Rank Fusion (what ships).** **RRF** ignores the raw scores entirely and
-combines *rank positions* — always comparable integers 1, 2, 3 … — as `1/(k + rank)` summed across
-both lists. A document near the top of either list surfaces; a document in both lists is nearly
-unbeatable. `k=60` is the canonical constant from the original paper. *This is the `hybrid` mode
-STEP 3 builds.*
+**Reciprocal Rank Fusion (RRF).** Ignores the raw scores entirely and combines *rank positions* —
+always comparable integers 1, 2, 3 … — as `1/(k + rank)` summed across both lists. A document near
+the top of either list surfaces; a document in both lists is nearly unbeatable. `k=60` is the
+canonical constant from the original paper. *This is the `hybrid` mode STEP 3 builds.*
 
 ▶ **Watch/read for this concept:** https://github.com/pgvector/pgvector#hybrid-search — the RRF
 SQL example is the code anchor for STEP 3.
 
 ## Sentence-window retrieval
 
-**Rung 0 — the naive version that works.** Transactions are covered — but bank statement PDFs
-also carry narrative text the transaction rows lose (running balances, fee explanations, promo
-lines). The dumbest way to make that searchable: extract the page text (PyMuPDF already does this
-in the extraction pipeline) and embed each page as one vector.
+**Embed the whole page.** Transactions are covered — but bank statement PDFs also carry narrative
+text the transaction rows lose (running balances, fee explanations, promo lines). The dumbest way
+to make that searchable: extract the page text (PyMuPDF already does this in the extraction
+pipeline) and embed each page as one vector.
 
-> **The wall:** a one-page Superbank statement mixes an account summary, 30 transactions, and
-> interest fine-print. One embedding for all of it is a mushy average — "bayar PLN bulan Maret"
-> barely beats noise against a page-vector that is 95% about other things.
+A one-page Superbank statement mixes an account summary, 30 transactions, and interest fine-print,
+though — one embedding for all of it is a mushy average. "bayar PLN bulan Maret" barely beats noise
+against a page-vector that is 95% about other things.
 
-**Rung 1 — chunk into sentences.** Split the text into sentences and embed each one — precise
-retrieval units. This is exactly what `sentence_window_chunks()` in
+**Chunk into sentences.** Split the text into sentences and embed each one — precise retrieval
+units. This is exactly what `sentence_window_chunks()` in
 [chunker.py](../../../services/ai-service/app/services/chunker.py) already does; Chapter 4 built
 and tested it as a pure function but never wired it to production.
 
-> **The wall:** search now finds the right sentence — "Bayar PLN Rp 250.000" — but hand that naked
-> sentence to the LLM and it can't answer "paid when, from which account?" The context that
-> carried the date and account name was cut away by the very chunking that made search precise.
-> Precision for retrieval, starvation for generation.
+Search now finds the right sentence — "Bayar PLN Rp 250.000" — but here's the catch: hand that
+naked sentence to the LLM and it can't answer "paid when, from which account?" The context that
+carried the date and account name was cut away by the very chunking that made search precise.
+Precision for retrieval, starvation for generation.
 
-**Rung 2 — sentence-window retrieval (what ships).** Store two representations per chunk: index
-and search the **sentence** (`chunk_text`, the small precise unit), but store and return its
-**window** (`window_text`, the sentence ± 2 neighbours) to the LLM. "Small-to-search,
-big-to-read." *This is the `statement_chunks` table + `DocumentRetriever` STEP 4 builds.*
+**Sentence-window retrieval.** Store two representations per chunk: index and search the
+**sentence** (`chunk_text`, the small precise unit), but store and return its **window**
+(`window_text`, the sentence ± 2 neighbours) to the LLM. "Small-to-search, big-to-read." *This is
+the `statement_chunks` table + `DocumentRetriever` STEP 4 builds.*
 
 ▶ **Watch/read for this concept:**
 https://docs.llamaindex.ai/en/stable/examples/node_postprocessor/MetadataReplacementDemo/ — the
@@ -132,21 +131,21 @@ https://docs.llamaindex.ai/en/stable/examples/node_postprocessor/MetadataReplace
 
 ## Auto-merging retrieval
 
-**Rung 0 — the naive version that works.** Sentence-window, as built one rung ago: every retrieved
-sentence gets expanded by ±2 neighbours, unconditionally.
+**Fixed-window expansion.** The sentence-window retrieval just built: every retrieved sentence gets
+expanded by ±2 neighbours, unconditionally.
 
-> **The wall:** ask "ringkas semua transaksi belanja online bulan ini" and four of the top hits
-> are sentences from the *same paragraph* of the March statement. You get four overlapping
-> windows — mostly duplicated text — burning four context slots on one paragraph while other
-> relevant context gets crowded out. The retrieval result itself is signalling "this whole
-> paragraph is relevant," and the fixed window ignores that signal.
+Ask "ringkas semua transaksi belanja online bulan ini," though, and four of the top hits turn out
+to be sentences from the *same paragraph* of the March statement. You get four overlapping windows
+— mostly duplicated text — burning four context slots on one paragraph while other relevant
+context gets crowded out. The retrieval result itself is signalling "this whole paragraph is
+relevant," and the fixed window ignores that signal.
 
-**Rung 1 — auto-merging retrieval (what ships).** Index a parent hierarchy alongside the
-sentences (sentence → paragraph, via `parent_id` + `level` on the same table). At retrieval time,
-group hits by parent: when at least a **merge threshold** fraction of a parent's children are
-independently retrieved, swap the fragments for the single parent chunk — one coherent paragraph
-instead of four overlapping shards. Below the threshold, sentences stay as they are. *This is the
-`AutoMergingRetriever` STEP 5 builds.* The next rung — an agent choosing per-query which retriever
+**Auto-merging retrieval.** Index a parent hierarchy alongside the sentences (sentence →
+paragraph, via `parent_id` + `level` on the same table). At retrieval time, group hits by parent:
+when at least a **merge threshold** fraction of a parent's children are independently retrieved,
+swap the fragments for the single parent chunk — one coherent paragraph instead of four
+overlapping shards. Below the threshold, sentences stay as they are. *This is the
+`AutoMergingRetriever` STEP 5 builds.* The next stage — an agent choosing per-query which retriever
 to call — is Chapter 7's territory.
 
 ▶ **Watch/read for this concept:**

@@ -66,7 +66,7 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ---
 
-**Stage 0 — slice the raw text every 35 characters.** The dumbest possible chunker: walk the statement text and cut a new piece every 35 characters, no matter what's there.
+**Slice the raw text every 35 characters.** The dumbest possible chunker: walk the statement text and cut a new piece every 35 characters, no matter what's there.
 
 ```
 Chunk 0: "14/03/2024 GOFOOD GEPREK BENSU GA"   ← merchant terpotong
@@ -74,11 +74,11 @@ Chunk 1: "DING                         85.00"   ← "GADING" kehilangan awal
 Chunk 2: "0,0015/03/2024 GRABFOOD ORDER 7FH"   ← dua transaksi tercampur!
 ```
 
-> **The wall:** character 35 mendarat *di tengah* merchant name. `"GADI"` dan `"NG"` ter-embed sebagai dua fragmen tidak berkaitan — embedding model tidak tahu keduanya bagian dari "GADING", jadi search untuk merchant ini miss di kedua chunk.
+Here's the catch: character 35 mendarat *di tengah* merchant name. `"GADI"` dan `"NG"` ter-embed sebagai dua fragmen tidak berkaitan — embedding model tidak tahu keduanya bagian dari "GADING", jadi search untuk merchant ini miss di kedua chunk.
 
 ---
 
-**Stage 1 — an automated splitter with overlap (same idea, less breakage).** `fixed_size_chunks(text, chunk_size, overlap)` (Step 2) masih menghitung karakter, tapi `overlap` membawa **tail satu chunk ke head chunk berikutnya** — fakta yang terpotong di boundary tetap muncul utuh di salah satu chunk.
+**An automated splitter with overlap (same idea, less breakage).** `fixed_size_chunks(text, chunk_size, overlap)` (Step 2) masih menghitung karakter, tapi `overlap` membawa **tail satu chunk ke head chunk berikutnya** — fakta yang terpotong di boundary tetap muncul utuh di salah satu chunk.
 
 ```
 # chunk_size=120, overlap=40
@@ -89,11 +89,11 @@ Chunk 1 (char 80–200):  ← overlap: 40 char terakhir chunk 0 dibawa ke sini
 "15/03/2024 GRABFOOD ORD\nER 7FHJS8       62.500,00\n16/03/2024 ALFAMART"
 ```
 
-> **The wall:** overlap mencegah fakta *hilang* di boundary, tapi splitter masih buta struktur. `"25/03/2024 TRANSFER DEBET SEWA BULANAN"` bisa terpisah dari jumlahnya `"1.500.000,00"` kalau character 500 jatuh di sana — deskripsi dan angkanya berakhir di chunk berbeda.
+Better, but not solved: overlap mencegah fakta *hilang* di boundary, tapi splitter masih buta struktur. `"25/03/2024 TRANSFER DEBET SEWA BULANAN"` bisa terpisah dari jumlahnya `"1.500.000,00"` kalau character 500 jatuh di sana — deskripsi dan angkanya berakhir di chunk berbeda.
 
 ---
 
-**Stage 2 — split on structural separators, not raw counts.** `sentence_window_chunks(text, window_size)` (Step 2) split pada `\n` dan tanda baca kalimat — setiap chunk adalah *baris lengkap*, tidak pernah setengah merchant name, tidak pernah deskripsi terpisah dari jumlahnya. Plus `window` ±N baris tetangga: unit yang di-*search* kecil dan presisi, unit yang dikirim ke LLM cukup konteks — **"small-to-search, big-to-read."** → *ini yang di-ship chapter ini.*
+**Split on structural separators, not raw counts.** `sentence_window_chunks(text, window_size)` (Step 2) split pada `\n` dan tanda baca kalimat — setiap chunk adalah *baris lengkap*, tidak pernah setengah merchant name, tidak pernah deskripsi terpisah dari jumlahnya. Plus `window` ±N baris tetangga: unit yang di-*search* kecil dan presisi, unit yang dikirim ke LLM cukup konteks — **"small-to-search, big-to-read."** → *ini yang di-ship chapter ini.*
 
 ```
 sentence_window_chunks(text, window_size=1)
@@ -118,17 +118,17 @@ Chunk 5:
 ✅ `window` memberi LLM konteks cukup saat generate  
 ✅ Search pakai `text` (presisi kecil), kirim ke LLM pakai `window` (konteks cukup)
 
-> **The wall (next chapter's problem):** structure ≠ meaning. `\n` tidak tahu bahwa baris "GOFOOD" dan "MAKANAN TERNAK" adalah transaksi yang semantically tidak berkaitan — splitting pada struktur adalah proxy yang baik, bukan solusi sempurna.
+One limitation remains, and it's next chapter's problem: structure ≠ meaning. `\n` tidak tahu bahwa baris "GOFOOD" dan "MAKANAN TERNAK" adalah transaksi yang semantically tidak berkaitan — splitting pada struktur adalah proxy yang baik, bukan solusi sempurna.
 
 ---
 
-**Stage 3 — named, not built — semantic / agentic splitting.** Split di mana *meaning* berubah (bandingkan embedding similarity antar kalimat bersebelahan, potong kalau drop). Fix sebenarnya untuk "structure ≠ meaning" — out of scope, dicatat sebagai teaser.
+**Named, not built — semantic / agentic splitting.** Split di mana *meaning* berubah (bandingkan embedding similarity antar kalimat bersebelahan, potong kalau drop). Fix sebenarnya untuk "structure ≠ meaning" — out of scope, dicatat sebagai teaser.
 
 ▶ **Watch/read:** [Chunking Strategies in RAG: Optimising Data for Advanced AI Responses](https://www.youtube.com/watch?v=pIGRwMjhMaQ) — hands-on, levels up exactly through these stages.
 
 ## Re-ranking
 
-**Stage 0 — cosine top-K, as shipped in Chapter 3.** Embed the query `"berapa pengeluaran makan bulan Maret?"`, cosine-search `transaction_embeddings`, return the top-10 by similarity. This already works and is the current baseline (`P@5 = 0.66` after the IVFFlat probes fix).
+**Cosine top-K, as shipped in Chapter 3.** Embed the query `"berapa pengeluaran makan bulan Maret?"`, cosine-search `transaction_embeddings`, return the top-10 by similarity. This already works and is the current baseline (`P@5 = 0.66` after the IVFFlat probes fix).
 
 **Hasil top-10 dari cosine search (bi-encoder):**
 
@@ -143,11 +143,11 @@ Rank | tx_id | similarity | description                      | amount_idr
  10  |  46   |   0.718    | TRANSFER DEBET SEWA BULANAN KOS  | 1.500.000 ← noise
 ```
 
-> **The wall:** the embedding model is a **bi-encoder** — it encoded query dan setiap deskripsi transaksi *secara independen*, tidak pernah bersama-sama. Hasilnya hanya membandingkan dua titik pra-komputasi di vector space. `"makan"` (to eat) dan `"makanan ternak"` (animal feed) berbagi cukup akar kata yang sama sehingga embedding-nya berdekatan — bi-encoder tidak pernah punya kesempatan untuk mempertimbangkan perbedaannya.
+The catch is architectural: the embedding model is a **bi-encoder** — it encoded query dan setiap deskripsi transaksi *secara independen*, tidak pernah bersama-sama. Hasilnya hanya membandingkan dua titik pra-komputasi di vector space. `"makan"` (to eat) dan `"makanan ternak"` (animal feed) berbagi cukup akar kata yang sama sehingga embedding-nya berdekatan — bi-encoder tidak pernah punya kesempatan untuk mempertimbangkan perbedaannya.
 
 ---
 
-**Stage 1 — re-rank the top-10 with a cross-encoder.** A **cross-encoder** membaca query dan dokumen kandidat *bersama-sama*, dalam satu forward pass — bisa attend lintas keduanya dan benar-benar mempertimbangkan apakah `"makanan ternak"` menjawab pertanyaan tentang `"makan"`. Pattern-nya adalah funnel: bi-encoder yang murah-dan-lebar retrieves 10 kandidat, cross-encoder yang mahal-dan-sempit re-scores 10 tersebut.
+**Re-rank the top-10 with a cross-encoder.** A **cross-encoder** membaca query dan dokumen kandidat *bersama-sama*, dalam satu forward pass — bisa attend lintas keduanya dan benar-benar mempertimbangkan apakah `"makanan ternak"` menjawab pertanyaan tentang `"makan"`. Pattern-nya adalah funnel: bi-encoder yang murah-dan-lebar retrieves 10 kandidat, cross-encoder yang mahal-dan-sempit re-scores 10 tersebut.
 
 ```
 Forward pass: ["berapa pengeluaran makan bulan Maret?" + "GOFOOD GEPREK BENSU GADING | BCA | 2024-03-14 | DB"]
@@ -171,11 +171,11 @@ New Rank | Ori Rank | tx_id | cross_score | description
    ─     |   5–10   |  ...  |   <0.50    | ALFAMART, INDOMARET, SEWA...  ← eliminated ✅
 ```
 
-> **The wall:** a quality hosted cross-encoder (Cohere Rerank) costs money and a network round-trip per call. Fine for production traffic; hostile to an eval harness you want to re-run a dozen times while iterating — every run either costs you or gets rate-limited.
+Good for accuracy, rough on iteration speed: a quality hosted cross-encoder (Cohere Rerank) costs money and a network round-trip per call. Fine for production traffic; hostile to an eval harness you want to re-run a dozen times while iterating — every run either costs you or gets rate-limited.
 
 ---
 
-**Stage 2 — FlashRank: the same cross-encoder idea, running locally.** A ~34 MB MiniLM cross-encoder that runs on CPU, no API key, no rate limit, deterministic — free to re-run the eval harness as many times as you want. → *this is what the chapter ships* ([reranker.py](../../../services/ai-service/app/services/reranker.py), Step 3).
+**FlashRank: the same cross-encoder idea, running locally.** A ~34 MB MiniLM cross-encoder that runs on CPU, no API key, no rate limit, deterministic — free to re-run the eval harness as many times as you want. → *this is what the chapter ships* ([reranker.py](../../../services/ai-service/app/services/reranker.py), Step 3).
 
 > **Teaser, covered in the build steps:** FlashRank's `rerank()` call is synchronous CPU inference. Call it directly inside an `async def` endpoint and it blocks the event loop for *every* concurrent request the service is handling. The fix (`asyncio.to_thread`) is in Step 3 — named here so the wall doesn't surprise you mid-build.
 
@@ -185,7 +185,7 @@ New Rank | Ori Rank | tx_id | cross_score | description
 
 ## Grounded generation + citations
 
-**Stage 0 — dump the raw rows at the user.** Retrieve and re-rank, then hand the user the rows themselves:
+**Dump the raw rows at the user.** Retrieve and re-rank, then hand the user the rows themselves:
 
 ```
 GOFOOD GEPREK BENSU GADING — Rp 85.000
@@ -193,17 +193,17 @@ GRABFOOD ORDER 7FHJS8 — Rp 62.500
 GRABFOOD WARUNG PADANG — Rp 55.000
 ```
 
-> **The wall:** rows aren't an answer. The user asked `"berapa pengeluaran makan bulan Maret?"` — "how much," a number — not "here's a list, go add it up yourself."
+Except rows aren't an answer. The user asked `"berapa pengeluaran makan bulan Maret?"` — "how much," a number — not "here's a list, go add it up yourself."
 
 ---
 
-**Stage 1 — feed the rows to the LLM and ask it to summarize.** Pass the context to the model, ask for a total in plain language.
+**Feed the rows to the LLM and ask it to summarize.** Pass the context to the model, ask for a total in plain language.
 
-> **The wall:** tanpa constraints, the model **hallucinates** — bisa menyebut total yang tidak cocok dengan rows yang diberikan (claiming "Rp 500.000" padahal context hanya berjumlah Rp 202.500), atau bahkan mereferensi transaksi yang tidak ada di context.
+Sounds solved — until tanpa constraints, the model **hallucinates** — bisa menyebut total yang tidak cocok dengan rows yang diberikan (claiming "Rp 500.000" padahal context hanya berjumlah Rp 202.500), atau bahkan mereferensi transaksi yang tidak ada di context.
 
 ---
 
-**Stage 2 — a grounding prompt.** Instruksikan model secara eksplisit: jawab HANYA dari context yang diberikan, dan diperbolehkan berkata "saya tidak tahu" (`confident: false`) alih-alih menebak.
+**A grounding prompt.** Instruksikan model secara eksplisit: jawab HANYA dari context yang diberikan, dan diperbolehkan berkata "saya tidak tahu" (`confident: false`) alih-alih menebak.
 
 ```
 SYSTEM: "Answer ONLY from the numbered transactions provided as context.
@@ -228,11 +228,11 @@ Question: berapa pengeluaran makan bulan Maret?
 }
 ```
 
-> **The wall:** even a well-grounded model occasionally cites a `transaction_id` that was never in the context — a number it pattern-matched from training data or a nearby digit, not something it actually read.
+One gap remains: even a well-grounded model occasionally cites a `transaction_id` that was never in the context — a number it pattern-matched from training data or a nearby digit, not something it actually read.
 
 ---
 
-**Stage 3 — validate every cited id against the context you actually gave it.** Check each `cited_transaction_ids` entry against the set of ids that were really in the prompt; silently drop (and log) anything that isn't there. → *this is what ships* — the citation-validation loop in [answerer.py](../../../services/ai-service/app/services/answerer.py) (Step 8), the **hallucination guard**.
+**Validate every cited id against the context you actually gave it.** Check each `cited_transaction_ids` entry against the set of ids that were really in the prompt; silently drop (and log) anything that isn't there. → *this is what ships* — the citation-validation loop in [answerer.py](../../../services/ai-service/app/services/answerer.py) (Step 8), the **hallucination guard**.
 
 ```python
 # Context yang benar-benar dikirim ke LLM:

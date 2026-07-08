@@ -67,16 +67,16 @@ Claude Desktop (MCP client)
 
 ## MCP primitives and transport
 
-**Stage 0 — what you already have: hand-wired endpoints.** `POST /categorize`, `POST /ask`, the 2-agent
+**What you already have: hand-wired endpoints.** `POST /categorize`, `POST /ask`, the 2-agent
 demo — every AI capability in this project so far is a specific HTTP route with a specific request/response
 shape, called by exactly one caller (the .NET API) that already knows the shape because you wrote both sides.
 
-> **The wall:** Claude Desktop is not the .NET API. It doesn't know `/categorize` exists, doesn't know the
-> request body shape, and can't be taught per-conversation — there's no shared, machine-readable place that
-> says "here's what tools exist and how to call them." Every new AI client you want to support means another
-> bespoke integration.
+Claude Desktop is not the .NET API, though. It doesn't know `/categorize` exists, doesn't know the
+request body shape, and can't be taught per-conversation — there's no shared, machine-readable place that
+says "here's what tools exist and how to call them." Every new AI client you want to support means another
+bespoke integration.
 
-**Stage 1 — MCP's three primitives.** MCP defines a small, fixed vocabulary that any client and server both
+**MCP's three primitives.** MCP defines a small, fixed vocabulary that any client and server both
 speak: **Tools** (callable actions the AI invokes — a query, a computation, a write), **Resources**
 (URI-addressed data the AI reads passively, like a static lookup table), and **Prompts** (reusable templates
 with variables the AI fills in). A server declares which of these it exposes; a client discovers them
@@ -84,10 +84,10 @@ automatically over the protocol — no per-caller integration code. This chapter
 `get_transactions`, `get_cashflow_summary`, `get_pyramid_scores`, `search_transactions_semantic` — all four
 are live queries against real data, which is exactly what Tools are for.
 
-> **The wall:** once you have tools, *how* does a client actually reach the process running them? MCP
-> defines transports — the wire format for that connection — and you have to pick one.
+That still leaves one question unanswered: once you have tools, *how* does a client actually reach the process running them? MCP
+defines transports — the wire format for that connection — and you have to pick one.
 
-**Stage 2 — stdio vs SSE.** **stdio transport** has the client spawn your server as a local subprocess and
+**stdio vs SSE.** **stdio transport** has the client spawn your server as a local subprocess and
 talk over its stdin/stdout — self-contained, but a fresh process (and a fresh asyncpg pool, a cold
 `RetrievalService` with no warm embedding cache) on every connection. **SSE transport** (Server-Sent Events —
 the same long-lived-HTTP-response mechanism behind PF-AI005's `/ask/stream`) has the client connect to a
@@ -101,17 +101,17 @@ https://modelcontextprotocol.io/docs/concepts/tools
 
 ## Typed tool schemas vs `dict`
 
-**Stage 0 — return whatever `dict` you want.** In ordinary Python code, a function like
+**Return whatever `dict` you want.** In ordinary Python code, a function like
 `get_pyramid_scores()` returning `dict` is completely normal — the caller reads `result["tier"]` and moves
 on, and if a key is missing or misnamed, you find out at the call site.
 
-> **The wall:** an MCP tool's "caller" isn't a line of Python you control — it's an LLM deciding, from a
-> generated JSON schema, what a tool returns and how to use the result in a follow-up call. `dict` as a
-> return-type annotation carries no field information — FastMCP generates an opaque `{}` schema. The model
-> sees a tool that returns *something*, with no names and no types, and starts guessing field names when it
-> tries to format the answer or chain a second call.
+Except an MCP tool's "caller" isn't a line of Python you control — it's an LLM deciding, from a
+generated JSON schema, what a tool returns and how to use the result in a follow-up call. `dict` as a
+return-type annotation carries no field information — FastMCP generates an opaque `{}` schema. The model
+sees a tool that returns *something*, with no names and no types, and starts guessing field names when it
+tries to format the answer or chain a second call.
 
-**Stage 1 — typed returns.** Annotate the real shape — `list[dict[str, Any]]` with a docstring that lists
+**Typed returns.** Annotate the real shape — `list[dict[str, Any]]` with a docstring that lists
 every field and its type (as STEP 3's `get_transactions` docstring does: `{date, description, category,
 amount_idr (float), flow, account}`), or a richer `TypedDict`/dataclass. FastMCP turns that into a JSON
 schema with named, typed fields — the same schema Claude Desktop reads *before* it ever calls the tool, so

@@ -64,25 +64,25 @@ now the reasoning is visible: every tool call becomes a span you can open in Lan
 
 ## What is an agent?
 
-**Stage 0 — one LLM call.** The current LLM-fallback layer (Layer 4 of `categorizer.py`) sends the
+**One LLM call.** The current LLM-fallback layer (Layer 4 of `categorizer.py`) sends the
 description to the model and takes back a category. It works when the description is obvious —
 "STARBUCKS COFFEE" → Food & Dining.
 
-> **The wall:** when it's wrong, there's no record of *why*. The model never checked the 106 rules
-> or the user's past transactions — it guessed from the description string alone. Feed it
-> "GJ*GRAB CAR JAKARTA" and it might say "Shopping"; nothing shows what it considered or lets you
-> correct the reasoning.
+There's no record of *why* when it's wrong, though. The model never checked the 106 rules
+or the user's past transactions — it guessed from the description string alone. Feed it
+"GJ*GRAB CAR JAKARTA" and it might say "Shopping"; nothing shows what it considered or lets you
+correct the reasoning.
 
-**Stage 1 — give the model tools.** Instead of guessing, let the model call functions: search the
+**Give the model tools.** Instead of guessing, let the model call functions: search the
 rules, look up similar past transactions. **Tool calling** = the LLM emits a structured request
 ("call `search_category_rules` with keyword='grab'"), your code runs it, and hands the result back
 to the model.
 
-> **The wall:** one tool call usually isn't enough. Rules might return "No rules matched", so the
-> model needs to *see that result* and then decide to try similarity search instead. A single
-> request → response can't branch on what it just learned.
+One tool call usually isn't enough, though. Rules might return "No rules matched", so the
+model needs to *see that result* and then decide to try similarity search instead. A single
+request → response can't branch on what it just learned.
 
-**Stage 2 — the ReAct loop.** **ReAct** (Reason + Act) runs the model in a loop: it observes the
+**The ReAct loop.** **ReAct** (Reason + Act) runs the model in a loop: it observes the
 latest tool output, reasons about the next step, acts by calling another tool, observes again —
 until it has enough evidence to produce a final answer. smolagents runs this loop for you.
 *This is what the chapter ships.*
@@ -94,14 +94,14 @@ until it has enough evidence to produce a final answer. smolagents runs this loo
 
 ## ToolCallingAgent vs CodeAgent
 
-**Stage 0 — `CodeAgent`.** smolagents' `CodeAgent` lets the LLM *write Python* to call tools —
+**`CodeAgent`.** smolagents' `CodeAgent` lets the LLM *write Python* to call tools —
 maximally flexible, and genuinely clever for data-science notebooks.
 
-> **The wall:** in a web service that generated code runs on your server. Nothing stops the model —
-> or a prompt-injected transaction description — from emitting `os.system("rm -rf /")` and having it
-> execute. Flexibility becomes arbitrary code execution.
+The catch: in a web service that generated code runs on your server. Nothing stops the model —
+or a prompt-injected transaction description — from emitting `os.system("rm -rf /")` and having it
+execute. Flexibility becomes arbitrary code execution.
 
-**Stage 1 — `ToolCallingAgent`.** Constrain the model to emit **JSON tool calls** — the exact
+**`ToolCallingAgent`.** Constrain the model to emit **JSON tool calls** — the exact
 `tool_use` shape already used throughout the extraction pipeline. The model can only invoke declared
 tools with typed arguments; no arbitrary code path exists. *This is what the chapter ships.* The
 bridge to what you already know: the `tool_use` primitive from PDF extraction is the same building
@@ -111,14 +111,14 @@ block the agent loop runs on — you're seeing where that primitive lives inside
 
 ## The tool docstring is the schema
 
-**Stage 0 — a bare function.** Write `search_category_rules(keyword)` and register it as a tool.
+**A bare function.** Write `search_category_rules(keyword)` and register it as a tool.
 
-> **The wall:** the model decides *whether and when* to call a tool purely from its docstring — that
-> is the only description it sees. A vague docstring ("searches rules") gives it no basis to check
-> rules *before* similarity search, so it fires them in the wrong order and you get worse answers
-> with no obvious bug.
+Sounds sufficient — until the model decides *whether and when* to call a tool purely from its docstring — that
+is the only description it sees. A vague docstring ("searches rules") gives it no basis to check
+rules *before* similarity search, so it fires them in the wrong order and you get worse answers
+with no obvious bug.
 
-**Stage 1 — docstring as contract.** Write the docstring to state *when* to use the tool ("Use this
+**Docstring as contract.** Write the docstring to state *when* to use the tool ("Use this
 tool FIRST", "Use this when rules return No rules matched"), the argument meaning, and the return
 shape. The docstring **is** the schema the LLM plans against. *This is what the chapter ships.*
 
