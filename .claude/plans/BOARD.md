@@ -14,6 +14,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 |----|-------|-------|
 | PF-AI003b | _(no issue)_ | Embedding Provider Toggle (OpenAI ⇄ Gemini) |
 | PF-AI004 | _(no issue)_ | RAG Phase 2 — Chunking, Re-ranking, Generation |
+| PF-AI005 | _(no issue)_ | Streaming + Production UX (SSE) — completed 2026-07-06; follow-up in PF-AI005-PART2 |
 | PF-001 | [#9](https://github.com/rikky-hermanto/personal-finance/issues/9) | .NET Web API with Clean Architecture |
 | PF-002 | [#10](https://github.com/rikky-hermanto/personal-finance/issues/10) | React + Vite Frontend Scaffold |
 | PF-003 | [#11](https://github.com/rikky-hermanto/personal-finance/issues/11) | Docker Compose Orchestration |
@@ -104,12 +105,12 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
+| PF-AI005-PART2 | Answer Accuracy — Query Routing, SQL Aggregation, Grounded Streaming | Fixes 2026-07-08 UI-test hallucinations (fabricated Feb PLN total, denied April food data — SQL shows 43 rows / Rp 2,309,954); plan: [`.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md`](.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md) |
 
 ## To Do — AI Learning Track
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI005 | Streaming + Production UX (SSE) | Depends on PF-AI004; plan revised 2026-07-03 after architect audit (Realtime re-scoped to live transactions): [`.claude/plans/learning/PF-AI005-streaming-sse-todo.md`](.claude/plans/learning/PF-AI005-streaming-sse-todo.md) |
 | PF-AI006 | Advanced RAG Patterns | Depends on PF-AI004+PF-AI005; plan: [`.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md`](.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) |
 | PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) |
 
