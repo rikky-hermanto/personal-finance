@@ -533,3 +533,25 @@
 - Optional stretch (not blocking Chapter 5): swap FlashRank's multilingual model and re-run `--rerank` to see if the Indonesian-query delta turns positive
 
 **Streak: 1 day** (Days 27, 35, 37 all had real work; unlogged gaps remain 2026-06-18→22, 2026-06-24→2026-06-30, 2026-07-02)
+
+### 2026-07-08 — Day 42
+
+**Session: Chapter 5 PART 1 closed on the board; PART 2 (answer accuracy) queued**
+
+- PF-AI005 PART 1 (SSE streaming, `/ask/stream`, ChatPage, Supabase Realtime on `transactions`) shipped 2026-07-06 — the plan file was already marked Done, but its BOARD row was still stranded in "To Do — AI Learning Track". Moved it to "Done (closed)" with a pointer to PART 2 as the follow-up.
+- Confirmed the `-id.md` versi-belajar companion is study material, not a tracked task — stays in `learning/`, nothing to "close".
+- PF-AI005 PART 2 plan authored: **Answer Accuracy — query routing + deterministic SQL aggregation + grounded streaming**. Motivated by a live UI test (2026-07-08) that caught the chat fabricating a February PLN total and denying April food spending exists — SQL shows 43 Food rows / Rp 2,309,954 in April 2024. Root cause is architectural: PART 1 answers every question by summing top-3 semantic matches, so aggregate questions get a sample, not a total. PART 2 routes aggregate intent to parametrized `SUM` (number comes from Postgres, never the model) and adds a post-stream citation guard. Sits in "In Progress" on the board.
+
+**Chapter 5 checklist progress:**
+- [x] PART 1 — SSE streaming, EventSource consumption, Realtime (shipped 2026-07-06)
+- [ ] PART 2 — query routing + SQL aggregation + grounded streaming ← next build
+
+**Retros (blockers & surprises):**
+- **The failure is the curriculum.** The UI test lie ("fabricated an electricity bill", "denied April food data that has 43 rows") is a stronger interview story than any clean demo — "I caught my RAG system lying about money and redesigned the query path so it *can't*". Keep the screenshots for the STAR story + blog post.
+- **Board hygiene beats status headers.** PART 1's plan said Done for two days while the BOARD said To Do — the single source of truth for "what's shipped" drifted. Close the board row the same day the plan flips to Done.
+
+**Remaining for next session:**
+- PART 2 STEP 0 — reproduce and pin the failure (SQL ground truth + the two failing curl calls) before touching code
+- PART 2 STEP 1–2 — read the routing material, build `query_planner.py`
+
+**Streak: 1 day**
