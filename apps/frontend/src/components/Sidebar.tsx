@@ -22,7 +22,6 @@ const navSections = [
   {
     level: 'L1', label: 'Foundations', color: 'rgb(100 116 139)',
     items: [
-      { id: 'chat',      label: 'AI Chat',   icon: Bot,       path: '/chat',      matchPrefix: '/chat',      live: true  },
       { id: 'cashflow',  label: 'Cashflow',  icon: PiggyBank, path: '/cashflow',  matchPrefix: '/cashflow',  live: true  },
       { id: 'budgeting', label: 'Budgeting', icon: Wallet,    path: '/budgeting', matchPrefix: '/budgeting', live: false },
       { id: 'bills',     label: 'Recurring', icon: Receipt,   path: '/bills',     matchPrefix: '/bills',     live: false },
