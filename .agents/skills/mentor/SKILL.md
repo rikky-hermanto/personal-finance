@@ -655,6 +655,24 @@ is exactly what a good hands-on video does; the ladder ports it into the plan fi
   looking at" screen — the equivalent of the intro diagram in the video.
 - **Then walk the stages.** Each stage = **the naive version that works → the concrete wall it hits
   → the fix** (which names the new concept and becomes the next stage). 2–4 sentences per stage.
+- **Name each stage by its approach, never by ordinal.** A bold lead-in naming what the approach
+  IS (e.g. **"Stream the tokens"**, **"Server-Sent Events (SSE)"**) — never "Rung 0 / Rung 1 / Rung
+  2", "Stage 0/1/2", "Step 0/1/2", or "Version 0/1/2". Ordinal labels read like software-release
+  numbering, not someone narrating how they arrived at a solution, and force the reader to decode
+  "Stage 2" back into "the SSE one" every time it's referenced. The approach name itself must carry
+  the meaning — "Stage 0 — slice the raw text every 35 characters" already names the approach after
+  the dash, so the mechanical fix is just dropping the "Stage N — " prefix, not rewriting the name.
+  Mark only the final stage's fix with an inline "*This is what ships.*" (or a more specific variant
+  naming the exact artifact, e.g. "*This is the `hybrid` mode STEP 3 builds.*") — don't also repeat
+  "(what ships)" in that stage's bold lead-in.
+- **Vary the wall transition every time — never repeat the same connective.** The transition still
+  has to name the limitation that forces the next stage, but reaching for the identical phrase
+  ("The wall:", "Masalahnya:") stage after stage reads as a filled-in form, not a story. Rotate the
+  rhetorical move instead: concession ("Fine for X, a dead end for Y:"), contrast pair ("Good for
+  `PLN`, useless for `makan siang`:"), reveal ("There's a subtle trap here:"), seemed-done-until
+  ("Sounds like a pure implementation detail — until it hits…"). Write the wall as flowing prose
+  continuing the narrative, not a separate blockquote callout — blockquotes stay reserved for
+  genuine asides (a `Teaser` naming an out-of-scope concept, a resource link).
 - **Every new term is introduced as the solution to a felt problem** — bolded at first use with a
   one-line plain-language gloss. If a term appears *before* its wall, that's the bug to fix.
 - **Use a real example from this project** at each wall (an actual query, an actual transaction

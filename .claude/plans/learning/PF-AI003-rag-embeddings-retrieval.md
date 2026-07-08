@@ -38,39 +38,39 @@ Three mini-ladders below — one per concept this chapter ships.
 
 ## Embeddings
 
-**Stage 0 — keyword search, the version you already have.** Filter transactions with `description ILIKE '%makan%'` (or the existing category-rule keyword matcher). It works as long as the query shares an exact word with the text.
+**Keyword search, the version you already have.** Filter transactions with `description ILIKE '%makan%'` (or the existing category-rule keyword matcher). It works as long as the query shares an exact word with the text.
 
-> **The wall:** a BCA row often looks like `description = "DEBIT"` with the rule engine separately setting `category = "Food & Dining"`. A query for `"food spending"` shares zero words with `"DEBIT"` — keyword search returns nothing, even though the transaction is exactly what the user meant.
+Except a BCA row often looks like `description = "DEBIT"` with the rule engine separately setting `category = "Food & Dining"`. A query for `"food spending"` shares zero words with `"DEBIT"` — keyword search returns nothing, even though the transaction is exactly what the user meant.
 
-**Stage 1 — embeddings: text becomes a point in meaning-space.** An **embedding** is a dense vector that represents what a piece of text *means*, not the literal characters in it. Two semantically similar texts (`"food spending"` and `"GOFOOD FOOD ORDER"`) produce vectors that sit close together — measured by cosine similarity — even though they share no words.
+**Embeddings: text becomes a point in meaning-space.** An **embedding** is a dense vector that represents what a piece of text *means*, not the literal characters in it. Two semantically similar texts (`"food spending"` and `"GOFOOD FOOD ORDER"`) produce vectors that sit close together — measured by cosine similarity — even though they share no words.
 
-> **The wall:** if you embed only the raw `description` field, a terse bank code like `"DEBIT TRANSFER"` still carries almost no semantic signal — there's nothing in the text itself for the embedding to capture as "food-related."
+There's a catch, though: if you embed only the raw `description` field, a terse bank code like `"DEBIT TRANSFER"` still carries almost no semantic signal — there's nothing in the text itself for the embedding to capture as "food-related."
 
-**Stage 2 — enrich what you embed.** Compose `description + remarks + category + wallet` into one `search_text` string before embedding (`EmbedItem.search_text()`, Step 4). The category the rule engine already assigned carries the semantic meaning the raw bank text lacks. → *this is what ships.*
+**Enrich what you embed.** Compose `description + remarks + category + wallet` into one `search_text` string before embedding (`EmbedItem.search_text()`, Step 4). The category the rule engine already assigned carries the semantic meaning the raw bank text lacks. → *this is what ships.*
 
 ▶ **Watch/read for this concept:** [Jay Alammar — The Illustrated Word2Vec](https://jalammar.github.io/illustrated-word2vec/) — the best visual intuition for "words/sentences as points in space."
 
 ## Vector storage & search (pgvector)
 
-**Stage 0 — brute-force cosine in a loop.** Keep every embedding in a Python list, and for each query, loop over all of them computing cosine similarity by hand, sort, take the top-K.
+**Brute-force cosine in a loop.** Keep every embedding in a Python list, and for each query, loop over all of them computing cosine similarity by hand, sort, take the top-K.
 
-> **The wall:** this works for a handful of rows in a notebook, but it isn't queryable SQL — you can't `JOIN` it against the real `transactions` table for dates/amounts/wallet in the same round trip, and every query re-scans every row in pure Python.
+Fine for a handful of rows in a notebook, not for production: it isn't queryable SQL — you can't `JOIN` it against the real `transactions` table for dates/amounts/wallet in the same round trip, and every query re-scans every row in pure Python.
 
-**Stage 1 — pgvector: a native vector column in Postgres.** Store embeddings as a `vector(1536)` column and compare them with the `<=>` cosine-distance operator directly in SQL — `JOIN`-able with `transactions` in one query, no separate vector database to run.
+**pgvector: a native vector column in Postgres.** Store embeddings as a `vector(1536)` column and compare them with the `<=>` cosine-distance operator directly in SQL — `JOIN`-able with `transactions` in one query, no separate vector database to run.
 
-> **The wall:** without an index, `<=>` still does a full sequential scan of every row in `transaction_embeddings` to answer one query — fine for thousands of rows, the wrong tool past hundreds of thousands.
+One gap remains: without an index, `<=>` still does a full sequential scan of every row in `transaction_embeddings` to answer one query — fine for thousands of rows, the wrong tool past hundreds of thousands.
 
-**Stage 2 — an `ivfflat` index for approximate nearest-neighbor search.** The index partitions vectors into clusters (`lists = 100`) so a query only has to search the nearest few clusters instead of every row. → *this is what ships* (Step 2 migration).
+**An `ivfflat` index for approximate nearest-neighbor search.** The index partitions vectors into clusters (`lists = 100`) so a query only has to search the nearest few clusters instead of every row. → *this is what ships* (Step 2 migration).
 
 ▶ **Watch/read for this concept:** [pgvector README](https://github.com/pgvector/pgvector) — distance operators, index types, query tips.
 
 ## Measuring retrieval quality (MRR@5)
 
-**Stage 0 — eyeball a few queries and see if the results "look right."** Run `/search` for `"makan"`, skim the top results, decide subjectively whether it worked.
+**Eyeball a few queries and see if the results "look right."** Run `/search` for `"makan"`, skim the top results, decide subjectively whether it worked.
 
-> **The wall:** "looks right" isn't a number — you can't compare today's retrieval against last week's, can't show an interviewer evidence, and can't tell if a code change made things better or worse.
+The problem: "looks right" isn't a number — you can't compare today's retrieval against last week's, can't show an interviewer evidence, and can't tell if a code change made things better or worse.
 
-**Stage 1 — Mean Reciprocal Rank (MRR@5).** For a set of test queries with a known-correct answer, score each query `1/rank` of the first relevant result in the top 5, then average across all queries. MRR = 1.0 means the right answer is always rank 1; MRR = 0.5 means it's usually around rank 2. → *this is what ships* (Step 13, `eval_retrieval.py`).
+**Mean Reciprocal Rank (MRR@5).** For a set of test queries with a known-correct answer, score each query `1/rank` of the first relevant result in the top 5, then average across all queries. MRR = 1.0 means the right answer is always rank 1; MRR = 0.5 means it's usually around rank 2. → *this is what ships* (Step 13, `eval_retrieval.py`).
 
 ▶ **Watch/read for this concept:** [OpenAI cookbook — Embeddings quickstart](https://cookbook.openai.com/examples/get_embeddings_with_chunked_inputs) — read the code, not the prose.
 
