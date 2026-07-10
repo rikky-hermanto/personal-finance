@@ -89,12 +89,16 @@ class GeminiProvider:
             generation.end()
             raise
 
-    async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
+    async def generate_json(
+        self, system_prompt: str, user_prompt: str, schema: dict,
+        max_output_tokens: int | None = None,
+    ) -> dict:
         config = types.GenerateContentConfig(
             system_instruction=system_prompt,
             response_mime_type="application/json",
             response_schema=schema,
             temperature=0.0,
+            max_output_tokens=max_output_tokens,   # None → SDK omits it
         )
 
         client = self._get_client()

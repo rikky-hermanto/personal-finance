@@ -108,7 +108,10 @@ class AnthropicProvider:
                 generation.end()
             raise
 
-    async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
+    async def generate_json(
+        self, system_prompt: str, user_prompt: str, schema: dict,
+        max_output_tokens: int | None = None,
+    ) -> dict:
         tools = [{
             "name": "classify",
             "description": "Return classification result",
@@ -125,7 +128,7 @@ class AnthropicProvider:
         try:
             response = await self._client.messages.create(
                 model=self._model,
-                max_tokens=256,
+                max_tokens=max_output_tokens or 256,   # preserve prior default
                 temperature=0.0,
                 system=system_prompt,
                 tools=tools,

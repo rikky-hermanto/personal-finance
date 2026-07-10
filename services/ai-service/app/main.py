@@ -1,7 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
+import datetime
 import json
+import re
 
+import asyncpg
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from sse_starlette.sse import EventSourceResponse
@@ -13,7 +16,9 @@ from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseRes
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
 from app.services.reranker import RerankerService
-from app.services.answerer import AnswerService, SYSTEM_PROMPT, _format_context
+from app.services.answerer import AnswerService, SYSTEM_PROMPT, NARRATE_PROMPT, _format_context
+from app.services.query_planner import QueryPlanner
+from app.services.aggregator import AggregationService
 from app.providers.factory import ProviderFactory
 from app.providers.embedding_factory import create_embedding_provider
 from app.services.llm_parser import LlmParser, LlmParseError
@@ -21,7 +26,7 @@ from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
 from app.services.categorizer import Categorizer
 from app.services.merchant_suggester import MerchantSuggester
 from app.services.portfolio_reviewer import PortfolioReviewer
-from app.services.journey_advisor import advise as journey_advise
+from app.services.journey_advisor import JourneyAdvisor
 
 from opentelemetry import trace, metrics
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -45,6 +50,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def _load_categories(db_url: str) -> list[str]:
+    """Load the closed category vocabulary the planner selects from.
+
+    Values are set by the 106-rule categorizer — a finite, known set. Failing to
+    reach the DB at startup must not crash the service; the planner just sees an
+    empty menu and extracts no categories until the next restart.
+    """
+    try:
+        conn = await asyncpg.connect(db_url)
+        try:
+            rows = await conn.fetch(
+                "SELECT DISTINCT category FROM transactions WHERE category <> '' ORDER BY category"
+            )
+        finally:
+            await conn.close()
+        return [r["category"] for r in rows]
+    except Exception:
+        logger.exception("failed to load category vocabulary — planner will see an empty list")
+        return []
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     provider = ProviderFactory.create(settings)
@@ -53,16 +79,28 @@ async def lifespan(app: FastAPI):
     app.state.categorizer = Categorizer(provider=provider)
     app.state.suggester = MerchantSuggester(provider=provider)
     app.state.portfolio_reviewer = PortfolioReviewer(provider=provider)
+    app.state.journey_advisor = JourneyAdvisor(provider=provider)
     embed_provider = create_embedding_provider(settings)
     app.state.embedder = EmbeddingService(provider=embed_provider, db_url=settings.database_url)
     app.state.retriever = RetrievalService(provider=embed_provider, db_url=settings.database_url)
     app.state.reranker = RerankerService()
+    # Query router: one temperature-0 planner call classifies intent + extracts filters;
+    # aggregate questions go to deterministic SQL, lookups keep the retrieve→rerank funnel.
+    app.state.planner = QueryPlanner(provider=provider)
+    app.state.aggregator = AggregationService(db_url=settings.database_url)
+    app.state.categories = await _load_categories(settings.database_url)
     app.state.answerer = AnswerService(
         retriever=app.state.retriever,
         reranker=app.state.reranker,
         provider=provider,
+        planner=app.state.planner,
+        aggregator=app.state.aggregator,
+        categories=app.state.categories,
     )
     app.state.provider = provider
+    logger.info(
+        "Loaded %d category vocabulary entries for the planner", len(app.state.categories),
+    )
     logger.info(
         "AI service starting up | provider=%s | model=%s | embedding_provider=%s | embedding_model=%s",
         settings.ai_provider, settings.ai_model,
@@ -209,7 +247,7 @@ async def portfolio_review(req: PortfolioReviewRequest) -> PortfolioReviewRespon
 @app.post("/journey/advise", response_model=JourneyAdviseResponse)
 async def journey_advise_endpoint(req: JourneyAdviseRequest) -> JourneyAdviseResponse:
     try:
-        return await journey_advise(req)
+        return await app.state.journey_advisor.advise(req)
     except RuntimeError as e:
         raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": str(e)})
     except Exception as e:
@@ -282,62 +320,132 @@ async def ask(request: AskRequest) -> AskResponse:
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
 
 
+def _context_payload(rows) -> list[dict]:
+    return [
+        {
+            "transaction_id": r.transaction_id,
+            "date": r.date,
+            "description": r.description,
+            "amount_idr": r.amount_idr,
+            "flow": r.flow,
+            "wallet": r.wallet,
+        }
+        for r in rows
+    ]
+
+
 @app.post("/ask/stream")
 async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
-    """Stream the RAG answer token-by-token over SSE.
+    """Stream the routed RAG answer token-by-token over SSE.
+
+    A temperature-0 planner classifies intent first, then the stream splits:
+      aggregate → SQL total computed FIRST, sent in `metadata` + `done` as `total_idr`;
+                  the LLM only narrates the number, so the prose can never define it.
+      lookup    → retrieve→rerank→cite funnel; tokens are buffered WHILE forwarded
+                  (zero TTFT cost), then `[n]` markers are validated post-stream.
 
     Event protocol:
-      metadata  → JSON: {contexts: [{transaction_id, date, description, amount_idr, flow, wallet},...]}
+      metadata  → JSON: {contexts:[...], intent, total_idr?, count?}
       token     → string: one text chunk from the LLM
-      done      → empty string: generation complete
+      done      → JSON: {confident, verified, intent, total_idr?}
     """
     async def event_generator():
-        # 1. Retrieval + reranking
+        today = datetime.date.today()
+        try:
+            plan = await app.state.planner.plan(request.query, today, app.state.categories)
+        except Exception:
+            logger.exception("planner failed")
+            yield {"event": "error", "data": json.dumps({"detail": "planner_failed"})}
+            return
+
+        # ── aggregate: the number is computed before the model is ever called ──
+        if plan.intent == "aggregate":
+            agg = await app.state.aggregator.aggregate(plan)
+
+            if agg.count == 0:
+                yield {"event": "metadata", "data": json.dumps(
+                    {"contexts": [], "intent": "aggregate", "total_idr": 0.0, "count": 0})}
+                yield {"event": "done", "data": json.dumps(
+                    {"confident": False, "verified": True, "intent": "aggregate", "total_idr": 0.0})}
+                return
+
+            total_idr = float(agg.total_idr)
+            yield {"event": "metadata", "data": json.dumps(
+                {"contexts": _context_payload(agg.rows), "intent": "aggregate",
+                 "total_idr": total_idr, "count": agg.count})}
+
+            user_prompt = (
+                f"VERIFIED TOTAL: Rp {agg.total_idr:,.0f} from {agg.count} transactions\n"
+                f"Filters: categories={plan.categories} {plan.date_from}..{plan.date_to} flow={plan.flow}\n"
+                f"Largest rows:\n{_format_context(agg.rows)}\n\nQuestion: {request.query}"
+            )
+            try:
+                async for token in app.state.provider.stream_generate(NARRATE_PROMPT, user_prompt):
+                    if await req.is_disconnected():
+                        break
+                    yield {"event": "token", "data": token}
+            except Exception:
+                logger.exception("stream_generate failed (aggregate)")
+                yield {"event": "error", "data": json.dumps({"detail": "generation_failed"})}
+                return
+
+            # verified=True by construction: total_idr came from SQL, not the prose.
+            yield {"event": "done", "data": json.dumps(
+                {"confident": True, "verified": True, "intent": "aggregate", "total_idr": total_idr})}
+            return
+
+        # ── lookup: PART 1 funnel + planner-extracted filters ─────────────────
+        category = request.category or (plan.categories[0] if plan.categories else None)
+        date_from = request.date_from or plan.date_from
+        date_to = request.date_to or plan.date_to
+
         candidates = await app.state.retriever.search(
             query=request.query, top_k=10,
-            category=request.category, account=request.account,
-            date_from=request.date_from, date_to=request.date_to,
+            category=category, account=request.account,
+            date_from=date_from, date_to=date_to,
         )
         contexts = await app.state.reranker.rerank(
             request.query, candidates, top_k=request.top_k or 3
         )
 
         if not contexts:
-            yield {"event": "done", "data": json.dumps({"confident": False, "contexts": []})}
+            yield {"event": "done", "data": json.dumps(
+                {"confident": False, "verified": False, "intent": "lookup", "contexts": []})}
             return
 
-        # 2. Send contexts BEFORE generation — client can render citations immediately
-        context_payload = [
-            {
-                "transaction_id": r.transaction_id,
-                "date": r.date,
-                "description": r.description,
-                "amount_idr": r.amount_idr,
-                "flow": r.flow,
-                "wallet": r.wallet,
-            }
-            for r in contexts
-        ]
-        yield {"event": "metadata", "data": json.dumps({"contexts": context_payload})}
+        # Send contexts BEFORE generation — client renders citations immediately.
+        yield {"event": "metadata", "data": json.dumps(
+            {"contexts": _context_payload(contexts), "intent": "lookup"})}
 
-        # 3. Build the same user prompt as AnswerService
         user_prompt = (
             f"Context transactions:\n{_format_context(contexts)}\n\n"
             f"Question: {request.query}"
         )
 
-        # 4. Stream generation tokens
+        # Buffer WHILE forwarding — the guard costs zero time-to-first-token.
+        buffer: list[str] = []
         try:
             async for token in app.state.provider.stream_generate(SYSTEM_PROMPT, user_prompt):
                 if await req.is_disconnected():
                     break
+                buffer.append(token)
                 yield {"event": "token", "data": token}
         except Exception:
-            logger.exception("stream_generate failed")
+            logger.exception("stream_generate failed (lookup)")
             yield {"event": "error", "data": json.dumps({"detail": "generation_failed"})}
             return
 
-        yield {"event": "done", "data": ""}
+        # Post-stream guard: every [n] marker must map to a context we sent. An
+        # answer that cites nothing is unverifiable by definition (verified=False).
+        text = "".join(buffer)
+        markers = {int(m) for m in re.findall(r"\[(\d+)\]", text)}
+        valid = set(range(1, len(contexts) + 1))
+        verified = bool(markers) and markers <= valid
+        if markers - valid:
+            logger.warning("stream cited unknown markers %s — flagged unverified", markers - valid)
+
+        yield {"event": "done", "data": json.dumps(
+            {"confident": True, "verified": verified, "intent": "lookup"})}
 
     return EventSourceResponse(event_generator())
 

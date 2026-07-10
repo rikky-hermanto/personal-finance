@@ -60,7 +60,7 @@ interface AiChatPanelProps {
 }
 
 const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
-  const { messages, contexts, input, setInput, streaming, send, stop } = useChatSession();
+  const { messages, input, setInput, streaming, send, stop } = useChatSession();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const contextLabel = getContextLabel(pathname);
@@ -142,7 +142,7 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
               {streaming && isLast && (
                 <span className="inline-block w-0.5 h-4 bg-foreground animate-pulse ml-0.5 align-middle" />
               )}
-              {isLast && !streaming && <CitationCard contexts={contexts} />}
+              {!streaming && <CitationCard contexts={m.contexts ?? []} />}
             </div>
           );
         })}

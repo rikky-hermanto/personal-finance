@@ -100,3 +100,38 @@ A cross-encoder pays for that joint attention with cost: it has to run a full fo
 MS MARCO (Microsoft Machine Reading Comprehension) is a large-scale English question-answering/passage-ranking dataset built from real Bing search queries — it's the dataset most public cross-encoder rerankers (including FlashRank's `ms-marco-MiniLM-L-12-v2`) are trained on. That means the model's notion of "this passage answers this query" was learned almost entirely from English text. My transaction descriptions and queries are a mix of Indonesian and English ("berapa pengeluaran makan bulan Maret", "GOFOOD GEPREK BENSU GADING") — a model with no Indonesian training signal may re-rank correctly on surface lexical overlap but miss semantic nuance the same way it would on any out-of-distribution language. This is the reason Step 5 explicitly treats a disappointing P@5 delta as a possible language-mismatch finding rather than a broken re-ranker, and why FlashRank's multilingual model option is the documented fallback rather than a silent failure.
 
 **Verified, not hypothetical (2026-06-17):** ran `RerankerService.rerank("makan", [...])` for real (no mocks) against three candidates — `"TRANSFER DEBET SEWA BULANAN"`, `"GOFOOD GEPREK BENSU GADING"` (food delivery — relevant), and `"MAKANAN TERNAK SAPI BERKAH"` (cattle feed — irrelevant, shares the "makan" root). `ms-marco-MiniLM-L-12-v2` ranked the cattle-feed transaction **first**, ahead of the actual food-delivery order — exactly the lexical-overlap trap this section predicts for an English-trained cross-encoder on an Indonesian query. This is real evidence the language mismatch is not a remote risk for this corpus; Step 5's `--rerank` P@5 number (once Supabase is reachable) should be read with this in mind, and the multilingual FlashRank model is the first thing to try if the lift disappoints.
+
+## Query routing mental model (written from memory)
+
+**Why is a top-K retrieval result the wrong input for a SUM, even with perfect retrieval?**
+Retrieval returns *K* rows — a bounded sample ranked by semantic similarity. A SUM is a
+question about the **population**: every row matching the filter, not the K most-relevant ones.
+Even a flawless retriever that returns the *K* genuinely-best rows still returns only K of them;
+if the month has 43 matching food transactions and K=3, the sum of 3 is not the sum of 43. There
+is no K that guarantees coverage — you can't prove a top-K contains *all* matches without already
+knowing how many there are. Retrieval answers "which rows look like this query?"; aggregation
+answers "what is the total over all rows that *are* this kind?" — different questions, and the
+first can never stand in for the second. This is why the aggregate path bypasses embeddings
+entirely and runs `SUM(amount_idr)` over the whole `transactions` table.
+
+**Why generate filters instead of SQL? Name two failure classes filter-generation eliminates.**
+The planner emits a *typed plan* — `{intent, date_from, date_to, categories}` where `categories`
+must be chosen from a provided closed list — and trusted code compiles that to the same
+parametrized WHERE-clause shape the retriever already uses. The model decides *what* to query, not
+*how*. Two failure classes this removes by construction:
+1. **SQL injection / unbounded queries** — the model never emits executable SQL, so a crafted
+   query string can't become a cross-user read (once auth lands) or a table-scan DoS. Values are
+   always bound parameters (`$1`, `$2`), never string-interpolated.
+2. **Invented columns/categories** — free-text category output silently matches nothing
+   (`"Makanan"` ≠ `"Food"`) and returns a confident **Rp 0**. Constraining `categories` to a
+   set-membership check against the real DB vocabulary turns a hallucination into a validation
+   no-op — anything the model invents is dropped before it reaches SQL.
+
+**On the aggregate path, what is the LLM's remaining job, and what happens if it disobeys?**
+The number is computed by Postgres *before* the LLM is ever called and injected into the prompt as
+a verified constant ("The verified total is Rp 2,309,954 from 43 transactions — present this
+figure, do not alter it"). The LLM's only job is **narration**: turn that constant into a fluent
+one-to-three-sentence answer in the question's language. If it disobeys and writes a different
+number, it doesn't matter — the response/`done` payload carries `total_idr` straight from the SQL
+result, and the UI renders *that field*, not the prose. The trust boundary is structural: data
+flows *around* the model, not *through* it. The prompt is a plea; the payload is enforcement.
