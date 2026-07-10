@@ -58,6 +58,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-103 | _(no issue)_ | 4-Layer Categorization Engine |
 | PF-114 | _(no issue)_ | Journey Redesign — Living Garden Hero (Visual-Only MVP) |
 | PF-119 | _(no issue)_ | Cashflow Overview UX Polish: trust fixes + minimalism pass |
+| PF-132 | _(no issue)_ | Fix AI Chat 502s: provider-agnostic Journey advisor + Gemini-compatible planner schema |
 
 ---
 
@@ -105,7 +106,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI005-PART2 | Answer Accuracy — Query Routing, SQL Aggregation, Grounded Streaming | Fixes 2026-07-08 UI-test hallucinations (fabricated Feb PLN total, denied April food data — SQL shows 43 rows / Rp 2,309,954); plan: [`.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md`](.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md) |
+| PF-AI005-PART2 | Answer Accuracy — Query Routing, SQL Aggregation, Grounded Streaming | Fixes 2026-07-08 UI-test hallucinations (fabricated Feb PLN total, denied April food data — SQL shows 43 rows / Rp 2,309,954). **Code + unit tests complete (2026-07-09):** `query_planner.py`, `aggregator.py`, routed `/ask` + `/ask/stream` (buffer-while-forward marker guard), per-message frontend sources + unverified badge; 25 tests green, frontend build+lint clean. **Pending live infra:** STEP 0 baseline, numeric eval (`eval_numeric_accuracy.py`), STEP 8 metrics — Supabase stack down this session. plan: [`.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md`](.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md) |
 
 ## To Do — AI Learning Track
 
@@ -194,4 +195,4 @@ Monitoring: ████████████████████ 100% (3
 Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
 ```
 
-> Next task ID: **PF-102** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-133** (PF-S series: PF-S14 if more Supabase tasks needed)

@@ -1,7 +1,7 @@
 # PF-AI005 PART 2 — Answer Accuracy: Query Routing, Deterministic Aggregation, Grounded Streaming
 
 > **Learning Phase:** Phase 2 · Chapter 5 addendum (PART 2 of 2) · Day ~42 of 90
-> **Status:** Planned
+> **Status:** Code complete (2026-07-09) — live eval + metrics pending Supabase stack
 > **Started:** 2026-07-08
 > **Planned from branch:** main
 > **Depends on:** PF-AI005 PART 1 (SSE streaming, `/ask/stream`, ChatPage) — shipped 2026-07-06
@@ -107,15 +107,24 @@ Chat answers about money must be **provably correct or explicitly unverified** �
 
 ## ✅ Acceptance Criteria
 
-- [ ] [query_planner.py](../../../services/ai-service/app/services/query_planner.py) — `QueryPlanner.plan(query, today, categories)` returns a validated `QueryPlan` (`intent`, `date_from`, `date_to`, `categories ⊆ known list`); `temperature=0.0`; unit-tested with a mocked provider (≥ 5 tests incl. "bulan lalu" relative-date resolution and an invented-category rejection)
-- [ ] [aggregator.py](../../../services/ai-service/app/services/aggregator.py) — `AggregationService.aggregate(plan)` runs parametrized SQL only (no string interpolation of values), returns `Decimal` total + row count + top rows for display; unit-tested
-- [ ] `POST /ask` and `POST /ask/stream` route by intent; for aggregate queries the answer's rupiah figure equals the SQL result exactly (asserted in tests by mocking the provider with a *wrong* number and checking the response still carries the SQL `total_idr`)
-- [ ] `/ask/stream` lookup path buffers the streamed text and validates `[n]` markers post-stream; `done` payload carries `{confident, verified, intent, total_idr?}`; a test where the mocked provider cites `[7]` (not in context) must yield `verified: false`
+- [x] [query_planner.py](../../../services/ai-service/app/services/query_planner.py) — `QueryPlanner.plan(query, today, categories)` returns a validated `QueryPlan` (`intent`, `date_from`, `date_to`, `categories ⊆ known list`); `temperature=0.0`; unit-tested with a mocked provider (≥ 5 tests incl. "bulan lalu" relative-date resolution and an invented-category rejection)
+  > Verification: 6 tests in [test_query_planner.py](../../../services/ai-service/tests/test_query_planner.py) pass; `temperature=0.0` is enforced inside `provider.generate_json` (see [gemini.py](../../../services/ai-service/app/providers/gemini.py)); closed-vocab guard drops invented categories.
+- [x] [aggregator.py](../../../services/ai-service/app/services/aggregator.py) — `AggregationService.aggregate(plan)` runs parametrized SQL only (no string interpolation of values), returns `Decimal` total + row count + top rows for display; unit-tested
+  > Verification: 6 tests in [test_aggregator.py](../../../services/ai-service/tests/test_aggregator.py) assert values bind as params (never in the SQL string), `Decimal` total, `datetime.date` binding, and connection close.
+- [x] `POST /ask` and `POST /ask/stream` route by intent; for aggregate queries the answer's rupiah figure equals the SQL result exactly (asserted in tests by mocking the provider with a *wrong* number and checking the response still carries the SQL `total_idr`)
+  > Verification: `test_aggregate_total_comes_from_sql_not_prose` (answerer) and `test_ask_stream_aggregate_carries_sql_total_in_payload` (streaming) — provider mocked to say "Rp 999.999", payload still carries the SQL total.
+- [x] `/ask/stream` lookup path buffers the streamed text and validates `[n]` markers post-stream; `done` payload carries `{confident, verified, intent, total_idr?}`; a test where the mocked provider cites `[7]` (not in context) must yield `verified: false`
+  > Verification: `test_ask_stream_unknown_marker_is_unverified` + `test_ask_stream_valid_marker_is_verified` + `test_ask_stream_no_markers_is_unverified` in [test_streaming.py](../../../services/ai-service/tests/test_streaming.py).
 - [ ] The three failing queries from 2026-07-08 now behave: "pengeluaran makan bulan april" returns Rp 2,309,954 (43 transactions, April 2024 — or the correct year-disambiguated set); "tagihan listrik pln bulan februari" returns only real PLN rows or a refusal; no answer ever displays sources unrelated to its claim
-- [ ] [ChatPage.tsx](../../../apps/frontend/src/pages/ChatPage.tsx) — contexts stored per-message; sources rendered under their own message only; label distinguishes cited vs considered; stream errors show a visible message; `verified: false` answers show a badge
+  > Not met (live): requires the Supabase stack (down this session). Correct by construction (aggregate → SQL `SUM` over Food/April; sources come from the same filtered rows) and encoded as eval fixtures `food-apr-2024` / `electricity-feb-2024`; live rupiah confirmation pending.
+- [x] [ChatPage.tsx](../../../apps/frontend/src/pages/ChatPage.tsx) — contexts stored per-message; sources rendered under their own message only; label distinguishes cited vs considered; stream errors show a visible message; `verified: false` answers show a badge
+  > Verification: read the file — `Message.contexts` per-message, `sourceLabel()` distinguishes cited/considered, `⚠ tidak terverifikasi` badge on `verified === false`, error branch renders the failure text; `npm run build` + scoped eslint pass. Not visually verified (no live UI this session).
 - [ ] [eval_numeric_accuracy.py](../../../services/ai-service/evals/eval_numeric_accuracy.py) over [ask_numeric_questions.json](../../../services/ai-service/evals/ask_numeric_questions.json) (10 questions): **exact-match ≥ 9/10** on the aggregate set (was ~0/10 by design before); results recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
-- [ ] All new services Langfuse-visible (planner + narration calls appear as GENERATION observations — free via the existing provider abstraction)
-- [ ] `pytest` green: `test_query_planner.py`, `test_aggregator.py`, updated `test_streaming.py`, `test_answerer.py` — no real LLM/DB calls in unit tests
+  > Partial: harness + 10-aggregate/1-lookup question set created and import-verified; a pending-numbers section is scaffolded in the metrics doc. The ≥ 9/10 live run requires the Supabase stack (down) — pending.
+- [x] All new services Langfuse-visible (planner + narration calls appear as GENERATION observations — free via the existing provider abstraction)
+  > Verification: `QueryPlanner.plan` calls `provider.generate_json` and the narration calls `generate_json`/`stream_generate` — all three wrap `langfuse.start_observation(as_type="generation")` in [gemini.py](../../../services/ai-service/app/providers/gemini.py). Tracing is structural (zero new code); live dashboard confirmation pending infra.
+- [x] `pytest` green: `test_query_planner.py`, `test_aggregator.py`, updated `test_streaming.py`, `test_answerer.py` — no real LLM/DB calls in unit tests
+  > Verification: 25 passed across the four files; full suite 117 passed, 1 failure pre-existing and unrelated (`test_merchant_suggester.py::test_is_pii_keyword[REK123456-True]`, untouched by this work).
 
 ## 🧭 Approach
 
@@ -149,7 +158,9 @@ Out of scope: conversation memory (Chapter 8), hybrid BM25 (Chapter 6), multi-st
 
 ## 📋 TODO
 
-### [ ] STEP 0 — Reproduce and pin the failure
+### [!] STEP 0 — Reproduce and pin the failure
+
+> **Skipped:** Supabase stack unavailable this session (no docker/supabase up) — the live baseline was not captured. Exact commands + expected findings are recorded in the `## STEP 0 baseline` note at the bottom of this file; run them when the stack is up.
 
 Before changing anything, freeze the evidence. With the stack up (`supabase start`, AI service on 8000):
 
@@ -174,7 +185,7 @@ Record all three outputs in a `## STEP 0 baseline` note at the bottom of this fi
 
 > **Why pin first?** The headline of this chapter is a before/after. "0/10 numeric exact-match → 9/10" only lands if the 0 was actually measured (THINK-04: failures are diagnostic signals — capture them, don't pave over them).
 
-### [ ] STEP 1 — Learn: query routing, and why RAG is not a calculator (45 min)
+### [x] STEP 1 — Learn: query routing, and why RAG is not a calculator (45 min)
 
 **Read:**
 1. Neon — *RAG ≠ text-to-SQL, and when to route* → https://neon.tech/blog/rag-txt2sql (15 min)
@@ -188,7 +199,7 @@ Record all three outputs in a `## STEP 0 baseline` note at the bottom of this fi
 
 > **The interview frame:** "My chat fabricated a February electricity total during UI testing — retrieval sampled 3 rows, the LLM summed them wrong, and streaming had no citation guard. I fixed it architecturally: a temperature-0 planner classifies intent and extracts typed filters against a closed category vocabulary; aggregation questions route to parametrized SQL so the number is computed by Postgres, not the model; and the streaming path validates citation markers post-stream. Numeric exact-match went from 0/10 to 9/10, and the UI badges anything unverified."
 
-### [ ] STEP 2 — Build [query_planner.py](../../../services/ai-service/app/services/query_planner.py) — intent + filters via structured extraction
+### [x] STEP 2 — Build [query_planner.py](../../../services/ai-service/app/services/query_planner.py) — intent + filters via structured extraction
 
 Add to [models.py](../../../services/ai-service/app/models.py):
 
@@ -317,7 +328,7 @@ cd services/ai-service && PYTHONPATH=. pytest tests/test_query_planner.py -v
 
 > **Why closed vocabulary instead of letting the model emit any category string?** `t.category` is populated by the 106-rule categorizer — the values are a finite, known set (Food, Groceries, Electricity, …). Free-text category output would silently match nothing ("Makanan" ≠ "Food") and produce a confident Rp 0. Selecting from a menu turns a hallucination risk into a validation no-op. Same THINK-03 energy as the extraction schemas: constrain first, validate anyway.
 
-### [ ] STEP 3 — Build [aggregator.py](../../../services/ai-service/app/services/aggregator.py) — deterministic SQL totals
+### [x] STEP 3 — Build [aggregator.py](../../../services/ai-service/app/services/aggregator.py) — deterministic SQL totals
 
 Create [services/ai-service/app/services/aggregator.py](../../../services/ai-service/app/services/aggregator.py):
 
@@ -438,7 +449,7 @@ Create [tests/test_aggregator.py](../../../services/ai-service/tests/test_aggreg
 
 > **Why does the aggregate query skip the embeddings table entirely?** Aggregation doesn't need semantic similarity — the planner already resolved "makan" → `Food`. Joining `transaction_embeddings` would only *shrink* the result to rows that happen to be embedded. The whole point is totals over the **population**, not a sample; `transactions` is the population.
 
-### [ ] STEP 4 — Wire the router into `/ask` and `/ask/stream`
+### [x] STEP 4 — Wire the router into `/ask` and `/ask/stream`
 
 Extend [models.py](../../../services/ai-service/app/models.py): `AskResponse` gains `intent: str = "lookup"`, `verified: bool = True`, `total_idr: float | None = None`.
 
@@ -507,7 +518,7 @@ Mirror the routing in [main.py](../../../services/ai-service/app/main.py) `/ask/
 
 Tests (extend [test_answerer.py](../../../services/ai-service/tests/test_answerer.py)): the AC's key case — mock the provider to *disobey* (answer text says "Rp 999.999") and assert `response.total_idr` still equals the mocked SQL total. That test IS the design: the payload is the truth, prose is presentation.
 
-### [ ] STEP 5 — Post-stream citation guard for the lookup path
+### [x] STEP 5 — Post-stream citation guard for the lookup path
 
 In `/ask/stream`'s lookup branch, accumulate while forwarding:
 
@@ -552,7 +563,9 @@ Update [test_streaming.py](../../../services/ai-service/tests/test_streaming.py)
 
 > **Why is this guard weaker than `/ask`'s, and why is that acceptable?** The non-streaming guard validates *transaction ids* from structured output; this one validates *markers* in free text — it catches "cited something I never sent" but not "described row [2] inaccurately." The full answer is the two-path design: questions where prose inaccuracy destroys value (totals) don't use this path at all — their numbers ride in the payload. The residual risk on lookups is a mis-described row whose true values sit directly below in the sources panel. Known, bounded, documented — that's what "production tradeoff" means in an interview answer.
 
-### [ ] STEP 6 — Frontend: sources that tell the truth
+### [x] STEP 6 — Frontend: sources that tell the truth
+
+> **Note:** All 5 code changes done (per-message contexts, honest labels, payload money figure, unverified badge, visible error state) across [chatApi.ts](../../../apps/frontend/src/api/chatApi.ts), [useChatSession.ts](../../../apps/frontend/src/hooks/useChatSession.ts), [ChatPage.tsx](../../../apps/frontend/src/pages/ChatPage.tsx), and [AiChatPanel.tsx](../../../apps/frontend/src/components/chat/AiChatPanel.tsx) (the last wired for compilation after the global-contexts removal). `npm run build` + scoped `eslint` pass clean. Live UI re-run of the 3 STEP 0 queries + screenshots deferred to a session with the stack up.
 
 Edit [ChatPage.tsx](../../../apps/frontend/src/pages/ChatPage.tsx) + [chatApi.ts](../../../apps/frontend/src/api/chatApi.ts):
 
@@ -566,7 +579,9 @@ Follow [data-oriented-theme](../../skills/data-oriented-theme/SKILL.md) (monospa
 
 Verify with `npm run build && npm run lint`, then live: re-run the three STEP 0 queries in the UI and screenshot for the STEP 8 log entry.
 
-### [ ] STEP 7 — Numeric-accuracy eval harness
+### [x] STEP 7 — Numeric-accuracy eval harness
+
+> **Note:** [eval_numeric_accuracy.py](../../../services/ai-service/evals/eval_numeric_accuracy.py) + [ask_numeric_questions.json](../../../services/ai-service/evals/ask_numeric_questions.json) (10 aggregate + 1 lookup control) created and import-verified; ground truth is computed live by the harness's own independent SQL. The router is driven in-process via `AnswerService.ask` (no uvicorn needed). The actual ≥ 9/10 before/after **run requires the Supabase stack (down this session)** — pending.
 
 Create [evals/ask_numeric_questions.json](../../../services/ai-service/evals/ask_numeric_questions.json) — 10 aggregation questions, each with the *filter spec* (not the answer — ground truth is computed live, so it never goes stale):
 
@@ -610,7 +625,9 @@ rupiah: money is right or it's wrong; there is no 'close'.
 
 Run before STEP 4 lands (expect ~0/9 numeric — the pinned baseline) and after (target ≥ 9/10 incl. the routing control). Failures are diagnostic: a planner mis-extraction (wrong month) fails differently than a narration disobedience (payload right, prose wrong — still a pass numerically, note it separately).
 
-### [ ] STEP 8 — Record metrics, close the loop
+### [!] STEP 8 — Record metrics, close the loop
+
+> **Skipped (partial):** The recordable-without-infra parts are done — a "RAG Answer Accuracy (PF-AI005 PART 2)" section was added to [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) with the before/after design, the by-construction ~0/10 baseline, the ≥ 9/10 target, and a pending-numbers table; the [BOARD.md](../../BOARD.md) row was updated. **Pending live stack:** numeric exact-match before/after, planner-latency p50, `/ask/stream` verified-rate, the Langfuse two-GENERATION-per-trace confirmation, and the `eval_faithfulness.py` re-run (both faithfulness harnesses were updated to the new constructor so they run cleanly once infra is up). `/mentor log` left as a user follow-up.
 
 1. [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md): numeric exact-match before/after table, planner latency p50 (the added cost of routing — expect ~300–600 ms), `/ask/stream` verified-rate.
 2. Confirm Langfuse shows the planner call + narration call as separate GENERATION observations per `/ask` trace (zero new tracing code — same PF-AI001 rails; note the per-question cost now includes one extra small call).
@@ -751,3 +768,36 @@ Run before STEP 4 lands (expect ~0/9 numeric — the pinned baseline) and after 
 **D** — a fixed single-shot plan handles any *one* query shape; dynamic multi-step decomposition is what tool-calling loops are for. C alone is just a bigger enum; A and B are capacity concerns, not architecture triggers.
 *Maps to: Databricks GenAI Engineer · Application Development (agents & orchestration)*
 </details>
+
+## STEP 0 baseline
+
+> **⏳ Not captured live (2026-07-09).** The Supabase stack was unavailable in the execution
+> environment (no `supabase start` / docker; port 8000 and 54322 both unreachable), so the three
+> baseline outputs could not be recorded. This does **not** block the code steps — every unit test
+> mocks the DB and provider — but the headline before/after ("~0/10 numeric exact-match → ≥ 9/10")
+> still needs the pinned `0` measured on a live stack. Run these when the stack is up and paste the
+> outputs here:
+>
+> ```bash
+> # 1) Ground truth the chat contradicted (expect 43 | 2309954):
+> docker exec supabase_db_personal-finance psql -U postgres -d postgres -c \
+>   "SELECT COUNT(*), SUM(amount_idr) FROM transactions
+>    WHERE category='Food' AND flow='DB' AND date >= '2024-04-01' AND date < '2024-05-01';"
+>
+> # 2) Failing behavior via the guarded non-streaming endpoint (unfiltered — expect wrong/refusal):
+> curl -s -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
+>   -d '{"query": "berapa pengeluaran makan bulan april 2024?"}' | python -m json.tool
+>
+> # 3) Same query WITH filters (proves the plumbing — but a top-10 of 43 rows is still a sample,
+> #    so the TOTAL is still wrong; this is the motivation for STEP 3's SQL aggregation):
+> curl -s -X POST http://localhost:8000/ask -H "Content-Type: application/json" \
+>   -d '{"query": "berapa pengeluaran makan bulan april 2024?", "top_k": 10,
+>        "category": "Food", "date_from": "2024-04-01", "date_to": "2024-04-30"}' | python -m json.tool
+> ```
+>
+> **Expected finding (the design premise this chapter is built on):** unfiltered → wrong number or
+> a false "April doesn't exist" refusal; filtered → retrieval now looks in the right place but the
+> *total* is still wrong because summing a top-10 sample of 43 rows is not the population sum.
+> After PART 2, the same question routes to `SELECT SUM(amount_idr) … WHERE …` and returns exactly
+> Rp 2,309,954. The fastest post-infra check of the whole chapter is
+> `PYTHONPATH=. python evals/eval_numeric_accuracy.py`.

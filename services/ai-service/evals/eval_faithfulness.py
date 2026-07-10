@@ -11,6 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import asyncpg
 from langchain_openai import ChatOpenAI
 from ragas import SingleTurnSample
 from ragas.llms import LangchainLLMWrapper
@@ -20,20 +21,39 @@ from app.config import settings
 from app.models import AskRequest
 from app.providers.embedding_factory import create_embedding_provider
 from app.providers.factory import ProviderFactory
+from app.services.aggregator import AggregationService
 from app.services.answerer import AnswerService
+from app.services.query_planner import QueryPlanner
 from app.services.reranker import RerankerService
 from app.services.retriever import RetrievalService
 
 QUESTIONS_FILE = Path(__file__).parent / "ask_questions.json"
 
 
+async def _load_categories(db_url: str) -> list[str]:
+    conn = await asyncpg.connect(db_url)
+    try:
+        rows = await conn.fetch(
+            "SELECT DISTINCT category FROM transactions WHERE category <> '' ORDER BY category"
+        )
+    finally:
+        await conn.close()
+    return [r["category"] for r in rows]
+
+
 async def run() -> None:
     questions = json.loads(QUESTIONS_FILE.read_text(encoding="utf-8"))
 
     embed_provider = create_embedding_provider(settings)
-    retriever = RetrievalService(provider=embed_provider, db_url=settings.database_url)
-    reranker = RerankerService()
-    answerer = AnswerService(retriever, reranker, ProviderFactory.create(settings))
+    provider = ProviderFactory.create(settings)
+    answerer = AnswerService(
+        retriever=RetrievalService(provider=embed_provider, db_url=settings.database_url),
+        reranker=RerankerService(),
+        provider=provider,
+        planner=QueryPlanner(provider=provider),
+        aggregator=AggregationService(db_url=settings.database_url),
+        categories=await _load_categories(settings.database_url),
+    )
 
     # Pass the key explicitly from settings (loaded from .env) rather than relying
     # on it being exported to the process environment — the app reads .env via

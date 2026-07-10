@@ -1,0 +1,76 @@
+[
+  {
+    "id": "food-apr-2024",
+    "query": "berapa total pengeluaran makan bulan April 2024?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Food"], "flow": "DB",
+                      "date_from": "2024-04-01", "date_to": "2024-04-30"}
+  },
+  {
+    "id": "electricity-feb-2024",
+    "query": "berapa tagihan listrik bulan Februari 2024?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Electricity"], "flow": "DB",
+                      "date_from": "2024-02-01", "date_to": "2024-02-29"}
+  },
+  {
+    "id": "groceries-mar-2024",
+    "query": "berapa pengeluaran belanja minimarket bulan Maret 2024?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Groceries"], "flow": "DB",
+                      "date_from": "2024-03-01", "date_to": "2024-03-31"}
+  },
+  {
+    "id": "food-full-year-2024",
+    "query": "berapa total pengeluaran makan sepanjang tahun 2024?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Food"], "flow": "DB",
+                      "date_from": "2024-01-01", "date_to": "2024-12-31"}
+  },
+  {
+    "id": "salary-full-year-2024",
+    "query": "berapa total gaji yang saya terima tahun 2024?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Salary"], "flow": "CR",
+                      "date_from": "2024-01-01", "date_to": "2024-12-31"}
+  },
+  {
+    "id": "food-empty-2030",
+    "query": "berapa pengeluaran makan bulan Januari 2030?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Food"], "flow": "DB",
+                      "date_from": "2030-01-01", "date_to": "2030-01-31"}
+  },
+  {
+    "id": "groceries-last-month",
+    "query": "berapa pengeluaran belanja minimarket bulan lalu?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Groceries"], "flow": "DB", "relative": "last_month"}
+  },
+  {
+    "id": "food-jan-2025",
+    "query": "berapa total pengeluaran makan bulan Januari 2025?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Food"], "flow": "DB",
+                      "date_from": "2025-01-01", "date_to": "2025-01-31"}
+  },
+  {
+    "id": "groceries-year-2025-english",
+    "query": "how much did I spend on groceries in 2025?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Groceries"], "flow": "DB",
+                      "date_from": "2025-01-01", "date_to": "2025-12-31"}
+  },
+  {
+    "id": "electricity-full-year-2024",
+    "query": "berapa total tagihan listrik sepanjang 2024?",
+    "intent_expected": "aggregate",
+    "truth_filters": {"categories": ["Electricity"], "flow": "DB",
+                      "date_from": "2024-01-01", "date_to": "2024-12-31"}
+  },
+  {
+    "id": "lookup-electricity-last",
+    "query": "kapan terakhir saya bayar tagihan listrik PLN?",
+    "intent_expected": "lookup"
+  }
+]

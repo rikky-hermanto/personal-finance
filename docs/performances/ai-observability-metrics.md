@@ -171,3 +171,51 @@ cross-encoder mishandles this Indonesian lexical-overlap case. This doesn't repl
 signal — worth checking against the multilingual FlashRank model if the full eval's lift
 disappoints.
 - **Interview number:** "Embedding costs ~$0.000002/doc on text-embedding-3-small; 5,000 transactions = $0.01 total"
+
+## RAG Answer Accuracy (PF-AI005 PART 2) — query routing + deterministic aggregation
+
+**Why this section exists.** A 2026-07-08 UI test caught the streaming chat fabricating a
+February PLN total (Rp 400,500 from rows summing to Rp 96,800) and *denying* April food spending
+that the DB holds (43 rows, Rp 2,309,954). Root cause was architectural: every question — including
+"how much did I spend on X" — was answered by summing the top-3 semantically-similar rows, and the
+streaming path had no citation guard. PART 2 routes aggregation questions to SQL so the number is
+computed by Postgres, never the model.
+
+### Numeric exact-match — before/after
+
+| Run | Numeric exact-match (aggregate set) | Method |
+|-----|-------------------------------------|--------|
+| **Before (by construction)** | **~0/10** | top-K RAG summed a 3-row *sample* of the population — a sum over a sample is not the sum; no K guarantees coverage |
+| **After (target)** | **≥ 9/10** | `AggregationService` runs parametrized `SUM(amount_idr)` over the whole `transactions` table; the LLM only narrates a precomputed figure |
+
+**Harness:** [`evals/eval_numeric_accuracy.py`](../../services/ai-service/evals/eval_numeric_accuracy.py)
+over [`evals/ask_numeric_questions.json`](../../services/ai-service/evals/ask_numeric_questions.json)
+(10 aggregate questions + 1 lookup routing control). Ground truth is computed **live** by the
+harness with its own independent SQL — never asserted against `AggregationService`'s own output —
+and matched on integer rupiah (money is right or wrong; there is no "close"). Run:
+`PYTHONPATH=. python evals/eval_numeric_accuracy.py`.
+
+> **⏳ Live measurement pending (2026-07-09).** Code + unit tests are complete and green
+> (`test_query_planner.py`, `test_aggregator.py`, `test_answerer.py`, `test_streaming.py` — 25
+> passed, no real LLM/DB). The before/after numeric run, planner-latency p50, `/ask/stream`
+> verified-rate, and the Langfuse two-GENERATION-per-trace confirmation require the Supabase stack
+> up (unavailable in this session). Fill the numbers below on the next run with infra up.
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| Numeric exact-match (before) | _pending_ | expect ~0/10 — the pinned baseline (STEP 0) |
+| Numeric exact-match (after) | _pending_ | target ≥ 9/10 |
+| Routing correct (intent) | _pending_ | 11/11 expected incl. the lookup control |
+| Planner latency p50 | _pending_ | added cost of routing — expect ~300–600 ms (one Flash/Haiku-class call) |
+| `/ask/stream` verified-rate | _pending_ | share of lookup answers whose `[n]` markers all map to sent contexts |
+| RAGAS faithfulness (re-run) | _pending_ | should hold ≥ 0.90 — aggregate answers are now grounded by construction |
+
+**The transferable pattern:** money rides in the response/`done` payload (`total_idr`, straight from
+SQL); the prose is decoration. Even a disobedient narration ("Rp 999.999") cannot corrupt what the
+UI renders, because the UI reads the payload field — the trust boundary is structural, not a prompt
+plea. This is the same shape as PF-AI004's "citations validated against the context actually sent."
+
+**Langfuse (zero new tracing code):** each `/ask` now emits **two** GENERATION observations per trace
+— the planner's `generate_json` classification and the answer's `generate_json`/`stream_generate`
+narration — both free via the existing provider abstraction (PF-AI001 rails). Per-question cost now
+includes the one extra small planner call.

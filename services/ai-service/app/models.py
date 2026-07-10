@@ -204,6 +204,22 @@ class SearchResponse(BaseModel):
 
 # ── RAG Phase 2: Grounded Q&A ────────────────────────────────────────────────
 
+class QueryPlan(BaseModel):
+    """Typed plan produced by QueryPlanner from a raw chat question.
+
+    The model chooses WHAT to query (aggregate vs lookup, dates, categories from
+    a closed list); trusted code compiles it to parametrized SQL. It never writes
+    SQL and never sees the data.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    intent: Literal["aggregate", "lookup"]
+    date_from: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    categories: list[str] = []          # must be ⊆ the known category list
+    flow: Literal["DB", "CR"] | None = None
+
+
 class AskRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     query: str = Field(..., min_length=1, max_length=500)
@@ -231,3 +247,6 @@ class AskResponse(BaseModel):
     model: str
     retrieval_ms: float
     generation_ms: float
+    intent: str = "lookup"              # "aggregate" | "lookup" — which path served this
+    verified: bool = True               # citations/markers validated against real context
+    total_idr: float | None = None      # aggregate path only — SQL total, the source of truth

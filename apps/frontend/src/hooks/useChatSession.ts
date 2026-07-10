@@ -4,11 +4,16 @@ import { streamAsk, type ContextItem } from '@/api/chatApi';
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  contexts?: ContextItem[];   // evidence attached to THIS message, not a global panel
+  intent?: string;            // "aggregate" | "lookup"
+  verified?: boolean;         // citations/markers validated against real context
+  totalIdr?: number;          // aggregate — SQL total, rendered from data not prose
+  count?: number;             // aggregate — total matching transactions
+  error?: boolean;            // stream dropped mid-flight
 }
 
 interface ChatSessionContextValue {
   messages: ChatMessage[];
-  contexts: ContextItem[];
   input: string;
   setInput: (value: string) => void;
   streaming: boolean;
@@ -20,48 +25,63 @@ const ChatSessionContext = createContext<ChatSessionContextValue | null>(null);
 
 export const ChatSessionProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [contexts, setContexts] = useState<ContextItem[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+
+  // All stream events write into the pending assistant message (the last one),
+  // so evidence and flags live with the answer they belong to — never a global
+  // panel that only ever shows the most recent query's sources.
+  const patchLast = (patch: (m: ChatMessage) => Partial<ChatMessage>) => {
+    setMessages(prev => {
+      const msgs = [...prev];
+      const lastIdx = msgs.length - 1;
+      const last = msgs[lastIdx];
+      if (last?.role === 'assistant') msgs[lastIdx] = { ...last, ...patch(last) };
+      return msgs;
+    });
+  };
 
   const send = (query?: string) => {
     const q = (query ?? input).trim();
     if (!q || streaming) return;
 
     setMessages(prev => [...prev, { role: 'user', content: q }, { role: 'assistant', content: '' }]);
-    setContexts([]);
     setInput('');
     setStreaming(true);
 
     abortRef.current = streamAsk(
       { query: q },
       {
-        onMetadata: setContexts,
-        onToken: (token) => {
-          setMessages(prev => {
-            const msgs = [...prev];
-            const lastIdx = msgs.length - 1;
-            const last = msgs[lastIdx];
-            if (last?.role === 'assistant')
-              msgs[lastIdx] = { ...last, content: last.content + token };
-            return msgs;
-          });
-        },
+        onMetadata: (meta) => patchLast(() => ({
+          contexts: meta.contexts,
+          intent: meta.intent,
+          totalIdr: meta.total_idr,
+          count: meta.count,
+        })),
+        onToken: (token) => patchLast(last => ({ content: last.content + token })),
         onDone: (payload) => {
           setStreaming(false);
-          if (payload?.confident === false) {
-            setMessages(prev => {
-              const msgs = [...prev];
-              const lastIdx = msgs.length - 1;
-              const last = msgs[lastIdx];
-              if (last?.role === 'assistant' && last.content === '')
-                msgs[lastIdx] = { ...last, content: 'Tidak ada transaksi yang relevan untuk pertanyaan itu.' };
-              return msgs;
-            });
-          }
+          patchLast(last => {
+            const patch: Partial<ChatMessage> = {
+              verified: payload?.verified,
+              intent: payload?.intent ?? last.intent,
+              totalIdr: payload?.total_idr ?? last.totalIdr,
+            };
+            if (payload?.confident === false && last.content === '')
+              patch.content = 'Tidak ada transaksi yang relevan untuk pertanyaan itu.';
+            return patch;
+          });
         },
-        onError: () => setStreaming(false),
+        onError: () => {
+          setStreaming(false);
+          patchLast(last => ({
+            error: true,
+            content: last.content === ''
+              ? 'Terjadi kesalahan saat memuat jawaban — coba lagi.'
+              : last.content,
+          }));
+        },
       }
     );
   };
@@ -73,7 +93,7 @@ export const ChatSessionProvider = ({ children }: { children: ReactNode }) => {
 
   return createElement(
     ChatSessionContext.Provider,
-    { value: { messages, contexts, input, setInput, streaming, send, stop } },
+    { value: { messages, input, setInput, streaming, send, stop } },
     children
   );
 };

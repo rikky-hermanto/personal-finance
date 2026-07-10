@@ -26,8 +26,15 @@ class LlmProvider(Protocol):
         """
         ...
 
-    async def generate_json(self, system_prompt: str, user_prompt: str, schema: dict) -> dict:
-        """Return a JSON object matching the given schema."""
+    async def generate_json(
+        self, system_prompt: str, user_prompt: str, schema: dict,
+        max_output_tokens: int | None = None,
+    ) -> dict:
+        """Return a JSON object matching the given schema.
+
+        max_output_tokens: optional cap. None → each provider's own default
+        (Anthropic 256 for classify-sized outputs; Gemini leaves it unset).
+        """
         ...
 
     async def stream_generate(

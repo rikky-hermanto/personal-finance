@@ -9,6 +9,20 @@ export interface ContextItem {
   wallet: string;
 }
 
+export interface AskMetadata {
+  contexts: ContextItem[];
+  intent?: string;          // "aggregate" | "lookup"
+  total_idr?: number;       // aggregate path — SQL total (source of truth)
+  count?: number;           // aggregate path — total matching transactions
+}
+
+export interface AskDonePayload {
+  confident?: boolean;
+  verified?: boolean;       // citations/markers validated against real context
+  intent?: string;
+  total_idr?: number;
+}
+
 export interface AskStreamParams {
   query: string;
   date_from?: string;
@@ -23,9 +37,9 @@ const AI_URL = import.meta.env.VITE_AI_SERVICE_URL ?? "http://localhost:8000";
 export function streamAsk(
   params: AskStreamParams,
   handlers: {
-    onMetadata: (contexts: ContextItem[]) => void;
+    onMetadata: (meta: AskMetadata) => void;
     onToken: (token: string) => void;
-    onDone: (payload?: { confident?: boolean }) => void;
+    onDone: (payload?: AskDonePayload) => void;
     onError: (err: unknown) => void;
   }
 ): AbortController {
@@ -39,13 +53,18 @@ export function streamAsk(
     openWhenHidden: true,   // don't pause when tab is hidden
     onmessage(msg) {
       if (msg.event === "metadata") {
-        const data = JSON.parse(msg.data) as { contexts: ContextItem[] };
-        handlers.onMetadata(data.contexts ?? []);
+        const data = JSON.parse(msg.data) as AskMetadata;
+        handlers.onMetadata({
+          contexts: data.contexts ?? [],
+          intent: data.intent,
+          total_idr: data.total_idr,
+          count: data.count,
+        });
       } else if (msg.event === "token") {
         handlers.onToken(msg.data);
       } else if (msg.event === "done") {
         const payload = msg.data
-          ? (JSON.parse(msg.data) as { confident?: boolean })
+          ? (JSON.parse(msg.data) as AskDonePayload)
           : undefined;
         handlers.onDone(payload);
         controller.abort();   // stream finished — kill the connection so the
