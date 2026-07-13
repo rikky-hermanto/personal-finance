@@ -103,7 +103,10 @@ class Quest(BaseModel):
     title: str
     description: str
     target_indicator: str
-    estimated_score_gain: Decimal
+    # Score gain in points (0–100), not a monetary value — must serialize as a
+    # JSON number. Pydantic renders Decimal as a JSON *string* ("12"), which the
+    # .NET client cannot read into `decimal`; float serializes as a number.
+    estimated_score_gain: float
     difficulty: Literal["easy", "medium", "hard"]
     action_deeplink: str | None = None
 

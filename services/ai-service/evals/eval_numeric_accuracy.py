@@ -17,11 +17,16 @@ provider). NOT part of pytest/CI — it makes real, paid LLM calls and hits the 
 """
 import asyncio
 import json
+import sys
 import time
 from datetime import date, timedelta
 from decimal import Decimal
 from pathlib import Path
-import sys
+
+# Windows consoles default to cp1252, which can't encode the ✓/✗ markers below —
+# reconfigure stdout to UTF-8 so the eval runs identically on Windows/WSL/CI.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -117,7 +122,16 @@ async def run() -> None:
     routing_pass = 0
     routing_total = len(questions)
 
-    for q in questions:
+    # Let any recent quota usage (e.g. live chat testing) roll off the free-tier
+    # 1-minute window before the first call.
+    await asyncio.sleep(60)
+
+    for i, q in enumerate(questions):
+        if i > 0:
+            # Free-tier Gemini caps at 5 req/min; each question makes 2 calls
+            # (planner + narration), so pace requests to stay under the quota.
+            await asyncio.sleep(60)
+
         expected_intent = q.get("intent_expected", "aggregate")
 
         t0 = time.perf_counter()
