@@ -145,6 +145,45 @@ in `PostgresSaver` with a one-line change — Chapter 9's MCP tools reuse this s
 
 ▶ **Watch/read for this concept:** persistence + `thread_id` → https://langchain-ai.github.io/langgraph/concepts/persistence/
 
+## A real example: the reference-resolution gap this chapter closes
+
+**Live bug caught 2026-07-14, in the PF-AI005 PART 2 chat (`/ask`, no memory):**
+
+```
+User: "hitung total pengeluaran makanan pada maret 2025"
+Chat: "Total pengeluaran makanan pada Maret 2025 adalah Rp 3.711.560 dari 45 transaksi." ✅ correct
+
+User: "berapa gaji yg saya terima bulan itu"
+Chat: "...total gaji yang Anda terima dari 32 transaksi adalah Rp 1.524.580.890.
+       Perlu diperhatikan bahwa jumlah ini mencakup transaksi gaji dari
+       berbagai bulan..." ❌ silently summed ALL salary, every month, ever
+```
+
+"bulan itu" ("that month") plainly refers to Maret 2025 from the turn before. But `/ask` is
+stateless — each call re-runs `QueryPlanner.plan(query, today, categories)` on the raw text alone
+(see PF-AI005 PART 2), with no prior turns in scope. The planner had no `date_from`/`date_to` to
+extract from "bulan itu" itself, so it emitted `categories=["Salary"], date_from=None, date_to=None`
+— a silently unfiltered aggregate over the whole table. Rephrasing with the explicit month ("gaji
+bulan Maret 2025") gave the correct Rp 124,588,816 from 2 transactions — confirming the aggregation
+path itself is sound; only the missing referent was wrong.
+
+**Why this is exactly Chapter 8's problem, not a PART 2 bug fix:** PF-AI005 PART 2 deliberately
+scoped conversation memory out (see its Notes section) — the planner takes `(query, today,
+categories)` and nothing else. Closing this gap means the planner's input must include *resolved
+state from prior turns* (the LLM's own past answer that "the period in question is 2025-03"), which
+is precisely what `AdvisorState` + `add_messages` + `MemorySaver`/`thread_id` are built to carry
+across HTTP requests in this chapter. A regex or keyword fix on "itu"/"that" doesn't generalize —
+"dibanding bulan sebelumnya," "yang tadi," "compared to before" are the same class of problem,
+solvable only by giving the reasoning step actual access to the conversation, not by pattern-matching
+pronouns.
+
+**Interview frame:** "My stateless RAG chat correctly answered an explicit-month spending question,
+but a same-session follow-up using 'that month' silently summed every month instead — the planner
+had no conversation history to resolve the pronoun against. That's the concrete case that motivated
+moving from a stateless endpoint to a LangGraph agent with `add_messages` history and a
+`MemorySaver` checkpointer keyed by session — state that survives between separate HTTP calls is
+exactly what pronoun/reference resolution needs and a single-shot planner call cannot provide."
+
 ---
 
 # 🔧 Implementation

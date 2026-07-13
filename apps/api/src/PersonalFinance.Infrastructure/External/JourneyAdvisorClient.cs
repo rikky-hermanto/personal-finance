@@ -14,6 +14,9 @@ public class JourneyAdvisorClient(HttpClient http, ILogger<JourneyAdvisorClient>
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // Pydantic may serialize numeric fields (e.g. Decimal) as JSON strings.
+        // Accept both string and number so numeric quest fields never throw.
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
     };
 
     public async Task<List<JourneyQuestDto>> GenerateQuestsAsync(JourneyStateDto state, CancellationToken ct = default)
