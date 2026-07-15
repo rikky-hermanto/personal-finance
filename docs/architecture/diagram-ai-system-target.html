@@ -35,7 +35,38 @@
     --scrim-2: rgba(255,255,255,.03);
     --shadow: rgba(0,0,0,.32);
     --shadow-strong: rgba(0,0,0,.45);
+    --chip-text: #d6d7dc;
     --sans: "InterEmbed", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+
+  #app[data-theme="light"] {
+    --bg: #f7f5f0;
+    --bg-dot: rgba(0,0,0,.05);
+    --header-grad: linear-gradient(180deg, #fbfaf7 0%, #f2efe6 100%);
+    --card-bg: #ffffff;
+    --card-bg-hover: #fbfaf7;
+    --card-bg-planned: #f4f2ea;
+    --border: #e3dfd3;
+    --border-hover: #ccc7b8;
+    --text: #2a2823;
+    --text-muted: #6b6860;
+    --text-faint: #a29d90;
+    --accent: #b8791f;
+    --accent-soft: rgba(184,121,31,.14);
+    --edge: #d6d1c2;
+    --edge-hot: #b8791f;
+    --status-live: #16a34a;
+    --status-progress: #b45309;
+    --status-planned: #93897a;
+    --tooltip-bg: #ffffff;
+    --tooltip-text: #4a463d;
+    --panel-bg: #fdfcf8;
+    --panel-text: #3a362e;
+    --scrim: rgba(0,0,0,.045);
+    --scrim-2: rgba(0,0,0,.03);
+    --shadow: rgba(90,80,50,.10);
+    --shadow-strong: rgba(90,80,50,.18);
+    --chip-text: #3a362e;
   }
 
   * { box-sizing: border-box; }
@@ -49,7 +80,7 @@
     height: 100%; width: 100%;
   }
 
-  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); color: var(--text); }
 
   /* ---------- header ---------- */
   header {
@@ -151,7 +182,7 @@
   .node-subtitle { font-size: 12.5px; font-weight: 400; color: var(--text-muted); line-height: 1.4; margin-top: 3px; }
 
   .chip-list { display: flex; flex-direction: column; gap: 7px; margin-top: 13px; }
-  .chip-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: #d6d7dc; }
+  .chip-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 500; color: var(--chip-text); }
   .chip-bullet { width: 5px; height: 5px; border-radius: 50%; flex: 0 0 auto; background: var(--chip-color, var(--accent)); }
 
   .badge-wrap { display: flex; flex-wrap: wrap; gap: 5px; }

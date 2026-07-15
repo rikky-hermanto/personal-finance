@@ -31,7 +31,7 @@ You have opinions. You apply them. You push back when the user asks for a bad do
 /tech-write audit <file or section>              # audit an existing doc for quality, gaps, and structure
 /tech-write rewrite <file>                       # rewrite an existing doc to production standard
 /tech-write explain <concept or file>            # write a conceptual explanation / architecture narrative
-/tech-write diagram interactive [subject]        # interactive HTML node-graph diagram (dark canvas, node cards, curved edges)
+/tech-write diagram interactive [subject]        # interactive HTML node-graph diagram (light/dark toggle, node cards, curved edges)
 /tech-write diagram text [subject]               # markdown/ASCII box diagram (like docs/architecture/architecture-diagram.md)
 ```
 
@@ -931,7 +931,7 @@ A canvas with 20+ visible nodes, edge labels, and always-on tag pills is unreada
 - Card titles ~15px/600, subtitles ~12.5px/400 muted. Generous padding (16–18px). No tiny 9–10px labels on the canvas.
 
 **Canvas**
-- Near-black background (`#0b0b0d`), subtle dot-grid texture
+- Dark theme: near-black background (`#0b0b0d`). Light theme (default): cream/off-white background (`#f7f5f0`). Both share a subtle dot-grid texture, themed via `--bg-dot`.
 - Pan (drag empty canvas) + zoom (wheel), fit-to-view on load, zoom controls bottom-right
 - **Nodes are draggable** — mousedown-drag moves a single card, its edges reroute live; a 3px movement threshold separates drag from click. Canvas pan only triggers on empty space.
 
@@ -961,7 +961,7 @@ A canvas with 20+ visible nodes, edge labels, and always-on tag pills is unreada
 
 **Implementation rules**
 - Plain HTML + vanilla JS + inline SVG for edges; no framework, no build step, no external requests
-- Keep it theme-committed dark; no light-mode requirement
+- **Support both dark and light themes, default to light.** Define every color as a CSS custom property on `:root` (dark values), then add a `#app[data-theme="light"]` block that overrides each one with light-mode values (cream/white canvas, dark text, darkened accent/status colors for contrast on a light background) — never hardcode a color outside the variable set (e.g. no bare `#d6d7dc` on a text rule; route it through a themed var like `--chip-text`). Ship a header `theme-toggle` button that flips `#app`'s `data-theme` attribute between `"light"` and `"dark"` and swaps its icon (☀️/🌙); default `data-theme` to `"light"`. Reference implementation: [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html) — see the `:root` / `#app[data-theme="light"]` variable blocks and the theme-toggle IIFE near the end of the `<script>`.
 - Verify before delivering: extract the `<script>` block and run `node --check` on it
 
 ### Format: `text` — markdown box diagram
