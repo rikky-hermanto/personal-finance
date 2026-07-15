@@ -555,3 +555,58 @@
 - PART 2 STEP 1–2 — read the routing material, build `query_planner.py`
 
 **Streak: 1 day**
+
+### 2026-07-14 — Day 48
+
+**Session: PART 2 live-verified in production use; real conversation-memory gap found and fed into Chapter 8**
+
+- Live-tested the shipped chat (`/ask`) with two explicit-month questions — "hitung total pengeluaran makanan pada maret 2025" and "berapa gaji yg saya terima bulan maret 2025" — both returned figures matching the source spreadsheet exactly (Rp 3,711,560 / 45 txns and Rp 124,588,816 / 2 txns). This is the first live confirmation that PF-AI005 PART 2's SQL-routed aggregation works correctly outside of unit tests.
+- **Real gap found in the same session:** a same-conversation follow-up — "berapa gaji yg saya terima bulan itu" ("that month") — silently summed *all-time* salary (Rp 1,524,580,890 / 32 txns) instead of resolving "bulan itu" back to Maret 2025. Root cause: `/ask` is stateless per call; the planner has no prior-turn context to resolve the pronoun against, so the date filter was silently dropped rather than erroring.
+- Logged this as a concrete "real example" section in [PF-AI008-langgraph-financial-advisor.md](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md) (Chapter 8) — the exact transcript, root cause, and why it's specifically a Chapter 8 (conversation memory / `AdvisorState` + `MemorySaver`) problem and not a PART 2 patch.
+- Attempted to close PART 2's remaining pending item (live numeric-accuracy eval, ≥9/10 target) — found and fixed a real bug in the harness itself: `eval_numeric_accuracy.py` crashed with `UnicodeEncodeError` on Windows (cp1252 console can't render the `✓`/`✗` markers) — fixed with `sys.stdout.reconfigure(encoding="utf-8")`.
+- Re-ran and hit Gemini free-tier limits twice: first the 5 req/min cap (added a 60s inter-question throttle), then the **20 req/day** cap — already exhausted from live chat testing + the failed attempts. This is a genuine daily quota wall, not a bug; the eval could not be completed with Gemini today.
+- Tried falling back to Anthropic (`AI_PROVIDER=anthropic`) — caught before spending anything: `ANTHROPIC_API_KEY` was commented out in `.env` (never actually set), so there was no credit to fall back on. Stopped the background run at the very first sleep, before any API call fired.
+- Documented every config key's valid options as inline `# options: a | b` comments across [.env](../../services/ai-service/.env) and [.env.example](../../services/ai-service/.env.example) — a quick-reference guide covering `AI_PROVIDER`, `AI_MODEL` (per-provider, with $/1M pricing), `EMBEDDING_PROVIDER`/`EMBEDDING_MODEL`, `LOG_LEVEL`, `DATABASE_URL`, and the Langfuse host options. Also flagged explicitly that `OPENAI_API_KEY` in this service is embeddings-only — there is no OpenAI chat/completions provider wired in, so an OpenAI subscription cannot substitute for Gemini/Anthropic on `/ask`.
+- Bundled in a real, unrelated bug fix found in the working tree: `JourneyAdvisorClient.cs` didn't handle Pydantic serializing `Decimal` fields as JSON strings — added `JsonNumberHandling.AllowReadingFromString` + 2 regression tests (`JourneyAdvisorClientTests.cs`); switched `Quest.estimated_score_gain` from `Decimal` to `float` on the Python side so it serializes as a JSON number in the first place.
+- Committed and pushed: `d03fca99` — "PF-132: fix quest score-gain JSON serialization; harden numeric-accuracy eval".
+
+**Chapter 5 (PF-AI005 PART 2) checklist progress:**
+- [x] Live functional proof of SQL-routed aggregation accuracy (explicit-month queries) ← new this session, informal but real
+- [x] Fixed `eval_numeric_accuracy.py` Windows encoding crash ← blocker resolved
+- [ ] Formal numeric exact-match run (≥9/10 target) ← still blocked: Gemini daily quota exhausted, Anthropic key not actually set
+- [ ] Fill real numbers into `ai-observability-metrics.md`, confirm Langfuse 2-GENERATION trace, re-run `eval_faithfulness.py` ← unchanged from Day 42, still pending
+
+**Retros (blockers & surprises):**
+- **Two consecutive false starts on "just use another provider," both caught before cost was incurred.** First assumed Anthropic credit existed because the env var line existed — it didn't (line was commented out, THINK-04 discipline: verify before acting, don't infer from a key's *presence* that it's *active*). Second: OpenAI credits can't substitute either — this service has no OpenAI LLM/chat provider, only OpenAI embeddings. Neither mistake cost anything; both were caught by checking before running, not after.
+- **The live "bulan itu" bug is a stronger teaching example than a synthetic one** — it happened organically while sanity-checking PART 2, in Indonesian, on real screenshotted data, and maps precisely onto Chapter 8's `add_messages`/`MemorySaver` concepts already drafted. No fabricated scenario needed.
+- **Logging debt pattern recurred** — the PF-132 fix + PART 2 shipping actually happened 2026-07-09/10 per the commit trail, but wasn't logged until today. Same lesson as the Day-37 retro: log same-day even a one-line stub.
+
+**Interview-ready answer (new):** "I live-tested my own RAG chat after shipping the SQL-routing fix and it nailed two explicit-month totals exactly — but a same-session follow-up using a pronoun ('that month') silently summed all-time data instead, because the planner is stateless per call. I turned that into the concrete motivating example for the next chapter: a LangGraph agent with checkpointed conversation state, so pronoun/reference resolution has something to resolve against."
+
+**Remaining for next session:**
+- Get a real path to the numeric-accuracy eval: wait for Gemini's daily quota reset, or set a genuinely funded `ANTHROPIC_API_KEY`/enable Gemini paid tier — then run `eval_numeric_accuracy.py` to completion
+- Fill the real numbers into `ai-observability-metrics.md`, confirm Langfuse's 2-GENERATION-per-trace, re-run `eval_faithfulness.py`
+- Update `PF-AI005-PART2-answer-accuracy-todo.md` checkboxes (STEP 0 baseline, STEP 7, STEP 8) once the above lands
+- Start Chapter 8 (LangGraph) proper — the "bulan itu" example is now pre-loaded as the motivating case
+
+**Streak: 1 day** (gap 2026-07-09 → 2026-07-13 unlogged; PF-132/PART 2 shipping work during that window logged retroactively above)
+
+### 2026-07-14 — Day 48 (continued)
+
+**Session: Chapter 8 sequencing correction; PART 2 eval retry confirmed the quota wall; deferred, moving to Chapter 6**
+
+- Caught a sequencing error before it cost a session: this morning's "start Chapter 8 next" note skipped over [PF-AI008](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md)'s own STEP 0 — an explicit prerequisite gate on Chapter 7 (smolagents) being complete. Chapter 7 hasn't been started (every box in its checklist above is still unchecked). Verified [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) (Chapter 6) is genuinely unblocked instead — its own gate only needs Chapter 4's numbers committed, which they have been since Day 37.
+- Started Docker Desktop + local Supabase (both were down) and retried `eval_numeric_accuracy.py` live against Gemini. Failed again on question 1 (the narration call, after the query-planner call already succeeded) with `429 RESOURCE_EXHAUSTED` — `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, 20/day on `gemini-2.5-flash`. Confirmed this is a fixed daily reset, not rolling from last use — a same-day retry was never going to work. Stopped after one failure instead of spending more of tomorrow's budget chasing it.
+- **Decision:** deferring the formal numeric-accuracy eval and the rest of STEP 8 (Langfuse trace confirmation, faithfulness re-run, metrics doc fill-in) until subscribing to a paid tier (Gemini paid, or a funded `ANTHROPIC_API_KEY`). Noted on the plan file and BOARD.md so it doesn't read as an infra blocker anymore. Moving on to Chapter 6 in the meantime instead of waiting on it.
+- Local Supabase + Docker left running — useful for Chapter 6 STEP 2's migration.
+
+**Chapter 5 (PF-AI005 PART 2) checklist:** unchanged from this morning — 5/7 acceptance criteria done; the remaining 2 are now explicitly parked on a paid-tier subscription rather than "next session."
+
+**Retros (blockers & surprises):**
+- **Same Gemini daily-quota wall, third confirmation (Day 42, this morning, this retry).** Not a new bug — the actionable lesson is the pattern itself: a free-tier daily cap on a fixed clock, not a per-use rolling window. Made the deferral decision explicit this time instead of quietly re-attempting next session.
+
+**Remaining for next session:**
+- Chapter 6 (PF-AI006): STEP 0 gate check (already verified satisfied) → STEP 1 theory anchor → STEP 2 Supabase migration
+- PART 2 close-out — parked until a paid-tier model subscription is active
+
+**Streak: 1 day**
