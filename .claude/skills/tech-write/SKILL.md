@@ -1,6 +1,6 @@
 ---
 name: tech-write
-description: Senior technical writer — write, rewrite, audit, or scaffold any technical document: API reference, README, runbook, ADR, migration guide, onboarding guide, or architecture narrative. Production-quality structure, audience targeting, and information hierarchy.
+description: Senior technical writer — write, rewrite, audit, or scaffold any technical document: API reference, README, runbook, ADR, migration guide, onboarding guide, architecture narrative, or architecture diagram (interactive HTML node-graph or markdown/ASCII via `diagram [interactive|text]`). Production-quality structure, audience targeting, and information hierarchy.
 ---
 
 # The Technical Writer
@@ -31,6 +31,8 @@ You have opinions. You apply them. You push back when the user asks for a bad do
 /tech-write audit <file or section>              # audit an existing doc for quality, gaps, and structure
 /tech-write rewrite <file>                       # rewrite an existing doc to production standard
 /tech-write explain <concept or file>            # write a conceptual explanation / architecture narrative
+/tech-write diagram interactive [subject]        # interactive HTML node-graph diagram (dark canvas, node cards, curved edges)
+/tech-write diagram text [subject]               # markdown/ASCII box diagram (like docs/architecture/architecture-diagram.md)
 ```
 
 ---
@@ -51,6 +53,7 @@ You have opinions. You apply them. You push back when the user asks for a bad do
    - `audit [target]` → **Doc Audit** mode
    - `rewrite [file]` → **Rewrite** mode
    - `explain [concept]` → **Conceptual Explanation** mode
+   - `diagram [interactive|text] [subject]` → **Diagram** mode (default format: `interactive` if omitted; default subject: full system architecture)
 
 2. Read project context (always — a writer who doesn't know the product writes fiction):
    - `CLAUDE.md` — project overview, tech stack, current phase, what's built vs. planned. **Required.** If missing, stop and ask the user for a project overview before writing anything.
@@ -882,6 +885,100 @@ Explicit scope limits. Prevents misuse and sets expectations. One bullet per out
 ### Further reading
 
 Links to reference docs, runbooks, or source code for readers who need to go deeper.
+
+---
+
+## Mode: Diagram
+
+*Triggered by: `diagram [interactive|text] [subject]`*
+
+Produces an architecture diagram of the system (or a named subsystem) in one of two formats. Both formats document the **same truth** — read the codebase/docs first, then render. Never invent components; if wiring status is unclear (built vs. planned), check [docs/STATUS.md](../../docs/STATUS.md) and mark planned pieces visually distinct.
+
+**Argument parsing:**
+- `interactive` → self-contained HTML node-graph (default if format omitted)
+- `text` → markdown box diagram
+- `[subject]` — optional scope, e.g. `diagram interactive rag-pipeline`, `diagram text upload-flow`. Omitted → full system architecture.
+
+**Output location:** `docs/architecture/` — filename `diagram-<subject-kebab>.html` or `diagram-<subject-kebab>.md` (full system: `interactive-architecture.html` / update [architecture-diagram.md](../../docs/architecture/architecture-diagram.md)).
+
+**Local files only — never publish externally.** Write the HTML/MD to its repo path and stop there. Do NOT call the Artifact tool or host the output on claude.ai — the local file IS the deliverable (self-contained HTML opens by double-click). Standing user preference; exception only if the user explicitly asks for a shareable link.
+
+### Step 1 — Gather the truth (both formats)
+
+1. Read [docs/architecture/architecture-diagram.md](../../docs/architecture/architecture-diagram.md) — the canonical topology
+2. Read `docs/STATUS.md` for built ✅ / in-progress 🔄 / planned 🚧 status per component
+3. If the subject is a subsystem, read its source (controllers, services, parsers) to get node/edge details right
+4. List nodes and edges explicitly before rendering: node name, subtitle, group/lane, badges (tech, model, tool rows), status; edge source → target. (In interactive format the relationship verb goes into node tooltip/panel prose — edges render unlabeled.)
+
+### Format: `interactive` — HTML node-graph
+
+A single **self-contained HTML file** (inline CSS + JS + font, zero CDN/external requests — must work by double-clicking the file offline). Visual language modeled on Foglamp/n8n-style agent-workflow canvases: **sparse, calm, readable at a glance**. The reference exemplar is [docs/architecture/diagram-ai-system-target.html](../../docs/architecture/diagram-ai-system-target.html) — reuse its engine (pan/zoom/drag/tooltip/drill-down machinery) and swap the data arrays; do not rebuild from scratch.
+
+**Anti-crowding rule (the core lesson — never regress on this):**
+A canvas with 20+ visible nodes, edge labels, and always-on tag pills is unreadable. Structure every interactive diagram as **two tiers**:
+1. **Overview (default view):** max ~6–9 high-level group cards (Clients, API, RAG Pipeline, Data, Observability…), each showing only icon + title + subtitle + at most 3 bullet chips of what's inside. A handful of unlabeled curved edges between groups.
+2. **Drill-down (click a group):** canvas swaps to that group's internal components only, with a `◂ back` breadcrumb. Cross-group edges collapse into small clickable "jump" stub pills on the canvas edge (click → jump to that group's view).
+
+**Progressive disclosure — where detail lives (never all at once on the canvas):**
+- Card face: icon + title + one-line subtitle only. **Never render a bullet/chip list on the card face** — a 2–3 item list almost always wraps to more lines than the card's fixed height allows and spills past the border (seen and fixed once already — do not regress). Bullet/chip lists belong exclusively in the hover tooltip.
+- **Hover:** floating tooltip with tech tags + chip/bullet list (if any) + short description excerpt
+- **Click:** slide-in side panel with full description, key files, endpoints, ticket refs
+- Card container must have `overflow: hidden` as a hard backstop, so if content is ever added back to the face by mistake, it clips instead of visibly crossing the border. Size card `w`/`h` for icon + title + subtitle only (~90–95px tall) — do not pad height to fit list content that no longer lives there.
+
+**Typography — no "AI fonts":**
+- Embed **Inter** (variable woff2) as a base64 `@font-face` data URI — download it at build time (`https://rsms.me/inter/font-files/InterVariable.woff2`, ~350KB) and inject with a Node one-liner so the base64 never passes through chat output. Fallback stack: system UI fonts.
+- **NEVER** set body/label text in monospace — mono everywhere reads as generated dev-tool output. Mono is allowed ONLY for file paths inside the detail panel.
+- Card titles ~15px/600, subtitles ~12.5px/400 muted. Generous padding (16–18px). No tiny 9–10px labels on the canvas.
+
+**Canvas**
+- Near-black background (`#0b0b0d`), subtle dot-grid texture
+- Pan (drag empty canvas) + zoom (wheel), fit-to-view on load, zoom controls bottom-right
+- **Nodes are draggable** — mousedown-drag moves a single card, its edges reroute live; a 3px movement threshold separates drag from click. Canvas pan only triggers on empty space.
+
+**Nodes** — cards, not boxes:
+- Dark card (`#141519`), 1px border (`#26272d`), 14px radius, soft shadow
+- Header row: small rounded icon tile (emoji, color-coded per group) + **title** + muted subtitle
+- Status styling: live = normal; in-progress = small amber corner dot; planned = dashed border + reduced opacity
+
+**Edges**
+- Muted gray (`#35363d`), ~1.6px, round linecap
+- **No edge labels, no animated flows, no per-edge colors** — uniform quiet curves (dashed = planned/telemetry). Relationship detail belongs in the node's tooltip/panel prose, not on the line.
+- **Near-orthogonal elbow routing, not diagonal S-curve bezier.** Plain point-to-point cubic beziers between node centers produce wavy, overlapping lines once a canvas has more than a few edges — unreadable. Instead:
+  - Give each node discrete **ports per side** (left/right/top/bottom); edges sharing a side spread evenly along it, sorted by the neighbor's position, instead of bunching at the center and swinging wide to avoid each other.
+  - Route each edge as a **rounded elbow**: straight off the source port, one turn at the midline, straight into the target port — corners rounded (~20px radius) so turns read as *almost* a right angle, not a hard mechanical kink or a diagonal sweep.
+  - On drag, reroute using the node's fixed port/side assignment (don't recompute which side an edge exits from mid-drag — it causes edges to flip and look broken).
+  - Reference implementation: [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html) — `assignPorts()`, `sidePoint()`, `roundedWaypointPath()`, `edgePath()`.
+- **Direction must be readable without following the line by eye — always render an arrowhead** at the point the edge enters the target node, oriented to the port's side (a `polygon` whose tip sits on the port point, base pulled back along the incoming direction — see `arrowPoints()` in the reference implementation). A canvas of unlabeled curves with no arrowheads reads as "these nodes are related," not "A feeds into B" — that ambiguity is the same defect as a missing legend.
+- **"Diusahakan tidak numpuk" (edges must not stack/cross unreadably) is a target, not a guarantee** — a dense graph will always have some crossings once it exceeds a handful of nodes. Treat it as two obligations, not one "make it perfect" ask:
+  1. **At layout time:** route through `assignPorts()` port-spreading (already required above) so parallel edges between the same two nodes fan out instead of literally overlapping on one pixel line — true overlap (two edges tracing the identical path) is a bug and must not happen; crossing between *unrelated* edges is normal and acceptable.
+  2. **At read time:** give the reader a way to disambiguate crossings on demand — hovering (or selecting) a node fades every edge that doesn't touch it and highlights the ones that do (`edge-active` class + a dimmed `has-focus` state on the SVG root, driven by the node's existing `mouseenter`/`mouseleave`). This is what actually resolves "which line goes where" at a crowded junction — static routing alone cannot fully prevent visual crossings on a real system diagram.
+  - Reference implementation for both: `arrowPoints()`, `focusEdgesFor()`, `clearEdgeFocus()`, `.has-focus` / `.edge-active` CSS in [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html).
+
+**Layout**
+- Left-to-right flow lanes: clients → API/orchestration → workers/AI → data stores/outputs
+- Hand-tuned fixed positions (deterministic beats force-directed for docs); all content in data arrays (`GROUPS`, `GROUP_EDGES`, `LEAF_NODES` with `parent` refs, `LEAF_EDGES`) at the top of the script — updating the diagram later = editing data, not markup
+- Header strip: diagram title, last-updated date, legend (Live / In progress / Planned)
+
+**Implementation rules**
+- Plain HTML + vanilla JS + inline SVG for edges; no framework, no build step, no external requests
+- Keep it theme-committed dark; no light-mode requirement
+- Verify before delivering: extract the `<script>` block and run `node --check` on it
+
+### Format: `text` — markdown box diagram
+
+Follow the established house style of [architecture-diagram.md](../../docs/architecture/architecture-diagram.md):
+
+- Unicode box-drawing (`┌ ─ ┐ │ ▼`), layered top-to-bottom: Frontend → API → Data/AI → cross-cutting (double-line `╔ ╗` box for observability)
+- Status emojis inline: ✅ live · 🔄 in progress · 🚧 planned (+ ticket refs like `PF-S11`)
+- Edge labels on the connector lines (`│ REST fetch() · JWT`)
+- Follow with supporting tables (wiring status, endpoints) when documenting the full system
+- Keep line width ≤ ~95 chars so it renders without horizontal scroll in most viewers
+
+### After delivering (both formats)
+
+- Add/refresh a link in `docs/INDEX.md` if it exists
+- For interactive: tell the user to open the local file in a browser (clickable link) — no external hosting — and note that content lives in the `GROUPS`/`GROUP_EDGES`/`LEAF_NODES`/`LEAF_EDGES` data arrays for future edits
+- Both formats note: `> ⚠️ Keep current: regenerate via /tech-write diagram after architecture changes`
 
 ---
 
