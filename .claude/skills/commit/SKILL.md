@@ -204,13 +204,11 @@ Wait briefly (proceed automatically — this is a non-interactive skill). If the
 ```bash
 git commit -m "$(cat <<'EOF'
 <message here>
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
 
-Always use the HEREDOC form to preserve multi-line messages.
+Always use the HEREDOC form to preserve multi-line messages. Never add a `Co-Authored-By: Claude` trailer or any other AI attribution to the commit message.
 
 Verify the commit succeeded:
 ```bash
