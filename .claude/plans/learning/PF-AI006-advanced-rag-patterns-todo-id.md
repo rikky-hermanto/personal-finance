@@ -1,5 +1,7 @@
 # PF-AI006 — Advanced RAG Patterns: Hybrid Search, Sentence-Window, Auto-Merging (Versi Belajar)
 
+> ⚠️ **RE-SCOPE (2026-07-23): tiket ini sekarang cuma mencakup Hybrid Search (Masalah 1).** Sentence-window (Masalah 2) dan auto-merging (Masalah 3) dipindah ke [PF-AI006-PART2](PF-AI006-PART2-sentence-window-automerging-todo.md) — deferred, karena butuh data source baru (teks naratif statement PDF) untuk usecase yang belum jadi kebutuhan produk. Bagian-bagian tentang dua teknik itu di bawah tetap dipertahankan sebagai materi belajar.
+
 > **Ini bukan plan baru.** Ini adalah tulisan ulang dari [PF-AI006-advanced-rag-patterns-todo.md](PF-AI006-advanced-rag-patterns-todo.md), disusun ulang supaya urutannya mengikuti cara otak belajar hal baru — bukan urutan implementasi. Semua fakta, angka, kode, dan jebakan yang disebutkan di sini diambil apa adanya dari file asli. File asli tetap jadi rujukan resmi untuk TODO steps, acceptance criteria, dan quiz — dokumen ini cuma versi "supaya nyantol dulu di kepala."
 >
 > **Urutan baca:** masalah dulu → baru konsep → baru cara kerja → baru kode → baru optimisasi → baru best practice → baru kesalahan umum → baru ringkasan. Jangan loncat ke bagian Implementasi kalau tiga bagian pertama belum kebayang, nanti kodenya kelihatan seperti sihir.
@@ -63,6 +65,8 @@ MRR@5=1.000 · P@5=0.66                      [Auto-merging]            🔄
                                             [Eval] +5 query adversarial
                                             [Winner] jadi default produksi
 ```
+
+> **Cara baca `MRR@5=1.000 · P@5=0.66`:** MRR@5 (Mean Reciprocal Rank) itu rata-rata dari 1/posisi kemunculan dokumen relevan pertama — 1.000 berarti jawaban relevan pertama *selalu* nongol di peringkat #1, bukan "100% benar" seperti persentase. P@5 (Precision@5) itu proporsi murni — 0.66 = dari 5 hasil top-K, rata-rata ~66% (3,3 dari 5) benar-benar relevan, sisanya noise. Range dua-duanya 0.0–1.0; makin ke 1.0 makin bagus, makin ke 0.0 makin buruk.
 
 ---
 
@@ -336,6 +340,8 @@ Aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing pent
 | `vector+rerank` | *diukur* | *diukur* | *diukur* |
 | `hybrid+rerank` | *diukur* | *diukur* | *diukur* |
 | `sentence_window` | *diukur* | *diukur* | *diukur* |
+
+> **MRR@5 vs P@5, singkatnya:** MRR@5 peduli posisi jawaban relevan *pertama* saja (1.000 = selalu di slot #1); P@5 peduli kualitas *semua* 5 slot top-K sekaligus (0.66 = 66% dari 5 hasil relevan). Baseline `vector` di atas nunjukkan pola sehat untuk RAG — rank teratas selalu akurat — tapi masih ada noise di posisi 2–5. Target varian baru di tabel ini: naikkan P@5 tanpa menjatuhkan MRR@5.
 
 Prediksi plan-nya: `hybrid` menang untuk jalur `/search` + `/ask` (deskripsi bank Indonesia kaya kata kunci eksak — dua jurinya memang saling melengkapi), `sentence_window` menang untuk tanya-jawab level dokumen. Tapi itu hipotesis — tabelnya yang memutuskan.
 

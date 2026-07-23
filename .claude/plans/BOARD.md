@@ -112,7 +112,8 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI006 | Advanced RAG Patterns | Depends on PF-AI004+PF-AI005; plan: [`.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md`](.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) |
+| PF-AI006 | Advanced RAG Patterns — Hybrid Search (re-scoped 2026-07-23) | Dipangkas ke hybrid search (BM25 + RRF) + eval adversarial saja; sentence-window & auto-merging dipindah ke PF-AI006-PART2. Depends on PF-AI004+PF-AI005; plan: [`.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md`](.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) |
+| PF-AI006-PART2 | Sentence-Window + Auto-Merging (deferred) | Split dari PF-AI006; jalan setelah hybrid search selesai DAN ada keputusan produk soal statement-level Q&A. plan: [`.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md`](.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) |
 | PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) |
 
 ---

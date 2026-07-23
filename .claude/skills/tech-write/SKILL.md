@@ -938,7 +938,8 @@ A canvas with 20+ visible nodes, edge labels, and always-on tag pills is unreada
 **Nodes** — cards, not boxes:
 - Dark card (`#141519`), 1px border (`#26272d`), 14px radius, soft shadow
 - Header row: small rounded icon tile (emoji, color-coded per group) + **title** + muted subtitle
-- Status styling: live = normal; in-progress = small amber corner dot; planned = dashed border + reduced opacity
+- **Status styling:** live = normal solid border + normal fill; in-progress = small corner dot in a clean amber/orange (e.g. `#f0b429` dark / `#d97706` light) — avoid a rust/red-leaning hex (e.g. `#b45309`) for this, it visually collides with warning/error red (`.badge.warn`) and reads as "broken" instead of "in progress"; planned = **dashed border only**, neutral gray color (`var(--border-hover)`, never the accent or a status color) plus a fill that reuses `var(--header-grad)` (the same gradient as the header bar) — ties the "not built yet" card visually to the chrome instead of inventing a third background tone.
+  - **Never fade a planned node with element `opacity`** (e.g. `opacity: .74` on the whole `.node`). Opacity blends border + fill + text toward the canvas color together, and on a light/cream canvas where a near-canvas fill already sits close to `--bg`, the node nearly disappears — a real regression hit and fixed on the PF-AI006 diagram. Instead, get the "planned" distinction entirely from the dashed border and a fill value chosen with enough delta from `--bg` to read on its own (check both themes — light canvases have much less headroom between "canvas" and "muted card" than dark ones).
 
 **Edges**
 - Muted gray (`#35363d`), ~1.6px, round linecap

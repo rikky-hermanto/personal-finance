@@ -46,7 +46,15 @@ const ChatPage = () => {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] max-w-2xl mx-auto p-4 gap-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Chat with your finances</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-lg font-semibold">Chat with your finances</h1>
+          <span
+            title="Baru bisa menjawab pertanyaan seputar data transaksi"
+            className="text-[9px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-500/10 rounded-full px-2 py-0.5"
+          >
+            Beta · Transaksi
+          </span>
+        </div>
         {streaming && (
           <button onClick={stop} className="text-xs text-muted-foreground hover:text-foreground">
             Stop
@@ -59,6 +67,10 @@ const ChatPage = () => {
           {messages.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-12">
               Tanyakan tentang pengeluaran, tabungan, atau investasimu.
+              <br />
+              <span className="text-xs text-muted-foreground/60">
+                Saat ini hanya menjawab dari data transaksi.
+              </span>
             </p>
           )}
           {messages.map((m, i) => {

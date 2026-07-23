@@ -56,7 +56,7 @@
     --edge: #d6d1c2;
     --edge-hot: #b8791f;
     --status-live: #16a34a;
-    --status-progress: #b45309;
+    --status-progress: #d97706;
     --status-planned: #93897a;
     --tooltip-bg: #ffffff;
     --tooltip-text: #4a463d;
@@ -158,8 +158,8 @@
   }
   .node:hover { border-color: var(--border-hover); background: var(--card-bg-hover); transform: translateY(-1px); }
   .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 18px var(--shadow-strong); }
-  .node.status-planned { border-style: dashed; background: var(--card-bg-planned); opacity: .74; }
-  .node.status-planned:hover { opacity: .94; }
+  .node.status-planned { border-style: dashed; border-width: 1.5px; border-color: var(--border-hover); background: var(--header-grad); }
+  .node.status-planned:hover { border-color: var(--border-hover); background: var(--card-bg-hover); }
   .node.kind-stub { padding: 10px 14px; }
   .node.kind-stub .node-title { font-size: 12.5px; }
   .node.dragging { cursor: grabbing; z-index: 30; transform: none; box-shadow: 0 12px 26px var(--shadow-strong); transition: none; }
@@ -560,6 +560,23 @@
   var livePos = {};
   var edgeRecords = [];
 
+  // ============================================================
+  // Drag-position persistence — a dragged node's position survives a
+  // refresh. Keyed by "<view>::<nodeId>" so the same leaf/stub id
+  // reused across different group drill-down views doesn't collide.
+  // ============================================================
+  var POSITIONS_KEY = "pf-diagram-ai-system-target:positions";
+  var savedPositions = (function () {
+    try { return JSON.parse(localStorage.getItem(POSITIONS_KEY)) || {}; }
+    catch (e) { return {}; }
+  })();
+  function positionKey(nodeId) { return currentView + "::" + nodeId; }
+  function saveNodePosition(nodeId, x, y) {
+    savedPositions[positionKey(nodeId)] = { x: x, y: y };
+    try { localStorage.setItem(POSITIONS_KEY, JSON.stringify(savedPositions)); }
+    catch (e) { /* storage unavailable — position just won't persist */ }
+  }
+
   // ---- port-based routing --------------------------------------------
   // Instead of every edge leaving/entering a node's dead center (which is
   // what caused the wavy, overlapping S-curves), each node gets discrete
@@ -582,6 +599,9 @@
   }
   // Assigns aSide/aFrac/bSide/bFrac to every edge in `list` (each item needs
   // .from/.to). Must run after all involved nodes exist in livePos.
+  // Pixel spread applied to an edge's elbow midline when it shares a
+  // source/target port bucket with other edges — see laneOffset below.
+  var LANE_GAP = 26;
   function assignPorts(list) {
     var raw = list.map(function (e) {
       var side = sideOf(livePos[e.from], livePos[e.to]);
@@ -602,9 +622,17 @@
       var n = arr.length;
       arr.forEach(function (item, i) {
         var frac = n === 1 ? 0.5 : 0.22 + 0.56 * (i / (n - 1));
-        if (item.isA) raw[item.idx].aFrac = frac; else raw[item.idx].bFrac = frac;
+        var lane = n === 1 ? 0 : i - (n - 1) / 2;
+        if (item.isA) { raw[item.idx].aFrac = frac; raw[item.idx].aLane = lane; }
+        else { raw[item.idx].bFrac = frac; raw[item.idx].bLane = lane; }
       });
     });
+    // Port spreading alone only separates WHERE an edge leaves/enters a
+    // node — two edges can still share it if their midline lands on the
+    // same coordinate (e.g. two targets with the same x). laneOffset
+    // nudges the elbow's shared midline apart so parallel runs never
+    // trace an identical path (see edgePath).
+    raw.forEach(function (r) { r.laneOffset = ((r.aLane || 0) + (r.bLane || 0)) * LANE_GAP; });
     return raw;
   }
   // Rounds the interior vertices of a waypoint path — each corner gets
@@ -629,14 +657,14 @@
   // aSide/bSide are always opposite-axis mirrors (see assignPorts), so the
   // route is a simple near-orthogonal elbow: exit straight off the side,
   // turn once at the midline, straight into the other side.
-  function edgePath(p1, p2, aSide, bSide) {
+  function edgePath(p1, p2, aSide, bSide, laneOffset) {
     var horizontal = aSide === "left" || aSide === "right";
     var pts;
     if (horizontal) {
-      var midX = (p1.x + p2.x) / 2;
+      var midX = (p1.x + p2.x) / 2 + (laneOffset || 0);
       pts = [p1, { x: midX, y: p1.y }, { x: midX, y: p2.y }, p2];
     } else {
-      var midY = (p1.y + p2.y) / 2;
+      var midY = (p1.y + p2.y) / 2 + (laneOffset || 0);
       pts = [p1, { x: p1.x, y: midY }, { x: p2.x, y: midY }, p2];
     }
     return roundedWaypointPath(pts, 22);
@@ -663,14 +691,14 @@
     var p1 = sidePoint(livePos[pe.from], pe.aSide, pe.aFrac);
     var p2 = sidePoint(livePos[pe.to], pe.bSide, pe.bFrac);
     var path = document.createElementNS(svgNS, "path");
-    path.setAttribute("d", edgePath(p1, p2, pe.aSide, pe.bSide));
+    path.setAttribute("d", edgePath(p1, p2, pe.aSide, pe.bSide, pe.laneOffset));
     path.setAttribute("class", "edge-path" + (pe.dashed ? " dashed" : ""));
     svg.appendChild(path);
     var arrow = document.createElementNS(svgNS, "polygon");
     arrow.setAttribute("points", arrowPoints(p2, pe.bSide));
     arrow.setAttribute("class", "edge-arrow" + (pe.dashed ? " dashed" : ""));
     svg.appendChild(arrow);
-    edgeRecords.push({ aId: pe.from, bId: pe.to, pathEl: path, arrowEl: arrow, aSide: pe.aSide, aFrac: pe.aFrac, bSide: pe.bSide, bFrac: pe.bFrac });
+    edgeRecords.push({ aId: pe.from, bId: pe.to, pathEl: path, arrowEl: arrow, aSide: pe.aSide, aFrac: pe.aFrac, bSide: pe.bSide, bFrac: pe.bFrac, laneOffset: pe.laneOffset });
   }
   // Draws every edge in `list` after computing its ports in one pass, so
   // parallel edges on the same node/side are spread out from the start.
@@ -683,7 +711,7 @@
       if (rec.aId !== nodeId && rec.bId !== nodeId) return;
       var p1 = sidePoint(livePos[rec.aId], rec.aSide, rec.aFrac);
       var p2 = sidePoint(livePos[rec.bId], rec.bSide, rec.bFrac);
-      rec.pathEl.setAttribute("d", edgePath(p1, p2, rec.aSide, rec.bSide));
+      rec.pathEl.setAttribute("d", edgePath(p1, p2, rec.aSide, rec.bSide, rec.laneOffset));
       rec.arrowEl.setAttribute("points", arrowPoints(p2, rec.bSide));
     });
   }
@@ -752,11 +780,13 @@
 
   function makeNodeEl(n, kind, colorOverride, onClick) {
     var color = colorOverride || "#8f909a";
-    livePos[n.id] = { x: n.x, y: n.y, w: n.w, h: n.h };
+    var saved = savedPositions[positionKey(n.id)];
+    var nx = saved ? saved.x : n.x, ny = saved ? saved.y : n.y;
+    livePos[n.id] = { x: nx, y: ny, w: n.w, h: n.h };
 
     var el = document.createElement("div");
     el.className = "node status-" + n.status + " kind-" + kind;
-    el.style.left = n.x + "px"; el.style.top = n.y + "px";
+    el.style.left = nx + "px"; el.style.top = ny + "px";
     el.style.width = n.w + "px"; el.style.height = n.h + "px";
     el.dataset.id = n.id;
     el.style.setProperty("--tile-bg", hexToRgba(color, 0.16));
@@ -800,6 +830,7 @@
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
         el.classList.remove("dragging");
+        if (dragged) saveNodePosition(n.id, pos.x, pos.y);
       }
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
