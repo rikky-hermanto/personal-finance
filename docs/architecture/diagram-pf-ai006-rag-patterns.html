@@ -14,7 +14,7 @@
     --header-grad: linear-gradient(180deg, #101114 0%, #0e0f12 100%);
     --card-bg: #141519;
     --card-bg-hover: #191a1f;
-    --card-bg-planned: #121317;
+    --card-bg-planned: #17181d;
     --border: #26272d;
     --border-hover: #3a3b42;
     --text: #eceef2;
@@ -45,7 +45,7 @@
     --header-grad: linear-gradient(180deg, #fbfaf7 0%, #f2efe6 100%);
     --card-bg: #ffffff;
     --card-bg-hover: #fbfaf7;
-    --card-bg-planned: #f4f2ea;
+    --card-bg-planned: #eae6d9;
     --border: #e3dfd3;
     --border-hover: #ccc7b8;
     --text: #2a2823;
@@ -56,7 +56,7 @@
     --edge: #d6d1c2;
     --edge-hot: #b8791f;
     --status-live: #16a34a;
-    --status-progress: #b45309;
+    --status-progress: #d97706;
     --status-planned: #93897a;
     --tooltip-bg: #ffffff;
     --tooltip-text: #4a463d;
@@ -158,8 +158,8 @@
   }
   .node:hover { border-color: var(--border-hover); background: var(--card-bg-hover); transform: translateY(-1px); }
   .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 18px var(--shadow-strong); }
-  .node.status-planned { border-style: dashed; background: var(--card-bg-planned); opacity: .74; }
-  .node.status-planned:hover { opacity: .94; }
+  .node.status-planned { border-style: dashed; border-width: 1.5px; border-color: var(--border-hover); background: var(--header-grad); }
+  .node.status-planned:hover { border-color: var(--border-hover); background: var(--card-bg-hover); }
   .node.kind-stub { padding: 10px 14px; }
   .node.kind-stub .node-title { font-size: 12.5px; }
   .node.dragging { cursor: grabbing; z-index: 30; transform: none; box-shadow: 0 12px 26px var(--shadow-strong); transition: none; }

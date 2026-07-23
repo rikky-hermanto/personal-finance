@@ -1,5 +1,8 @@
 # PF-AI006 — Advanced RAG Patterns
 
+> ⚠️ **RE-SCOPE (2026-07-23): chapter ini dipangkas jadi Hybrid Search saja.**
+> Sentence-window retrieval (STEP 4) dan auto-merging (STEP 5) — beserta tabel `statement_chunks` di Part 2 migration STEP 2, backfill script, dan varian eval `sentence_window` — **dipindah ke [PF-AI006-PART2](PF-AI006-PART2-sentence-window-automerging-todo.md)** (deferred). Alasannya: hybrid search menjawab kelemahan produksi yang nyata di `/ask` sekarang; dua teknik lainnya butuh data source baru (teks naratif statement PDF) untuk usecase yang belum jadi kebutuhan produk. Materi STEP 4–5 di bawah **sengaja tidak dihapus** — PART2 merujuk ke sini sebagai satu-satunya sumber. Yang dieksekusi di tiket ini: STEP 0–3 + STEP 6 (tanpa varian `sentence_window`) + STEP 7–10.
+>
 > **Learning Phase:** Phase 2 · Chapter 6 of 12 · Day ~38 of 90
 > **Status:** To Do
 > **Started:** (draft compiled 2026-06-15 — execute after Ch5 Streaming completes)

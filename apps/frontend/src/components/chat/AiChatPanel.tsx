@@ -94,6 +94,12 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
           <div className="text-[13px] font-semibold text-foreground leading-tight">Ask your finances</div>
           <div className="text-[10px] text-muted-foreground/70">Gemini 3.1 Pro · konteks: {contextLabel}</div>
         </div>
+        <span
+          title="Baru bisa menjawab pertanyaan seputar data transaksi"
+          className="text-[9px] font-semibold uppercase tracking-wide text-amber-600 bg-amber-500/10 rounded-full px-2 py-0.5 flex-shrink-0"
+        >
+          Beta · Transaksi
+        </span>
         <div className="ml-auto flex items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground border border-border border-b-2 rounded px-1.5 py-0.5 bg-secondary/60">
             Ctrl + I
@@ -122,6 +128,10 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
         {messages.length === 0 && (
           <p className="text-[13px] text-muted-foreground text-center py-12">
             Tanyakan tentang pengeluaran, tabungan, atau investasimu.
+            <br />
+            <span className="text-[11px] text-muted-foreground/60">
+              Saat ini hanya menjawab dari data transaksi.
+            </span>
           </p>
         )}
         {messages.map((m, i) => {
