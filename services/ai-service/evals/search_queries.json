@@ -33,5 +33,30 @@
     "query": "bayar kontrakan",
     "relevant": { "category": [], "ilike": ["%kontrak%", "%sewa%", "%rent%"] },
     "note": "Rent payments. No dedicated Rent category, so anchor on keywords."
+  },
+  {
+    "query": "tagihan listrik PLN",
+    "relevant": { "category": ["Electricity"], "ilike": ["%listrik%", "%PLN%"] },
+    "note": "BM25-wins: exact brand + product keyword; vector likely ranks non-PLN bills higher on 'tagihan' alone."
+  },
+  {
+    "query": "makan siang di kantor",
+    "relevant": { "category": ["Food & Dining"], "ilike": ["%warung%", "%resto%", "%makan%"] },
+    "note": "semantic-wins: descriptions say 'WARUNG', 'RESTO', 'MAKAN' -- paraphrase, not exact."
+  },
+  {
+    "query": "pengeluaran akhir Maret dan awal April",
+    "relevant": { "category": [], "ilike": [] },
+    "note": "date-crossing: straddles two months; metadata date filter alone can't help. relevant set intentionally empty -- this query stress-tests latency/behavior, not precision."
+  },
+  {
+    "query": "all coffee spending this year",
+    "relevant": { "category": [], "ilike": ["%coffee%", "%kopi%", "%starbucks%", "%fore%"] },
+    "note": "English query: tests whether hybrid handles mixed-language queries (embedding is multilingual)."
+  },
+  {
+    "query": "transfer yang aneh atau mencurigakan",
+    "relevant": { "category": [], "ilike": [] },
+    "note": "adversarial semantic: no 'fraud' or 'suspicious' in descriptions -- should return uncertain or no-context. relevant set intentionally empty."
   }
 ]

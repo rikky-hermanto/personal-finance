@@ -1,4 +1,7 @@
-<title>PF-AI006 — Advanced RAG Patterns: Hybrid Search Pipeline</title>
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Query Pipeline — "berapa tagihan listrikku di bulan April 2025?"</title>
 <style>
   @font-face {
     font-family: "InterEmbed";
@@ -160,8 +163,31 @@
   .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 18px var(--shadow-strong); }
   .node.status-planned { border-style: dashed; border-width: 1.5px; border-color: var(--border-hover); background: var(--header-grad); }
   .node.status-planned:hover { border-color: var(--border-hover); background: var(--card-bg-hover); }
-  .node.kind-stub { padding: 10px 14px; }
-  .node.kind-stub .node-title { font-size: 12.5px; }
+  /* stubs = portals to OTHER pipeline stages (not internals of the current one).
+     Distinct language: accent-tinted fill, dashed accent border, colored title,
+     a side accent bar + arrow showing flow direction (upstream ◂ / ▸ downstream). */
+  .node.kind-stub {
+    padding: 9px 13px 9px 17px;
+    background: var(--stub-bg, var(--card-bg));
+    border-style: dashed;
+    border-width: 1.5px;
+    border-color: var(--stub-accent, var(--border));
+    box-shadow: none;
+  }
+  .node.kind-stub .node-title { font-size: 12.5px; color: var(--stub-accent); }
+  .node.kind-stub .node-subtitle {
+    color: var(--stub-accent); opacity: .85; font-weight: 600;
+    font-size: 10.5px; letter-spacing: .02em; margin-top: 2px;
+  }
+  .node.kind-stub::before {
+    content: ""; position: absolute; top: 7px; bottom: 7px; width: 3px;
+    border-radius: 2px; background: var(--stub-accent);
+  }
+  .node.kind-stub.stub-up::before { left: 6px; }
+  .node.kind-stub.stub-down::before { left: auto; right: 6px; }
+  .node.kind-stub.stub-down { padding: 9px 17px 9px 13px; }
+  .node.kind-stub:hover { background: var(--card-bg-hover); border-color: var(--stub-accent); transform: translateY(-1px); }
+  .node.kind-stub.status-planned { border-color: var(--stub-accent); background: var(--stub-bg); }
   .node.dragging { cursor: grabbing; z-index: 30; transform: none; box-shadow: 0 12px 26px var(--shadow-strong); transition: none; }
 
   .status-dot {
@@ -263,14 +289,14 @@
 <div id="app" data-theme="light">
   <header>
     <div class="h-left">
-      <div class="h-title">PF-AI006 — Advanced RAG Patterns <span class="dim">· Hybrid Search · Sentence-Window · Auto-Merging</span></div>
-      <div class="h-sub" id="h-sub">AI Learning Track · hybrid = this ticket · sentence-window + auto-merging = PART2 · click any node to open it</div>
+      <div class="h-title">Query Pipeline <span class="dim">· “berapa tagihan listrikku di bulan April 2025?”</span></div>
+      <div class="h-sub" id="h-sub">/ask · plan → route → aggregate (this query) or lookup → narrate → answer · click any stage to open it</div>
     </div>
     <div class="h-right">
       <div class="legend">
-        <span class="legend-item"><span class="legend-swatch-line"></span>Baseline (Ch4)</span>
-        <span class="legend-item"><span class="legend-dot"></span>This ticket</span>
-        <span class="legend-item"><span class="legend-dash"></span>PART2 (deferred)</span>
+        <span class="legend-item"><span class="legend-swatch-line"></span>Live</span>
+        <span class="legend-item"><span class="legend-dot"></span>In progress</span>
+        <span class="legend-item"><span class="legend-dash"></span>Planned</span>
       </div>
       <div class="h-updated">Updated 2026-07-24</div>
       <button id="theme-toggle" class="zbtn" type="button" title="Toggle light / dark">☀️</button>
@@ -283,7 +309,7 @@
       <div id="nodes"></div>
     </div>
     <div id="breadcrumb">
-      <span class="crumb-root" id="crumb-root">◂ RAG Pipeline</span>
+      <span class="crumb-root" id="crumb-root">◂ Pipeline</span>
       <span class="crumb-sep">/</span>
       <span class="crumb-current" id="crumb-current"></span>
     </div>
@@ -340,136 +366,164 @@
   };
 
   // ============================================================
-  // HI-LEVEL — 8 groups, positions used both to lay out the
-  // overview canvas and to decide which side a cross-group stub
-  // appears on inside a group's detail view.
+  // PIPELINE STAGES — the journey of one question through /ask.
+  // Overview lays them out left→right; the "hot" route is the
+  // path THIS query ("berapa tagihan listrikku di April 2025?")
+  // actually takes: plan → aggregate → narrate → answer.
   // ============================================================
   var GROUPS = [
-    { id: "entry", x: 40, y: 250, w: 240, h: 92, icon: "🔎", color: "#38bdf8", status: "live",
-      title: "Query Entry", subtitle: "user question → embedding",
-      chips: ["User query (natural language)", "EmbeddingService — 1536-dim", "raw text also feeds BM25"] },
-    { id: "hybrid", x: 380, y: 250, w: 240, h: 92, icon: "⚖️", color: "#2dd4bf", status: "inprogress",
-      title: "Hybrid Retrieval", subtitle: "two juries → RRF fusion",
-      chips: ["Vector search — pgvector cosine", "BM25 — tsvector · plainto_tsquery", "RRF merge — k=60, in Python"] },
-    { id: "funnel", x: 740, y: 250, w: 240, h: 92, icon: "🫗", color: "#818cf8", status: "live",
-      title: "Baseline Funnel (Ch4)", subtitle: "rerank → grounded answer",
-      chips: ["FlashRank — top-10 → top-3", "Answerer — POST /ask", "citations validated (unchanged)"] },
-    { id: "docretr", x: 380, y: 470, w: 240, h: 92, icon: "📑", color: "#e879f9", status: "planned",
-      title: "Document Retrieval", subtitle: "PART2 — statement PDF text",
-      chips: ["DocumentRetriever — sentence-window", "AutoMergingRetriever — sibling 0.5", "backfill: PDF → chunk → embed"] },
-    { id: "data", x: 1100, y: 140, w: 250, h: 92, icon: "🐘", color: "#34d399", status: "inprogress",
-      title: "Data & Schema", subtitle: "Supabase Postgres + pgvector",
-      chips: ["transactions + description_tsv (GIN)", "statement_chunks (PART2)", "generated column, not trigger"] },
-    { id: "eval", x: 1100, y: 410, w: 250, h: 92, icon: "🧪", color: "#94a3b8", status: "inprogress",
-      title: "Eval Harness", subtitle: "adversarial set → winner",
-      chips: ["eval_retrieval.py — --mode / --all", "+5 adversarial queries", "MRR@5 · P@5 · latency p50"] }
+    { id: "query", x: 40,  y: 340, w: 220, h: 92, icon: "💬", color: "#38bdf8", status: "live",
+      title: "User Query", subtitle: "“berapa tagihan listrikku di bulan April 2025?”",
+      chips: ["natural language, Indonesian", "asks for a TOTAL (“berapa”)", "needs category + date + SUM"] },
+    { id: "chat", x: 320, y: 340, w: 220, h: 92, icon: "🖥️", color: "#818cf8", status: "live",
+      title: "Chat UI", subtitle: "ChatPage → POST /ask",
+      chips: ["React chat client", "no .NET hop — hits AI service", "AskRequest { query }"] },
+    { id: "planner", x: 600, y: 340, w: 230, h: 92, icon: "🧭", color: "#a78bfa", status: "inprogress",
+      title: "QueryPlanner", subtitle: "one temp-0 call → intent + typed filters",
+      chips: ["intent: aggregate vs lookup", "resolves dates + maps category", "closed-vocab guard"] },
+    { id: "aggregate", x: 930, y: 180, w: 240, h: 92, icon: "🧮", color: "#34d399", status: "inprogress",
+      title: "AggregationService", subtitle: "SQL SUM / COUNT — Postgres does the math",
+      chips: ["THIS query's route", "parametrized WHERE, Decimal", "top-5 rows for sources"] },
+    { id: "lookup", x: 930, y: 500, w: 240, h: 92, icon: "🔍", color: "#22d3ee", status: "live",
+      title: "Retrieval Funnel", subtitle: "hybrid retrieve → cross-encoder rerank",
+      chips: ["alternate route (intent=lookup)", "pgvector + BM25 → RRF top-10", "FlashRank → top-3"] },
+    { id: "generate", x: 1260, y: 340, w: 230, h: 92, icon: "✨", color: "#fb7185", status: "live",
+      title: "Answer Generation", subtitle: "grounded LLM narration / synthesis",
+      chips: ["narrate the VERIFIED total", "never recompute money", "cite [1][2] + hallucination guard"] },
+    { id: "response", x: 1560, y: 340, w: 230, h: 92, icon: "✅", color: "#fbbf24", status: "live",
+      title: "Response", subtitle: "AskResponse → the answer the user sees",
+      chips: ["total_idr rides in payload", "citations + verified flag", "retrieval_ms / generation_ms"] },
+    { id: "llm", x: 1260, y: 60, w: 220, h: 92, icon: "🤖", color: "#f0abfc", status: "live",
+      title: "Gemini 2.5 Flash", subtitle: "shared LLM — plans + narrates",
+      chips: ["generate_json, temperature 0", "planner: classify + extract", "generate: narrate / synthesize"] },
+    { id: "db", x: 930, y: 690, w: 240, h: 92, icon: "🐘", color: "#4ade80", status: "live",
+      title: "Postgres + pgvector", subtitle: "the single source of truth",
+      chips: ["transactions — SUM + BM25 tsv", "transaction_embeddings — ivfflat", "both branches read here"] }
   ];
   var GROUP_BY_ID = {};
   GROUPS.forEach(function (g) { GROUP_BY_ID[g.id] = g; });
 
   var GROUP_EDGES = [
-    { from: "entry", to: "hybrid" },
-    { from: "hybrid", to: "funnel", hot: true, label: "merged top_k → rerank + /ask" },
-    { from: "hybrid", to: "data" },
-    { from: "entry", to: "docretr", dashed: true },
-    { from: "docretr", to: "data", dashed: true },
-    { from: "hybrid", to: "eval", dashed: true },
-    { from: "funnel", to: "eval", dashed: true }
+    { from: "query", to: "chat" },
+    { from: "chat", to: "planner", label: "POST /ask" },
+    { from: "planner", to: "aggregate", hot: true, label: "intent=aggregate — this query" },
+    { from: "planner", to: "lookup", label: "intent=lookup — alternate route" },
+    { from: "aggregate", to: "generate", hot: true, label: "verified total + rows" },
+    { from: "lookup", to: "generate", label: "top-3 context" },
+    { from: "generate", to: "response", hot: true, label: "answer + citations" },
+    { from: "planner", to: "llm", dashed: true, label: "plan (temp 0)" },
+    { from: "generate", to: "llm", dashed: true, label: "narrate / synthesize" },
+    { from: "aggregate", to: "db", label: "SUM / COUNT" },
+    { from: "lookup", to: "db", label: "vector + BM25" }
   ];
 
   // ============================================================
-  // LOW-LEVEL — the 24 real components. `parent` maps each one
-  // back to a GROUPS id; positions are authored as simple per-
-  // group stacks and re-normalized when a group is opened.
+  // STAGE INTERNALS — drill-down leaves per stage. `parent` maps
+  // each back to a GROUPS id. Values shown are the real ones for
+  // the example query, so the diagram doubles as a worked trace.
   // ============================================================
   var LEAF_NODES = [
-    { id: "Q1", parent: "entry", x: 40, y: 20, w: 230, h: 100, icon: "🔎", title: "User Query", subtitle: "natural-language question", status: "live",
-      badges: ["SearchRequest", "search_mode"],
-      detail: "The user's question enters as free text. The vector path embeds it; the BM25 path sends the raw text straight into plainto_tsquery. A new additive-optional field — search_mode: Literal[\"vector\",\"bm25\",\"hybrid\"] = \"vector\" — selects the retrieval path without changing any existing caller until the eval winner is made default.",
-      files: ["services/ai-service/app/models.py"], tickets: ["PF-AI006"] },
-    { id: "Q2", parent: "entry", x: 40, y: 200, w: 230, h: 104, icon: "🧬", title: "EmbeddingService", subtitle: "text-embedding-3-small · 1536-dim", status: "live",
-      badges: ["OpenAI / Gemini toggle"],
-      detail: "Embeds the query into a 1536-dim vector for cosine search — the provider-abstracted service from Chapter 3, unchanged. Only the vector path uses it; BM25 needs no embedding at all.",
-      files: ["services/ai-service/app/services/embedder.py"], tickets: ["PF-AI003"] },
+    { id: "Q1", parent: "query", x: 40, y: 20, w: 250, h: 108, icon: "💬", title: "The question", subtitle: "raw chat input", status: "live",
+      badges: ["Indonesian", "AskRequest.query"],
+      detail: "The user types “berapa tagihan listrikku di bulan April 2025?” — an amount question (“berapa” = how much) scoped to one category (listrik / electricity) and one month (April 2025). Answering in the same language as the question is a system-prompt rule.",
+      files: ["services/ai-service/app/models.py"], tickets: ["PF-AI005"] },
+    { id: "Q2", parent: "query", x: 40, y: 180, w: 250, h: 116, icon: "🎯", title: "Why it needs a pipeline", subtitle: "3 things to resolve", status: "live",
+      badges: ["category map", "date range", "SUM not lookup"],
+      detail: "Three implicit tasks: map the colloquial word “listrik” to the real category “Electricity”, turn “bulan April 2025” into 2025-04-01..2025-04-30, and recognise this wants a TOTAL — a SQL SUM over every matching row, not a semantic lookup of a few transactions.",
+      files: [], tickets: [] },
 
-    { id: "H1", parent: "hybrid", x: 380, y: 20, w: 250, h: 106, icon: "🧭", title: "Vector Search", subtitle: "pgvector cosine · top-10 · probes=10", status: "live",
-      badges: ["pgvector", "<=> operator"],
-      detail: "Cosine top-10 over transaction_embeddings — the Chapter 3/4 baseline, unchanged. Strong on paraphrase (\"makan siang di kantor\" → WARUNG / RESTO / MAKAN); weak on exact brand tokens like PLN, where every \"tagihan\" row clusters together and the right one isn't guaranteed #1. That weakness is exactly what BM25 covers.",
-      files: ["services/ai-service/app/services/retriever.py"], tickets: ["PF-AI003", "PF-AI004"] },
-    { id: "H2", parent: "hybrid", x: 380, y: 210, w: 250, h: 116, icon: "🔤", title: "BM25 Search", subtitle: "tsvector · plainto_tsquery · ts_rank", status: "inprogress",
-      badges: ["'simple' config", "GIN index"],
-      detail: "Keyword scoring via Postgres full-text search on description_tsv. Uses plainto_tsquery('simple', query) — never to_tsquery, which errors on a natural sentence — and ranks with ts_rank. No stemming: Indonesian bank descriptions are short and literal, so exact-token match on brands (PLN, OVO, GoPay) is the entire point. 'simple' is also always available; 'indonesian' may not be installed on Supabase.",
-      files: ["services/ai-service/app/services/retriever.py"], tickets: ["PF-AI006"] },
-    { id: "H3", parent: "hybrid", x: 380, y: 410, w: 250, h: 116, icon: "⚖️", title: "RRF Merge", subtitle: "_rrf_merge · k=60 · pure function", status: "inprogress",
-      badges: ["Reciprocal Rank Fusion", "Python, not SQL"],
-      detail: "Fuses the two ranked lists by summing 1/(k+rank), k=60 (Cormack et al., SIGIR 2009) — ranks, never raw scores, because cosine (0–1) and ts_rank (unbounded, per-query scale) can't be added meaningfully. Takes the FULL top_k from each list before merging, then truncates — halving each list would kill a #1-BM25 / #8-vector exact hit. ~12 lines, no I/O → unit-testable with no database.",
-      files: ["services/ai-service/app/services/retriever.py"], tickets: ["PF-AI006"] },
+    { id: "CH1", parent: "chat", x: 40, y: 20, w: 250, h: 108, icon: "🖥️", title: "ChatPage → /ask", subtitle: "React · POST /ask", status: "live",
+      badges: ["fetch", "AskRequest"],
+      detail: "The chat client posts { query } straight to the AI service's /ask endpoint — no .NET hop. /ask returns a complete AskResponse; /ask/stream is the SSE variant for token streaming.",
+      files: ["apps/frontend/src/pages/ChatPage.tsx", "services/ai-service/app/main.py"], tickets: ["PF-AI005"] },
 
-    { id: "F1", parent: "funnel", x: 740, y: 20, w: 250, h: 100, icon: "⚡", title: "Reranker", subtitle: "FlashRank · top-10 → top-3", status: "live",
-      badges: ["CPU-only", "~50ms"],
-      detail: "Cross-encoder reranks the merged candidate list down to the 3 rows the LLM actually sees. Chapter 4 funnel, unchanged — hybrid simply hands it a better-ordered top-10.",
+    { id: "P1", parent: "planner", x: 40, y: 20, w: 260, h: 116, icon: "🧭", title: "QueryPlanner.plan()", subtitle: "one structured-extraction call", status: "inprogress",
+      badges: ["generate_json", "PLAN_SCHEMA", "temp 0"],
+      detail: "A single cheap LLM call classifies intent (aggregate | lookup) and extracts typed filters against the schema. The model chooses WHAT to query; it never writes SQL and never sees the data. Relative dates resolve against today's reference date.",
+      files: ["services/ai-service/app/services/query_planner.py"], tickets: ["PF-AI005-PART2"] },
+    { id: "P2", parent: "planner", x: 40, y: 190, w: 260, h: 128, icon: "📋", title: "Extracted plan (this query)", subtitle: "the typed QueryPlan", status: "inprogress",
+      badges: ["intent=aggregate", "Electricity", "2025-04-01..30", "flow=DB"],
+      detail: "For this question the planner returns intent=aggregate, categories=[\"Electricity\"] (mapped from “listrik”), date_from=2025-04-01, date_to=2025-04-30, flow=DB (a spending question). This plan is what routes the request and parametrizes the SQL.",
+      files: ["services/ai-service/app/models.py"], tickets: ["PF-AI005-PART2"] },
+    { id: "P3", parent: "planner", x: 40, y: 370, w: 260, h: 108, icon: "🛡️", title: "Closed-vocab guard", subtitle: "drop invented categories", status: "inprogress",
+      badges: ["known-set filter"],
+      detail: "Categories must come verbatim from the real category menu passed into the prompt. Any category the model invents outside that set is logged and dropped before the plan is used — no hallucinated filter ever reaches Postgres.",
+      files: ["services/ai-service/app/services/query_planner.py"], tickets: ["PF-AI005-PART2"] },
+
+    { id: "AG1", parent: "aggregate", x: 40, y: 20, w: 260, h: 120, icon: "🧮", title: "AggregationService.aggregate()", subtitle: "parametrized SQL SUM / COUNT", status: "inprogress",
+      badges: ["asyncpg", "Decimal", "$-params only"],
+      detail: "“Money flows around the LLM, not through it.” SELECT COALESCE(SUM(amount_idr),0), COUNT(*) with a WHERE built from the plan (category = ANY, flow, date range) — values bound as parameters, never interpolated. Decimal end-to-end; money never touches float.",
+      files: ["services/ai-service/app/services/aggregator.py"], tickets: ["PF-AI005-PART2"] },
+    { id: "AG2", parent: "aggregate", x: 40, y: 190, w: 260, h: 108, icon: "📊", title: "Top-5 example rows", subtitle: "largest matching transactions", status: "inprogress",
+      badges: ["ORDER BY amount DESC"],
+      detail: "Alongside the total, the service fetches the 5 largest matching rows. These become the citations shown in the sources panel — the SUM is the actual answer, so all of them are legitimate example rows the narration may reference.",
+      files: ["services/ai-service/app/services/aggregator.py"], tickets: ["PF-AI005-PART2"] },
+
+    { id: "LK1", parent: "lookup", x: 40, y: 20, w: 270, h: 128, icon: "🔎", title: "RetrievalService.search()", subtitle: "hybrid: pgvector + BM25 → RRF", status: "live",
+      badges: ["cosine top-10", "plainto_tsquery", "RRF k=60"],
+      detail: "Only for lookup-intent questions. Runs a pgvector cosine search AND a Postgres full-text (ts_rank) search, each top-10, then fuses them with Reciprocal Rank Fusion — combining ranks, not raw scores, because cosine (0–1) and ts_rank (unbounded) are incomparable scales. ivfflat.probes=10 for ~99% recall.",
+      files: ["services/ai-service/app/services/retriever.py"], tickets: ["PF-AI004", "PF-AI006"] },
+    { id: "LK2", parent: "lookup", x: 40, y: 200, w: 270, h: 116, icon: "⚡", title: "RerankerService.rerank()", subtitle: "FlashRank cross-encoder → top-3", status: "live",
+      badges: ["ms-marco-MiniLM-L-12-v2", "CPU ~50ms"],
+      detail: "A local MiniLM cross-encoder re-scores the 10 candidates against the query and keeps the best 3 — no API call, no rate limit, deterministic. Runs off the event loop via asyncio.to_thread so CPU inference doesn't block the service.",
       files: ["services/ai-service/app/services/reranker.py"], tickets: ["PF-AI004"] },
-    { id: "F2", parent: "funnel", x: 740, y: 200, w: 250, h: 110, icon: "💬", title: "Answerer / ask", subtitle: "grounded generation + citations", status: "live",
-      badges: ["POST /ask", "citation guard"],
-      detail: "Grounds the answer in retrieved rows and validates cited_transaction_ids before responding. Chapter 4 grounding and hallucination guard, unchanged — the retrieval swap happens entirely upstream of this node, so /ask never needs to know which mode fed it.",
-      files: ["services/ai-service/app/main.py"], tickets: ["PF-AI004", "PF-AI005"] },
 
-    { id: "R1", parent: "docretr", x: 380, y: 20, w: 260, h: 114, icon: "📑", title: "DocumentRetriever", subtitle: "sentence-window — small to find, big to read", status: "planned",
-      badges: ["chunk_text ⇢ search", "window_text ⇢ return"],
-      detail: "PART2. Searches on the embedded chunk_text (one sentence) but returns window_text (that sentence ± ~2 neighbours) so the LLM keeps context like date and account. Must issue its own SET ivfflat.probes=10 — it acquires its own pooled connection, on a code path separate from the transaction retriever, so the setting isn't inherited.",
-      files: ["services/ai-service/app/services/doc_retriever.py"], tickets: ["PF-AI006-PART2"] },
-    { id: "R2", parent: "docretr", x: 380, y: 220, w: 260, h: 114, icon: "🧩", title: "AutoMergingRetriever", subtitle: "widen only with evidence — sibling ≥ 0.5", status: "planned",
-      badges: ["top_k * 3 candidates", "parent_id / sibling_count"],
-      detail: "PART2. Pulls 3× top_k, groups candidates by parent_id, and promotes a scattered set of sentences to their whole parent paragraph only when ≥50% of its siblings were retrieved. Unlike sentence-window (always widens), auto-merging widens only when the evidence is there. Merge logic is pure in-memory math — sibling_count is stored on each child row.",
-      files: ["services/ai-service/app/services/auto_merger.py"], tickets: ["PF-AI006-PART2"] },
-    { id: "R3", parent: "docretr", x: 380, y: 420, w: 260, h: 110, icon: "🛠️", title: "Backfill Script", subtitle: "PDF → chunk → embed → insert", status: "planned",
-      badges: ["idempotent", "--dry-run", "batch 50"],
-      detail: "PART2. Pulls every old PDF from Supabase Storage, extracts text, chunks via sentence_window_chunks(), embeds in batches of 50, and inserts into statement_chunks. Checks upload_id before inserting, so it is safe to re-run after an interruption; --dry-run previews the PDF and chunk counts before a single row is written.",
-      files: ["services/ai-service/scripts/backfill_statement_chunks.py"], tickets: ["PF-AI006-PART2"] },
+    { id: "G1", parent: "generate", x: 40, y: 20, w: 260, h: 120, icon: "🗣️", title: "Narrate (aggregate path)", subtitle: "state the verified number", status: "live",
+      badges: ["NARRATE_PROMPT", "no arithmetic"],
+      detail: "The LLM receives the SQL-computed total and transaction count and writes 1–3 sentences in the question's language. The prompt forbids recomputing, rounding, or adjusting the figure — even a disobedient narration cannot corrupt total_idr, which is set from the SQL result in the payload.",
+      files: ["services/ai-service/app/services/answerer.py"], tickets: ["PF-AI005-PART2"] },
+    { id: "G2", parent: "generate", x: 40, y: 190, w: 260, h: 124, icon: "🧷", title: "Synthesize (lookup path)", subtitle: "grounded answer with citations", status: "live",
+      badges: ["SYSTEM_PROMPT", "[1][2] markers", "id guard"],
+      detail: "For lookup questions the LLM answers ONLY from the top-3 context rows, citing them as [1][2]. Cited transaction ids are validated against the context — any id the model invents is logged and dropped, and an answer with zero valid citations is marked verified=false.",
+      files: ["services/ai-service/app/services/answerer.py"], tickets: ["PF-AI004"] },
 
-    { id: "G1", parent: "data", x: 1100, y: 20, w: 260, h: 114, icon: "🐘", title: "transactions + description_tsv", subtitle: "generated tsvector column + GIN index", status: "inprogress",
-      badges: ["GENERATED … STORED", "GIN"],
-      detail: "The new migration adds description_tsv as a generated column (GENERATED ALWAYS AS … STORED) — always in sync on INSERT/UPDATE with no trigger and no app code — indexed with GIN for BM25. Invisible to SELECT * via supabase-csharp, which is fine: only the Python service reads it via asyncpg. transaction_embeddings (cosine) sits alongside it.",
-      files: ["supabase/migrations/{ts}_advanced_rag.sql"], tickets: ["PF-AI006"] },
-    { id: "G2", parent: "data", x: 1100, y: 220, w: 260, h: 114, icon: "📚", title: "statement_chunks", subtitle: "PART2 — chunk_text · window_text · parent_id", status: "planned",
-      badges: ["ivfflat lists=50", "probes=10"],
-      detail: "PART2. One row per sentence: chunk_text (embedded + searched), window_text (returned to the LLM), plus parent_id / sibling_count for the auto-merge hierarchy (level 1 = paragraph, level 0 = sentence). ivfflat lists=50, probes=10 set from day one so the Chapter 3 probes bug can't recur on the new table.",
-      files: ["supabase/migrations/{ts}_advanced_rag.sql"], tickets: ["PF-AI006-PART2"] },
+    { id: "R1", parent: "response", x: 40, y: 20, w: 270, h: 128, icon: "✅", title: "AskResponse", subtitle: "structured result payload", status: "live",
+      badges: ["total_idr", "verified", "citations", "*_ms"],
+      detail: "The response carries the answer text plus the machine-trustworthy fields: total_idr straight from SQL (the UI shows this, not the prose), intent, verified=true, the citation rows, and retrieval_ms / generation_ms timings. The number in the payload is authoritative; the prose is only narration.",
+      files: ["services/ai-service/app/models.py"], tickets: ["PF-AI005-PART2"] },
+    { id: "R2", parent: "response", x: 40, y: 200, w: 270, h: 108, icon: "💡", title: "What the user sees", subtitle: "example rendered answer", status: "live",
+      badges: ["same language as question"],
+      detail: "e.g. “Total tagihan listrik kamu di April 2025 adalah Rp 842.000 dari 2 transaksi.” — with the two example rows shown as sources. The figure is exactly the SUM Postgres computed.",
+      files: [], tickets: [] },
 
-    { id: "V1", parent: "eval", x: 1100, y: 20, w: 260, h: 106, icon: "🧪", title: "eval_retrieval.py", subtitle: "--mode / --all · comparison table", status: "inprogress",
-      badges: ["vector · bm25 · hybrid", "+rerank · sentence_window"],
-      detail: "The extended harness measures every variant on the same query set: vector, bm25, hybrid, vector+rerank, hybrid+rerank, sentence_window. --all prints the side-by-side comparison table. The winning mode is committed as the production search_mode default.",
-      files: ["services/ai-service/evals/eval_retrieval.py"], tickets: ["PF-AI006"] },
-    { id: "V2", parent: "eval", x: 1100, y: 200, w: 260, h: 116, icon: "🎯", title: "Adversarial Query Set", subtitle: "+5 queries — one stage per modality", status: "inprogress",
-      badges: ["PLN → BM25", "makan siang → vector", "cross-month · EN-over-ID · no-answer"],
-      detail: "The old 10-query set only tested semantic paraphrase, so hybrid vs vector tie for the wrong reason. Five adversarial queries each give one modality its own stage: exact brand (BM25 wins), paraphrase (vector wins), a cross-month range, an English query over Indonesian data, and a no-answer query the system must decline. This is what makes the comparison table meaningful.",
-      files: ["services/ai-service/evals/search_queries.json"], tickets: ["PF-AI006"] },
-    { id: "V3", parent: "eval", x: 1100, y: 420, w: 260, h: 104, icon: "📊", title: "Metrics Doc", subtitle: "MRR@5 · P@5 · latency p50", status: "inprogress",
-      badges: ["baseline P@5=0.66", "winner → default"],
-      detail: "Records MRR@5, P@5, and p50 latency per variant. Baseline vector: MRR@5=1.000, P@5=0.66 — the top rank is always right, but positions 2–5 still carry noise. Target: raise P@5 without dropping MRR@5. The measured winner becomes the production default; the rationale lives in the commit body, not a code comment that goes stale.",
-      files: [".claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md"], tickets: ["PF-AI006"] }
+    { id: "LM1", parent: "llm", x: 40, y: 20, w: 250, h: 116, icon: "🤖", title: "Gemini 2.5 Flash", subtitle: "planner + narration, temp 0", status: "live",
+      badges: ["generate_json", "primary provider"],
+      detail: "The same provider serves two calls in this pipeline: the planner (classify + extract filters) and the answer generation (narrate the total). Both run at temperature 0. Swappable to Claude Sonnet 4.6 via AI_PROVIDER — same interface.",
+      files: ["services/ai-service/app/providers/gemini.py"], tickets: ["PF-AI001"] },
+
+    { id: "DB1", parent: "db", x: 40, y: 20, w: 260, h: 120, icon: "🐘", title: "transactions", subtitle: "SUM target + BM25 source", status: "live",
+      badges: ["amount_idr", "description_tsv", "category / date / flow"],
+      detail: "The aggregate branch runs SUM(amount_idr) / COUNT(*) here with the plan's filters; the lookup branch's BM25 leg runs plainto_tsquery over description_tsv. One table serves both the exact-math and the keyword-search paths.",
+      files: ["supabase/migrations/"], tickets: ["PF-AI006"] },
+    { id: "DB2", parent: "db", x: 40, y: 190, w: 260, h: 112, icon: "🧬", title: "transaction_embeddings", subtitle: "pgvector ivfflat index", status: "live",
+      badges: ["cosine <=>", "probes=10", "model-filtered"],
+      detail: "The vector leg of hybrid retrieval searches this table by cosine distance. The model column is filtered so a provider switch never mixes vector spaces. Not touched by the aggregate path — this query never reaches it.",
+      files: ["supabase/migrations/", "services/ai-service/app/services/retriever.py"], tickets: ["PF-AI003"] }
   ];
   var LEAF_BY_ID = {};
   LEAF_NODES.forEach(function (n) { LEAF_BY_ID[n.id] = n; });
 
   var LEAF_EDGES = [
-    { from: "Q1", to: "Q2", label: "embed (vector path)" },
-    { from: "Q2", to: "H1", label: "query vector" },
-    { from: "Q1", to: "H2", label: "raw text → tsquery" },
-    { from: "H1", to: "H3", label: "vector ranks", hot: true },
-    { from: "H2", to: "H3", label: "bm25 ranks", hot: true },
-    { from: "H3", to: "F1", label: "merged top_k", hot: true },
-    { from: "F1", to: "F2", label: "top-3" },
-    { from: "H1", to: "G1", label: "cosine <=>" },
-    { from: "H2", to: "G1", label: "ts_rank @@" },
-    { from: "Q1", to: "R1", label: "document query", dashed: true },
-    { from: "R1", to: "R2", label: "candidates", dashed: true },
-    { from: "R1", to: "G2", label: "read chunks", dashed: true },
-    { from: "R3", to: "G2", label: "write chunks", dashed: true },
-    { from: "H3", to: "V1", label: "measured", dashed: true },
-    { from: "F2", to: "V1", label: "answer eval", dashed: true },
-    { from: "V2", to: "V1", label: "query set", dashed: true },
-    { from: "V1", to: "V3", label: "metrics", dashed: true }
+    { from: "Q1", to: "Q2" },
+    { from: "Q2", to: "CH1", label: "type + send" },
+    { from: "CH1", to: "P1", label: "POST /ask", hot: true },
+    { from: "P1", to: "LM1", label: "plan (temp 0)", dashed: true },
+    { from: "P1", to: "P2", label: "returns plan", hot: true },
+    { from: "P2", to: "P3", label: "guard categories" },
+    { from: "P2", to: "AG1", label: "intent=aggregate", hot: true },
+    { from: "P2", to: "LK1", label: "intent=lookup (alt)" },
+    { from: "AG1", to: "DB1", label: "SUM / COUNT" },
+    { from: "AG1", to: "AG2", label: "top-5 rows", hot: true },
+    { from: "AG2", to: "G1", label: "verified total", hot: true },
+    { from: "LK1", to: "DB2", label: "cosine search" },
+    { from: "LK1", to: "DB1", label: "BM25 ts_rank" },
+    { from: "LK1", to: "LK2", label: "top-10 → rerank" },
+    { from: "LK2", to: "G2", label: "top-3 context" },
+    { from: "G1", to: "LM1", label: "narrate", dashed: true },
+    { from: "G2", to: "LM1", label: "synthesize", dashed: true },
+    { from: "G1", to: "R1", label: "answer + total", hot: true },
+    { from: "G2", to: "R1", label: "answer + citations" },
+    { from: "R1", to: "R2", label: "render", hot: true }
   ];
 
   // ============================================================
@@ -500,7 +554,7 @@
   // refresh. Keyed by "<view>::<nodeId>" so the same leaf/stub id
   // reused across different group drill-down views doesn't collide.
   // ============================================================
-  var POSITIONS_KEY = "pf-diagram-pf-ai006-rag-patterns:positions";
+  var POSITIONS_KEY = "pf-diagram-ai-system-target:positions";
   var savedPositions = (function () {
     try { return JSON.parse(localStorage.getItem(POSITIONS_KEY)) || {}; }
     catch (e) { return {}; }
@@ -807,7 +861,7 @@
     currentView = "overview";
     clearCanvas();
     document.getElementById("breadcrumb").classList.remove("show");
-    document.getElementById("h-sub").textContent = "AI Learning Track · hybrid = this ticket · sentence-window + auto-merging = PART2 · click any node to open it";
+    document.getElementById("h-sub").textContent = "AI Learning Track · PF-AI001–PF-AI009 · click any node to open it";
     document.getElementById("empty-hint").textContent = "click a node to explore · drag a node to move it · drag empty space to pan · scroll to zoom";
 
     var maxX = 0, maxY = 0;
@@ -834,7 +888,7 @@
     document.getElementById("breadcrumb").classList.add("show");
     document.getElementById("crumb-current").textContent = group.title;
     document.getElementById("h-sub").textContent = group.subtitle;
-    document.getElementById("empty-hint").textContent = "click a node for detail · drag to spread out overlapping cards · click a linked group to jump there";
+    document.getElementById("empty-hint").textContent = "solid cards = this stage's internals · dashed color-tinted cards = other stages (◂ prev / next ▸) — click one to jump there";
 
     var localIds = {};
     var local = LEAF_NODES.filter(function (n) { return n.parent === groupId; });
@@ -915,12 +969,23 @@
       nodesEl.appendChild(el);
     });
 
-    // render stub cards (jump to another group)
+    // render stub cards (jump to another stage). Each is a portal to a
+    // neighboring GROUP, colored in that group's own overview hue and tagged
+    // with flow direction so you can orient without backing out to the overview.
     Object.keys(stubPositions).forEach(function (tg) {
       var pos = stubPositions[tg];
       var targetGroup = GROUP_BY_ID[tg];
-      var nodeData = { id: "stub-" + tg, x: pos.x, y: pos.y, w: STUB_W, h: STUB_H, icon: targetGroup.icon, title: targetGroup.title, subtitle: "open ›", status: targetGroup.status };
+      // direction = does data flow FROM here TO the target (downstream) or the
+      // reverse (upstream)? Derived from the real edges, not just geometry.
+      var links = crossByTarget[tg];
+      var outbound = links.filter(function (l) { return l.outbound; }).length;
+      var isDownstream = outbound >= (links.length - outbound);
+      var subtitle = isDownstream ? "next stage ▸ · open" : "◂ prev stage · open";
+      var nodeData = { id: "stub-" + tg, x: pos.x, y: pos.y, w: STUB_W, h: STUB_H, icon: targetGroup.icon, title: targetGroup.title, subtitle: subtitle, status: targetGroup.status };
       var el = makeNodeEl(nodeData, "stub", targetGroup.color, function () { openGroup(tg); });
+      el.classList.add(isDownstream ? "stub-down" : "stub-up");
+      el.style.setProperty("--stub-accent", targetGroup.color);
+      el.style.setProperty("--stub-bg", hexToRgba(targetGroup.color, 0.10));
       nodesEl.appendChild(el);
     });
 

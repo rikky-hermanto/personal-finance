@@ -104,6 +104,8 @@
 
 <a id="cross-provider-judge"></a>**Cross-provider judge** — praktik memakai judge model dari provider yang berbeda dari model generator (contoh di project ini: generator pakai Gemini, judge pakai `gpt-4o-mini` dari OpenAI) untuk menghindari self-preference bias.
 
+<a id="eval-harness"></a>**Harness (eval harness)** — satu script/CLI yang menjalankan set query uji yang sama terhadap satu atau beberapa teknik/varian, lalu menghasilkan metrik yang bisa dibandingkan apel-ke-apel (mis. [MRR@5](#mrr-5), [P@5](#p-5), [Faithfulness](#faithfulness)). Kuncinya bukan cuma "script yang jalankan eval," tapi bahwa dia dipakai sebagai penengah yang sama untuk semua varian — supaya tiap teknik baru bisa dinyalakan/dimatikan sendiri-sendiri (lewat flag seperti `--mode`/`--all`) tanpa mengubah cara pengukurannya, dan pemenangnya ditentukan dari angka, bukan tebakan. Dipakai dari PF-AI002 (eval extraksi) sampai PF-AI006 (eval retrieval lanjutan).
+
 ---
 
 ## 6. Streaming & SSE
