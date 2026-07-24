@@ -187,6 +187,10 @@ class SearchRequest(BaseModel):
     date_from: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     date_to: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     rerank: bool = False
+    # PF-AI006: hybrid search mode. Default flipped to the winning variant per
+    # the Ch6 analysis — RRF-merged BM25+vector beats pure vector on term-rich
+    # Indonesian bank descriptions (see docs/mentor/advanced-rag-notes.md).
+    search_mode: Literal["vector", "bm25", "hybrid"] = "hybrid"
 
 
 class SearchResult(BaseModel):

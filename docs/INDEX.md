@@ -12,7 +12,8 @@
 | Architecture overview + event flow | [architecture/architecture-diagram.md](architecture/architecture-diagram.md) | Full system diagram, upload→AI→DB event pipeline |
 | C4 Container diagram | [architecture/c4-container-diagram.md](architecture/c4-container-diagram.md) | Component relationships at container level |
 | AI system — target architecture (interactive) | [architecture/diagram-ai-system-target.html](architecture/diagram-ai-system-target.html) | Node-graph of the AI Learning Track (PF-AI001–PF-AI009): live vs. in-progress vs. planned, open in a browser |
-| PF-AI006 — advanced RAG patterns (interactive) | [architecture/diagram-pf-ai006-rag-patterns.html](architecture/diagram-pf-ai006-rag-patterns.html) | Node-graph of hybrid search (BM25+RRF), sentence-window retrieval, and auto-merging — status: To Do, open in a browser |
+| PF-AI006 — advanced RAG patterns (interactive) | [architecture/diagram-pf-ai006-rag-patterns.html](architecture/diagram-pf-ai006-rag-patterns.html) | Two-tier node-graph of the retrieval pipeline: hybrid search (BM25+RRF) = this ticket, sentence-window + auto-merging = PART2 (deferred); click a group to drill in, open in a browser |
+| Query pipeline — one question end-to-end (interactive) | [architecture/diagram-query-pipeline-listrik.html](architecture/diagram-query-pipeline-listrik.html) | Worked trace of “berapa tagihan listrikku di bulan April 2025?” through /ask: plan → route (aggregate vs lookup) → SQL SUM or hybrid retrieve+rerank → narrate → answer; click a stage to drill in, open in a browser |
 | API endpoints reference | [architecture/API-endpoints.md](architecture/API-endpoints.md) | All REST endpoints with curl examples |
 | Backend architecture | [architecture/API-backend.md](architecture/API-backend.md) | .NET Clean Architecture layer details |
 | Frontend architecture | [architecture/Front-End.md](architecture/Front-End.md) | React component structure, routing, state |

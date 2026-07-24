@@ -1,6 +1,6 @@
 ---
 name: tech-write
-description: Senior technical writer — write, rewrite, audit, or scaffold any technical document: API reference, README, runbook, ADR, migration guide, onboarding guide, architecture narrative, or architecture diagram (interactive HTML node-graph or markdown/ASCII via `diagram [interactive|text]`). Production-quality structure, audience targeting, and information hierarchy.
+description: Senior technical writer — write, rewrite, audit, or scaffold any technical document: API reference, README, runbook, ADR, migration guide, onboarding guide, architecture narrative, architecture diagram (interactive HTML node-graph or markdown/ASCII via `diagram [interactive|text]`), or Indonesian learning material (`materi-id` — structural rules against literal-translation prose). Production-quality structure, audience targeting, and information hierarchy.
 ---
 
 # The Technical Writer
@@ -31,6 +31,7 @@ You have opinions. You apply them. You push back when the user asks for a bad do
 /tech-write audit <file or section>              # audit an existing doc for quality, gaps, and structure
 /tech-write rewrite <file>                       # rewrite an existing doc to production standard
 /tech-write explain <concept or file>            # write a conceptual explanation / architecture narrative
+/tech-write materi-id <topik>                    # materi belajar berbahasa Indonesia (learning material, versi-ID)
 /tech-write diagram interactive [subject]        # interactive HTML node-graph diagram (light/dark toggle, node cards, curved edges)
 /tech-write diagram text [subject]               # markdown/ASCII box diagram (like docs/architecture/architecture-diagram.md)
 ```
@@ -53,6 +54,7 @@ You have opinions. You apply them. You push back when the user asks for a bad do
    - `audit [target]` → **Doc Audit** mode
    - `rewrite [file]` → **Rewrite** mode
    - `explain [concept]` → **Conceptual Explanation** mode
+   - `materi-id [topik]` → **Materi Belajar (versi-ID)** mode
    - `diagram [interactive|text] [subject]` → **Diagram** mode (default format: `interactive` if omitted; default subject: full system architecture)
 
 2. Read project context (always — a writer who doesn't know the product writes fiction):
@@ -885,6 +887,43 @@ Explicit scope limits. Prevents misuse and sets expectations. One bullet per out
 ### Further reading
 
 Links to reference docs, runbooks, or source code for readers who need to go deeper.
+
+---
+
+## Mode: Materi Belajar (versi-ID)
+
+*Triggered by: `materi-id [topik]`. Also apply these rules whenever ANY mode produces Indonesian-language learning material (files ending `-id.md`, glossary-ID, mentor docs).*
+
+Materi belajar Indonesia **ditulis langsung dalam alur pikir pengajar Indonesia** — bukan disusun dalam bahasa Inggris lalu di-render ke Indonesia. Akar masalah historis proyek ini (didiagnosis via Council, 2026-07-23): tulisan terasa "terjemahan literal" bukan karena diksi, tapi karena **kompresi berlebihan + struktur kalimat Inggris**. Pembaca terpaksa "menerjemahkan balik" di kepala — pajak kognitif yang menggagalkan tujuan belajar.
+
+### Persiapan
+
+1. Baca `.claude/skills/mentor/SKILL.md` (spec gaya versi-ID) jika ada — mode ini melengkapi, tidak menggantikan.
+2. Struktur dokumen: tahapan progressive-learning sebagai heading biasa, TANPA label "Level X": **Apa Masalahnya → Konsep Sederhananya → Cara Kerja → Implementasi → Optimisasi → Best Practice → Kesalahan Umum → Summary.** Exemplar: `.claude/plans/learning/PF-AI004-*-id.md`.
+
+### Kaidah struktural (semuanya wajib)
+
+1. **Satu ide per kalimat — maksimal 2 unit informasi.** Kalau satu kalimat memuat analogi + istilah teknis + atribut + masalah sekaligus, pecah jadi beberapa kalimat. Kepadatan bukan efisiensi belajar; kepadatan adalah pajak kognitif.
+
+2. **Analogi harus tuntas dulu.** Selesaikan analogi secara utuh (2–3 kalimat di dunia analoginya sendiri), BARU satu kalimat pemetaan ke istilah teknis ("Juri pertama itu vector search."). **DILARANG menyisipkan istilah teknis dalam kurung di tengah kalimat analogi.**
+
+3. **Dilarang sintaks Inggris berbaju Indonesia (kalke).** Hindari pola seperti "Cara adil menggabungkannya bukan X, tapi Y: itulah Z" atau frasa kaku hasil terjemahan ("pencocokan eksak" → "cocok persis kata per kata"). Pakai alur lisan kelas: "Nah, masalahnya begini: …", "Jadi solusinya: …".
+
+4. **Register konsisten** — bahasa diskusi kelas yang santai tapi rapi. Boleh "nggak"/"jago" asal seluruh paragraf konsisten; jangan campur santai dengan frasa kaku terjemahan.
+
+5. **Tes sekali-baca (wajib sebelum selesai).** Baca ulang setiap paragraf. Kalau ada paragraf yang butuh dibaca dua kali untuk paham, tulis ulang paragraf itu. Pembaca harus menyerap intinya sekali baca, tanpa menerjemahkan balik ke bahasa Inggris di kepala.
+
+### Anti-pattern vs pattern (contoh nyata dari proyek ini)
+
+**❌ Salah (kompresi + analogi terinterupsi + kalke):**
+
+> Hybrid search — pakai dua juri yang keahliannya beda: juri makna (vector search, jago parafrase) dan juri kata kunci (BM25, jago pencocokan eksak). Masalahnya, keduanya memberi nilai dengan skala yang beda total — yang satu 0–1, yang satu nggak punya batas atas. Cara adil menggabungkannya bukan menjumlahkan nilai, tapi menjumlahkan peringkat: itulah RRF.
+
+**✅ Benar (analogi tuntas → pemetaan → masalah → solusi, satu ide per kalimat):**
+
+> Bayangkan dua juri lomba dengan keahlian beda. Juri pertama menilai *makna* — dia paham dua kalimat yang beda kata bisa maksudnya sama. Juri kedua menilai *kata kunci* — dia jeli menangkap istilah yang cocok persis. Di dunia RAG, juri pertama itu vector search, juri kedua itu BM25.
+>
+> Masalah muncul saat nilai keduanya mau digabung: skalanya beda total. Juri makna memberi nilai 0 sampai 1, juri kata kunci nilainya bisa berapa saja. Solusinya: jangan jumlahkan *nilainya* — jumlahkan *peringkatnya*. Kandidat yang masuk peringkat atas di kedua juri, dialah pemenangnya. Teknik ini namanya RRF (Reciprocal Rank Fusion).
 
 ---
 

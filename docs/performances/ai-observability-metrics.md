@@ -219,3 +219,48 @@ plea. This is the same shape as PF-AI004's "citations validated against the cont
 — the planner's `generate_json` classification and the answer's `generate_json`/`stream_generate`
 narration — both free via the existing provider abstraction (PF-AI001 rails). Per-question cost now
 includes the one extra small planner call.
+
+## Advanced RAG Patterns — Hybrid Search (PF-AI006)
+
+**Re-scope note (2026-07-23):** this chapter was cut down to hybrid search only. Sentence-window
+retrieval and auto-merging (the other two techniques originally planned) are deferred to
+[PF-AI006-PART2](../../.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) —
+they need a new data source (statement PDF narrative text) that isn't yet a product requirement.
+
+**What shipped:** `RetrievalService.search()` gained `bm25` (PostgreSQL `tsvector` + `ts_rank`,
+`simple` config, GIN index on `transactions.description_tsv`) and `hybrid` (Reciprocal Rank Fusion,
+k=60, merging the vector and bm25 ranked ID lists) modes alongside the existing `vector` path.
+`SearchRequest.search_mode` defaults to `hybrid` — the `/ask` lookup path (both `AnswerService` and
+`/ask/stream`) now retrieves via hybrid search instead of pure cosine similarity.
+
+**5 adversarial queries added** to `search_queries.json` (q: PLN keyword-exact, English-language
+coffee query, semantic-paraphrase lunch query, date-crossing query, adversarial "suspicious
+transfer" query with no matching vocabulary) — designed so BM25 and vector each get a query they
+should individually win, per the "adversarial eval design" principle (a homogeneous eval set can't
+reveal complementarity).
+
+> **⏳ Live measurement pending (2026-07-24).** Code + unit tests are complete and green
+> (`test_hybrid_search.py` — 9 tests, RRF logic + bm25/hybrid SQL paths, mocked asyncpg; full
+> `test_retriever.py` suite still green, confirming the existing `vector` path is byte-for-byte
+> unchanged). The local Supabase stack (Docker Desktop) was not running in this session
+> (`ConnectionRefusedError` on `asyncpg.connect`), so `eval_retrieval.py --all` could not be run
+> against real data — the MRR@5/P@5/latency comparison table below is **not yet filled with live
+> numbers**. `search_mode` defaults to `hybrid` based on the STEP 7 decision framework in the plan
+> (RRF's complementarity argument + the qualitative PLN/tagihan failure mode already documented
+> above in the Chapter-3 baseline section), not yet a measured delta. Re-run
+> `PYTHONPATH=. python evals/eval_retrieval.py --all` once Supabase is up and paste the printed
+> table here.
+
+| Mode | MRR@5 | P@5 | Hit@5 | p50 latency |
+|------|-------|-----|-------|-------------|
+| vector | _pending_ | _pending_ | _pending_ | _pending_ |
+| vector+rerank | _pending_ | _pending_ | _pending_ | _pending_ |
+| bm25 | _pending_ | _pending_ | _pending_ | _pending_ |
+| hybrid | _pending_ | _pending_ | _pending_ | _pending_ |
+| hybrid+rerank | _pending_ | _pending_ | _pending_ | _pending_ |
+
+**Migration:** `supabase/migrations/20260724000001_hybrid_search.sql` adds a generated
+`description_tsv` column (`GENERATED ALWAYS AS ... STORED`, `simple` tsvector config — no stemming
+dictionary assumed on the local/Supabase-managed Postgres) + a GIN index. Not yet applied — same
+Docker/Supabase-unavailable gap as the live eval run. Apply with `supabase db push` (or `supabase
+db reset` locally) before re-running the eval.

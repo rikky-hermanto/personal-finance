@@ -300,6 +300,7 @@ async def search_transactions(request: SearchRequest) -> SearchResponse:
         account=request.account,
         date_from=request.date_from,
         date_to=request.date_to,
+        search_mode=request.search_mode,
     )
     if request.rerank:
         results = await app.state.reranker.rerank(request.query, results, top_k=request.top_k)
@@ -403,6 +404,7 @@ async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
             query=request.query, top_k=10,
             category=category, account=request.account,
             date_from=date_from, date_to=date_to,
+            search_mode="hybrid",   # winner from Ch6 eval — see advanced-rag-notes.md
         )
         contexts = await app.state.reranker.rerank(
             request.query, candidates, top_k=request.top_k or 3
