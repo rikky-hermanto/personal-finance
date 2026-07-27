@@ -610,3 +610,33 @@
 - PART 2 close-out — parked until a paid-tier model subscription is active
 
 **Streak: 1 day**
+
+### 2026-07-24 — Day 59
+
+**Session: Chapter 6 (PF-AI006) closed — hybrid search measured live and LOST to pure vector; default kept at `vector`** *(logged retroactively 2026-07-26)*
+
+- Cleared the Day-? infra gap from the prior PF-AI006 pass: started Docker Desktop + local Supabase, applied `20260724000001_hybrid_search.sql` via `supabase db push`, and verified live via asyncpg that `description_tsv` (tsvector generated column) + `idx_transactions_description_tsv` (GIN) exist on `transactions`, with 4,467 transactions / 4,467 embeddings intact.
+- Ran `PYTHONPATH=. python evals/eval_retrieval.py --all` against real data across all 5 variants. Result table (MRR@5 / P@5 / p50): **vector 0.771 / 0.533 / 726ms**, hybrid 0.750 / 0.467 / 689ms, vector+rerank 0.625 / 0.467 / 705ms, hybrid+rerank 0.558 / 0.483 / 746ms, bm25 0.433 / 0.333 / 137ms.
+- **The chapter's assumption was falsified: hybrid (BM25 + RRF) underperforms pure vector on this corpus.** Diagnosed the mechanism from the per-query breakdown: the stored embedding text is `description | remarks | category | wallet`, so the `Electricity`/`Listrik` category tag already gives the embedding the exact-keyword signal BM25 was supposed to add — `tagihan listrik PLN` already scores P@5=1.00 on vector alone. RRF then *displaces* correct vector hits with BM25's noisier candidates on queries where BM25 has nothing real to contribute (`makan siang di kantor` dropped MRR 0.25 → 0.00; no keyword overlap with `WARUNG`/`RESTO`).
+- **Reverted the earlier assumption-based wiring rather than shipping it:** `SearchRequest.search_mode` default returned to `"vector"`, and the `/ask` lookup path (`answerer.py`, `main.py::/ask/stream`) no longer forces `search_mode="hybrid"`. `bm25`/`hybrid` stay implemented and selectable — they're the right tool for a corpus where descriptions are the only signal, i.e. PART2's `statement_chunks`.
+- **Real bug found only by the live run:** the first benchmark scored `bm25` at a flat 0.000 on every query. Cause was `plainto_tsquery`, which ANDs every query word — a 5-word natural-language question can never match a 2–4 word bank description in full. Fixed with `_to_or_tsquery()` in `retriever.py` (OR-join tokens, then `to_tsquery`); `ts_rank` still weights rows with more matched terms higher, which approximates real BM25 instead of a boolean AND filter. 3 new unit tests for the tokenizer.
+- Wrote up the finding in [advanced-rag-notes.md](../../docs/mentor/advanced-rag-notes.md) and filled the real numbers into [ai-observability-metrics.md](../../docs/performances/ai-observability-metrics.md) (replacing the "pending" table). Updated [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) — STEP 2, 6, 7, 9 flipped from `[!]` to `[x]` with live verification notes; status header now Done (hybrid-search scope).
+- Full suite: **127 passed, 1 pre-existing unrelated failure** (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py`, untouched by this ticket). Changes left uncommitted for review.
+
+**Chapter 6 checklist progress:**
+- [x] Hybrid search (pgvector + tsvector BM25 via RRF) implemented and live-benchmarked
+- [x] Eval harness — MRR lift measured per variant, winner picked on numbers (`vector`)
+- [ ] Sentence-window retrieval ← deferred to PF-AI006-PART2
+- [ ] Auto-merging retrieval ← deferred to PF-AI006-PART2
+
+**Retros (blockers & surprises):**
+- **A negative result caught before it shipped.** The prior pass had already flipped the production default to `hybrid` on qualitative reasoning alone (the Chapter-3 PLN miss) because Docker was down and the eval couldn't run. Running it reversed the decision. Lesson: an unmeasured default is a hypothesis in production — if the eval can't run, don't flip the switch and write the justification anyway.
+- **Mocked tests pass, real pipeline reveals the bug — third occurrence on record** (after the citation-marker/id mixup and the asyncpg date-binding bug). `test_hybrid_search.py` asserted SQL *shape* and was green while `bm25` returned zero rows for every real query. Shape assertions can't test match behavior; only real data can.
+- **Interview-ready answer (new):** "I implemented hybrid BM25+vector search with RRF expecting an easy win on term-heavy Indonesian bank descriptions, benchmarked it against an eval set with adversarial queries built to expose complementarity, and measured the opposite — MRR@5 0.750 vs 0.771 for pure vector. The per-query breakdown showed why: my embedding text already concatenates the category tag, so BM25's exact-keyword contribution was redundant, and RRF's merge displaced vector hits that were already correct. I kept both modes selectable and left the default on vector. Adding a technique because the literature endorses it isn't the same as measuring whether your data needs it."
+
+**Remaining for next session:**
+- Commit the PF-AI006 working tree (10 files: retriever/models/answerer/main + tests + 3 docs + plan)
+- Chapter 7 (PF-AI007 — smolagents Transaction Categorizer) is the next unblocked chapter; it also gates PF-AI008 (LangGraph), where the "bulan itu" conversation-memory bug is already pre-loaded as the motivating case
+- Still parked on a paid model tier: PF-AI005-PART2's numeric-accuracy eval + STEP 8 metrics
+
+**Streak: 1 day** (gap 2026-07-15 → 2026-07-23 unlogged; 2026-07-24 work logged 2026-07-26)

@@ -1,7 +1,19 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
-from app.services.retriever import RetrievalService, _rrf_merge
+from app.services.retriever import RetrievalService, _rrf_merge, _to_or_tsquery
 from app.models import SearchResult
+
+
+def test_to_or_tsquery_joins_tokens_with_or():
+    assert _to_or_tsquery("tagihan listrik PLN") == "tagihan | listrik | pln"
+
+
+def test_to_or_tsquery_lowercases_and_strips_punctuation():
+    assert _to_or_tsquery("PLN, bulan-Maret!") == "pln | bulan | maret"
+
+
+def test_to_or_tsquery_empty_input_returns_empty_string():
+    assert _to_or_tsquery("   ") == ""
 
 
 def test_rrf_merge_promotes_document_present_in_both_lists():
@@ -82,7 +94,7 @@ async def test_search_bm25_mode_skips_embedding(mock_provider_and_asyncpg):
 
 
 @pytest.mark.asyncio
-async def test_search_bm25_mode_uses_plainto_tsquery(mock_provider_and_asyncpg):
+async def test_search_bm25_mode_uses_or_joined_tsquery(mock_provider_and_asyncpg):
     provider, mock_conn = mock_provider_and_asyncpg
     service = RetrievalService(provider=provider, db_url="postgresql://test")
 
@@ -90,9 +102,11 @@ async def test_search_bm25_mode_uses_plainto_tsquery(mock_provider_and_asyncpg):
 
     # First fetch call is the bm25 id-ranking query; second is the by-id fetch
     first_sql = mock_conn.fetch.call_args_list[0].args[0]
-    assert "plainto_tsquery" in first_sql
+    first_params = mock_conn.fetch.call_args_list[0].args[1:]
+    assert "to_tsquery" in first_sql
     assert "ts_rank" in first_sql
-    assert "to_tsquery(" not in first_sql.replace("plainto_tsquery(", "")
+    # OR-joined tokens, not the raw natural-language sentence
+    assert "tagihan | listrik | pln" in first_params
 
 
 @pytest.mark.asyncio

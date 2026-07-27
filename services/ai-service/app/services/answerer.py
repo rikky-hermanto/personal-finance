@@ -151,7 +151,8 @@ class AnswerService:
             query=request.query, top_k=10,
             category=category, account=request.account,
             date_from=date_from, date_to=date_to,
-            search_mode="hybrid",   # winner from Ch6 eval — see advanced-rag-notes.md
+            # search_mode intentionally omitted — the Ch6 eval measured "vector"
+            # (the default) beating "hybrid" on this corpus; see advanced-rag-notes.md
         )
         contexts = await self._reranker.rerank(request.query, candidates, top_k=request.top_k)
         retrieval_ms = (time.perf_counter() - t0) * 1000

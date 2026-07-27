@@ -20,14 +20,28 @@ document's score decays as it moves down a list; it's a smoothing constant tuned
 corpora, not something this project needed to re-tune. BM25 contributes exact-keyword precision
 that embeddings genuinely lack — the Chapter-3 baseline in this doc already shows `tagihan listrik
 PLN` failing to rank correctly (`MRR=0.00`) because `PLN` carries no special weight in cosine
-space; `plainto_tsquery('simple', 'PLN')` against a GIN index finds it in a fraction of a
-millisecond because the token is either present or absent. Vector search wins the opposite case —
-paraphrases like "boros" (wasteful) or "makan siang di kantor" where the description says `WARUNG`
-or `RESTO`, terms BM25 has zero overlap with. Measured MRR/P@5 delta: **pending** — the local
-Supabase stack wasn't running this session, so `eval_retrieval.py --all` hasn't produced live
-numbers yet (see the pending table in `docs/performances/ai-observability-metrics.md`). The
-`hybrid` default was chosen from the qualitative failure-mode evidence already on record (the
-Chapter-3 PLN miss), not yet a measured lift — that's the first thing to fill in once infra is up.
+space; `to_tsquery('simple', 'pln')` against a GIN index finds it in a fraction of a millisecond
+because the token is either present or absent. Vector search wins the opposite case — paraphrases
+like "boros" (wasteful) or "makan siang di kantor" where the description says `WARUNG` or `RESTO`,
+terms BM25 has zero overlap with. **Measured result (2026-07-24, live, 4,467 transactions): hybrid
+did NOT beat vector on this corpus** — MRR@5 0.750 vs 0.771, P@5 0.467 vs 0.533 (full table in
+`docs/performances/ai-observability-metrics.md`). This falsified my working assumption going in.
+The reason, visible in the per-query breakdown: this project's embedding text is
+`description | remarks | category | wallet` — the category tag (`Electricity`) already gives the
+embedding the keyword-equivalent signal that BM25 was supposed to add, so on `tagihan listrik PLN`
+vector alone already scores a perfect P@5=1.00. RRF then does real damage on queries where BM25 has
+*nothing* relevant to contribute (`makan siang di kantor` — zero keyword overlap with `WARUNG`) but
+still injects its top candidates into the merged list, **displacing** a vector hit that was already
+correct (that query's MRR dropped from 0.25 to 0.00 under hybrid). The lesson: RRF's complementarity
+argument only pays off when the two searchers are actually looking at different signal — here, the
+category tag had already collapsed BM25's unique contribution into the embedding, so merging just
+added noise. `bm25` alone is the weakest mode (MRR 0.433) because most eval queries are
+semantic/category questions (`grocery`, `salary`) with no literal keyword match in the descriptions
+at all. Also worth recording: the first live run scored `bm25` at a flat 0.000 across every
+query — not a data problem but a real bug, `plainto_tsquery` ANDs every query word, so a 5-word
+natural-language question never matches a 2-4 word bank description. Fixed by OR-joining tokens
+before `to_tsquery` (mocked unit tests couldn't have caught this — they assert SQL shape, not real
+match behavior against real data).
 
 ## Sentence-Window Retrieval
 
@@ -45,15 +59,18 @@ built during indexing; what the eval showed. Include your merge_threshold choice
 
 ## Which won, and why
 
-For the scope actually shipped (hybrid vs. pure vector), `hybrid` was set as the production default
-for `/search` and the `/ask` lookup path. The reasoning: Indonesian bank descriptions are
-term-rich and brand-heavy (PLN, OVO, GoPay, Indihome) — exactly the case where BM25's exact-match
-signal complements a multilingual embedding that treats "tagihan" (a bill) as the dominant
-semantic feature over the specific brand name. The 5 adversarial queries added to
-`search_queries.json` were built to make this complementarity visible in the numbers instead of
-staying a hunch: one query BM25 should win outright (`tagihan listrik PLN`), one only vector can
-win (`makan siang di kantor` — no keyword overlap with `WARUNG`/`RESTO`), and three stress-test
-edge cases (English-language query, date-crossing query, semantically-empty adversarial query with
-no matching vocabulary at all). Once the local stack is up, re-running `eval_retrieval.py --all`
-and pasting the comparison table into the metrics doc is the next concrete step — that's what turns
-"hybrid should win" into "hybrid won by +X P@5."
+**Pure `vector` won — `SearchRequest.search_mode` stays defaulted to `vector`, not `hybrid`.** This
+is the opposite of what I expected walking in, and it's the most useful outcome of the chapter
+precisely because it's a measured correction, not a confirmed hunch. The 5 adversarial queries
+added to `search_queries.json` did their job: they're what surfaced the real per-query mechanism
+(BM25 injecting noise on `makan siang di kantor`, redundant signal on `tagihan listrik PLN`) instead
+of a single macro-average number that would have hidden it. `hybrid` and `bm25` stay implemented and
+selectable in `RetrievalService`/`SearchRequest` — they're not dead code, they're the right tool for
+a *different* corpus: one where descriptions are the only signal (no category/wallet metadata baked
+into the embedding), which is closer to what PART2's sentence-window `statement_chunks` will look
+like. The transferable lesson for an interview: "I implemented hybrid search expecting an easy win
+on Indonesian bank data, measured it against a real eval set with adversarial queries designed to
+expose complementarity, and found the opposite — RRF actively hurt precision here because this
+project's embedding scheme already encodes the metadata BM25 was supposed to add. Adding a technique
+because the literature says so isn't the same as measuring whether *your* data needs it." That's a
+stronger story than a clean win would have been.

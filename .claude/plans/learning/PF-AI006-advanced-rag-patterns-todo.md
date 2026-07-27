@@ -4,7 +4,7 @@
 > Sentence-window retrieval (STEP 4) dan auto-merging (STEP 5) — beserta tabel `statement_chunks` di Part 2 migration STEP 2, backfill script, dan varian eval `sentence_window` — **dipindah ke [PF-AI006-PART2](PF-AI006-PART2-sentence-window-automerging-todo.md)** (deferred). Alasannya: hybrid search menjawab kelemahan produksi yang nyata di `/ask` sekarang; dua teknik lainnya butuh data source baru (teks naratif statement PDF) untuk usecase yang belum jadi kebutuhan produk. Materi STEP 4–5 di bawah **sengaja tidak dihapus** — PART2 merujuk ke sini sebagai satu-satunya sumber. Yang dieksekusi di tiket ini: STEP 0–3 + STEP 6 (tanpa varian `sentence_window`) + STEP 7–10.
 >
 > **Learning Phase:** Phase 2 · Chapter 6 of 12 · Day ~38 of 90
-> **Status:** In Progress — code complete, live eval pending (2026-07-24: local Supabase/Docker not running this session; migration not applied, `eval_retrieval.py --all` not run)
+> **Status:** Done (hybrid-search scope) — live-verified 2026-07-24. Docker/Supabase started, migration applied, full eval run against real data. **Result: `hybrid` did NOT beat `vector` on this corpus — production default stays `vector`.** See STEP 7 and `docs/mentor/advanced-rag-notes.md`.
 > **Started:** (draft compiled 2026-06-15 — execute after Ch5 Streaming completes)
 > **Planned from branch:** main
 > **Pivot goal:** Three techniques that move retrieval accuracy beyond naive top-K: hybrid BM25+vector search, sentence-window retrieval (wiring the Ch4 primitive), and auto-merging (hierarchical context promotion). Each technique is measured with the existing eval harness. The winner becomes the production default. After this chapter, you can name three advanced RAG patterns in an interview, show measured MRR/P@5 deltas per technique, and explain exactly when each one helps — not from a tutorial, but from your own benchmark.
@@ -223,19 +223,19 @@ WHAT CHAPTER 6 ADDS (the three techniques, independently switchable)
 > Scope note: per the 2026-07-23 re-scope, only hybrid search (STEP 0-3, 6-10) is executed here.
 > Sentence-window and auto-merging criteria stay unchecked — deferred to PF-AI006-PART2.
 
-- [x] `supabase/migrations/` — migration adding `tsvector` GIN index on `transactions.description` (statement_chunks table deferred to PART2 — [20260724000001_hybrid_search.sql](../../../supabase/migrations/20260724000001_hybrid_search.sql) created)
-  > Verification note: migration file created and reviewed; NOT applied — local Supabase/Docker stack was not running this session (`asyncpg.connect` → `ConnectionRefusedError`). Apply with `supabase db push` once infra is up.
-- [x] `SearchRequest` has `search_mode: Literal["vector", "bm25", "hybrid"]` — added in STEP 3 with default `"vector"` (existing calls unaffected), then flipped to `"hybrid"` in STEP 7 per the eval-framework reasoning (qualitative, since live numbers are pending — see below)
-- [x] `RetrievalService.search()` supports all three modes: `vector` (existing, byte-for-byte unchanged — confirmed via full `test_retriever.py` pass), `bm25` (tsvector rank via `plainto_tsquery`), `hybrid` (RRF merge of both ranked lists using k=60)
+- [x] `supabase/migrations/` — migration adding `tsvector` GIN index on `transactions.description` (statement_chunks table deferred to PART2 — [20260724000001_hybrid_search.sql](../../../supabase/migrations/20260724000001_hybrid_search.sql))
+  > Verification note (2026-07-24, live): applied via `supabase db push`; confirmed via asyncpg that `description_tsv` (tsvector, generated column) and `idx_transactions_description_tsv` (GIN) exist on `transactions`.
+- [x] `SearchRequest` has `search_mode: Literal["vector", "bm25", "hybrid"]` — added in STEP 3, default stays `"vector"` (existing calls unaffected). NOT flipped to `"hybrid"` — the live eval measured `hybrid` losing to `vector` on this corpus (see STEP 7 and `advanced-rag-notes.md`).
+- [x] `RetrievalService.search()` supports all three modes: `vector` (existing, byte-for-byte unchanged — confirmed via full `test_retriever.py` pass), `bm25` (tsvector rank via `to_tsquery` on OR-joined tokens — `plainto_tsquery` was tried first and found live to return zero results for every multi-word query; fixed and re-verified), `hybrid` (RRF merge of both ranked lists using k=60)
 - [ ] `DocumentRetriever` — deferred to PF-AI006-PART2
 - [ ] `AutoMergingRetriever` — deferred to PF-AI006-PART2
 - [ ] `backfill_statement_chunks.py` — deferred to PF-AI006-PART2
 - [x] Eval harness extended: 5 adversarial queries added to [search_queries.json](../../../services/ai-service/evals/search_queries.json) (keyword-wins PLN, semantic-wins lunch, date-crossing, English-language coffee, adversarial-suspicious)
-- [ ] All variants benchmarked with live numbers — MRR@5 + P@5 recorded per variant in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
-  > Not met: `--all` flag implemented in [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) (vector/bm25/hybrid + rerank variants; `sentence_window` correctly excluded per re-scope), but the local Supabase stack was not running this session, so no live run was possible. Metrics doc has a "pending" table with the exact command to re-run.
-- [x] [models.py](../../../services/ai-service/app/models.py) — `SearchRequest.search_mode` default flipped to `hybrid` (STEP 7), and `/ask` lookup path (`answerer.py` + `main.py` `/ask/stream`) wired to `search_mode="hybrid"`
-- [x] [advanced-rag-notes.md](../../../docs/mentor/advanced-rag-notes.md) — write-up created; Hybrid Search section complete, Sentence-Window/Auto-Merging sections left as explicit deferred stubs for PART2
-- [x] Tests: [test_hybrid_search.py](../../../services/ai-service/tests/test_hybrid_search.py) — 9 tests (RRF logic + bm25/hybrid SQL paths), all pass with mocked asyncpg/embedder. `test_doc_retriever.py`/`test_auto_merger.py` deferred to PART2.
+- [x] All variants benchmarked with live numbers — MRR@5 + P@5 recorded per variant in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
+  > Verified (2026-07-24, live, 4,467 transactions): vector 0.771/0.533, hybrid 0.750/0.467, vector+rerank 0.625/0.467, hybrid+rerank 0.558/0.483, bm25 0.433/0.333 (MRR@5/P@5). `sentence_window` correctly excluded per re-scope.
+- [x] [models.py](../../../services/ai-service/app/models.py) — `SearchRequest.search_mode` default reviewed against live numbers and kept at `vector` (STEP 7); `/ask` lookup path (`answerer.py` + `main.py` `/ask/stream`) does not override the mode
+- [x] [advanced-rag-notes.md](../../../docs/mentor/advanced-rag-notes.md) — write-up complete with the measured (not assumed) finding; Sentence-Window/Auto-Merging sections left as explicit deferred stubs for PART2
+- [x] Tests: [test_hybrid_search.py](../../../services/ai-service/tests/test_hybrid_search.py) — 12 tests (RRF logic, `_to_or_tsquery` tokenizer, bm25/hybrid SQL paths), all pass with mocked asyncpg/embedder; full suite re-verified live (127 passed, 1 pre-existing unrelated failure). `test_doc_retriever.py`/`test_auto_merger.py` deferred to PART2.
 
 ## 🧭 Approach
 
@@ -309,9 +309,9 @@ Read these three sources sequentially — each primes the next. The goal is to c
 > **The interview frame:** "I implemented three advanced RAG patterns in my personal finance platform and benchmarked each against the same eval set: hybrid BM25+vector search via RRF (best for keyword-rich Indonesian bank descriptions), sentence-window retrieval over statement PDFs (small-to-search, big-to-read), and auto-merging (sibling promotion when a paragraph's sentences cluster together in results). The winning combination was [X] — it lifted P@5 from 0.66 to 0.YY."
 
 
-### [!] STEP 2 — Supabase migration
+### [x] STEP 2 — Supabase migration
 
-> **Failure:** migration file created ([20260724000001_hybrid_search.sql](../../../supabase/migrations/20260724000001_hybrid_search.sql), Part 1 only — tsvector GIN index; Part 2 `statement_chunks` table deferred to PART2) but NOT applied/verified — local Supabase/Docker was not running this session (`supabase status` failed to reach the Docker Desktop pipe). Run `supabase db push` (or `supabase db reset` locally) then verify with `\d transactions` before relying on `bm25`/`hybrid` search modes.
+> **Verified (2026-07-24):** Docker Desktop + local Supabase started this session; `supabase db push` applied `20260724000001_hybrid_search.sql` (Part 1 only — tsvector GIN index; Part 2 `statement_chunks` deferred to PART2). Confirmed live via asyncpg: `description_tsv` is a `tsvector` generated column on `transactions`, `idx_transactions_description_tsv` GIN index exists, 4,467 transactions / 4,467 embeddings intact.
 
 Create `supabase/migrations/{yyyyMMddHHmmss}_advanced_rag.sql`:
 
@@ -1360,9 +1360,9 @@ PYTHONPATH=. pytest tests/test_auto_merger.py -v
 > **The interview frame:** "Auto-merging works by indexing at the sentence level for precision, but tracking a parent hierarchy. At retrieval time, if multiple sentences from the same paragraph are returned, it's evidence the whole paragraph is relevant — so we swap the fragments for the parent context. It's the inverse of sentence-window: both start with small indexed units, but sentence-window always expands, while auto-merging only expands when enough siblings co-occur."
 
 
-### [!] STEP 6 — Extend eval harness: 5 adversarial queries + multi-variant benchmark
+### [x] STEP 6 — Extend eval harness: 5 adversarial queries + multi-variant benchmark
 
-> **Failure:** 5 adversarial queries added to `search_queries.json`; `--mode`/`--all` flags implemented in `eval_retrieval.py` (`sentence_window` correctly excluded from `MODES` per re-scope). NOT run live — local Supabase was not up this session, so the comparison table in `ai-observability-metrics.md` is marked "pending" rather than filled with real numbers.
+> **Verified (2026-07-24):** 5 adversarial queries added to `search_queries.json`; `--mode`/`--all` flags in `eval_retrieval.py` (`sentence_window` correctly excluded per re-scope). Ran `PYTHONPATH=. python evals/eval_retrieval.py --all` live against 4,467 real transactions — table filled in `ai-observability-metrics.md`. First run surfaced a real bug: `bm25` scored 0.000 on every query because `plainto_tsquery` ANDs all words in a multi-word question against 2-4 word descriptions. Fixed via OR-joined tokens (`_to_or_tsquery` + `to_tsquery`), re-verified with a direct `RetrievalService.search(..., search_mode="bm25")` call, re-ran the full suite (127 passed, 1 pre-existing unrelated failure), then re-ran the benchmark.
 
 **6a. Add 5 adversarial queries to [search_queries.json](../../../services/ai-service/evals/search_queries.json):**
 
@@ -1493,6 +1493,8 @@ Paste the printed table into [ai-observability-metrics.md](../../../docs/perform
 
 ### [x] STEP 7 — Pick winner + update production default
 
+> **Verified result (2026-07-24, live, corrects the earlier assumption-based pass):** `vector` won — MRR@5 0.771 / P@5 0.533 vs `hybrid`'s 0.750 / 0.467. `SearchRequest.search_mode` default stays `"vector"`; the `/ask` lookup calls (`answerer.py`, `main.py::/ask/stream`) do NOT force `search_mode="hybrid"` (that wiring, added on an earlier assumption-based pass before Docker was available, was reverted once live numbers came in). Full reasoning in `docs/mentor/advanced-rag-notes.md` — RRF actively hurt precision here because this corpus's embedding text already bakes in the category tag that would otherwise be BM25's unique contribution.
+
 After the benchmark table is in hand, apply this decision framework:
 
 | Criterion | Weight | What to check |
@@ -1565,7 +1567,7 @@ technique had the best ROI (lift / implementation cost ratio).]
 
 ### [!] STEP 9 — Full test pass + commit
 
-> **Skipped (partial):** full test pass run — 124 passed, 1 pre-existing failure unrelated to this ticket (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py`, not touched by PF-AI006). Commit intentionally NOT run — the `/execute` skill leaves all changes uncommitted for user review.
+> **Test pass verified (2026-07-24, live infra):** 127 passed, 1 pre-existing failure unrelated to this ticket (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py`, not touched by PF-AI006). **Skipped:** commit — the `/execute` skill leaves all changes uncommitted for user review.
 
 ```bash
 cd services/ai-service
