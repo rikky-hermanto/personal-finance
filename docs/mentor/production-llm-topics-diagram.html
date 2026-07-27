@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Production LLM/AI Engineering Topics — Prerequisite Map</title>
+<style>
+  :root{
+    --bg:#0b0b0d; --bg-dot:rgba(255,255,255,.05); --panel:#141519; --border:#26272d; --border-hover:#3a3b42;
+    --text:#e7e7ea; --muted:#9a9aa3; --accent:#5b8def; --header-grad:linear-gradient(135deg,#1a1b20,#141519);
+    --chip-bg:#1c1d22; --chip-text:#c7c7cf; --edge:#35363d; --shadow:0 6px 20px rgba(0,0,0,.35);
+    --live:#3fbf7f; --progress:#f0b429; --planned:#6b6c74;
+  }
+  #app[data-theme="light"]{
+    --bg:#f7f5f0; --bg-dot:rgba(0,0,0,.06); --panel:#ffffff; --border:#e2ded4; --border-hover:#cfc9ba;
+    --text:#232019; --muted:#71695a; --accent:#3f6fd6; --header-grad:linear-gradient(135deg,#fbfaf6,#f1ede4);
+    --chip-bg:#f1ede4; --chip-text:#514a3c; --edge:#c9c2b2; --shadow:0 6px 18px rgba(60,50,20,.08);
+    --live:#1f9d5c; --progress:#c47a12; --planned:#9a9483;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+  #app{position:relative;width:100%;height:100vh;overflow:hidden;background:
+    radial-gradient(var(--bg-dot) 1px, transparent 1px) 0 0/22px 22px, var(--bg);}
+  header{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:16px;
+    padding:14px 20px;background:var(--header-grad);border-bottom:1px solid var(--border);box-shadow:var(--shadow)}
+  header h1{font-size:15px;margin:0;font-weight:600}
+  header .sub{font-size:12px;color:var(--muted)}
+  header .legend{margin-left:auto;display:flex;gap:14px;font-size:11.5px;color:var(--muted);align-items:center}
+  header .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+  .dot.live{background:var(--live)}
+  .dot.progress{background:var(--progress)}
+  .dot.planned{background:transparent;border:1.5px dashed var(--planned)}
+  #themeBtn{border:1px solid var(--border);background:var(--chip-bg);color:var(--text);border-radius:8px;
+    padding:6px 10px;cursor:pointer;font-size:13px}
+  #back{display:none;border:1px solid var(--border);background:var(--chip-bg);color:var(--text);border-radius:8px;
+    padding:6px 12px;cursor:pointer;font-size:12.5px}
+  #canvasWrap{position:absolute;inset:0;top:56px;overflow:hidden;cursor:grab}
+  #canvasWrap.dragging{cursor:grabbing}
+  #world{position:absolute;left:0;top:0;transform-origin:0 0}
+  svg#edges{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+  .node{position:absolute;background:var(--panel);border:1px solid var(--border);border-radius:14px;
+    box-shadow:var(--shadow);padding:14px 16px;cursor:pointer;user-select:none;overflow:hidden;transition:border-color .15s}
+  .node:hover{border-color:var(--border-hover)}
+  .node .row{display:flex;align-items:center;gap:10px}
+  .node .icon{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex:0 0 auto}
+  .node .title{font-size:14.5px;font-weight:600;line-height:1.25}
+  .node .subtitle{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.3}
+  .node.status-progress{position:absolute}
+  .node.status-progress::after{content:"";position:absolute;top:8px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--progress)}
+  .node.status-planned{border-style:dashed;border-color:var(--border-hover);background:var(--header-grad)}
+  .node.kind-stub{border-style:dashed;background:var(--chip-bg);display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:var(--chip-text);text-align:center;border-width:1.4px}
+  .tooltip{position:fixed;z-index:50;max-width:290px;background:var(--panel);border:1px solid var(--border);
+    border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);font-size:12.3px;color:var(--chip-text);pointer-events:none;display:none}
+  .tooltip .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .chip{background:var(--chip-bg);border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:11px;color:var(--chip-text)}
+  #panel{position:absolute;top:56px;right:-380px;width:360px;bottom:0;background:var(--panel);border-left:1px solid var(--border);
+    box-shadow:var(--shadow);transition:right .2s ease;overflow-y:auto;z-index:20;padding:20px}
+  #panel.open{right:0}
+  #panel h2{font-size:16px;margin:0 0 6px}
+  #panel .meta{font-size:12px;color:var(--muted);margin-bottom:14px}
+  #panel p{font-size:13px;line-height:1.55;color:var(--chip-text)}
+  #panel .closeBtn{float:right;cursor:pointer;border:1px solid var(--border);background:var(--chip-bg);border-radius:8px;
+    padding:4px 9px;font-size:12px;color:var(--text)}
+  #zoomCtl{position:absolute;bottom:18px;right:18px;z-index:10;display:flex;gap:6px}
+  #zoomCtl button{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--panel);
+    color:var(--text);cursor:pointer;font-size:15px}
+  .footnote{position:absolute;bottom:14px;left:20px;font-size:11px;color:var(--muted);max-width:520px;z-index:5}
+</style>
+</head>
+<body>
+<div id="app" data-theme="light">
+  <header>
+    <button id="back" onclick="closeGroup()">◂ overview</button>
+    <div>
+      <h1 id="hTitle">Production LLM / AI Engineering Topics — Prerequisite Map</h1>
+      <div class="sub" id="hSub">Where the X-list of 22 production-infra topics fits Rikky's 12-chapter AI Engineering pivot curriculum</div>
+    </div>
+    <div class="legend">
+      <span><span class="dot live"></span>Already covered</span>
+      <span><span class="dot progress"></span>Upcoming (curriculum)</span>
+      <span><span class="dot planned"></span>New / deferred</span>
+    </div>
+    <button id="themeBtn" onclick="toggleTheme()">🌙</button>
+  </header>
+  <div id="canvasWrap">
+    <div id="world">
+      <svg id="edges"></svg>
+      <div id="nodesLayer"></div>
+    </div>
+  </div>
+  <div id="tooltip" class="tooltip"></div>
+  <div id="panel">
+    <span class="closeBtn" onclick="closePanel()">close ✕</span>
+    <h2 id="pTitle"></h2>
+    <div class="meta" id="pMeta"></div>
+    <p id="pBody"></p>
+    <div class="chips" id="pChips" style="margin-top:10px"></div>
+  </div>
+  <div id="zoomCtl">
+    <button onclick="zoomBy(1.15)">+</button>
+    <button onclick="zoomBy(1/1.15)">−</button>
+    <button onclick="fitView()">⤢</button>
+  </div>
+  <div class="footnote">Click a group to drill in. Curriculum reference: docs/mentor/ai-engineer-learning-path.md</div>
+</div>
+
+<script>
+/* ---------- DATA ---------- */
+// status: live | progress | planned
+const GROUPS = [
+  {id:'foundations', x:40,  y:340, w:230, h:96, icon:'📏', color:'#5b8def', status:'live',
+    title:'Foundations you own', subtitle:'Observability + evals + embeddings (Ch1–4, done)',
+    desc:'Already shipped and measured in the personal-finance AI service: Langfuse tracing (Ch1), the eval harness (Ch2), pgvector embeddings + retrieval (Ch3), grounded RAG generation (Ch4). Everything else on this map assumes these exist first — you cannot claim a KV-cache win, a routing decision, or a guardrail without a measuring tape already in place.'},
+  {id:'strategy', x:780, y:460, w:230, h:96, icon:'🧭', color:'#a35bef', status:'progress',
+    title:'Strategy layer', subtitle:'Harness/context engineering, caching, build-vs-buy tradeoffs',
+    desc:'The "how do you think about the system" layer that sits above any single technique: harness engineering (the scaffolding around the model, not just the prompt), context engineering (what goes into the window and why), prompt vs semantic caching, and the fine-tune vs ICL vs RAG vs distillation decision tree. Mostly NEW vocabulary — closest existing anchor is Ch6 Advanced RAG, where you already make a build-vs-buy call for hybrid search.'},
+  {id:'reliability', x:440, y:40, w:230, h:96, icon:'🛠️', color:'#3fbf7f', status:'progress',
+    title:'Reliability & agents', subtitle:'Structured output, function calling, guardrails, routing',
+    desc:'Failure-proofing the request/response and tool-call surface: schema validation + repair loops for structured output, tool-contract + idempotency rules for function calling, loop/tool budgets + termination conditions for agents, and model routing with graceful degraded-mode fallback. Direct extension of Ch7 (smolagents) and Ch8 (LangGraph) — this is "what makes that agent safe to run unattended."'},
+  {id:'advrag', x:430, y:250, w:230, h:96, icon:'🔍', color:'#e0a94d', status:'progress',
+    title:'Advanced RAG & retrieval evals', subtitle:'Chunking, hybrid search, reranking, freshness, P@5/recall',
+    desc:'Squeezing accuracy out of the retrieval pipeline (Ch6, already the plan) plus the eval side that proves the squeeze worked: recall, precision, grounding/attribution, citation quality. This group is where RAG architecture and retrieval evals meet — you cannot claim a hybrid-search lift without the retrieval-eval half.'},
+  {id:'quality', x:800, y:160, w:230, h:96, icon:'📊', color:'#4d9fe0', status:'progress',
+    title:'Quality & ops at scale', subtitle:'Golden sets, LLM-as-judge, observability, cost attribution, failure modes',
+    desc:'Evals grow up: golden sets, regression tests, adversarial tests, LLM-as-judge, human evals — all sitting on top of the Ch2 harness. Observability grows from "trace one call" (Ch1) to drift + error-rate dashboards. New: cost attribution per feature/tenant/journey (not just per model), and a named catalog of production failure modes (hallucinated tool calls, malformed JSON, stale retrieval, runaway agents, silent eval regressions) to test against.'},
+  {id:'safety', x:1160, y:70, w:230, h:96, icon:'🔒', color:'#e0574d', status:'planned',
+    title:'Safety & multi-tenant', subtitle:'Prompt injection defense, permission boundaries, cache/context isolation',
+    desc:'Genuinely new ground: defending against prompt injection and data leakage, enforcing permission boundaries per tool call, and — once any caching or shared-context system exists — guaranteeing no cross-user contamination in that cache. Personal-finance is single-tenant today, so this is staff-level differentiator material, not a near-term build.'},
+  {id:'infra', x:1140, y:460, w:230, h:96, icon:'⚙️', color:'#8b8f98', status:'planned',
+    title:'Inference serving internals', subtitle:'KV cache, prefill/decode, batching, quantization, spec. decoding',
+    desc:'The systems layer underneath every provider you already call: KV cache management + eviction, why prefill and decode optimize differently, continuous batching + paged attention, speculative decoding, and INT8/INT4/FP8/AWQ/GPTQ quantization tradeoffs. You consume these as a Gemini/Anthropic API caller, you do not operate them — this is ML-infra/systems territory, explicitly filed under the deferred "Fine-tuning / MLOps / guardrails-at-scale" layer (month 4+) unless a target JD demands it.'},
+];
+
+const GROUP_EDGES = [
+  ['foundations','reliability'], ['foundations','advrag'], ['foundations','strategy'],
+  ['reliability','quality'], ['advrag','quality'],
+  ['quality','safety'],
+  ['strategy','infra', true], // dashed cross-cutting
+  ['strategy','reliability', true],
+];
+
+const LEAF = {
+  foundations: [
+    {icon:'📈', title:'AI observability', sub:'traces, cost, latency p50/p95 — Ch1, done', status:'live', desc:'Langfuse tracing already live on GeminiProvider + AnthropicProvider.'},
+    {icon:'✅', title:'LLM evaluation harness', sub:'golden sets, field accuracy — Ch2, done', status:'live', desc:'20-fixture extraction eval; caught a real enum serialization bug.'},
+    {icon:'🧬', title:'Embeddings + vector search', sub:'pgvector — Ch3, done', status:'live', desc:'OpenAI text-embedding-3-small, batched, Langfuse-traced.'},
+    {icon:'🔗', title:'RAG core', sub:'chunk → retrieve → generate — Ch3–4, done', status:'live', desc:'Grounded synthesis with citations, MRR@5 harness.'},
+  ],
+  strategy: [
+    {icon:'🧩', title:'Harness engineering', sub:'the scaffolding around the model, not the prompt', status:'planned', desc:'System prompt + tools + memory + guardrails as one designed harness — vs. tuning a single prompt string.'},
+    {icon:'📥', title:'Context engineering', sub:'what goes in the window, and why', status:'planned', desc:'Deliberate curation of retrieved chunks, history, and tool results vs. just writing a longer prompt.'},
+    {icon:'💾', title:'Prompt vs semantic caching', sub:'exact-prefix cache vs meaning-based cache', status:'progress', desc:'Anthropic prompt caching (exact prefix) vs a semantic cache keyed on embedding similarity — different hit rates, different staleness risk.'},
+    {icon:'🎛️', title:'Fine-tune vs ICL vs RAG vs distillation', sub:'when each is the wrong tool', status:'planned', desc:'Decision tree: data freshness, cost, latency, and how much behavior vs. knowledge you are trying to change.'},
+  ],
+  reliability: [
+    {icon:'🧾', title:'Structured output failures', sub:'schema validation, repair loops, fallback chains', status:'progress', desc:'What happens when tool_use / JSON mode returns malformed output — retry, repair, or fail loud.'},
+    {icon:'🔧', title:'Function calling reliability', sub:'tool contracts, arg validation, idempotency', status:'progress', desc:'A tool call that can safely retry without double-charging or double-inserting a row.'},
+    {icon:'🚧', title:'Agent guardrails', sub:'loop budgets, tool budgets, termination conditions', status:'progress', desc:'Ch7/Ch8 territory — bound how many steps/tools an agent can burn before it must stop.'},
+    {icon:'🔀', title:'Model routing & fallback', sub:'graceful degraded-mode UX', status:'progress', desc:'Route to a cheaper/faster model or a canned response when the primary provider is slow or down.'},
+  ],
+  advrag: [
+    {icon:'✂️', title:'Chunking strategies', sub:'sentence-window, auto-merging', status:'progress', desc:'Ch6 — chunk size/overlap tuning measured against the eval harness.'},
+    {icon:'🔎', title:'Hybrid search', sub:'pgvector + tsvector BM25', status:'progress', desc:'Ch6 — combine semantic + keyword retrieval, measure P@5 lift.'},
+    {icon:'📶', title:'Reranking & freshness', sub:'cross-encoder rerank, recency weighting', status:'progress', desc:'Second-pass reranking of top-K candidates; freshness decay for time-sensitive data.'},
+    {icon:'🎯', title:'Retrieval evals', sub:'recall, precision, grounding, attribution', status:'progress', desc:'The metric side that proves a retrieval change actually helped — RAGAS context precision/recall.'},
+  ],
+  quality: [
+    {icon:'🥇', title:'Golden sets & regression tests', sub:'evals grow past Ch2', status:'progress', desc:'A frozen benchmark set that must not regress release over release.'},
+    {icon:'⚖️', title:'LLM-as-judge & human evals', sub:'adversarial tests', status:'progress', desc:'Using a second model to grade output quality, backstopped by spot-check human review.'},
+    {icon:'💰', title:'Cost attribution', sub:'per feature / tenant / user journey', status:'planned', desc:'Not just $/model — trace spend back to the specific product feature or workflow that caused it.'},
+    {icon:'🧯', title:'Production failure modes', sub:'hallucinated calls, stale retrieval, runaway agents, silent regressions', status:'planned', desc:'A named catalog of what actually breaks in production, so evals can be written to catch each one.'},
+  ],
+  safety: [
+    {icon:'🛡️', title:'Prompt injection defense', sub:'data leakage prevention', status:'planned', desc:'Untrusted content (a PDF, a bank statement) must not be able to hijack the system prompt or tool calls.'},
+    {icon:'🔑', title:'Permission boundaries', sub:'per tool-call scoping', status:'planned', desc:'A tool call only gets the minimum data/action scope it needs for that one call.'},
+    {icon:'🏢', title:'Multi-tenant isolation', sub:'cache safety, cross-user contamination', status:'planned', desc:'Only matters once caching or shared context exists across users — personal-finance is single-tenant today.'},
+  ],
+  infra: [
+    {icon:'🗄️', title:'KV cache management', sub:'eviction, reuse, memory pressure at scale', status:'planned', desc:'How a self-hosted serving stack keeps attention state across tokens without exhausting GPU memory.'},
+    {icon:'⏱️', title:'Prefill vs decode latency', sub:'why they optimize differently', status:'planned', desc:'Prefill is compute-bound and parallel; decode is memory-bandwidth-bound and sequential — different bottlenecks, different fixes.'},
+    {icon:'📦', title:'Continuous batching & paged attention', sub:'throughput optimization', status:'planned', desc:'vLLM-style serving techniques that pack many in-flight requests onto the same GPU efficiently.'},
+    {icon:'🎲', title:'Speculative decoding', sub:'vs. quantization vs. distillation', status:'planned', desc:'A small draft model proposes tokens a larger model verifies — a latency lever distinct from shrinking the model itself.'},
+    {icon:'🔢', title:'Quantization (INT8/INT4/FP8/AWQ/GPTQ)', sub:'when it hurts quality', status:'planned', desc:'Precision-reduction techniques that trade memory/speed for accuracy — and where each one breaks down.'},
+  ],
+};
+
+const LEAF_EDGES = {
+  foundations: [[0,1],[1,2],[2,3]],
+  strategy: [[0,1],[1,2],[2,3]],
+  reliability: [[0,1],[1,2],[2,3]],
+  advrag: [[0,1],[1,2],[2,3]],
+  quality: [[0,1],[1,2],[2,3]],
+  safety: [[0,1],[1,2]],
+  infra: [[0,1],[1,2],[2,3],[3,4]],
+};
+
+/* ---------- STATE ---------- */
+let scale = 1, ox = 40, oy = 0, panning=false, panStart=null, dragNode=null, dragStart=null;
+let currentGroup = null;
+
+const world = document.getElementById('world');
+const nodesLayer = document.getElementById('nodesLayer');
+const edgesSvg = document.getElementById('edges');
+const wrap = document.getElementById('canvasWrap');
+const tooltip = document.getElementById('tooltip');
+
+function statusColor(s){ return s==='live' ? 'var(--live)' : s==='progress' ? 'var(--progress)' : 'var(--planned)'; }
+function statusLabel(s){ return s==='live' ? 'Already covered' : s==='progress' ? 'Upcoming in curriculum' : 'New / deferred'; }
+
+function applyTransform(){ world.style.transform = `translate(${ox}px,${oy}px) scale(${scale})`; }
+
+function renderOverview(){
+  currentGroup = null;
+  document.getElementById('back').style.display = 'none';
+  document.getElementById('hSub').textContent = 'Where the X-list of 22 production-infra topics fits Rikky\'s 12-chapter AI Engineering pivot curriculum — click a group to drill in';
+  nodesLayer.innerHTML = '';
+  let svgHtml = '';
+  GROUPS.forEach(g=>{
+    const el = document.createElement('div');
+    el.className = 'node' + (g.status==='progress'?' status-progress':'') + (g.status==='planned'?' status-planned':'');
+    el.style.left = g.x+'px'; el.style.top = g.y+'px'; el.style.width = g.w+'px'; el.style.height = g.h+'px';
+    el.dataset.id = g.id;
+    el.innerHTML = `<div class="row"><div class="icon" style="background:${hexToRgba(g.color,.18)};color:${g.color}">${g.icon}</div>
+      <div><div class="title">${g.title}</div></div></div><div class="subtitle">${g.subtitle}</div>`;
+    el.addEventListener('mouseenter', (e)=>showTooltip(e,g));
+    el.addEventListener('mousemove', moveTooltip);
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('mousedown', (e)=>startDrag(e, el, g));
+    el.addEventListener('click', (e)=>{ if(!el._dragged) openGroup(g.id); });
+    nodesLayer.appendChild(el);
+  });
+  drawGroupEdges();
+  fitView();
+}
+
+function hexToRgba(hex, a){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), gg = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${gg},${b},${a})`;
+}
+
+function centerOf(g){ return {x:g.x+g.w/2, y:g.y+g.h/2}; }
+
+function drawGroupEdges(){
+  let svg = '';
+  GROUP_EDGES.forEach(([a,b,dashed])=>{
+    const ga = GROUPS.find(g=>g.id===a), gb = GROUPS.find(g=>g.id===b);
+    svg += edgePath(ga, gb, dashed);
+  });
+  edgesSvg.innerHTML = svg;
+}
+
+function edgePath(ga, gb, dashed){
+  const ca = centerOf(ga), cb = centerOf(gb);
+  // pick side ports
+  const sx = ca.x < cb.x ? ga.x+ga.w : ga.x;
+  const sy = ca.y;
+  const tx = ca.x < cb.x ? gb.x : gb.x+gb.w;
+  const ty = cb.y;
+  const midx = (sx+tx)/2;
+  const d = `M ${sx} ${sy} C ${midx} ${sy}, ${midx} ${ty}, ${tx} ${ty}`;
+  const arrow = arrowPoints(tx, ty, sx<tx?1:-1);
+  return `<path d="${d}" fill="none" stroke="var(--edge)" stroke-width="1.6" ${dashed?'stroke-dasharray="6 5"':''}/>
+    <polygon points="${arrow}" fill="var(--edge)"/>`;
+}
+
+function arrowPoints(x,y,dir){
+  const size=6;
+  const tipx = x, tipy = y;
+  const bx = x - dir*size*1.6;
+  return `${tipx},${tipy} ${bx},${y-size} ${bx},${y+size}`;
+}
+
+/* ---------- Drill-down ---------- */
+function openGroup(id){
+  const g = GROUPS.find(x=>x.id===id);
+  currentGroup = id;
+  document.getElementById('back').style.display = 'inline-block';
+  document.getElementById('hSub').textContent = g.title + ' — ' + g.subtitle;
+  nodesLayer.innerHTML = '';
+  const leaves = LEAF[id];
+  const cols = leaves.length;
+  const w=210, h=88, gapX=40, gapY=0, startX=60, startY=90;
+  const positions = leaves.map((l,i)=>({x:startX+i*(w+gapX), y:startY}));
+  const leafEls = [];
+  leaves.forEach((l,i)=>{
+    const el = document.createElement('div');
+    el.className = 'node' + (l.status==='progress'?' status-progress':'') + (l.status==='planned'?' status-planned':'');
+    el.style.left = positions[i].x+'px'; el.style.top = positions[i].y+'px'; el.style.width=w+'px'; el.style.height=h+'px';
+    el.innerHTML = `<div class="row"><div class="icon" style="background:${hexToRgba(g.color,.18)};color:${g.color}">${l.icon}</div>
+      <div><div class="title" style="font-size:13px">${l.title}</div></div></div><div class="subtitle">${l.sub}</div>`;
+    el.addEventListener('mouseenter', (e)=>showTooltip(e,{title:l.title, subtitle:l.sub, desc:l.desc, status:l.status}));
+    el.addEventListener('mousemove', moveTooltip);
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('mousedown', (e)=>startDrag(e, el, positions[i], drawLeafEdges));
+    el.addEventListener('click', (e)=>{ if(!el._dragged) openPanel(l, g); });
+    nodesLayer.appendChild(el);
+    leafEls.push(el);
+  });
+  // stub cards for other groups (upstream/downstream)
+  const outbound = GROUP_EDGES.filter(([a])=>a===id);
+  const inbound = GROUP_EDGES.filter(([,b])=>b===id);
+  let stubX = startX; const stubY = startY + h + 60;
+  [...inbound.map(e=>({id:e[0],dir:'up'})), ...outbound.map(e=>({id:e[1],dir:'down'}))].forEach(s=>{
+    const sg = GROUPS.find(x=>x.id===s.id);
+    const el = document.createElement('div');
+    el.className = 'node kind-stub ' + (s.dir==='up'?'stub-up':'stub-down');
+    el.style.left = stubX+'px'; el.style.top = stubY+'px'; el.style.width='150px'; el.style.height='48px';
+    el.style.background = hexToRgba(sg.color,.10);
+    el.style.borderColor = sg.color;
+    el.innerHTML = `<div>${sg.icon} ${sg.title}<br><span style="opacity:.75">${s.dir==='up'?'◂ open':'open ▸'}</span></div>`;
+    el.addEventListener('click', ()=>openGroup(sg.id));
+    nodesLayer.appendChild(el);
+    stubX += 170;
+  });
+  // edges within leaves
+  function drawLeafEdges(){
+    let svg = '';
+    (LEAF_EDGES[id]||[]).forEach(([a,b])=>{
+      const pa = positions[a], pb = positions[b];
+      const sx = pa.x+w, sy = pa.y+h/2, tx = pb.x, ty = pb.y+h/2;
+      const midx = (sx+tx)/2;
+      const d = `M ${sx} ${sy} C ${midx} ${sy}, ${midx} ${ty}, ${tx} ${ty}`;
+      svg += `<path d="${d}" fill="none" stroke="var(--edge)" stroke-width="1.6"/><polygon points="${arrowPoints(tx,ty,1)}" fill="var(--edge)"/>`;
+    });
+    edgesSvg.innerHTML = svg;
+  }
+  drawLeafEdges();
+  fitView();
+}
+
+function closeGroup(){ renderOverview(); closePanel(); }
+
+/* ---------- Tooltip ---------- */
+function showTooltip(e, data){
+  tooltip.style.display = 'block';
+  tooltip.innerHTML = `<div style="font-weight:600;margin-bottom:4px">${data.title}</div>
+    <div style="color:var(--muted)">${data.subtitle||''}</div>
+    <div style="margin-top:6px">${data.desc||''}</div>
+    <div class="chips"><span class="chip" style="color:${statusColor(data.status)}">${statusLabel(data.status)}</span></div>`;
+  moveTooltip(e);
+}
+function moveTooltip(e){ tooltip.style.left = (e.clientX+16)+'px'; tooltip.style.top = (e.clientY+16)+'px'; }
+function hideTooltip(){ tooltip.style.display = 'none'; }
+
+/* ---------- Panel ---------- */
+function openPanel(l, g){
+  document.getElementById('pTitle').textContent = l.title;
+  document.getElementById('pMeta').textContent = (g?g.title+' · ':'') + statusLabel(l.status);
+  document.getElementById('pBody').textContent = l.desc;
+  document.getElementById('pChips').innerHTML = `<span class="chip" style="color:${statusColor(l.status)}">${statusLabel(l.status)}</span>`;
+  document.getElementById('panel').classList.add('open');
+}
+function closePanel(){ document.getElementById('panel').classList.remove('open'); }
+
+/* ---------- Pan / zoom / drag ---------- */
+wrap.addEventListener('mousedown', (e)=>{
+  if(e.target.closest('.node')) return;
+  panning = true; wrap.classList.add('dragging'); panStart = {x:e.clientX-ox, y:e.clientY-oy};
+});
+window.addEventListener('mousemove', (e)=>{
+  if(panning){ ox = e.clientX-panStart.x; oy = e.clientY-panStart.y; applyTransform(); }
+  if(dragNode){
+    const dx = (e.clientX-dragStart.x)/scale, dy=(e.clientY-dragStart.y)/scale;
+    if(Math.abs(dx)+Math.abs(dy) > 3) dragNode.el._dragged = true;
+    const nx = dragNode.ox+dx, ny = dragNode.oy+dy;
+    dragNode.el.style.left = nx+'px';
+    dragNode.el.style.top = ny+'px';
+    if(dragNode.g){ dragNode.g.x = nx; dragNode.g.y = ny; }
+    if(dragNode.onMove) dragNode.onMove();
+  }
+});
+window.addEventListener('mouseup', ()=>{ panning=false; wrap.classList.remove('dragging'); dragNode=null; });
+
+function startDrag(e, el, g, onMove){
+  e.stopPropagation();
+  el._dragged = false;
+  dragNode = {el, ox: g.x, oy: g.y, g, onMove: onMove || drawGroupEdges};
+  dragStart = {x:e.clientX, y:e.clientY};
+}
+
+wrap.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.08 : 1/1.08;
+  zoomBy(factor);
+}, {passive:false});
+
+function zoomBy(f){ scale = Math.min(2.4, Math.max(.35, scale*f)); applyTransform(); }
+
+// Fits whatever is currently rendered (overview groups, or a drilled-into
+// group's leaves + stub cards) into the visible canvas — computed from the
+// actual DOM each time rather than a fixed scale/offset, so the diagram is
+// framed correctly on first load with no drag/zoom needed, regardless of
+// viewport size or which view (overview vs. drill-down) is showing.
+function contentBounds(){
+  const els = Array.from(nodesLayer.children);
+  if(!els.length) return {minX:0,minY:0,maxX:800,maxY:600};
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  els.forEach(el=>{
+    const x = parseFloat(el.style.left), y = parseFloat(el.style.top);
+    const w = parseFloat(el.style.width), h = parseFloat(el.style.height);
+    minX=Math.min(minX,x); minY=Math.min(minY,y);
+    maxX=Math.max(maxX,x+w); maxY=Math.max(maxY,y+h);
+  });
+  return {minX,minY,maxX,maxY};
+}
+function fitView(){
+  const rect = wrap.getBoundingClientRect();
+  const b = contentBounds();
+  const cw = Math.max(1, b.maxX-b.minX), ch = Math.max(1, b.maxY-b.minY);
+  const pad = 50;
+  const sx = (rect.width-pad*2)/cw, sy = (rect.height-pad*2)/ch;
+  scale = Math.min(sx, sy, 1);
+  ox = (rect.width - cw*scale)/2 - b.minX*scale;
+  oy = (rect.height - ch*scale)/2 - b.minY*scale;
+  applyTransform();
+}
+
+/* ---------- Theme ---------- */
+function toggleTheme(){
+  const app = document.getElementById('app');
+  const next = app.dataset.theme === 'light' ? 'dark' : 'light';
+  app.dataset.theme = next;
+  document.getElementById('themeBtn').textContent = next==='light' ? '🌙' : '☀️';
+}
+
+/* ---------- init ---------- */
+renderOverview();
+</script>
+</body>
+</html>
