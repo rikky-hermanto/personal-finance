@@ -956,7 +956,14 @@ A single **self-contained HTML file** (inline CSS + JS + font, zero CDN/external
 **Anti-crowding rule (the core lesson — never regress on this):**
 A canvas with 20+ visible nodes, edge labels, and always-on tag pills is unreadable. Structure every interactive diagram as **two tiers**:
 1. **Overview (default view):** max ~6–9 high-level group cards (Clients, API, RAG Pipeline, Data, Observability…), each showing only icon + title + subtitle + at most 3 bullet chips of what's inside. A handful of unlabeled curved edges between groups.
-2. **Drill-down (click a group):** canvas swaps to that group's internal components only, with a `◂ back` breadcrumb. Cross-group edges collapse into small clickable "jump" stub pills on the canvas edge (click → jump to that group's view).
+2. **Drill-down (click a group):** canvas swaps to that group's internal components only, with a `◂ back` breadcrumb. Cross-group edges collapse into small clickable "jump" stub cards on the canvas edge (click → jump to that group's view).
+
+**Stub cards must read as "other stages," not as more internals of the current one — this was a real defect, fixed once, do not regress:**
+A stub styled like a smaller leaf card is indistinguishable from the group's actual internals at a glance, forcing the reader to back out to the overview just to check what's upstream/downstream. Give stubs a category of their own:
+- **Visually distinct from internal leaf cards** — dashed border (not solid), a translucent fill tinted with the *target* group's own overview color (`hexToRgba(targetColor, .10)`), and a colored accent bar (2–3px) on the side facing that direction.
+- **Direction from the real edges, not from card position** — compute whether the stub is upstream or downstream by counting `outbound` vs inbound links in the cross-group edge list (`outbound >= links.length - outbound` ⇒ downstream), not by which side of the canvas it happens to sit on.
+- **Label with the arrow only, no direction words** — `◂ open` / `open ▸`. Not `"◂ prev stage · open"` / `"next stage ▸ · open"` — the words repeat what the arrow and accent-bar side already say, and on a card sized ~148×46px the extra text is pure crowding, not clarity. Size the stub card's width to the short label, not the long one.
+- Reference implementation: [docs/architecture/diagram-query-pipeline-listrik.html](../../../docs/architecture/diagram-query-pipeline-listrik.html) — `.node.kind-stub` / `.stub-up` / `.stub-down` CSS, and the `isDownstream` computation + `--stub-accent` / `--stub-bg` custom properties in `openGroup()`.
 
 **Progressive disclosure — where detail lives (never all at once on the canvas):**
 - Card face: icon + title + one-line subtitle only. **Never render a bullet/chip list on the card face** — a 2–3 item list almost always wraps to more lines than the card's fixed height allows and spills past the border (seen and fixed once already — do not regress). Bullet/chip lists belong exclusively in the hover tooltip.
@@ -1000,6 +1007,7 @@ A canvas with 20+ visible nodes, edge labels, and always-on tag pills is unreada
 - Header strip: diagram title, last-updated date, legend (Live / In progress / Planned)
 
 **Implementation rules**
+- **Start the file with `<!doctype html>` + `<meta charset="utf-8">` before the `<title>`.** Without it, a double-clicked local file falls back to Latin-1 decoding in Windows browsers and every smart quote, em-dash, and arrow in node text (`— " " ▸ ◂`) renders as mojibake (`â€œ`, `â€"`, `â†'`) — a real bug hit and fixed once on this format, do not regress. Also add `<meta name="viewport" content="width=device-width, initial-scale=1">` alongside it.
 - Plain HTML + vanilla JS + inline SVG for edges; no framework, no build step, no external requests
 - **Support both dark and light themes, default to light.** Define every color as a CSS custom property on `:root` (dark values), then add a `#app[data-theme="light"]` block that overrides each one with light-mode values (cream/white canvas, dark text, darkened accent/status colors for contrast on a light background) — never hardcode a color outside the variable set (e.g. no bare `#d6d7dc` on a text rule; route it through a themed var like `--chip-text`). Ship a header `theme-toggle` button that flips `#app`'s `data-theme` attribute between `"light"` and `"dark"` and swaps its icon (☀️/🌙); default `data-theme` to `"light"`. Reference implementation: [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html) — see the `:root` / `#app[data-theme="light"]` variable blocks and the theme-toggle IIFE near the end of the `<script>`.
 - Verify before delivering: extract the `<script>` block and run `node --check` on it

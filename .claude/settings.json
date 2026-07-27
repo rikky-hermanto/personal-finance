@@ -53,6 +53,16 @@
             "command": "py c:/workspaces/personal-finance/.claude/hooks/plan-complete-sync.py"
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "py c:/workspaces/personal-finance/.claude/hooks/skill-review-reminder.py",
+            "statusMessage": "Reflecting on skill usage..."
+          }
+        ]
       }
     ]
   }
