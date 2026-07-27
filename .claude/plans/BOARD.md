@@ -15,6 +15,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-AI003b | _(no issue)_ | Embedding Provider Toggle (OpenAI ⇄ Gemini) |
 | PF-AI004 | _(no issue)_ | RAG Phase 2 — Chunking, Re-ranking, Generation |
 | PF-AI005 | _(no issue)_ | Streaming + Production UX (SSE) — completed 2026-07-06; follow-up in PF-AI005-PART2 |
+| PF-AI006 | _(no issue)_ | Advanced RAG — Hybrid Search (BM25 + RRF) — live-verified 2026-07-24; **measured result: hybrid LOST to pure vector** (MRR@5 0.750 vs 0.771), production default stays `vector`; sentence-window + auto-merging deferred to PF-AI006-PART2 |
 | PF-001 | [#9](https://github.com/rikky-hermanto/personal-finance/issues/9) | .NET Web API with Clean Architecture |
 | PF-002 | [#10](https://github.com/rikky-hermanto/personal-finance/issues/10) | React + Vite Frontend Scaffold |
 | PF-003 | [#11](https://github.com/rikky-hermanto/personal-finance/issues/11) | Docker Compose Orchestration |
@@ -112,7 +113,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI006 | Advanced RAG Patterns — Hybrid Search (re-scoped 2026-07-23) | Dipangkas ke hybrid search (BM25 + RRF) + eval adversarial saja; sentence-window & auto-merging dipindah ke PF-AI006-PART2. Depends on PF-AI004+PF-AI005; plan: [`.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md`](.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) |
 | PF-AI006-PART2 | Sentence-Window + Auto-Merging (deferred) | Split dari PF-AI006; jalan setelah hybrid search selesai DAN ada keputusan produk soal statement-level Q&A. plan: [`.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md`](.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) |
 | PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) |
 

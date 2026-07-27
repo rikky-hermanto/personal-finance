@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import date
 
 import asyncpg
@@ -11,6 +12,21 @@ from app.models import SearchResult
 from app.providers.embedding_base import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
+
+
+def _to_or_tsquery(text: str) -> str:
+    """Tokenize free text into an OR-joined tsquery source string.
+
+    plainto_tsquery ANDs every word — fine for a 2-3 word search box, but a
+    5+ word natural-language question (e.g. "tagihan listrik PLN bulan Maret")
+    then requires ALL words to appear in one row, which never happens against
+    short bank descriptions ("TRANSFER PLN"). BM25 itself scores on ANY term
+    match, weighted by frequency/rarity — not a boolean AND filter. Explicit
+    "|" (OR) operators between tokens restore that semantic; to_tsquery still
+    runs each token through the same 'simple' dictionary plainto_tsquery would.
+    """
+    tokens = re.findall(r"\w+", text.lower())
+    return " | ".join(tokens)
 
 
 def _rrf_merge(
@@ -76,14 +92,21 @@ class RetrievalService:
     ) -> list[int]:
         """Rank transaction IDs by PostgreSQL tsvector BM25 score (ts_rank).
 
-        plainto_tsquery (not to_tsquery) is used because it parses natural-
-        language input as AND-joined unquoted words — to_tsquery requires the
-        caller to pre-format `&`/`:*` operators and fails on plain queries like
-        "tagihan listrik PLN bulan lalu".
+        Tokens are OR-joined (see _to_or_tsquery) before being handed to
+        to_tsquery: plainto_tsquery's implicit AND requires every query word to
+        appear in one row, which never happens for a multi-word natural-
+        language question against a 2-4 word bank description. ts_rank still
+        weights rows with more matched terms higher, so OR-with-ranking
+        approximates real BM25 (score on any term, weighted by rarity/frequency)
+        far better than an AND filter does.
         """
+        tsquery_str = _to_or_tsquery(query)
+        if not tsquery_str:
+            return []
+
         where, params = self._build_where(
-            ["t.description_tsv @@ plainto_tsquery('simple', $1)"],
-            [query],
+            ["t.description_tsv @@ to_tsquery('simple', $1)"],
+            [tsquery_str],
             category, account, date_from, date_to,
         )
         params.append(top_k)
@@ -93,7 +116,7 @@ class RetrievalService:
             FROM transactions t
             LEFT JOIN accounts a ON a.id = t.account_id
             WHERE {" AND ".join(where)}
-            ORDER BY ts_rank(t.description_tsv, plainto_tsquery('simple', $1)) DESC
+            ORDER BY ts_rank(t.description_tsv, to_tsquery('simple', $1)) DESC
             LIMIT ${top_k_param}
             """
         rows = await conn.fetch(sql, *params)

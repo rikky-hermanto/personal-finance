@@ -230,37 +230,59 @@ they need a new data source (statement PDF narrative text) that isn't yet a prod
 **What shipped:** `RetrievalService.search()` gained `bm25` (PostgreSQL `tsvector` + `ts_rank`,
 `simple` config, GIN index on `transactions.description_tsv`) and `hybrid` (Reciprocal Rank Fusion,
 k=60, merging the vector and bm25 ranked ID lists) modes alongside the existing `vector` path.
-`SearchRequest.search_mode` defaults to `hybrid` — the `/ask` lookup path (both `AnswerService` and
-`/ask/stream`) now retrieves via hybrid search instead of pure cosine similarity.
+`SearchRequest.search_mode` **stays defaulted to `vector`** — see the finding below; the `/ask`
+lookup path is unchanged.
 
-**5 adversarial queries added** to `search_queries.json` (q: PLN keyword-exact, English-language
+**5 adversarial queries added** to `search_queries.json` (PLN keyword-exact, English-language
 coffee query, semantic-paraphrase lunch query, date-crossing query, adversarial "suspicious
 transfer" query with no matching vocabulary) — designed so BM25 and vector each get a query they
 should individually win, per the "adversarial eval design" principle (a homogeneous eval set can't
 reveal complementarity).
 
-> **⏳ Live measurement pending (2026-07-24).** Code + unit tests are complete and green
-> (`test_hybrid_search.py` — 9 tests, RRF logic + bm25/hybrid SQL paths, mocked asyncpg; full
-> `test_retriever.py` suite still green, confirming the existing `vector` path is byte-for-byte
-> unchanged). The local Supabase stack (Docker Desktop) was not running in this session
-> (`ConnectionRefusedError` on `asyncpg.connect`), so `eval_retrieval.py --all` could not be run
-> against real data — the MRR@5/P@5/latency comparison table below is **not yet filled with live
-> numbers**. `search_mode` defaults to `hybrid` based on the STEP 7 decision framework in the plan
-> (RRF's complementarity argument + the qualitative PLN/tagihan failure mode already documented
-> above in the Chapter-3 baseline section), not yet a measured delta. Re-run
-> `PYTHONPATH=. python evals/eval_retrieval.py --all` once Supabase is up and paste the printed
-> table here.
+**✅ Live measurement (2026-07-24)** — local Supabase started (Docker was down earlier this
+session; both pending migrations, including `20260724000001_hybrid_search.sql`, applied and
+verified: `description_tsv` column + GIN index present, 4,467 transactions/embeddings intact).
+`PYTHONPATH=. python evals/eval_retrieval.py --all` run against real data:
 
 | Mode | MRR@5 | P@5 | Hit@5 | p50 latency |
 |------|-------|-----|-------|-------------|
-| vector | _pending_ | _pending_ | _pending_ | _pending_ |
-| vector+rerank | _pending_ | _pending_ | _pending_ | _pending_ |
-| bm25 | _pending_ | _pending_ | _pending_ | _pending_ |
-| hybrid | _pending_ | _pending_ | _pending_ | _pending_ |
-| hybrid+rerank | _pending_ | _pending_ | _pending_ | _pending_ |
+| **vector** (default) | **0.771** | **0.533** | 0.83 | 726ms |
+| hybrid | 0.750 | 0.467 | 0.75 | 689ms |
+| vector+rerank | 0.625 | 0.467 | 0.67 | 705ms |
+| hybrid+rerank | 0.558 | 0.483 | 0.67 | 746ms |
+| bm25 | 0.433 | 0.333 | 0.50 | 137ms |
 
-**Migration:** `supabase/migrations/20260724000001_hybrid_search.sql` adds a generated
-`description_tsv` column (`GENERATED ALWAYS AS ... STORED`, `simple` tsvector config — no stemming
-dictionary assumed on the local/Supabase-managed Postgres) + a GIN index. Not yet applied — same
-Docker/Supabase-unavailable gap as the live eval run. Apply with `supabase db push` (or `supabase
-db reset` locally) before re-running the eval.
+**🤔⁉️ Finding — hybrid search UNDERPERFORMS pure vector on this corpus.** The plan's working
+assumption (RRF-merged BM25+vector beats pure vector on term-rich Indonesian descriptions) does not
+hold here. Per-query breakdown shows why: on `tagihan listrik PLN bulan Maret`, plain vector already
+scores a perfect P@5=1.00 (the stored embedding text is `description | remarks | category | wallet`
+— the `Electricity`/`Listrik` category tag already gives the embedding strong signal, so BM25's
+exact-keyword advantage is redundant here, not additive). RRF's merge then pulls bm25's *other*,
+noisier keyword matches into the fused top-5, **displacing** vector hits that were already correct
+— e.g. `makan siang di kantor` drops from vector MRR=0.25 to hybrid MRR=0.00 because bm25 has zero
+real matches for that query (no "makan"/"warung" keyword overlap) yet still contributes candidate
+IDs that get merged in. `bm25` alone is the weakest of the three (MRR 0.433) — most eval queries are
+semantic/category-based (`grocery`, `salary`, `subscription`) with no literal keyword in the actual
+descriptions, so BM25 has nothing to match. **Root cause: this specific corpus's embedding scheme
+already encodes the category tag that made BM25 look necessary in the Chapter-3 qualitative
+analysis — hybrid search would help more on a corpus where descriptions are the *only* signal (e.g.
+raw statement text without a category column).** `search_mode="hybrid"`/`"bm25"` are kept in
+`RetrievalService` and exposed via `SearchRequest` for future use (e.g. once sentence-window
+document search in PART2 lacks a category tag to lean on), but the production default stays
+`vector` — flipping it would have been shipping an assumption instead of a measurement, exactly the
+mistake the plan's own "adversarial eval design" section warns against.
+
+**Migration:** `supabase/migrations/20260724000001_hybrid_search.sql` — applied and verified via
+`supabase db push` + a direct asyncpg query confirming `description_tsv` (tsvector, generated
+column) and `idx_transactions_description_tsv` (GIN) both exist on `transactions`.
+
+**Bug found and fixed during live testing:** the original bm25 implementation used
+`plainto_tsquery`, which ANDs every query word — a 5-word natural-language question
+(`"tagihan listrik PLN bulan Maret"`) never matches a 2-4 word bank description in full, so `bm25`
+mode returned **zero results for every query** until this was caught by the live eval (mocked unit
+tests couldn't catch it — they assert SQL shape, not real match behavior). Fixed by OR-joining
+tokens before calling `to_tsquery` (`retriever.py::_to_or_tsquery`) — `ts_rank` still weights rows
+with more matched terms higher, so this approximates real BM25 (score on any term, weighted by
+frequency/rarity) instead of a boolean AND filter. This is the same category of "mocked tests pass,
+real pipeline reveals the bug" finding already on record above for the citation-marker and
+asyncpg-date-binding bugs.
