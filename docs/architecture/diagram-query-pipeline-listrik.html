@@ -888,7 +888,7 @@
     document.getElementById("breadcrumb").classList.add("show");
     document.getElementById("crumb-current").textContent = group.title;
     document.getElementById("h-sub").textContent = group.subtitle;
-    document.getElementById("empty-hint").textContent = "solid cards = this stage's internals · dashed color-tinted cards = other stages (◂ prev / next ▸) — click one to jump there";
+    document.getElementById("empty-hint").textContent = "solid cards = this stage's internals · dashed color-tinted cards = other stages — click to jump there";
 
     var localIds = {};
     var local = LEAF_NODES.filter(function (n) { return n.parent === groupId; });
@@ -936,7 +936,7 @@
       bySide[side].push({ targetGroup: tg, links: crossByTarget[tg] });
     });
 
-    var STUB_W = 172, STUB_H = 50;
+    var STUB_W = 148, STUB_H = 46;
     var stubPositions = {};
     function distribute(count, start, end) {
       if (count <= 1) return [(start + end) / 2];
@@ -980,7 +980,7 @@
       var links = crossByTarget[tg];
       var outbound = links.filter(function (l) { return l.outbound; }).length;
       var isDownstream = outbound >= (links.length - outbound);
-      var subtitle = isDownstream ? "next stage ▸ · open" : "◂ prev stage · open";
+      var subtitle = isDownstream ? "open ▸" : "◂ open";
       var nodeData = { id: "stub-" + tg, x: pos.x, y: pos.y, w: STUB_W, h: STUB_H, icon: targetGroup.icon, title: targetGroup.title, subtitle: subtitle, status: targetGroup.status };
       var el = makeNodeEl(nodeData, "stub", targetGroup.color, function () { openGroup(tg); });
       el.classList.add(isDownstream ? "stub-down" : "stub-up");
