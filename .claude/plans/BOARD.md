@@ -60,6 +60,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-114 | _(no issue)_ | Journey Redesign — Living Garden Hero (Visual-Only MVP) |
 | PF-119 | _(no issue)_ | Cashflow Overview UX Polish: trust fixes + minimalism pass |
 | PF-132 | _(no issue)_ | Fix AI Chat 502s: provider-agnostic Journey advisor + Gemini-compatible planner schema |
+| PF-133 | _(no issue)_ | Trading Desk Foundation (Risk OS Phase 1) — schema, C# gate engine + TS mirror (byte-identical parity), shell + 4 setup screens. Pre-Trade/Journal deferred to PF-134 |
 
 ---
 
@@ -196,4 +197,5 @@ Monitoring: ████████████████████ 100% (3
 Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
 ```
 
-> Next task ID: **PF-133** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-134** (PF-S series: PF-S14 if more Supabase tasks needed)
+> PF-134 is reserved for Trading Desk Phase 2 (Pre-Trade + Journal + gated trade-plan persistence), PF-135 for the deferred gate rules (correlation groups, FX staleness, sector concentration, liquidity).

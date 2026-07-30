@@ -98,3 +98,12 @@ docs/cv/
 # Personal reference documents — *.txt personal docs not covered by the *.md profile rules above
 docs/\# CORE SOURCE DOCUMENT*.txt
 
+# Added by /commit ignore — 2026-07-30
+# Real personal investment/account data snapshot (PF-133 trading desk prototype source)
+docs/ideas/prototypes/trading-desk/CURRENT_INVESTMENT_RECAP_2026-07-30.md
+# Real broker/portfolio screenshots (Mandiri Sekuritas, Stockbit, Binance, IBKR) — unreviewable by text scanner
+docs/ideas/prototypes/trading-desk/uploads/
+docs/ideas/prototypes/trading-desk/ref/
+docs/ideas/prototypes/trading-desk/screenshots/
+docs/ideas/prototypes/trading-desk/.thumbnail
+

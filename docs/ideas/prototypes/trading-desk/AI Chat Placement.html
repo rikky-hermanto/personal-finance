@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="design_doc_mode" content="canvas" />
+<title>AI Chat Placement — 2 Varian</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: hsl(42 17% 94%);
+    --card: #fff;
+    --fg: hsl(35 9% 19%);
+    --muted-fg: hsl(0 0% 42%);
+    --faint: hsl(0 0% 60%);
+    --border: hsl(39 18% 88%);
+    --sb-bg: hsl(42 17% 91%);
+    --sb-border: hsl(39 18% 85%);
+    --sb-accent: hsl(39 18% 88%);
+    --secondary: hsl(39 18% 91%);
+    --success: hsl(170 90% 32%);
+    --income: hsl(158 44% 42%);
+    --expense: hsl(354 70% 54%);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; color: var(--fg); font-feature-settings: 'tnum'; }
+  a { color: var(--success); } a:hover { color: hsl(170 90% 24%); }
+
+  .frame {
+    position: absolute; width: 1500px; height: 940px;
+    background: var(--bg); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.14);
+    display: flex; font-size: 13px;
+  }
+  .frame-label { position: absolute; font-size: 15px; font-weight: 600; color: #555; letter-spacing: .01em; }
+  .frame-label small { display: block; font-weight: 400; font-size: 12.5px; color: #888; margin-top: 4px; max-width: 720px; line-height: 1.5; }
+
+  /* ── sidebar ── */
+  .sb { width: 218px; flex-shrink: 0; background: var(--sb-bg); border-right: 1px solid var(--sb-border); padding: 18px 14px; display: flex; flex-direction: column; gap: 2px; color: var(--muted-fg); }
+  .sb .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; color: var(--fg); margin-bottom: 20px; font-size: 14px; }
+  .sb .brand .logo { width: 26px; height: 26px; border-radius: 7px; background: var(--fg); color: #fff; display: grid; place-items: center; font-size: 12px; }
+  .sb .sec { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); margin: 14px 8px 4px; display: flex; align-items: center; gap: 6px; }
+  .sb .sec .dot { width: 5px; height: 5px; border-radius: 50%; background: var(--success); }
+  .sb .item { display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 8px; }
+  .sb .item.active { background: var(--sb-accent); color: var(--fg); font-weight: 500; }
+  .sb .item .soon { margin-left: auto; font-size: 9px; letter-spacing: .08em; color: var(--faint); }
+  .sb .spacer { flex: 1; }
+  .ic { width: 15px; height: 15px; border: 1.4px solid currentColor; border-radius: 4px; opacity: .55; flex-shrink: 0; }
+  .ic.round { border-radius: 50%; }
+
+  /* ── main content (cashflow page as context) ── */
+  .main { flex: 1; min-width: 0; padding: 26px 30px; overflow: hidden; position: relative; }
+  .main h1 { font-size: 21px; margin: 0 0 4px; font-weight: 600; }
+  .main .sub { color: var(--muted-fg); margin-bottom: 20px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .card .k { font-size: 11px; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .card .v { font-size: 19px; font-weight: 600; }
+  .card .v.in { color: var(--income); } .card .v.ex { color: var(--expense); }
+  .chart { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; height: 240px; display: flex; flex-direction: column; }
+  .chart .bars { flex: 1; display: flex; align-items: flex-end; gap: 10px; padding-top: 14px; }
+  .bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; }
+  .bar i { display: block; border-radius: 3px 3px 0 0; }
+  .bar .up { background: hsl(158 44% 52% / .8); } .bar .dn { background: hsl(354 70% 62% / .55); }
+  .txlist { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-top: 16px; }
+  .txlist .hd { padding: 13px 18px; font-weight: 600; border-bottom: 1px solid var(--border); }
+  .txrow { display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--border); }
+  .txrow:last-child { border-bottom: 0; }
+  .txrow .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .txrow .bk { font-size: 11px; color: var(--faint); width: 86px; }
+  .txrow .amt { font-weight: 500; white-space: nowrap; } .amt.ex { color: var(--expense); } .amt.in { color: var(--income); }
+
+  /* ── chat panel (shared) ── */
+  .chat { background: var(--card); display: flex; flex-direction: column; min-width: 0; }
+  .chat-hd { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .chat-hd .spark { width: 26px; height: 26px; border-radius: 8px; background: hsl(170 60% 94%); color: var(--success); display: grid; place-items: center; font-size: 13px; }
+  .chat-hd .t { font-weight: 600; font-size: 13.5px; }
+  .chat-hd .m { font-size: 11px; color: var(--faint); }
+  .chat-hd .acts { margin-left: auto; display: flex; gap: 6px; }
+  .hbtn { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border); display: grid; place-items: center; color: var(--muted-fg); font-size: 12px; background: var(--card); }
+  .chat-body { flex: 1; overflow: hidden; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .msg-u { align-self: flex-end; max-width: 82%; background: var(--secondary); border-radius: 14px 14px 4px 14px; padding: 10px 14px; }
+  .msg-a { align-self: flex-start; max-width: 94%; line-height: 1.55; }
+  .msg-a p { margin: 0 0 8px; }
+  .cite { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 6px; }
+  .cite .ch { padding: 7px 12px; font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--faint); background: hsl(42 17% 96%); border-bottom: 1px solid var(--border); }
+  .crow { display: flex; align-items: baseline; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .crow:last-child { border-bottom: 0; }
+  .crow .d { color: var(--faint); font-size: 11px; width: 66px; flex-shrink: 0; }
+  .crow .n { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .crow .a { color: var(--expense); font-weight: 500; white-space: nowrap; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; font-size: 11.5px; color: var(--muted-fg); background: var(--card); }
+  .chat-in { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+  .chat-in .field { flex: 1; border: 1px solid var(--border); background: var(--secondary); border-radius: 10px; padding: 10px 14px; color: var(--faint); }
+  .chat-in .send { background: var(--fg); color: #fff; border-radius: 10px; padding: 10px 16px; font-weight: 500; }
+
+  .fab { position: absolute; bottom: 24px; right: 24px; width: 46px; height: 46px; border-radius: 14px; background: var(--fg); color: #fff; display: grid; place-items: center; font-size: 18px; box-shadow: 0 6px 18px rgba(0,0,0,.22); }
+
+  .callout { position: absolute; background: #1c1a17; color: #fff; font-size: 11.5px; padding: 7px 11px; border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.25); z-index: 5; max-width: 230px; line-height: 1.45; }
+  .callout::after { content: ''; position: absolute; width: 8px; height: 8px; background: inherit; transform: rotate(45deg); }
+  .callout.pt-r::after { right: -4px; top: 14px; }
+  .callout.pt-l::after { left: -4px; top: 14px; }
+  .kbd { font-size: 10px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; padding: 1px 6px; color: var(--muted-fg); background: var(--secondary); font-family: inherit; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<!-- ═════════ VARIAN A · SLIDE-OVER ═════════ -->
+<div class="frame-label" style="left:80px; top:36px;">
+  A — Slide-over panel (±460px)
+  <small>Chat menempel di kanan, dibuka dari tombol ✦ di halaman mana pun. Menggantikan rail Recent saat terbuka; konten utama tetap terlihat &amp; bisa di-scroll. Icon ⤢ membuka mode full-page (halaman AI Chat yang sekarang).</small>
+</div>
+<div class="frame" style="left:80px; top:130px;">
+  <div class="sb">
+    <div class="brand"><span class="logo">✦</span> Finance</div>
+    <div class="item"><span class="ic round"></span> Journey</div>
+    <div class="item"><span class="ic"></span> Net Worth</div>
+    <div class="sec"><span class="dot"></span> Foundations</div>
+    <div class="item"><span class="ic"></span> AI Chat</div>
+    <div class="item active"><span class="ic"></span> Cashflow</div>
+    <div class="item"><span class="ic"></span> Budgeting <span class="soon">SOON</span></div>
+    <div class="item"><span class="ic"></span> Recurring <span class="soon">SOON</span></div>
+    <div class="sec"><span class="dot"></span> Defense</div>
+    <div class="item"><span class="ic round"></span> Emergency Fund <span class="soon">SOON</span></div>
+    <div class="item"><span class="ic round"></span> Insurance <span class="soon">SOON</span></div>
+    <div class="sec"><span class="dot"></span> Growth</div>
+    <div class="item"><span class="ic"></span> Investments</div>
+    <div class="item"><span class="ic round"></span> Savings Goals <span class="soon">SOON</span></div>
+    <div class="spacer"></div>
+    <div class="item"><span class="ic round"></span> Dark mode</div>
+    <div class="item"><span class="ic"></span> Settings</div>
+  </div>
+
+  <div class="main">
+    <h1>Cashflow</h1>
+    <div class="sub">Maret 2025 · 3 rekening tersambung</div>
+    <div class="cards">
+      <div class="card"><div class="k">Income</div><div class="v in">Rp 18.500.000</div></div>
+      <div class="card"><div class="k">Expenses</div><div class="v ex">Rp 12.240.000</div></div>
+      <div class="card"><div class="k">Net</div><div class="v">Rp 6.260.000</div></div>
+    </div>
+    <div class="chart">
+      <div style="font-weight:600;">Monthly flow</div>
+      <div class="bars">
+        <div class="bar"><i class="up" style="height:64px;"></i><i class="dn" style="height:38px;"></i></div>
+        <div class="bar"><i class="up" style="height:88px;"></i><i class="dn" style="height:52px;"></i></div>
+        <div class="bar"><i class="up" style="height:72px;"></i><i class="dn" style="height:70px;"></i></div>
+        <div class="bar"><i class="up" style="height:96px;"></i><i class="dn" style="height:44px;"></i></div>
+        <div class="bar"><i class="up" style="height:80px;"></i><i class="dn" style="height:58px;"></i></div>
+        <div class="bar"><i class="up" style="height:110px;"></i><i class="dn" style="height:62px;"></i></div>
+      </div>
+    </div>
+    <div class="txlist">
+      <div class="hd">Transactions</div>
+      <div class="txrow"><span class="nm">TRANSFER OUT — Kontrakan Maret</span><span class="bk">BCA</span><span class="amt ex">−Rp 2.000.000</span></div>
+      <div class="txrow"><span class="nm">SAVING INTEREST</span><span class="bk">NEO BANK</span><span class="amt in">+Rp 33,80</span></div>
+      <div class="txrow"><span class="nm">KARTU DEBIT GRANDLUCKY</span><span class="bk">BCA</span><span class="amt ex">−Rp 193.600</span></div>
+    </div>
+  </div>
+
+  <div class="chat" style="width:460px; flex-shrink:0; border-left:1px solid var(--border); box-shadow:-14px 0 32px rgba(0,0,0,.07);">
+    <div class="chat-hd">
+      <span class="spark">✦</span>
+      <div><div class="t">Ask your finances</div><div class="m">Gemini 3.1 Pro · konteks: Cashflow</div></div>
+      <div class="acts" style="align-items:center;"><span class="kbd">Ctrl + I</span><span class="hbtn">⤢</span><span class="hbtn">✕</span></div>
+    </div>
+    <div class="chat-body">
+      <div class="msg-u">berapa pengeluaran makan bulan maret 2025?</div>
+      <div class="msg-a">
+        <p>Total pengeluaran kategori makan di Maret 2025 adalah <strong>Rp 1.842.500</strong> dari 23 transaksi — turun 12% dibanding Februari.</p>
+        <div class="cite">
+          <div class="ch">Sumber · 3 transaksi teratas</div>
+          <div class="crow"><span class="d">09 Mar</span><span class="n">GRANDLUCKY SUPERMARKET</span><span class="a">−193.600</span></div>
+          <div class="crow"><span class="d">14 Mar</span><span class="n">WSS Batu Bulan 55</span><span class="a">−48.950</span></div>
+          <div class="crow"><span class="d">21 Mar</span><span class="n">GOFOOD JAKARTA</span><span class="a">−86.000</span></div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip">Bandingkan vs Feb</span>
+        <span class="chip">Rinci per minggu</span>
+        <span class="chip">Kategori terbesar?</span>
+      </div>
+    </div>
+    <div class="chat-in"><div class="field">Tanya soal cashflow Maret…</div><div class="send">Kirim</div></div>
+  </div>
+
+  <div class="callout pt-r" style="left:780px; top:420px;">Panel menutup rail Recent — tidak redundant, karena citation di chat sudah menampilkan transaksi relevan</div>
+  <div class="callout pt-r" style="left:790px; top:840px;">⤢ = expand ke full-page · <b>Ctrl + I</b> toggle buka/tutup panel dari halaman mana pun (Ctrl + . tetap focus mode)</div>
+</div>
+
+<!-- ═════════ VARIAN B · SPLIT 50/50 ═════════ -->
+<div class="frame-label" style="left:1680px; top:36px;">
+  B — Split setengah layar
+  <small>Route /chat khusus: chat mengambil setengah kanan secara permanen, Recent dilebur ke bawah konteks kiri. Lega untuk sesi panjang, tapi chat tidak tersedia dari halaman lain dan konten utama menyempit.</small>
+</div>
+<div class="frame" style="left:1680px; top:130px;">
+  <div class="sb">
+    <div class="brand"><span class="logo">✦</span> Finance</div>
+    <div class="item"><span class="ic round"></span> Journey</div>
+    <div class="item"><span class="ic"></span> Net Worth</div>
+    <div class="sec"><span class="dot"></span> Foundations</div>
+    <div class="item active"><span class="ic"></span> AI Chat</div>
+    <div class="item"><span class="ic"></span> Cashflow</div>
+    <div class="item"><span class="ic"></span> Budgeting <span class="soon">SOON</span></div>
+    <div class="item"><span class="ic"></span> Recurring <span class="soon">SOON</span></div>
+    <div class="sec"><span class="dot"></span> Defense</div>
+    <div class="item"><span class="ic round"></span> Emergency Fund <span class="soon">SOON</span></div>
+    <div class="item"><span class="ic round"></span> Insurance <span class="soon">SOON</span></div>
+    <div class="sec"><span class="dot"></span> Growth</div>
+    <div class="item"><span class="ic"></span> Investments</div>
+    <div class="item"><span class="ic round"></span> Savings Goals <span class="soon">SOON</span></div>
+    <div class="spacer"></div>
+    <div class="item"><span class="ic round"></span> Dark mode</div>
+    <div class="item"><span class="ic"></span> Settings</div>
+  </div>
+
+  <div class="main" style="border-right:1px solid var(--border);">
+    <h1>Context</h1>
+    <div class="sub">Ringkasan yang dipakai AI saat menjawab</div>
+    <div class="cards" style="grid-template-columns:repeat(2,1fr);">
+      <div class="card"><div class="k">Income · Mar</div><div class="v in">Rp 18.500.000</div></div>
+      <div class="card"><div class="k">Expenses · Mar</div><div class="v ex">Rp 12.240.000</div></div>
+    </div>
+    <div class="txlist">
+      <div class="hd">Recent</div>
+      <div class="txrow"><span class="nm">Transfer ke Rikki H Hasibuan</span><span class="bk">SUPERBANK</span><span class="amt ex">−700.000,00</span></div>
+      <div class="txrow"><span class="nm">SAVING INTEREST</span><span class="bk">NEO BANK</span><span class="amt in">+33,80</span></div>
+      <div class="txrow"><span class="nm">Top up Wallet RIKKI H</span><span class="bk">BANK JAGO</span><span class="amt ex">−100.000,00</span></div>
+      <div class="txrow"><span class="nm">DB DEBIT DOMESTIK TRN</span><span class="bk">BCA</span><span class="amt ex">−172.000,00</span></div>
+      <div class="txrow"><span class="nm">KARTU DEBIT GRANDLUCKY</span><span class="bk">BCA</span><span class="amt ex">−193.600,00</span></div>
+      <div class="txrow"><span class="nm">BI-FAST CR TRANSFER DR 562</span><span class="bk">BCA</span><span class="amt in">+700.000,00</span></div>
+      <div class="txrow"><span class="nm">Transfer ke Erwin Barus Hasib…</span><span class="bk">SUPERBANK</span><span class="amt ex">−2.000.000,00</span></div>
+    </div>
+  </div>
+
+  <div class="chat" style="width:50%; flex-shrink:0;">
+    <div class="chat-hd">
+      <span class="spark">✦</span>
+      <div><div class="t">Chat with your finances</div><div class="m">Gemini 3.1 Pro (High)</div></div>
+      <div class="acts"><span class="hbtn">⟳</span></div>
+    </div>
+    <div class="chat-body">
+      <div class="msg-u">berapa pengeluaran makan bulan maret 2025?</div>
+      <div class="msg-a">
+        <p>Total pengeluaran kategori makan di Maret 2025 adalah <strong>Rp 1.842.500</strong> dari 23 transaksi — turun 12% dibanding Februari. Kontributor terbesar: belanja supermarket (43%), lalu food delivery (31%).</p>
+        <div class="cite">
+          <div class="ch">Sumber · 3 transaksi teratas</div>
+          <div class="crow"><span class="d">09 Mar</span><span class="n">KARTU DEBIT GRANDLUCKY SUPERMARKET</span><span class="a">−Rp 193.600</span></div>
+          <div class="crow"><span class="d">14 Mar</span><span class="n">WSS Batu Bulan 55 — Transfer</span><span class="a">−Rp 48.950</span></div>
+          <div class="crow"><span class="d">21 Mar</span><span class="n">GOFOOD JAKARTA — MERCHANT PAYMENT</span><span class="a">−Rp 86.000</span></div>
+        </div>
+      </div>
+      <div class="msg-u">bandingkan dengan februari</div>
+      <div class="msg-a">
+        <p>Februari 2025: <strong>Rp 2.094.000</strong> (26 transaksi). Maret lebih hemat <strong>Rp 251.500</strong>, terutama karena food delivery turun dari 11 → 6 order.</p>
+      </div>
+      <div class="chips">
+        <span class="chip">Tren 6 bulan</span>
+        <span class="chip">Proyeksi April</span>
+      </div>
+    </div>
+    <div class="chat-in"><div class="field">Berapa pengeluaran makan bulan ini?</div><div class="send">Kirim</div></div>
+  </div>
+
+  <div class="callout pt-r" style="left:450px; top:690px;">Recent dilebur jadi panel konteks di kiri — bukan rail kurus lagi</div>
+</div>
+
+</body>
+</html>

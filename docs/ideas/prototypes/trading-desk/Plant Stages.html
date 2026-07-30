@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plant Stages — Level × Growth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #F5F3EE;
+      --card: #FFFFFF;
+      --fg: #37352F;
+      --muted: #6B6B6B;
+      --border: #E8E5DF;
+      --amber: #E8C5A8;
+      --amber-line: #D9A876;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--fg);
+      background-color: var(--bg);
+      background-image:
+        linear-gradient(rgba(0,0,0,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.018) 1px, transparent 1px);
+      background-size: 80px 80px;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+      padding: 56px 48px 72px;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; }
+
+    .eyebrow { font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    h1 { font-family: ui-serif, Georgia, serif; font-size: 34px; font-weight: 600; letter-spacing: -0.02em; margin-top: 8px; }
+    .sub { color: var(--muted); font-size: 14px; margin-top: 10px; max-width: 620px; line-height: 1.6; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #5C3D1E; background: var(--amber); border-radius: 999px; padding: 4px 11px; margin-top: 18px; }
+
+    /* Column header */
+    .matrix { margin-top: 40px; }
+    .colhead {
+      display: grid;
+      grid-template-columns: 188px repeat(4, 1fr);
+      gap: 14px;
+      padding: 0 4px 10px;
+      align-items: end;
+    }
+    .colhead .spacer { }
+    .colhead .stage {
+      text-align: center;
+    }
+    .colhead .stage .n { font-size: 12px; font-weight: 600; }
+    .colhead .stage .r { font-size: 10px; color: var(--muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 188px repeat(4, 1fr);
+      gap: 14px;
+      align-items: stretch;
+      margin-bottom: 14px;
+    }
+    .levelcell {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 4px 2px;
+    }
+    .levelcell .lk { display: flex; align-items: center; gap: 8px; }
+    .levelcell .dot { width: 9px; height: 9px; border-radius: 999px; flex: none; }
+    .levelcell .lv { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+    .levelcell .name { font-size: 17px; font-weight: 600; margin-top: 5px; letter-spacing: -0.01em; }
+    .levelcell .species { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+
+    .plant {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 10px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+    .plant:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.07); }
+    .plant .emoji { font-size: 46px; line-height: 1; user-select: none; }
+    .plant .slabel { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.02em; }
+    .plant .bar { width: 64%; height: 4px; border-radius: 999px; background: #EDEBE5; overflow: hidden; }
+    .plant .bar > i { display: block; height: 100%; border-radius: 999px; background: var(--amber-line); }
+    .plant.current { border-color: var(--amber-line); box-shadow: 0 0 0 2px rgba(217,168,118,0.25), 0 1px 2px rgba(0,0,0,0.03); }
+    .plant .nowtag {
+      position: absolute; top: 9px; right: 9px;
+      font-size: 8px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      color: #5C3D1E; background: var(--amber); border-radius: 999px; padding: 2px 6px;
+    }
+
+    .legend { margin-top: 36px; display: flex; flex-wrap: wrap; gap: 22px; align-items: center; font-size: 12px; color: var(--muted); }
+    .legend .item { display: flex; align-items: center; gap: 7px; }
+    .legend .sw { width: 11px; height: 11px; border-radius: 3px; }
+    .note { margin-top: 26px; font-size: 12px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--border); padding-top: 18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="eyebrow">Financial Journey · Design Reference</div>
+    <h1>Plant Stages — Level × Growth</h1>
+    <p class="sub">Each tier of the Financial Pyramid is its own living thing. As a level's score climbs from 0 → 100, its plant matures through four stages. The hero shows the plant for your <em>current</em> level; this board is the full set across all five tiers.</p>
+    <span class="pill">✦ Mockup only — not wired to data</span>
+
+    <div class="matrix" id="matrix"></div>
+
+    <div class="legend">
+      <div class="item"><span class="sw" style="background:#E8C5A8"></span> Current stage (this prototype)</div>
+      <div class="item"><span class="sw" style="background:#FFFFFF;border:1px solid #E8E5DF"></span> Reachable stage</div>
+      <div class="item">Stage threshold = score ÷ 25 &nbsp;·&nbsp; Seed 0–24 &nbsp; Sprout 25–49 &nbsp; Growing 50–74 &nbsp; Flourishing 75–100</div>
+    </div>
+
+    <p class="note">Plant species per tier are a proposed identity, not from the codebase — the shipped app currently reuses one 🌱→🌿→🌳→🌳🍎 set for every level. Swap any emoji to taste; the prototype hero reads the same matrix.</p>
+  </div>
+
+  <script>
+    const LEVELS = [
+      { k: 'L1', name: 'Foundations', color: 'rgb(100 116 139)', species: 'Oak — putting down roots', score: 58, plants: ['🌰','🌱','🌿','🌳'] },
+      { k: 'L2', name: 'Defense',     color: 'rgb(76 175 80)',   species: 'Evergreen — shelter & resilience', score: 24, plants: ['🌱','🌿','🎄','🌲'] },
+      { k: 'L3', name: 'Growth',      color: 'rgb(56 142 60)',   species: 'Bloom — flourishing', score: 12, plants: ['🌱','🌿','🌷','🌻'] },
+      { k: 'L4', name: 'Freedom',     color: 'rgb(46 125 50)',   species: 'Orchard — bearing fruit', score: 0,  plants: ['🌿','🌳','🍏','🌳🍎'] },
+      { k: 'L5', name: 'Legacy',      color: 'rgb(27 94 32)',    species: 'Grove — enduring', score: 0,  plants: ['🌳','🌲','🌴','🏞️'] },
+    ];
+    const STAGES = [
+      { n: 'Seed', r: '0–24' },
+      { n: 'Sprout', r: '25–49' },
+      { n: 'Growing', r: '50–74' },
+      { n: 'Flourishing', r: '75–100' },
+    ];
+    const stageFromScore = (s) => Math.min(3, Math.floor(s / 25));
+
+    const matrix = document.getElementById('matrix');
+
+    // column header
+    const head = document.createElement('div');
+    head.className = 'colhead';
+    head.innerHTML = '<div class="spacer"></div>' + STAGES.map(s =>
+      `<div class="stage"><div class="n">${s.n}</div><div class="r">score ${s.r}</div></div>`).join('');
+    matrix.appendChild(head);
+
+    LEVELS.forEach(lv => {
+      const cur = stageFromScore(lv.score);
+      const row = document.createElement('div');
+      row.className = 'row';
+      let html = `<div class="levelcell">
+        <div class="lk"><span class="dot" style="background:${lv.color}"></span><span class="lv" style="color:${lv.color}">${lv.k}</span></div>
+        <div class="name">${lv.name}</div>
+        <div class="species">${lv.species}</div>
+      </div>`;
+      html += lv.plants.map((p, i) => {
+        const isCurrent = i === cur && lv.score > 0;
+        const reached = i <= cur;
+        const fill = reached ? (i === cur ? `${Math.round((lv.score % 25) / 25 * 100)}%` : '100%') : '0%';
+        return `<div class="plant${isCurrent ? ' current' : ''}">
+          ${isCurrent ? '<span class="nowtag">Now</span>' : ''}
+          <span class="emoji">${p}</span>
+          <span class="slabel">${STAGES[i].n}</span>
+          <span class="bar"><i style="width:${fill}"></i></span>
+        </div>`;
+      }).join('');
+      row.innerHTML = html;
+      matrix.appendChild(row);
+    });
+  </script>
+</body>
+</html>
