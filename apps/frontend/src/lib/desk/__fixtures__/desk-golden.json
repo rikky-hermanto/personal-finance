@@ -29,10 +29,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -361,8 +359,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -625,10 +621,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -968,8 +962,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -1264,10 +1256,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -1607,8 +1597,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -1911,10 +1899,8 @@
         },
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -2254,8 +2240,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -2552,10 +2536,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 4000000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -2884,8 +2866,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -3150,10 +3130,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -3396,8 +3374,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -3662,10 +3638,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Risk Freeze",
@@ -3994,8 +3968,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -4260,10 +4232,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -4603,8 +4573,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -4901,10 +4869,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -5244,8 +5210,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -5540,10 +5504,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -5883,8 +5845,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -6179,10 +6139,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -6511,8 +6469,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,
@@ -6777,10 +6733,8 @@
         "gateMandate": null,
         "navChainInput": {
           "tentativeNav": 1064953064.41,
-          "reconciledNavExclStockbit": 1031774947.41,
+          "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
-          "stockbitDuplicateCash": 33178117,
-          "stockbitResolution": "exclude",
           "openRisk": 830000,
           "todaysRealizedPnl": 0,
           "drawdownRegime": "Normal",
@@ -7006,8 +6960,6 @@
       "expected": {
         "navChain": {
           "tentativeNav": 1064953064.41,
-          "stockbitAmt": 33178117,
-          "included": false,
           "reconciledNav": 1031774947.41,
           "legacyMv": 978114277.70,
           "reserve": -46339330.29,

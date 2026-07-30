@@ -40,8 +40,7 @@ function ymd(dateStr: string): { y: number; m: number; d: number } {
 }
 
 export function computeNavChain(input: NavChainInput): NavChain {
-  const included = input.stockbitResolution === 'include';
-  const reconciledNav = included ? input.tentativeNav : input.reconciledNavExclStockbit;
+  const reconciledNav = input.reconciledNav;
   const legacyMv = input.legacyMv;
   const mandate = input.mandate;
 
@@ -64,8 +63,6 @@ export function computeNavChain(input: NavChainInput): NavChain {
 
   return {
     tentativeNav: input.tentativeNav,
-    stockbitAmt: input.stockbitDuplicateCash,
-    included,
     reconciledNav,
     legacyMv,
     reserve,
@@ -132,6 +129,43 @@ export function computeSizing(inputs: TradePlanInput, chain: NavChain, mandate: 
     finalQty, finalLots: Math.floor(finalQty / step),
     plannedLoss, plannedReward, rr, exposurePct, heatAfter,
   };
+}
+
+// Collapses positions of the same symbol held across multiple portfolios into one economic
+// exposure. Gate rules evaluate aggregates; the UI still renders the per-portfolio rows.
+export function aggregateBySymbol(positions: DeskPosition[]): DeskPosition[] {
+  const bySymbol = new Map<string, DeskPosition[]>();
+  for (const p of positions) {
+    const group = bySymbol.get(p.symbol);
+    if (group) group.push(p); else bySymbol.set(p.symbol, [p]);
+  }
+
+  return Array.from(bySymbol.values()).map(group => {
+    if (group.length === 1) return group[0];
+
+    const qtyShares = group.reduce((s, p) => s + (p.qtyShares ?? 0), 0);
+    const qtyLots = group.reduce((s, p) => s + (p.qtyLots ?? 0), 0);
+    const costIdr = group.reduce((s, p) => s + p.costIdr, 0);
+    const mvIdr = group.reduce((s, p) => s + p.mvIdr, 0);
+    const pnlIdr = group.reduce((s, p) => s + p.pnlIdr, 0);
+    const weight = group.reduce((s, p) => s + p.weight, 0);
+    // Any portfolio holding this name unclassified taints the whole exposure.
+    const sleeve = group.some(p => p.sleeve === 'Legacy / Unclassified') ? 'Legacy / Unclassified' : group[0].sleeve;
+
+    return {
+      ...group[0],
+      accountExternalKey: null,
+      qtyShares,
+      qtyLots,
+      costIdr,
+      mvIdr,
+      pnlIdr,
+      pnlPct: costIdr !== 0 ? (pnlIdr / costIdr) * 100 : 0,
+      avgPrice: qtyShares !== 0 ? costIdr / qtyShares : null,
+      weight,
+      sleeve,
+    };
+  });
 }
 
 export interface GateEvaluationInput {
@@ -329,9 +363,9 @@ export function evaluateGate(input: GateEvaluationInput): GateResult {
 
   // 15. add-to-loser — REAL: position lookup, never a literal symbol
   const symbol = inputs?.symbol;
-  const loserPosition = symbol
-    ? input.positions.find(p => p.symbol === symbol && p.sleeve === 'Legacy / Unclassified' && p.pnlPct < 0)
-    : undefined;
+  const isLosingLegacy = (p: DeskPosition) =>
+    p.symbol === symbol && p.sleeve === 'Legacy / Unclassified' && p.pnlPct < 0;
+  const loserPosition = symbol ? input.positions.find(isLosingLegacy) : undefined;
   const addingLoser = !!loserPosition;
   rows.push({
     id: 'add-to-loser', name: 'Adding to losing legacy position',

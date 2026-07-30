@@ -15,6 +15,9 @@ public class DeskPosition : BaseModel
     [Column("broker")]
     public string Broker { get; set; } = string.Empty;
 
+    [Column("account_external_key")]
+    public string? AccountExternalKey { get; set; }
+
     [Column("symbol")]
     public string Symbol { get; set; } = string.Empty;
 

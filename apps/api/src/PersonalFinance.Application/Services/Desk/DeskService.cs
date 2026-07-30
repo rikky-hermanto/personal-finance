@@ -49,12 +49,7 @@ public class DeskService(Supabase.Client supabase, ILogger<DeskService> logger) 
         var activeMandate = mandateVersions.FirstOrDefault(m => m.Status == "approved");
         var mandateParams = activeMandate?.Params ?? DeskDefaults.MandateDefault;
 
-        var stockbitAccount = accounts.FirstOrDefault(a => a.ExternalKey == "stockbit_cash");
-        var stockbitCash = stockbitAccount?.Cash ?? 0m;
-        var stockbitIssue = reconIssues.FirstOrDefault(r => r.ExternalKey == "r1");
-        var stockbitResolution = stockbitIssue?.Resolution ?? "unresolved";
-
-        var tentativeNav = accounts.Sum(a => a.ReportedEquity);
+        var reconciledNav = accounts.Sum(a => a.ReportedEquity);
         var legacyMv = positions.Where(p => p.Sleeve == "Legacy / Unclassified").Sum(p => p.MvIdr);
         var openRisk = openTradesResult.Models.Sum(t => t.InitialRisk);
 
@@ -62,11 +57,9 @@ public class DeskService(Supabase.Client supabase, ILogger<DeskService> logger) 
         var todaysRealizedPnl = journal.Where(j => j.TradeDate == asOfDate).Sum(j => j.NetPnl);
 
         var navChainInput = new NavChainInputDto(
-            TentativeNav: tentativeNav,
-            ReconciledNavExclStockbit: tentativeNav - stockbitCash,
+            TentativeNav: reconciledNav,
+            ReconciledNav: reconciledNav,
             LegacyMv: legacyMv,
-            StockbitDuplicateCash: stockbitCash,
-            StockbitResolution: stockbitResolution,
             OpenRisk: openRisk,
             TodaysRealizedPnl: todaysRealizedPnl,
             DrawdownRegime: DeskDefaults.DefaultRegime, // regime modeling (equity-curve drawdown) is not built in Phase 1
@@ -75,9 +68,10 @@ public class DeskService(Supabase.Client supabase, ILogger<DeskService> logger) 
 
         var chain = DeskCalculator.ComputeNavChain(navChainInput);
         var journalStats = DeskCalculator.ComputeJournalStats(journal);
+        var aggregatedPositions = DeskCalculator.AggregateBySymbol(positions);
         // No Pre-Trade screen exists yet (PF-134) — the desk-wide gate always evaluates with a null plan.
         var gate = DeskCalculator.EvaluateGate(new GateEvaluationInputDto(
-            chain, null, null, mandateParams, journalStats, journal, positions, asOfDate));
+            chain, null, null, mandateParams, journalStats, journal, aggregatedPositions, asOfDate));
 
         return new DeskStateDto(
             Accounts: accounts,
@@ -89,8 +83,7 @@ public class DeskService(Supabase.Client supabase, ILogger<DeskService> logger) 
             NavChain: chain,
             Gate: gate,
             JournalStats: journalStats,
-            DrawdownRegime: DeskDefaults.DefaultRegime,
-            StockbitResolution: stockbitResolution
+            DrawdownRegime: DeskDefaults.DefaultRegime
         );
     }
 
