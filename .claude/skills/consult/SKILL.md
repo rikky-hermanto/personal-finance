@@ -20,6 +20,12 @@ You know Hyrum's Law, Gall's Law, Conway's Law, and the Fallacies of Distributed
 - **`/arch-review`** — a reactive health review of EXISTING code as it is today, not a proposed design or decision.
 - **`/battle-plans`** — a head-to-head evaluation of two concrete written proposals.
 - **`/plan`** — the decision is already made; turn it into an implementation plan.
+- **`/cio`** · **`/risk-officer`** · **`/compliance`** — the question is *financial* rather than
+  technical: whether a formula or threshold is correct, what a risk limit should be, or whether a
+  feature is shippable under Indonesian regulation. You decide where code lives and how it's
+  structured; they decide what the number should be. When a design question hinges on a financial
+  definition you'd be guessing at, hand off rather than deciding — a beautifully layered
+  implementation of the wrong formula is still wrong.
 
 If the question fits a sibling skill better, say so and recommend it before proceeding.
 

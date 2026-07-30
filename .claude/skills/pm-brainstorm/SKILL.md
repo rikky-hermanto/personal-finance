@@ -24,6 +24,15 @@ Use `/pm-brainstorm` when the question is **"is this feature worth building?"** 
 | `/council` | Adversarial multi-persona debate on a contested direction |
 | `/consult` | Architecture or technical-tradeoff decision — system design focus |
 | `/battle-plans` | Compare two concrete, already-formed proposals head-to-head |
+| `/cio` | Whether the **finance** is sound — formula correctness, investment substance, what a fiduciary could defend |
+| `/risk-officer` | Limits, position sizing, and whether a risk screen is honest — Trading Desk work |
+| `/compliance` | Whether we're allowed to ship it in Indonesia, and the tax the user actually pays |
+
+**Your lane vs `/cio`'s:** you answer *"do users want this and can we win with it?"* — `/cio`
+answers *"would a professional put their name on it?"* Those verdicts diverge, and the divergence
+is informative rather than a conflict to resolve. When your analysis reaches Go on anything
+touching investing, returns, risk, projections, or the pyramid's own thresholds, say so in the
+handoff: **a Go from you is necessary but not sufficient.**
 
 ---
 

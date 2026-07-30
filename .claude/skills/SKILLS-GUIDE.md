@@ -51,6 +51,113 @@ Optionally saves output to `.claude/plans/pm-{feature}-analysis.md`.
 
 ---
 
+## Finance Domain (domain correctness, not software quality)
+
+Every other skill in this file asks *"is this built well?"*. These three ask *"is the finance
+right, and are we allowed to ship it?"* — a question no amount of clean architecture answers.
+
+All three read [.claude/rules/finance-domain.md](../rules/finance-domain.md) first (six invariants,
+FIN-01…FIN-06) and pull detail from [docs/reference/finance-domain/](../../docs/reference/finance-domain/)
+— formula library, Indonesian instrument mechanics, and a tax table with verification dates.
+
+> **📖 Usage manual: [docs/reference/finance-domain/README.md](../../docs/reference/finance-domain/README.md)**
+> Which skill for which question · where each sits in the workflow chain · when running one is
+> *mandatory* (changing a scoring threshold, touching the desk, any tax rate reaching a user) ·
+> four end-to-end worked examples · the five mistakes people make.
+
+**Fastest way to see the value** — each of these hits a real open issue in the codebase:
+
+```
+/cio methodology "the L2 emergency fund indicator"   # essential vs total expense = Rp 21jt vs Rp 36jt target
+/risk-officer spec cluster-heat                      # a rule PF-133 shipped without a specification
+/compliance gate "AI portfolio review"               # an LLM surface with no advice-boundary review
+```
+
+### `/cio` — Chief Investment Officer: is this financially sound?
+Acts as a **CIO from an institutional asset manager** (Vanguard / BlackRock / JPMorgan lineage).
+Judges investment substance, not user appeal — the question is whether a professional with a
+fiduciary duty would sign their name to the output.
+
+| Mode | Usage |
+|------|-------|
+| `feature [idea]` | Is this financially sound and does a wealth product deserve it? |
+| `methodology [thing]` | Audit a formula, rubric, or threshold for correctness and provenance |
+| `gap` | What institution-grade wealth capabilities are we missing, and which three matter now |
+| `product [instrument]` | Should we support this instrument, and what must be true first |
+
+```
+/cio feature "auto-rebalancing suggestions"
+/cio methodology "the L2 emergency fund indicator"
+/cio methodology "portfolio return calculation"
+/cio gap
+/cio product "gold"
+```
+
+**Output:** pyramid placement · professional-defensibility test · cost/tax drag · institutional
+prior art · **BUILD / BUILD WITH GUARDRAILS / NOT YET / DON'T BUILD**.
+
+`/pm-brainstorm` can say Go and `/cio` still say DON'T BUILD — users often want things a
+professional can't defend (price prediction, guaranteed returns, hot picks). Both must agree.
+
+---
+
+### `/risk-officer` — Chief Risk Officer: what cannot be allowed to happen?
+Acts as a **CRO who has run a real book**. Owns the Trading Desk's risk surface: writes gate-rule
+specs precise enough to implement and test, and states limits as numbers with a data source and a
+breach action.
+
+| Mode | Usage |
+|------|-------|
+| `spec [rule]` | Write an implementable, testable gate-rule specification |
+| `limits [scope]` | Design a coherent, nesting limit set with breach actions |
+| `sizing [context]` | Validate or design position-sizing math |
+| `review [module]` | Risk review of a screen, engine, or proposal |
+
+```
+/risk-officer spec cluster-heat
+/risk-officer limits "active trading NAV"
+/risk-officer sizing "DeskCalculator.ComputeSizing"
+/risk-officer review "the desk gate screen"
+```
+
+**Output:** rule spec (inputs · arithmetic · thresholds with rationale · breach action · test
+fixtures · gaming check) · honesty audit against FIN-04 · **ACCEPTABLE / WITH CONDITIONS / NOT
+ACCEPTABLE**.
+
+Standing backlog it exists to clear: `cluster-heat`, `stale-fx`, `sector-concentration`,
+`liquidity`, and `margin` under leverage — the rules PF-133 shipped without a risk specification.
+
+---
+
+### `/compliance` — Regulatory & tax gate before shipping
+Acts as a **fintech compliance officer**, and behaves as a gate rather than a conversation: every
+run ends in a verdict plus a checklist someone else can verify. Flags licensing questions for a
+real consultant instead of guessing at them.
+
+| Mode | Usage |
+|------|-------|
+| `gate [feature]` | Full pre-ship checklist (default) |
+| `advice-line [feature]` | Where this sits on the tool → licensed-advice gradient |
+| `tax [instrument]` | Is every number the user sees tax-correct? |
+| `disclosure [surface]` | Draft the actual disclaimer text and its placement |
+
+```
+/compliance gate "AI portfolio review"
+/compliance advice-line "journey advisor suggestions"
+/compliance tax "SBN yield display"
+/compliance disclosure "freedom projection chart"
+```
+
+**Output:** 1–5 advice-gradient placement · tax accuracy table with verification dates · required
+disclosures and where they must appear · PII check for a public repo · **CLEAR TO SHIP / SHIP WITH
+CHANGES / HOLD**.
+
+Run it on anything that recommends, ranks, sizes, scores, or projects — and on every LLM surface
+(`/journey/advise`, `/portfolio-review`, AI chat), which is reviewed as if it will eventually say
+the worst thing its prompt allows.
+
+---
+
 ## Architecture & Design
 
 ### `/consult` — Lead Software Architect consultation on any technical decision
