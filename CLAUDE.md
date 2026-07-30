@@ -144,6 +144,7 @@ For detailed docs (read on demand — not auto-imported):
 - [docs/design/bank-profiles-reference.md](docs/design/bank-profiles-reference.md) — bank profile YAML schemas
 - [docs/design/validation-pipeline.md](docs/design/validation-pipeline.md) — validation pipeline + master schema
 - [docs/sprint-plan.md](docs/sprint-plan.md) — Sprint 1-4 full breakdown
+- [docs/reference/finance-domain/](docs/reference/finance-domain/) — formula library, Indonesian instrument mechanics, investment tax rates (with verification dates). The always-loaded invariants live in [.claude/rules/finance-domain.md](.claude/rules/finance-domain.md); domain judgment routes to `/cio`, `/risk-officer`, `/compliance`
 
 ## Project Layout
 

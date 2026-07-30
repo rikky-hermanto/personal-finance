@@ -60,6 +60,21 @@
 
 ---
 
+## "Is the finance itself correct?"
+
+| Topic | File | What it covers |
+|-------|------|----------------|
+| **Manual — how to use the finance skills** | [reference/finance-domain/README.md](reference/finance-domain/README.md) | Which skill for which question, where each sits in the workflow, when it's mandatory, worked examples |
+| Finance invariants (always loaded) | [../.claude/rules/finance-domain.md](../.claude/rules/finance-domain.md) | FIN-01…FIN-06 — decimal money, no magic thresholds, TWR vs MWR labelling, green-means-checked, advice boundary, perishable tax rates |
+| Formula library | [reference/finance-domain/formulas.md](reference/finance-domain/formulas.md) | Health ratios, live journey breakpoints and their provenance, returns, risk, position sizing, allocation, FIRE math |
+| Indonesian instrument mechanics | [reference/finance-domain/instruments-id.md](reference/finance-domain/instruments-id.md) | IDX lots/settlement, SBN/ORI/SR/ST, fund cut-offs, crypto venues, P2P, deposits/LPS, FX |
+| Investment tax reference | [reference/finance-domain/tax-id.md](reference/finance-domain/tax-id.md) | Rate per instrument with regulation citation and verification date — crypto moved to 0.21% on 2026-01-01 |
+
+Domain judgment routes to `/cio` (is the finance sound), `/risk-officer` (limits and sizing), and
+`/compliance` (regulatory and tax) — see [../.claude/skills/SKILLS-GUIDE.md](../.claude/skills/SKILLS-GUIDE.md).
+
+---
+
 ## "Security and compliance?"
 
 | Topic | File | What it covers |
@@ -76,6 +91,7 @@
 | Progress log | [mentor/progress.md](mentor/progress.md) | Day-by-day entries, chapter completions |
 | AI engineering use case map | [mentor/ai-engineering-usecase-map.md](mentor/ai-engineering-usecase-map.md) | What to build, when, why |
 | RAG + agents roadmap | [ideas/rag-and-agents-roadmap.md](ideas/rag-and-agents-roadmap.md) | PF-AI003/004 design thinking |
+| Loop engineering (interactive) | [mentor/diagram-loop-engineering.html](mentor/diagram-loop-engineering.html) | Node-graph of Addy Osmani's "Loop Engineering": the five primitives + memory, the reference loop, and the three risks; click a group to drill in, open in a browser |
 
 ---
 
