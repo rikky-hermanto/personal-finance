@@ -38,6 +38,11 @@ import HoldingsTab from '@/pages/investment/HoldingsTab';
 import SnapshotsTab from '@/pages/investment/SnapshotsTab';
 import AIReviewTab from '@/pages/investment/AIReviewTab';
 import ChatPage from '@/pages/ChatPage';
+import DeskLayout from '@/pages/desk/DeskLayout';
+import CommandTab from '@/pages/desk/CommandTab';
+import PortfolioTab from '@/pages/desk/PortfolioTab';
+import MandateTab from '@/pages/desk/MandateTab';
+import ReconcileTab from '@/pages/desk/ReconcileTab';
 
 const queryClient = new QueryClient();
 
@@ -92,6 +97,14 @@ const App = () => (
               <Route path="new" element={<InvestmentWizard />} />
               <Route path=":setupId" element={<InvestmentSetupDetail />} />
               <Route path=":setupId/review/:snapshotId" element={<InvestmentAnalysis />} />
+            </Route>
+            {/* Trading Desk — separate top-level module, excluded from the reward/streak/achievement system */}
+            <Route path="/desk" element={<DeskLayout />}>
+              <Route index element={<Navigate to="/desk/command" replace />} />
+              <Route path="command" element={<CommandTab />} />
+              <Route path="portfolio" element={<PortfolioTab />} />
+              <Route path="mandate" element={<MandateTab />} />
+              <Route path="reconcile" element={<ReconcileTab />} />
             </Route>
           </Route>
           <Route path="/status" element={<StatusPage />} />

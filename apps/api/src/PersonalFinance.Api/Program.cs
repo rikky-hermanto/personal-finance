@@ -1,6 +1,7 @@
 using PersonalFinance.Api.Extensions;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Services;
+using PersonalFinance.Application.Services.Desk;
 using PersonalFinance.Infrastructure.External;
 using PersonalFinance.Application.Investments;
 using PersonalFinance.Infrastructure.Parsers;
@@ -124,6 +125,10 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IFxRateService, JisdorFxRateService>();
             builder.Services.AddScoped<IValuationService, ValuationService>();
             builder.Services.AddScoped<INetWorthService, NetWorthService>();
+
+            // Trading Desk module (PF-133)
+            builder.Services.AddScoped<IDeskService, DeskService>();
+            builder.Services.AddScoped<IDeskMandateService, DeskMandateService>();
 
             // Journey module
             builder.Services.AddScoped<IInsightService, InsightService>();
