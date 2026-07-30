@@ -2,24 +2,27 @@ import { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { DeskState, MandateParams } from '@/types/desk';
 import { fmtIDR, fmtPct } from '@/lib/desk/deskFormat';
-import { useApproveMandate, useDeskMandateVersions, useSaveMandateDraft } from '@/hooks/useDeskState';
+import { useApproveMandate, useDeskMandateVersions, useMandatePresets, useSaveMandateDraft } from '@/hooks/useDeskState';
+import MandatePresetPicker from '@/components/desk/MandatePresetPicker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 
-const FIELDS: { key: keyof MandateParams; label: string; suffix?: string }[] = [
-  { key: 'activeTradingNav', label: 'Active Trading NAV', suffix: 'IDR' },
-  { key: 'riskPerTradePct', label: 'Risk per trade', suffix: '%' },
-  { key: 'hardCeilingPct', label: 'Hard risk ceiling', suffix: '%' },
-  { key: 'dailyLossLimitPct', label: 'Daily loss limit', suffix: '%' },
-  { key: 'weeklyLossLimitPct', label: 'Weekly loss limit', suffix: '%' },
-  { key: 'monthlyLossLimitPct', label: 'Monthly loss limit', suffix: '%' },
-  { key: 'hardHeatPct', label: 'Hard portfolio heat', suffix: '%' },
-  { key: 'maxSingleStockPct', label: 'Max single-symbol exposure', suffix: '%' },
-  { key: 'minRR', label: 'Minimum reward:risk', suffix: 'R' },
-  { key: 'consecutiveLossStop', label: 'Consecutive-loss breaker' },
+// Every label carries its plain-language meaning inline. Desk jargon (NAV, heat, ceiling) is
+// unavoidable in a risk tool, but a user should be able to read their own screen without a glossary.
+const FIELDS: { key: keyof MandateParams; label: string; hint: string; suffix?: string }[] = [
+  { key: 'activeTradingNav', label: 'Active Trading NAV', hint: 'The capital this plan is sized against — not your whole portfolio', suffix: 'IDR' },
+  { key: 'riskPerTradePct', label: 'Risk per trade', hint: 'Most you may lose on one trade if the stop is hit', suffix: '%' },
+  { key: 'hardCeilingPct', label: 'Hard risk ceiling', hint: 'Absolute per-trade cap — no override above this', suffix: '%' },
+  { key: 'dailyLossLimitPct', label: 'Daily loss limit', hint: 'Trading stops for the day once losses reach this', suffix: '%' },
+  { key: 'weeklyLossLimitPct', label: 'Weekly loss limit', hint: 'Same idea, measured over the ISO week', suffix: '%' },
+  { key: 'monthlyLossLimitPct', label: 'Monthly loss limit', hint: 'Same idea, measured over the calendar month', suffix: '%' },
+  { key: 'hardHeatPct', label: 'Hard portfolio heat', hint: 'Total risk across every open position at once', suffix: '%' },
+  { key: 'maxSingleStockPct', label: 'Max single-symbol exposure', hint: 'Largest share of capital one ticker may hold', suffix: '%' },
+  { key: 'minRR', label: 'Minimum reward:risk', hint: 'Target must be at least this many times the risk', suffix: 'R' },
+  { key: 'consecutiveLossStop', label: 'Consecutive-loss breaker', hint: 'Losses in a row that pause trading until you review' },
 ];
 
 const MandateTab = () => {
@@ -28,21 +31,46 @@ const MandateTab = () => {
   const saveDraft = useSaveMandateDraft();
   const approveMandate = useApproveMandate();
 
+  const { data: presets = [] } = useMandatePresets();
+
   const latest = versions[0] ?? null;
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<MandateParams>(latest?.params ?? ({} as MandateParams));
+  const [presetKey, setPresetKey] = useState<string | null>(null);
+  const [pickingPreset, setPickingPreset] = useState(false);
   const [changeReason, setChangeReason] = useState('');
   const [reviewed, setReviewed] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
+  // Shown on first-run automatically, or after the user clicks "Edit" while presets exist.
+  const showPicker = presets.length > 0 && !editing && (pickingPreset || !latest);
+
   const startDraft = () => {
     setDraft(latest?.params ?? draft);
+    setPresetKey(latest?.preset ?? null);
+    setPickingPreset(false);
     setEditing(true);
+  };
+
+  const choosePreset = (params: MandateParams, key: string) => {
+    setDraft(params);
+    setPresetKey(key);
+    setChangeReason(`Started from the ${params.preset} preset.`);
+    setPickingPreset(false);
+    setEditing(true);
+  };
+
+  const openPicker = () => {
+    if (presets.length > 0) {
+      setPickingPreset(true);
+    } else {
+      startDraft();
+    }
   };
 
   const submitDraft = () => {
     saveDraft.mutate(
-      { params: draft, preset: latest?.preset ?? null, changeReason },
+      { params: draft, preset: presetKey ?? latest?.preset ?? null, changeReason },
       { onSuccess: () => { setEditing(false); setChangeReason(''); } }
     );
   };
@@ -56,12 +84,22 @@ const MandateTab = () => {
 
   return (
     <div className="p-6 space-y-6">
+      {showPicker ? (
+        <MandatePresetPicker
+          presets={presets}
+          onSelect={choosePreset}
+          onCustom={startDraft}
+          onCancel={latest ? () => setPickingPreset(false) : undefined}
+          customLabel={latest ? 'Edit current version manually' : undefined}
+        />
+      ) : (
+      <>
       <div className="flex items-center justify-between">
         <div className="text-sm font-semibold">
           {editing ? 'New draft' : latest ? `Version ${latest.version} — ${latest.status}` : 'No mandate yet'}
         </div>
         {!editing && (
-          <Button size="sm" variant="outline" onClick={startDraft}>
+          <Button size="sm" variant="outline" onClick={openPicker}>
             {latest ? 'Edit (creates new draft)' : 'Create mandate'}
           </Button>
         )}
@@ -72,6 +110,7 @@ const MandateTab = () => {
           {FIELDS.map(f => (
             <div key={String(f.key)} className="space-y-1">
               <Label className="text-xs text-muted-foreground">{f.label}</Label>
+              <p className="text-[11px] leading-tight text-muted-foreground/80">{f.hint}</p>
               {editing ? (
                 <Input
                   type="number"
@@ -153,6 +192,8 @@ const MandateTab = () => {
           })}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };
