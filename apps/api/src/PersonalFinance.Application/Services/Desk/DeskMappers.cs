@@ -16,12 +16,14 @@ public static class DeskMappers
 
     public static DeskBrokerAccountDto ToDto(DeskBrokerAccount a) => new(
         a.Id, a.ExternalKey, a.Name, a.Currency, a.ReportedEquity, a.ReportedEquityNative,
-        a.Cash, a.CashNative, a.CashCurrencyNative, a.BuyingPower, a.BuyingPowerCurrency, a.Status);
+        a.Cash, a.CashNative, a.CashCurrencyNative, a.BuyingPower, a.BuyingPowerCurrency, a.Status,
+        a.BrokerKey, a.PortfolioLabel);
 
     public static DeskPositionDto ToDto(DeskPosition p) => new(
         p.Id, p.Broker, p.Symbol, p.AssetClass, p.Qty, p.QtyShares, p.QtyLots,
         p.AvgPrice, p.AvgPriceNative, p.LastPrice, p.LastPriceNative,
-        p.CostIdr, p.MvIdr, p.PnlIdr, p.PnlPct, p.Weight, p.Sleeve, p.StopPrice, p.Unconfirmed, p.EstimatedCostBasis);
+        p.CostIdr, p.MvIdr, p.PnlIdr, p.PnlPct, p.Weight, p.Sleeve, p.StopPrice, p.Unconfirmed, p.EstimatedCostBasis,
+        p.AccountExternalKey);
 
     public static DeskReconIssueDto ToDto(DeskReconIssue r) => new(
         r.Id, r.ExternalKey, r.Label, r.Account, r.Amount, r.Currency, r.Resolution,

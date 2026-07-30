@@ -9,8 +9,6 @@ export interface Regime {
 
 export interface NavChain {
   tentativeNav: number;
-  stockbitAmt: number;
-  included: boolean;
   reconciledNav: number;
   legacyMv: number;
   reserve: number;
@@ -101,6 +99,17 @@ export interface MandateParams {
   averagingDownEnabled: boolean;
 }
 
+export interface MandatePreset {
+  key: string;
+  name: string;
+  tagline: string;
+  whoItIsFor: string;
+  highlights: string[];
+  params: MandateParams;
+  locked: boolean;
+  unlockRequirement: string | null;
+}
+
 export interface TradePlanInput {
   side: 'long' | 'short' | null;
   entry: number | null;
@@ -116,10 +125,8 @@ export interface TradePlanInput {
 
 export interface NavChainInput {
   tentativeNav: number;
-  reconciledNavExclStockbit: number;
+  reconciledNav: number;
   legacyMv: number;
-  stockbitDuplicateCash: number;
-  stockbitResolution: string | null;
   openRisk: number;
   todaysRealizedPnl: number;
   drawdownRegime: string;
@@ -130,6 +137,8 @@ export interface DeskBrokerAccount {
   id: string;
   externalKey: string;
   name: string;
+  brokerKey: string;
+  portfolioLabel: string | null;
   currency: string;
   reportedEquity: number;
   reportedEquityNative: number | null;
@@ -144,6 +153,7 @@ export interface DeskBrokerAccount {
 export interface DeskPosition {
   id: string;
   broker: string;
+  accountExternalKey: string | null;
   symbol: string;
   assetClass: string;
   qty: number | null;
@@ -215,5 +225,4 @@ export interface DeskState {
   gate: GateResult;
   journalStats: JournalStats;
   drawdownRegime: string;
-  stockbitResolution: string;
 }

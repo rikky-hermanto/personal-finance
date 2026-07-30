@@ -6,10 +6,8 @@ namespace PersonalFinance.Application.Services.Desk;
 
 public record NavChainInputDto(
     decimal TentativeNav,
-    decimal ReconciledNavExclStockbit,
+    decimal ReconciledNav,
     decimal LegacyMv,
-    decimal StockbitDuplicateCash,
-    string? StockbitResolution, // "include" -> stockbit cash counted in reconciled NAV; anything else -> excluded
     decimal OpenRisk,
     decimal TodaysRealizedPnl, // negative = loss
     string DrawdownRegime,
@@ -43,8 +41,7 @@ public static class DeskCalculator
 
     public static NavChainDto ComputeNavChain(NavChainInputDto input)
     {
-        var included = input.StockbitResolution == "include";
-        var reconciledNav = included ? input.TentativeNav : input.ReconciledNavExclStockbit;
+        var reconciledNav = input.ReconciledNav;
         var legacyMv = input.LegacyMv;
 
         var mandate = input.Mandate;
@@ -70,8 +67,6 @@ public static class DeskCalculator
 
         return new NavChainDto(
             TentativeNav: input.TentativeNav,
-            StockbitAmt: input.StockbitDuplicateCash,
-            Included: included,
             ReconciledNav: reconciledNav,
             LegacyMv: legacyMv,
             Reserve: reserve,
@@ -147,6 +142,35 @@ public static class DeskCalculator
             HeatAfter: heatAfter
         );
     }
+
+    /// <summary>
+    /// Collapses positions of the same symbol held across multiple portfolios into one economic
+    /// exposure. Gate rules evaluate aggregates; the UI still renders the per-portfolio rows.
+    /// </summary>
+    public static List<DeskPositionDto> AggregateBySymbol(List<DeskPositionDto> positions) =>
+        positions
+            .GroupBy(p => p.Symbol)
+            .Select(g => g.Count() == 1 ? g.First() : g.First() with
+            {
+                AccountExternalKey = null,
+                QtyShares = g.Sum(p => p.QtyShares ?? 0),
+                QtyLots   = g.Sum(p => p.QtyLots ?? 0),
+                CostIdr   = g.Sum(p => p.CostIdr),
+                MvIdr     = g.Sum(p => p.MvIdr),
+                PnlIdr    = g.Sum(p => p.PnlIdr),
+                PnlPct    = g.Sum(p => p.CostIdr) != 0
+                            ? g.Sum(p => p.PnlIdr) / g.Sum(p => p.CostIdr) * 100m
+                            : 0m,
+                AvgPrice  = g.Sum(p => p.QtyShares ?? 0) != 0
+                            ? g.Sum(p => p.CostIdr) / g.Sum(p => p.QtyShares ?? 0)
+                            : null,
+                Weight    = g.Sum(p => p.Weight),
+                // Any portfolio holding this name unclassified taints the whole exposure.
+                Sleeve    = g.Any(p => p.Sleeve == "Legacy / Unclassified")
+                            ? "Legacy / Unclassified"
+                            : g.First().Sleeve,
+            })
+            .ToList();
 
     public static GateResultDto EvaluateGate(GateEvaluationInputDto input)
     {
@@ -318,9 +342,10 @@ public static class DeskCalculator
 
         // 15. add-to-loser — REAL: position lookup, never a literal symbol
         var symbol = inputs?.Symbol;
-        var addingLoser = !string.IsNullOrEmpty(symbol) && input.Positions.Any(p =>
-            p.Symbol == symbol && p.Sleeve == "Legacy / Unclassified" && p.PnlPct < 0);
-        var loserPosition = addingLoser ? input.Positions.First(p => p.Symbol == symbol) : null;
+        bool IsLosingLegacy(DeskPositionDto p) =>
+            p.Symbol == symbol && p.Sleeve == "Legacy / Unclassified" && p.PnlPct < 0;
+        var loserPosition = string.IsNullOrEmpty(symbol) ? null : input.Positions.FirstOrDefault(IsLosingLegacy);
+        var addingLoser = loserPosition is not null;
         rows.Add(new GateRuleDto(
             "add-to-loser", "Adding to losing legacy position",
             noPlan ? "unresolved" : (addingLoser ? "blocked" : "pass"),

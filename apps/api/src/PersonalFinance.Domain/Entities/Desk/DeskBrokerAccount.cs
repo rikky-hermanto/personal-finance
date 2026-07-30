@@ -18,6 +18,12 @@ public class DeskBrokerAccount : BaseModel
     [Column("name")]
     public string Name { get; set; } = string.Empty;
 
+    [Column("broker_key")]
+    public string BrokerKey { get; set; } = string.Empty;
+
+    [Column("portfolio_label")]
+    public string? PortfolioLabel { get; set; }
+
     [Column("currency")]
     public string Currency { get; set; } = "IDR";
 

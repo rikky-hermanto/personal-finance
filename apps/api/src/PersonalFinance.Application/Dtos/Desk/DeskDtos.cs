@@ -4,8 +4,6 @@ public record RegimeDto(string Name, decimal DrawdownPct, decimal Multiplier);
 
 public record NavChainDto(
     decimal TentativeNav,
-    decimal StockbitAmt,
-    bool Included,
     decimal ReconciledNav,
     decimal LegacyMv,
     decimal Reserve,
@@ -92,6 +90,23 @@ public record MandateParamsDto(
     bool AveragingDownEnabled
 );
 
+/// <summary>
+/// A named, pre-approved starting point for a mandate. Exists so a first-time user never has to
+/// choose 20 risk parameters cold — see the CIO review recorded in DeskDefaults.Presets.
+/// </summary>
+/// <param name="Key">Stable identifier persisted on the mandate version's `preset` column.</param>
+/// <param name="Locked">True when the user has not yet met <paramref name="UnlockRequirement"/>.</param>
+public record MandatePresetDto(
+    string Key,
+    string Name,
+    string Tagline,
+    string WhoItIsFor,
+    List<string> Highlights,
+    MandateParamsDto Params,
+    bool Locked,
+    string? UnlockRequirement
+);
+
 public record TradePlanInputDto(
     string? Side, // long | short
     decimal? Entry,
@@ -115,15 +130,15 @@ public record DeskStateDto(
     NavChainDto NavChain,
     GateResultDto Gate,
     JournalStatsDto JournalStats,
-    string DrawdownRegime,
-    string StockbitResolution
+    string DrawdownRegime
 );
 
 public record DeskBrokerAccountDto(
     Guid Id, string ExternalKey, string Name, string Currency,
     decimal ReportedEquity, decimal? ReportedEquityNative,
     decimal Cash, decimal? CashNative, string? CashCurrencyNative,
-    decimal? BuyingPower, string? BuyingPowerCurrency, string Status
+    decimal? BuyingPower, string? BuyingPowerCurrency, string Status,
+    string BrokerKey, string? PortfolioLabel
 );
 
 public record DeskPositionDto(
@@ -131,7 +146,8 @@ public record DeskPositionDto(
     decimal? Qty, decimal? QtyShares, decimal? QtyLots,
     decimal? AvgPrice, decimal? AvgPriceNative, decimal? LastPrice, decimal? LastPriceNative,
     decimal CostIdr, decimal MvIdr, decimal PnlIdr, decimal PnlPct, decimal Weight,
-    string Sleeve, decimal? StopPrice, bool Unconfirmed, bool EstimatedCostBasis
+    string Sleeve, decimal? StopPrice, bool Unconfirmed, bool EstimatedCostBasis,
+    string? AccountExternalKey
 );
 
 public record DeskReconIssueDto(

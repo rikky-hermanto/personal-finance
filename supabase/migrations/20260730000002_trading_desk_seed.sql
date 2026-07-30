@@ -6,8 +6,13 @@ insert into desk_broker_accounts
   (user_id, external_key, name, currency, reported_equity, reported_equity_native, cash, cash_native, cash_currency_native, buying_power, buying_power_currency, status)
 values
   ('00000000-0000-0000-0000-000000000000', 'mandiri', 'Mandiri Sekuritas', 'IDR', 784938961.72, null, 37359961.72, null, null, 1404710882.16, null, 'Needs reconciliation'),
-  ('00000000-0000-0000-0000-000000000000', 'stockbit_cash', 'Stockbit — cash only', 'IDR', 33178117, null, 33178117, null, null, null, null, 'Needs reconciliation'),
-  ('00000000-0000-0000-0000-000000000000', 'stockbit_stocks', 'Stockbit — stocks', 'IDR', 104243623, null, 15812623, null, null, null, null, 'Reconciles'),
+  -- Stockbit segregates cash per portfolio; each row below is one portfolio, not a duplicate.
+  -- portfolio_label ('Trading' / 'Sectoral Rotation') is assigned in the follow-up grain
+  -- migration (20260730000003) — that column does not exist yet when this seed runs.
+  -- "Trading": cash 38,771,092 + ANTM MV 31,460,000 = 70,231,092
+  ('00000000-0000-0000-0000-000000000000', 'stockbit_trading', 'Stockbit — Trading', 'IDR', 70231092, null, 38771092, null, null, null, null, 'Reconciles'),
+  -- "Sectoral Rotation": cash 15,812,623 + AADI 64,610,000 + ANTM 23,821,000 = 104,243,623
+  ('00000000-0000-0000-0000-000000000000', 'stockbit_sectoral', 'Stockbit — Sectoral Rotation', 'IDR', 104243623, null, 15812623, null, null, null, null, 'Reconciles'),
   ('00000000-0000-0000-0000-000000000000', 'binance', 'Binance', 'USD', 140679062.69, 7793.85, 22750, 1.26, null, null, null, 'Instrument unconfirmed'),
   ('00000000-0000-0000-0000-000000000000', 'ibkr', 'IBKR', 'USD', 1913300, 106.00, 172661, 12.38, 'SGD', 9.60, 'USD', 'Estimated cost basis')
 on conflict do nothing;
@@ -20,8 +25,11 @@ values
   ('00000000-0000-0000-0000-000000000000', 'Mandiri', 'BBCA', 'IDX Stock', null, 23300, 233, 9969.85, null, 6300, null, 232297505, 146790000, -85507505, -36.81, 15.01, 'Legacy / Unclassified', null, false, false),
   ('00000000-0000-0000-0000-000000000000', 'Mandiri', 'HMSP', 'IDX Stock', null, 62600, 626, 2121.51, null, 715, null, 132806526, 44759000, -88047526, -66.30, 4.58, 'Legacy / Unclassified', null, false, false),
   ('00000000-0000-0000-0000-000000000000', 'Mandiri', 'BBRI', 'IDX Stock', null, 174000, 1740, 4270.78, null, 2930, null, 743115720, 509820000, -233295720, -31.39, 52.12, 'Legacy / Unclassified', null, false, false),
+  -- Sectoral Rotation portfolio (attributed by symbol + lot count in the grain migration).
   ('00000000-0000-0000-0000-000000000000', 'Stockbit', 'AADI', 'IDX Stock', null, 7100, 71, 9963.86, null, 9100, null, 70743455, 64610000, -6133455, -8.67, 6.61, 'Legacy / Unclassified', null, false, false),
   ('00000000-0000-0000-0000-000000000000', 'Stockbit', 'ANTM', 'IDX Stock', null, 8300, 83, 3560.51, null, 2870, null, 29552262, 23821000, -5731262, -19.39, 2.44, 'Legacy / Unclassified', null, false, false),
+  -- Trading portfolio — 110 lots ANTM, previously missing entirely from the desk.
+  ('00000000-0000-0000-0000-000000000000', 'Stockbit', 'ANTM', 'IDX Stock', null, 11000, 110, 2854.27, null, 2860, null, 31397025, 31460000, 62975, 0.20, 3.21, 'Legacy / Unclassified', null, false, false),
   ('00000000-0000-0000-0000-000000000000', 'Binance', 'USDT', 'Crypto', 1.26, null, null, null, 1.00, null, 1.00, 22723.82, 22723.82, 0, 0.00, 0.005, 'Legacy / Unclassified', null, false, false),
   ('00000000-0000-0000-0000-000000000000', 'Binance', 'BTC/USDT', 'Crypto', 0.09449, null, null, null, 71069, null, 64281.37, 121210541, 109634737, -11575804, -9.55, 11.21, 'Legacy / Unclassified', null, false, false),
   ('00000000-0000-0000-0000-000000000000', 'Binance', 'Gold (unconfirmed)', 'Crypto', 0.421, null, null, null, 4748, null, 4082.30, 36078802, 31021602, -5057200, -14.02, 3.17, 'Legacy / Unclassified', null, true, false),
@@ -51,7 +59,6 @@ on conflict do nothing;
 insert into desk_recon_issues
   (user_id, external_key, label, account, amount, currency, resolution, options)
 values
-  ('00000000-0000-0000-0000-000000000000', 'r1', 'Duplicate cash section', 'Stockbit', 33178117, null, 'unresolved', '[["include", "Distinct wallet — include"], ["exclude", "Duplicate — exclude"]]'::jsonb),
   ('00000000-0000-0000-0000-000000000000', 'r2', 'Market value difference', 'Mandiri', 20000, null, 'unresolved', '[["broker", "Accept broker total"], ["rowsum", "Accept row sum"], ["unresolved", "Leave unresolved"]]'::jsonb),
   ('00000000-0000-0000-0000-000000000000', 'r3', 'Instrument unconfirmed', 'Binance Gold', null, null, 'unresolved', '[["confirm", "Confirm symbol"], ["unresolved", "Leave unconfirmed"]]'::jsonb),
   ('00000000-0000-0000-0000-000000000000', 'r4', 'Estimated cost basis', 'IBKR IBM', 214.07, 'USD', 'unresolved', '[["confirm", "Confirm"], ["edit", "Edit"]]'::jsonb)
