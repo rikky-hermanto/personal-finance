@@ -1,15 +1,5 @@
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:7208';
 
-export interface SafeToSpend {
-  amount: number;
-  status: 'ok' | 'warning' | 'danger';
-  daysRemaining: number;
-  incomeBaseline: number;
-  committedBillsRemaining: number;
-  savingsGoal: number;
-  alreadySpent: number;
-}
-
 export interface VarianceDriver {
   category: string;
   currentMonthSpend: number;
@@ -26,8 +16,10 @@ export interface VarianceExplainer {
   drivers: VarianceDriver[];
 }
 
-export const getSafeToSpend = (accountId?: string): Promise<SafeToSpend> =>
-  fetch(`${BASE}/api/spending-analysis/safe-to-spend${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ''}`).then(r => r.json());
+async function toJson<T>(res: Response): Promise<T> {
+  if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+  return res.json();
+}
 
 export const getVarianceExplainer = (accountId?: string): Promise<VarianceExplainer> =>
-  fetch(`${BASE}/api/spending-analysis/variance${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ''}`).then(r => r.json());
+  fetch(`${BASE}/api/spending-analysis/variance${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ''}`).then(toJson<VarianceExplainer>);

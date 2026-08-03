@@ -1,3 +1,4 @@
+using PersonalFinance.Application.Constants;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -45,7 +46,9 @@ public class SpendingAnalysisService : ISpendingAnalysisService
         // Committed bills: recurring expenses not yet charged this month
         var committedBills = DetectCommittedBills(trailingTxs, currentMonthTxs, trailingMonths);
 
-        const decimal savingsGoal = 0m;
+        // Median (not mean) monthly outflow to Investing-section categories — what the user actually
+        // sets aside for the future. Replaces the old hardcoded 0, which assumed nobody saves.
+        var savingsGoal = DetectSavingsGoal(trailingTxs, trailingMonths);
 
         var daysRemaining = DateTime.DaysInMonth(today.Year, today.Month) - today.Day + 1;
         var numerator = incomeBaseline - committedBills - savingsGoal - alreadySpent;
@@ -187,5 +190,26 @@ public class SpendingAnalysisService : ISpendingAnalysisService
         var noDigits = Regex.Replace(lower, @"\d+", " ");
         var noSpecial = Regex.Replace(noDigits, @"[^a-z\s]", " ");
         return Regex.Replace(noSpecial, @"\s+", " ").Trim();
+    }
+
+    private static decimal DetectSavingsGoal(List<Transaction> trailingTxs, List<DateTime> trailingMonths)
+    {
+        var investingCategories = CashflowSectionMapping.CategoryToSection
+            .Where(kv => kv.Value == CashflowSection.Investing)
+            .Select(kv => kv.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var monthlyTotals = trailingMonths
+            .Select(m => trailingTxs
+                .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month)
+                .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+                .Where(t => investingCategories.Contains(t.Category))
+                .Sum(t => t.AmountIdr))
+            .ToList();
+
+        if (monthlyTotals.Count == 0) return 0m;
+        var sorted = monthlyTotals.OrderBy(v => v).ToList();
+        var mid = sorted.Count / 2;
+        return sorted.Count % 2 == 0 ? (sorted[mid - 1] + sorted[mid]) / 2m : sorted[mid];
     }
 }
