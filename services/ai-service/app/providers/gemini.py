@@ -119,6 +119,7 @@ class GeminiProvider:
 
             input_tokens = response.usage_metadata.prompt_token_count
             output_tokens = response.usage_metadata.candidates_token_count
+            self.last_usage = {"input": input_tokens, "output": output_tokens}
             cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
 
             generation.update(

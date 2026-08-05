@@ -138,6 +138,7 @@ class AnthropicProvider:
             tool_block = next(b for b in response.content if b.type == "tool_use")
             input_tokens = response.usage.input_tokens
             output_tokens = response.usage.output_tokens
+            self.last_usage = {"input": input_tokens, "output": output_tokens}
             cost = estimate_cost_usd(self._model, input_tokens, output_tokens)
             generation.update(
                 output=str(tool_block.input)[:500],

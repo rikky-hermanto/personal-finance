@@ -135,3 +135,120 @@ one-to-three-sentence answer in the question's language. If it disobeys and writ
 number, it doesn't matter — the response/`done` payload carries `total_idr` straight from the SQL
 result, and the UI renders *that field*, not the prose. The trust boundary is structural: data
 flows *around* the model, not *through* it. The prompt is a plea; the payload is enforcement.
+
+---
+
+# Categorization Eval Harness
+
+Measures whether the LLM assigns the **right category** to a transaction. Separate from the
+extraction harness: extraction asks "did you find the right set of rows", categorization asks
+"for one input, did you pick the right label". **NOT part of pytest/CI** — real, paid API calls.
+
+| Level | What | Tool |
+|-------|------|------|
+| Unit Tests | Mock LLM — prove `/categorize` plumbing and error fallback | `tests/test_categorize.py` |
+| Scorer Tests | Pure math — accuracy, OOV, calibration | `tests/test_scoring_categorize.py` |
+| Eval Harness | Real API calls — prove the model categorizes correctly | `eval_categorize.py` |
+
+## Listing the cases
+
+```bash
+cd services/ai-service
+PYTHONPATH=. python evals/eval_categorize.py --list
+```
+
+Prints every case id, description, flow, and expected category, plus the default category
+vocabulary. Makes **no API calls** — safe to run any time.
+
+## Adding or updating a case
+
+Edit `evals/categorize_cases.json`. Append an object to `cases`:
+
+```json
+{
+  "id": "grab_fee",
+  "description": "Grab Fee",
+  "remarks": "",
+  "flow": "DB",
+  "amount_idr": 15000,
+  "account_name": "NeoBank",
+  "expected": "Transportation"
+}
+```
+
+| Key | Required | Meaning |
+|-----|----------|---------|
+| `id` | yes | Stable slug — appears in output, and `--filter` matches on it |
+| `description` | yes | Merchant / transaction text as it appears on the statement |
+| `flow` | yes | `"DB"` (money out) or `"CR"` (money in) |
+| `amount_idr` | yes | Number, whole rupiah |
+| `remarks` | no | Secondary statement text, default `""` |
+| `account_name` | no | Bank name, default `""` |
+| `expected` | one of | The single correct category |
+| `expected_any` | one of | List of categories, any of which passes — use for genuinely ambiguous merchants |
+| `available_categories` | no | Override the offered vocabulary for this case only |
+
+**Rules for good cases:**
+- Use a category string that exists in `default_categories` — a typo'd expectation fails 100% of runs and tells you nothing.
+- Use `expected_any` when a human couldn't confidently pick one either. Forcing a single answer on an ambiguous input manufactures failures.
+- Use `available_categories` to stress the constrained-vocabulary path — that's where "never invent categories outside the list" gets tested.
+
+**Keeping the vocabulary honest:** `default_categories` must match what production actually
+passes to `/categorize`. The local `category_rules` table is a thin dev seed (4 categories —
+`Bill`, `Salary`, `Saving Interest`, `Withdrawing`), not the real product taxonomy, so this
+harness's `default_categories` is copied from the hardcoded fallback list production itself uses
+when a user has no rules yet:
+[`TransactionPipelineService.DefaultCategories`](../../../apps/api/src/PersonalFinance.Application/Services/TransactionPipelineService.cs)
+(cross-checked against the independently-seeded `category_presets` table — 16 of its 17 categories
+match exactly). Re-verify against both sources whenever category rules or that fallback list change:
+
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+  -c "SELECT DISTINCT category FROM category_rules WHERE category IS NOT NULL ORDER BY 1;"
+```
+
+## Running
+
+```bash
+cd services/ai-service
+
+# Single provider (uses AI_PROVIDER from config if --provider omitted)
+PYTHONPATH=. python evals/eval_categorize.py --provider gemini
+PYTHONPATH=. python evals/eval_categorize.py --provider anthropic --model claude-sonnet-4-6
+
+# Side-by-side comparison (both providers in one result file)
+PYTHONPATH=. python evals/eval_categorize.py --compare
+
+# Iterate on one case without burning quota
+PYTHONPATH=. python evals/eval_categorize.py --provider gemini --filter grab_fee
+
+# Print only — skip writing to results/
+PYTHONPATH=. python evals/eval_categorize.py --provider gemini --no-save
+```
+
+> **Quota note:** Gemini's free tier allows 20 requests/day and each case is one request.
+> A full suite run costs one request per case — use `--filter` while iterating.
+>
+> **Rate-limit note (observed 2026-08-05):** the free tier also throttles at ~5 requests/minute
+> (`GenerateRequestsPerMinutePerProjectPerModel-FreeTier`). A 7-case run hit `429 RESOURCE_EXHAUSTED`
+> on the 6th–7th case both times it was tried back-to-back. If a full run 429s partway through, wait
+> ~60s and finish the remainder with `--filter <remaining-id>` rather than re-running the whole suite.
+
+## Metrics
+
+- **Accuracy** — fraction of cases where the predicted label was acceptable.
+- **Out-of-vocab (OOV) rate** — fraction where the model returned a category *not in the offered
+  list*. The system prompt says "Never invent categories outside the provided list"; this is the
+  only thing that verifies it. A non-zero OOV rate is a prompt bug, not a knowledge gap.
+- **Calibration gap** — mean confidence when correct minus mean confidence when wrong. The
+  4-layer categorization engine (PF-103) gates on confidence, so a model with high accuracy and a
+  near-zero gap is a *worse* production dependency than a less accurate, well-calibrated one:
+  downstream code can't tell its good answers from its bad ones.
+
+## Results Convention
+
+Every run auto-saves to `evals/results/YYYYMMDD-categorize-eval.md`. After each run:
+1. Open the generated file
+2. Fill in **Failure Modes** — which cases failed and whether the cause was the model, the
+   prompt, or a wrong expectation in the case list
+3. Commit the results file alongside any change that prompted the re-run
