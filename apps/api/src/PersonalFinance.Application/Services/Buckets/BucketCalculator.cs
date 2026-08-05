@@ -19,6 +19,17 @@ public static class BucketCalculator
         .Select(kv => kv.Key)
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+    // A recurring description is only eligible for Committed if its category can plausibly be a
+    // fixed obligation. Day-to-day discretionary categories (Food, Transport, Shopping...) never
+    // qualify, even if the same merchant description recurs 3 months running — otherwise a habitual
+    // coffee order gets promoted to "essential" spend, which corrupts the L2 emergency-fund
+    // denominator (formulas.md: essential, not total, expense). Loan/Credit Card are Financing-section
+    // installments, not Investing, so they need listing explicitly.
+    private static readonly HashSet<string> CommittedEligibleCategories = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Bill", "Subscription", "Insurance", "Loan", "Credit Card",
+    };
+
     public static decimal Median(IReadOnlyList<decimal> values)
     {
         if (values.Count == 0) return 0m;
@@ -52,7 +63,7 @@ public static class BucketCalculator
     {
         var trailingExpenses = trailingTxs
             .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-            .Where(t => !InvestingCategories.Contains(t.Category))
+            .Where(t => CommittedEligibleCategories.Contains(t.Category))
             .ToList();
 
         var currentKeys = currentMonthTxs
@@ -107,6 +118,7 @@ public static class BucketCalculator
     {
         decimal MonthCommitted(DateTime m) => trailingTxs
             .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month && t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+            .Where(t => CommittedEligibleCategories.Contains(t.Category))
             .Where(t => committedKeys.Contains(NormalizeDescription(t.Description)))
             .Sum(t => t.AmountIdr);
 
