@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-07-30
+> **Last synced:** 2026-08-04
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -81,6 +81,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-127 | _(no issue)_ | PII Redaction: Tracked Files + Untracked Plan Files (Pre-Open-Source) |
 | PF-128 | _(no issue)_ | Superbank PDF Parser: bank-specific LLM prompt + dispatch map |
 | PF-131 | _(no issue)_ | Mentor Auto-Blogging: `/mentor blog` draft + `/mentor blog post` → Hashnode |
+| PF-138 | _(no issue)_ | Desk multi-portfolio model — portfolio grain, symbol aggregation, retire duplicate-cash recon (blocks PF-134) |
 
 ---
 
@@ -118,6 +119,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 |----|-------|-------|
 | PF-AI006-PART2 | Sentence-Window + Auto-Merging (deferred) | Split dari PF-AI006; jalan setelah hybrid search selesai DAN ada keputusan produk soal statement-level Q&A. plan: [`.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md`](.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) |
 | PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) |
+| PF-AI010 | Categorization Eval Harness (real-LLM input → expected accuracy) | Ready. JSON case list + `eval_categorize.py`; measures label accuracy, out-of-vocab rate, confidence calibration. Gives PF-AI007's agent a baseline to beat. plan: [`.claude/plans/learning/PF-AI010-categorization-eval-harness-todo.md`](.claude/plans/learning/PF-AI010-categorization-eval-harness-todo.md) |
 
 ---
 
@@ -184,6 +186,10 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
 | PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights |
 | PF-137 | _(no issue)_ | Show mandate presets when editing an existing mandate |
+| PF-138 | _(no issue)_ | Desk multi-portfolio model: portfolio grain, symbol aggregation, retire duplicate-cash recon |
+| PF-138 | _(no issue)_ | Desk multi-portfolio model: portfolio grain, symbol aggregation, retire duplicate-cash recon |
+| PF-138 | _(no issue)_ | Desk multi-portfolio model: portfolio grain, symbol aggregation, retire duplicate-cash recon |
+| PF-108 | _(no issue)_ | Safe-to-Spend + Variance Explainer (Spending Analysis MVP) |
 
 ---
 
@@ -200,5 +206,5 @@ Monitoring: ████████████████████ 100% (3
 Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
 ```
 
-> Next task ID: **PF-137** (PF-S series: PF-S14 if more Supabase tasks needed)
+> Next task ID: **PF-139** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI011)
 > PF-134 is reserved for Trading Desk Phase 2 (Pre-Trade + Journal + gated trade-plan persistence), PF-135 for the deferred gate rules (correlation groups, FX staleness, sector concentration, liquidity).

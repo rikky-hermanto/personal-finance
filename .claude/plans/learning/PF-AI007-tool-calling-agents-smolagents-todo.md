@@ -21,6 +21,8 @@
   - [📋 TODO](#-todo)
     - [STEP 0 — Learn: the agent mental model (theory anchor, 60–90 min)](#--step-0--learn-the-agent-mental-model-theory-anchor-6090-min)
     - [STEP 1 — Install smolagents + litellm](#--step-1--install-smolagents--litellm)
+    - [STEP 1b — Verify the smolagents API surface](#--step-1b--verify-the-smolagents-api-surface-5-min--do-not-skip)
+    - [STEP 1c — Add `category` to `SearchResult`](#--step-1c--add-category-to-searchresult-blocks-tool-2)
     - [STEP 2 — Create the package structure + three tool files](#--step-2--create-the-package-structure--three-tool-files)
     - [STEP 3 — Build `CategorizerAgent` in `app/agents/categorizer_agent.py`](#--step-3--build-categorizeragent-in-appagentscategorizer_agentpy)
     - [STEP 4 — Wire OTel tracing (Langfuse auto-capture)](#--step-4--wire-otel-tracing-langfuse-auto-capture)
@@ -139,51 +141,92 @@ The **Transaction Categorizer Agent** replaces the silent LLM-fallback layer wit
 This is what "observable AI reasoning" looks like in a job interview demo.
 
 ```
-                         Transaction Categorizer Agent
-                       ┌────────────────────────────────────────────────────────────┐
-                       │                                                            │
-  Input:               │    LLM: LiteLLM → Gemini 2.5 Flash (or Anthropic)        │
-  description +        │         ↑              ↕               ↓                  │
-  wallet + amount  ──► │   [Observe]        [Reason]       [Act: tool_call]        │
-                       │         │              │               │                  │
-                       │         └──────────────┴───────────────┘                  │
-                       │                   ReAct loop (≤ 3 iterations)             │
-                       └──────────────────────────┬─────────────────────────────────┘
-                                                  │
-                        ┌─────────────────────────┼────────────────────────┐
-                        ▼                         ▼                        ▼
-            ┌───────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
-            │ search_category_rules │  │ find_similar_trans   │  │ list_all_categories  │
-            │ (keyword: str)        │  │ (description: str)   │  │ ()                   │
-            │                       │  │                      │  │                      │
-            │ → keyword-matches     │  │ → calls /search      │  │ → returns all known  │
-            │   against 106 rules,  │  │   endpoint (pgvector │  │   category names so  │
-            │   returns rule +      │  │   RAG from PF-AI003) │  │   agent constrains   │
-            │   category pairs      │  │   → top-3 with their │  │   final pick to      │
-            │                       │  │   historical cats    │  │   valid vocabulary   │
-            └───────────────────────┘  └──────────────────────┘  └──────────────────────┘
-                        │                         │                        │
-                        └─────────────────────────┴────────────────────────┘
-                                                  │
-                                 Final Answer (ToolCallingAgent):
-                                 {
-                                   "category": "Food & Dining",
-                                   "confidence": 0.9,
-                                   "reasoning": "Rule matched 'starbucks' → Food & Dining (Café);
-                                                  3 similar past transactions confirmed."
-                                 }
-                                                  │
-                                      ┌───────────▼──────────────┐
-                                      │  Langfuse trace           │
-                                      │  Parent: /categorize-     │
-                                      │  agent (span)             │
-                                      │  ├─ search_category_rules │
-                                      │  │  (span: input/output)  │
-                                      │  ├─ find_similar_trans    │
-                                      │  │  (span: input/output)  │
-                                      │  └─ LLM completion (span) │
-                                      └──────────────────────────┘
+                    Transaction Categorizer Agent — ONE loop, repeated ≤ 3× total
+                    (the "3" is the step budget, NOT one try per tool — a rule
+                     match can end everything after iteration 1)
+                  ┌──────────────────────────────────────────────────────────┐
+                  │   LLM: LiteLLM → Gemini 2.5 Flash (or Anthropic)         │
+  Input:          │                                                          │
+  description +   │   ┌──►[Observe]──►[Reason]──►[Act: pick ONE tool]──┐    │
+  wallet + amount ─┼───┘                                                │    │
+                  │   ▲                                                 │    │
+                  │   └──────────────── tool's result ───────────────────┘    │
+                  │        (fed back in; loop repeats OR LLM has enough        │
+                  │         evidence already and exits to Final Answer)        │
+                  └───────────────────────────┬──────────────────────────────┘
+                                               │
+                             each "Act" round picks exactly ONE of:
+                  ┌────────────────────────────┼────────────────────────────┐
+                  ▼                            ▼                            ▼
+      ┌───────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
+      │ search_category_rules │  │ find_similar_trans    │  │ list_all_categories  │
+      │ (keyword: str)        │  │ (description: str)    │  │ ()                   │
+      │                       │  │                        │  │                      │
+      │ → keyword-matches     │  │ → calls /search        │  │ → returns all known  │
+      │   against 106 rules,  │  │   endpoint (pgvector   │  │   category names so  │
+      │   returns rule +      │  │   RAG from PF-AI003)   │  │   agent constrains   │
+      │   category pairs      │  │   → top-3 with their   │  │   final pick to      │
+      │                       │  │   historical cats      │  │   valid vocabulary   │
+      └───────────┬───────────┘  └───────────┬────────────┘  └───────────┬──────────┘
+                  │                           │                          │
+                  └─────────── only the ONE tool actually called ────────┘
+                               returns here — the other two are simply
+                               unused this round, not "failed"
+                                               │
+                           result flows back up into [Observe] ↑
+                       (see diagram above — this is one cycle, not a fan-out)
+                                               │
+             Loop exits when either: max_steps=3 is reached, OR the LLM
+             itself decides it has enough evidence to answer — whichever
+             comes first. Then, once, outside the loop:
+
+                            Final Answer (ToolCallingAgent):
+                            {
+                              "category": "Food & Dining",
+                              "confidence": 0.9,
+                              "reasoning": "Rule matched 'starbucks' → Food & Dining (Café);
+                                             3 similar past transactions confirmed."
+                            }
+                                               │
+                                   ┌───────────▼──────────────┐
+                                   │  Langfuse trace           │
+                                   │  Parent: /categorize-     │
+                                   │  agent (span)             │
+                                   │  ├─ search_category_rules │
+                                   │  │  (span: input/output)  │
+                                   │  ├─ find_similar_trans    │
+                                   │  │  (span: input/output)  │
+                                   │  └─ LLM completion (span) │
+                                   └──────────────────────────┘
 ```
+
+> **Why the original version was ambiguous:** a single fan-out arrow from `[Act: tool_call]` straight to all three tool boxes reads as "call all three every time" or worse, "try each one until it works" — neither is true. Only **one** tool is invoked per iteration, chosen by the LLM's `[Reason]` step; the loop cycles back through `[Observe]` before deciding whether to act again. The revised version routes the result back into the loop explicitly and labels the fan-out as a menu of choices, not parallel/sequential fallback branches.
+
+**Walking the loop with a concrete example — `"GJ*GRAB CAR JAKARTA"`, wallet `BCA`, amount `45,000`:**
+
+| Step | Observe (input to LLM) | Reason (LLM's decision) | Act (tool call) | Result fed back |
+|------|------------------------|--------------------------|------------------|------------------|
+| 1 | Task text only — nothing gathered yet | System prompt says rules first → try keyword `grab` | `search_category_rules(keyword="grab")` | `"No rules matched."` — the word "GRAB" alone isn't a rule pattern; `"gojek"`/`"grabcar"` might be but `"grab"` didn't hit |
+| 2 | Rules came up empty → not enough evidence to answer yet | Prompt says: on empty/ambiguous rules, try similarity next | `find_similar_transactions(description="GJ*GRAB CAR JAKARTA")` | `"Similar past transactions:\n  [1] 'GJ*GRAB CAR SBY' — Transportation (Online) (similarity=0.94)\n  [2] 'GOJEK RIDE' — Transportation (Online) (similarity=0.81)\n  [3] 'GJ*GRABFOOD' — Food & Dining (similarity=0.62)"` |
+| 3 | 2 of 3 similar transactions agree on `Transportation (Online)`; the third is a different Grab product (food, not ride) | Has enough evidence now — needs the exact valid category string before answering | `list_all_categories()` | `"Valid categories:\n  - Transportation (Online)\n  - Food & Dining\n  ..."` — confirms `Transportation (Online)` is a real category name, not a guess |
+| — (final, no more tool calls — `max_steps=3` reached) | All 3 tool outputs in context | Synthesizes an answer *without* a 4th tool call, since the step budget is spent | — | LLM emits free text |
+
+**Final text the LLM emits:**
+```
+CATEGORY: Transportation (Online)
+CONFIDENCE: 0.7
+REASONING: No direct rule matched 'grab', but 2 of 3 similar past transactions
+(GJ*GRAB CAR SBY, GOJEK RIDE) were categorized Transportation (Online); the
+GrabFood match was excluded as a different product line.
+```
+
+**What `_parse_result` does with it** ([categorizer_agent.py](../../../services/ai-service/app/agents/categorizer_agent.py)):
+- `CATEGORY` → `"Transportation (Online)"` (present, exact match — kept as-is)
+- `CONFIDENCE` → `_safe_float("0.7")` → `0.7` (0.7 = "history match" per the prompt's own confidence scale)
+- `REASONING` → the sentence above, kept verbatim
+- `tool_calls_count` → `3` (read from `agent.memory.steps`, not hardcoded)
+
+**Contrast — the degraded case.** If step 2's similarity search had thrown (DB hiccup), the tool would have returned `"Similarity search unavailable."` instead of raising ([similarity.py:474-483](../../../services/ai-service/app/agents/tools/similarity.py#L474-L483)) — the loop keeps running, but the LLM now has only rules (empty) + vocabulary to reason from. It would likely land on `CATEGORY: Other`, `CONFIDENCE: 0.5`, with reasoning citing the missing evidence — the same shape `_parse_result` falls back to when the text is malformed, just arrived at *honestly* through the LLM's own words instead of the parser's defaults.
 
 **Depends on:** PF-AI003 (pgvector + `/search` endpoint — `find_similar_transactions` calls it directly), PF-AI001 (Langfuse + OTel setup — traces hook into the existing OTLP pipeline).
 **Unblocks:** Chapter 8 (LangGraph Financial Advisor — you'll understand exactly what LangGraph adds to this simpler loop), Chapter 9 (MCP server — `search_category_rules` becomes an MCP tool in that chapter).
@@ -191,14 +234,16 @@ This is what "observable AI reasoning" looks like in a job interview demo.
 ## ✅ Acceptance Criteria
 
 - [ ] `pip install "smolagents[litellm]" litellm` succeeds; both added to `pyproject.toml` main deps
-- [ ] `app/agents/categorizer_agent.py` — `CategorizerAgent` wrapping a `ToolCallingAgent` with 3 tools; accepts `description`, `wallet`, `amount_idr`; returns `CategorizationResult(category, confidence, reasoning, tool_calls_count)`
-- [ ] `app/agents/tools/category_rules.py` — `search_category_rules(keyword)` `@tool`; queries the 106-rule snapshot loaded at startup; returns matched rule + category pairs as string; returns "No rules matched." when empty
-- [ ] `app/agents/tools/similarity.py` — `find_similar_transactions(description)` `@tool`; calls the local `/search` endpoint (pgvector RAG, PF-AI003); returns top-3 descriptions + their historical categories
-- [ ] `app/agents/tools/categories.py` — `list_all_categories()` `@tool`; returns static list of all valid category names (no DB call; constrains agent's final pick to known vocabulary)
+- [ ] **smolagents API surface verified** (STEP 1b): `smolagents.__version__` recorded; `ToolCallingAgent.__init__` accepts an instructions/system-prompt argument; `smolagents.monitoring.instrument_smolagents` importable; the step-count attribute on the agent identified
+- [ ] **`SearchResult` carries `category`** — `models.py` gains `category: str | None`; `retriever.py` selects `t.category` in `_search_vector` **and** `_fetch_results_by_ids`; existing `test_retriever.py` / `test_hybrid_search.py` still pass
+- [ ] `app/agents/categorizer_agent.py` — `CategorizerAgent` wrapping a `ToolCallingAgent` with 3 tools; accepts `description`, `wallet`, `amount_idr`; returns `CategorizationResult(category, confidence, reasoning, tool_calls_count)` with `tool_calls_count` derived from the agent's own step log (never hardcoded)
+- [ ] `app/agents/tools/category_rules.py` — `search_category_rules(keyword)` `@tool`; queries the 106-rule snapshot loaded at startup from `SELECT keyword, category FROM category_rules`; returns matched rule + category pairs as string; returns "No rules matched." when empty
+- [ ] `app/agents/tools/similarity.py` — `find_similar_transactions(description)` `@tool`; calls the in-process `RetrievalService` (pgvector RAG, PF-AI003) — no self-HTTP; returns top-3 descriptions **with their real historical categories**; returns a degradation string (not an exception) when search is unavailable
+- [ ] `app/agents/tools/categories.py` — `list_all_categories()` `@tool`; returns the **live** vocabulary snapshotted from `app.state.categories` at startup, with the hardcoded list used only as an empty-DB fallback
 - [ ] `POST /categorize-agent` endpoint in `main.py` — accepts `CategorizeAgentRequest`; returns `CategorizeAgentResponse(category, confidence, reasoning, tool_calls_count)`; LLM failures return 502 (never 200-with-empty)
 - [ ] Langfuse traces: every `/categorize-agent` call produces ≥1 tool-call child span visible in the Langfuse dashboard (parent = agent run; children = individual tool calls)
-- [ ] `scripts/test_agent.py` — 5-transaction smoke test runs and prints category + confidence + reasoning + tool count for each; all 5 get a non-null category from the known vocabulary
-- [ ] `tests/test_categorizer_agent.py` — unit tests with mocked smolagents agent (no real LLM calls); covers: normal categorization, fallback to "Other" on empty output, 502-propagating exception re-raise
+- [ ] `scripts/test_agent.py` — 5-transaction smoke test runs and prints category + confidence + reasoning + tool count for each; **each transaction's category exactly matches its expected label** (see STEP 7 table), and each `tool_calls_count` is ≥ 1
+- [ ] `tests/test_categorizer_agent.py` — unit tests with mocked smolagents agent (no real LLM calls); covers: normal categorization, fallback to "Other" on empty output, non-numeric CONFIDENCE falls back to 0.5, 502-propagating exception re-raise
 - [ ] HF Agents Course Units 1–2 read; active-retrieval notes written in [progress.md](../../../docs/mentor/progress.md)
 
 ## 🧭 Approach
@@ -222,14 +267,15 @@ smolagents v1.9+ ships with OpenTelemetry instrumentation. One call to `instrume
 
 | File | Change |
 |------|--------|
+| [models.py](../../../services/ai-service/app/models.py) | Edit — add `category: str \| None` to `SearchResult` (STEP 1c) **and** add `CategorizeAgentRequest` / `CategorizeAgentResponse` (STEP 5) |
+| [retriever.py](../../../services/ai-service/app/services/retriever.py) | Edit — select `t.category` in `_search_vector` and `_fetch_results_by_ids`; pass it into `SearchResult` |
 | [\_\_init\_\_.py](../../../services/ai-service/app/agents/__init__.py) (`app/agents/`) | Create — empty package |
 | [categorizer_agent.py](../../../services/ai-service/app/agents/categorizer_agent.py) | Create — `CategorizerAgent` + `CategorizationResult` + `_parse_result` |
 | [\_\_init\_\_.py](../../../services/ai-service/app/agents/tools/__init__.py) (`app/agents/tools/`) | Create — empty package |
 | [category_rules.py](../../../services/ai-service/app/agents/tools/category_rules.py) | Create — `search_category_rules` `@tool` + `load_rules()` |
-| [similarity.py](../../../services/ai-service/app/agents/tools/similarity.py) | Create — `find_similar_transactions` `@tool` + `configure()` |
-| [categories.py](../../../services/ai-service/app/agents/tools/categories.py) | Create — `list_all_categories` `@tool` + `KNOWN_CATEGORIES` |
-| [models.py](../../../services/ai-service/app/models.py) | Edit — add `CategorizeAgentRequest`, `CategorizeAgentResponse` |
-| [main.py](../../../services/ai-service/app/main.py) | Edit — add `POST /categorize-agent`; wire agent in lifespan; call `instrument_smolagents()` |
+| [similarity.py](../../../services/ai-service/app/agents/tools/similarity.py) | Create — `find_similar_transactions` `@tool` + `configure(retriever)` |
+| [categories.py](../../../services/ai-service/app/agents/tools/categories.py) | Create — `list_all_categories` `@tool` + `load_categories()` + `_FALLBACK_CATEGORIES` |
+| [main.py](../../../services/ai-service/app/main.py) | Edit — add `_load_rules()`; wire agent + tool snapshots in lifespan; add `POST /categorize-agent`; call `instrument_smolagents()` |
 | [pyproject.toml](../../../services/ai-service/pyproject.toml) | Edit — add `smolagents[litellm]`, `litellm` to main deps |
 | [test_categorizer_agent.py](../../../services/ai-service/tests/test_categorizer_agent.py) | Create — unit tests (mocked ToolCallingAgent, no real LLM) |
 | [test_agent.py](../../../services/ai-service/scripts/test_agent.py) | Create — 5-transaction smoke test via httpx |
@@ -281,6 +327,73 @@ python -c "from smolagents import ToolCallingAgent, tool, LiteLLMModel; print('s
 ```
 
 > **Why `smolagents[litellm]`?** The `[litellm]` extra bundles LiteLLM as smolagents' provider backend. Without it, smolagents defaults to OpenAI only. With it, `LiteLLMModel(model_id="gemini/gemini-2.5-flash")` and `"anthropic/claude-sonnet-4-6"` both work — the same keys already in `config.py`, zero extra setup.
+
+### [ ] STEP 1b — Verify the smolagents API surface (5 min — do NOT skip)
+
+smolagents is pre-1.0-stable in spirit: constructor kwargs and the monitoring module move between minor releases. Three things this plan depends on must be confirmed against *your installed version* before you write agent code. Getting this wrong costs an hour of silent misbehaviour in STEP 3.
+
+```bash
+cd services/ai-service && python - <<'PY'
+import inspect, smolagents
+from smolagents import ToolCallingAgent
+print("version:", smolagents.__version__)
+
+# 1. How is the system prompt / strategy passed? Look for `instructions`,
+#    `system_prompt`, or `prompt_templates` in the signature.
+print("ctor params:", list(inspect.signature(ToolCallingAgent.__init__).parameters))
+
+# 2. Is the OTel hook available?
+try:
+    from smolagents.monitoring import instrument_smolagents
+    print("instrument_smolagents: OK")
+except ImportError as e:
+    print("instrument_smolagents: MISSING —", e)
+
+# 3. Where does the run's step log live? (needed for tool_calls_count)
+print("has .memory:", hasattr(ToolCallingAgent, "memory"))
+PY
+```
+
+Record the three answers in [progress.md](../../../docs/mentor/progress.md). Then:
+
+- **Strategy prompt** — use whichever kwarg the signature actually exposes in STEP 3. If none exists, prepend `_SYSTEM_PROMPT` to the task string instead.
+- **`instrument_smolagents` missing** — you're on < 1.9; `pip install --upgrade smolagents`, or use the manual-span fallback described in STEP 4.
+- **Step log** — this is the source for `tool_calls_count` in STEP 3.
+
+> **Why a whole step for this?** `additional_args=` looks like it would carry a system prompt and it does not — it injects task *variables*. Passing the strategy there means the agent silently ignores your tool-ordering instructions, the tools fire in the wrong order, and nothing errors. That's the exact failure mode Knowledge Check #3 describes. Verifying the signature costs five minutes; debugging the symptom costs an evening.
+
+### [ ] STEP 1c — Add `category` to `SearchResult` (blocks Tool 2)
+
+`find_similar_transactions` exists to tell the agent *how the user categorized similar past transactions*. Today it cannot: [SearchResult](../../../services/ai-service/app/models.py) has `transaction_id, similarity, description, date, amount_idr, flow, wallet` — no category. Without this change the tool returns `unknown` for every row and the agent's second evidence source is dead weight.
+
+**1. Extend the model** in [models.py](../../../services/ai-service/app/models.py):
+
+```python
+class SearchResult(BaseModel):
+    transaction_id: int
+    similarity: float          # 1 - cosine_distance (0..1, higher = more similar)
+    description: str
+    date: str                  # ISO 8601
+    amount_idr: float
+    flow: str
+    wallet: str
+    category: str | None = None   # PF-AI007: historical category — agent evidence
+```
+
+Optional (`| None = None`) is deliberate: it's additive, so every existing `/search` consumer and both existing test suites keep passing unchanged.
+
+**2. Select it in both retriever paths** in [retriever.py](../../../services/ai-service/app/services/retriever.py). There are **two** places that build a `SearchResult` — miss the second and hybrid/BM25 search silently returns `None` categories:
+
+- `_search_vector()` — add `t.category` to the SELECT list next to `t.flow`, then `category=row["category"]` in the `SearchResult(...)` construction
+- `_fetch_results_by_ids()` — the same two edits (this is the path hybrid + BM25 modes use)
+
+**3. Verify nothing regressed:**
+
+```bash
+cd services/ai-service && PYTHONPATH=. pytest tests/test_retriever.py tests/test_hybrid_search.py -v
+```
+
+> **Why touch Chapter 3's code in Chapter 7?** Because the agent exposed a real gap: retrieval was built to answer "what did I spend on?" (Chapter 3–6), where the category was never needed in the result. An agent reasoning *about* categories needs it. This is the normal shape of agent work — the tools are usually fine, the data they surface is what's missing.
 
 ### [ ] STEP 2 — Create the package structure + three tool files
 
@@ -369,19 +482,24 @@ public static class CategoryRulesTool
 **Tool 2 — `find_similar_transactions`** ([similarity.py](../../../services/ai-service/app/agents/tools/similarity.py)):
 
 ```python
-"""Tool: find semantically similar past transactions via the RAG /search endpoint."""
+"""Tool: find semantically similar past transactions via the in-process RetrievalService."""
 from __future__ import annotations
 
 import asyncio
+import logging
 
-import httpx
 from smolagents import tool
 
-_SEARCH_URL = "http://localhost:8000/search"
+logger = logging.getLogger(__name__)
 
-def configure(search_url: str) -> None:
-    global _SEARCH_URL
-    _SEARCH_URL = search_url
+# Set at startup from app.state.retriever — the SAME instance the /search and
+# /ask endpoints use. No self-HTTP: calling our own port from inside our own
+# process doubles serialization and couples the tool to its own liveness.
+_RETRIEVER = None
+
+def configure(retriever) -> None:
+    global _RETRIEVER
+    _RETRIEVER = retriever
 
 @tool
 def find_similar_transactions(description: str) -> str:
@@ -394,33 +512,37 @@ def find_similar_transactions(description: str) -> str:
     Args:
         description: The transaction description to search for similarities.
     """
-    async def _fetch() -> str:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.post(_SEARCH_URL, json={"query": description, "top_k": 3})
-            resp.raise_for_status()
-            data = resp.json()
-        results = data.get("results", [])
-        if not results:
-            return "No similar past transactions found."
-        lines = [
-            f"  [{i+1}] '{r['description']}' — {r.get('category', 'unknown')} "
-            f"(similarity={r['similarity']:.2f})"
-            for i, r in enumerate(results)
-        ]
-        return "Similar past transactions:\n" + "\n".join(lines)
+    if _RETRIEVER is None:
+        return "Similarity search unavailable."
+    try:
+        results = asyncio.run(_RETRIEVER.search(query=description, top_k=3))
+    except Exception:
+        # A tool must NEVER raise into the agent loop — one flaky DB call would
+        # abort the whole run. Degrade to a string the LLM can reason about:
+        # it still has rule evidence and can answer with lower confidence.
+        logger.exception("similarity tool failed description=%r", description)
+        return "Similarity search unavailable."
 
-    return asyncio.run(_fetch())
+    if not results:
+        return "No similar past transactions found."
+    lines = [
+        f"  [{i+1}] '{r.description}' — {r.category or 'uncategorized'} "
+        f"(similarity={r.similarity:.2f})"
+        for i, r in enumerate(results)
+    ]
+    return "Similar past transactions:\n" + "\n".join(lines)
 ```
 
-**C# equivalent** (Python `httpx.AsyncClient` → `HttpClient`; `asyncio.run()` bridging sync→async → `.GetAwaiter().GetResult()` — the same "sync wrapper over an async call" compromise, with the same caveat):
+> **Why return a string on failure instead of raising?** In a request/response service, an exception is the right signal — the caller needs to know. In an agent loop it is not: a raised tool error aborts the run and destroys the evidence the agent already gathered. `"Similarity search unavailable."` keeps the loop alive and lets the LLM fall back to rule evidence with lower confidence. **Tools degrade; the agent decides.** This is a genuinely different error-handling posture from the rest of the codebase, and it's worth noticing.
+
+**C# equivalent** (module-level `_RETRIEVER` set at startup → injected `IRetrievalService`; `asyncio.run()` bridging sync→async → `.GetAwaiter().GetResult()` — the same "sync wrapper over an async call" compromise, with the same caveat):
 
 ```csharp
 public static class SimilarityTool
 {
-    private static string _searchUrl = "http://localhost:8000/search";
-    private static readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
+    private static IRetrievalService? _retriever;
 
-    public static void Configure(string searchUrl) => _searchUrl = searchUrl;
+    public static void Configure(IRetrievalService retriever) => _retriever = retriever;
 
     [KernelFunction("find_similar_transactions")]
     [Description("Find semantically similar past transactions and their historical categories. " +
@@ -428,26 +550,34 @@ public static class SimilarityTool
     public static string FindSimilarTransactions(
         [Description("The transaction description to search for similarities")] string description)
     {
-        // Framework calls tools synchronously — block on the async HTTP call,
-        // same trade-off as asyncio.run() in the Python version.
-        var response = _http.PostAsJsonAsync(_searchUrl, new { query = description, top_k = 3 })
-            .GetAwaiter().GetResult();
-        response.EnsureSuccessStatusCode();
-        var data = response.Content.ReadFromJsonAsync<SearchResponse>().GetAwaiter().GetResult();
+        if (_retriever is null) return "Similarity search unavailable.";
+        try
+        {
+            // Framework calls tools synchronously — block on the async search,
+            // same trade-off as asyncio.run() in the Python version.
+            var results = _retriever.SearchAsync(description, topK: 3).GetAwaiter().GetResult();
+            if (results.Count == 0) return "No similar past transactions found.";
 
-        if (data?.Results is not { Count: > 0 } results)
-            return "No similar past transactions found.";
-
-        var lines = results.Select((r, i) =>
-            $"  [{i + 1}] '{r.Description}' — {r.Category ?? "unknown"} (similarity={r.Similarity:F2})");
-        return "Similar past transactions:\n" + string.Join("\n", lines);
+            var lines = results.Select((r, i) =>
+                $"  [{i + 1}] '{r.Description}' — {r.Category ?? "uncategorized"} (similarity={r.Similarity:F2})");
+            return "Similar past transactions:
+" + string.Join("
+", lines);
+        }
+        catch (Exception)
+        {
+            // Degrade, never throw into the agent loop.
+            return "Similarity search unavailable.";
+        }
     }
 }
 ```
 
-> **Why `asyncio.run()` inside a sync tool?** smolagents calls `@tool` functions synchronously. `httpx.AsyncClient` is async. `asyncio.run()` spins a new event loop for this blocking call — same pattern as `asyncio.to_thread` in reverse (sync wrapping async, not async wrapping sync). In a real service, use `httpx.Client` (sync) directly to avoid the overhead. For this chapter, `asyncio.run()` keeps the code simple and correct.
+> **Why `asyncio.run()` inside a sync tool?** smolagents calls `@tool` functions synchronously; `RetrievalService.search()` is async. `asyncio.run()` spins a fresh event loop for the call — the inverse of `asyncio.to_thread` (sync wrapping async, not async wrapping sync). This is safe **only because** the endpoint already dispatched the whole agent run to a worker thread via `asyncio.to_thread` (STEP 5), so no event loop is running on this thread. Call the tool from a thread that already has a running loop and `asyncio.run()` raises `RuntimeError`. That coupling between STEP 5 and this line is the subtle part — note it.
 
 **Tool 3 — `list_all_categories`** ([categories.py](../../../services/ai-service/app/agents/tools/categories.py)):
+
+The vocabulary must be the **live** one. The service already loads it at startup — [`_load_categories()`](../../../services/ai-service/app/main.py) does `SELECT DISTINCT category FROM transactions` and stores it in `app.state.categories` for the query planner. Reuse that; a hand-written list is a guess that will drift from the database, and an agent constrained to names that don't exist is worse than an unconstrained one.
 
 ```python
 """Tool: return the full known category vocabulary."""
@@ -455,9 +585,18 @@ from __future__ import annotations
 
 from smolagents import tool
 
-# Static list — categories change rarely. The agent uses this to constrain its
-# final answer to known names (prevents category hallucination).
-KNOWN_CATEGORIES = [
+# Populated at startup from app.state.categories — the SAME vocabulary the
+# query planner uses. The agent picks from this to avoid inventing names.
+_CATEGORIES: list[str] = []
+
+def load_categories(categories: list[str]) -> None:
+    """Called from main.py lifespan. Falls back if the DB load returned nothing."""
+    global _CATEGORIES
+    _CATEGORIES = list(categories) if categories else list(_FALLBACK_CATEGORIES)
+
+# Fallback ONLY — used when the DB is unreachable at startup or the transactions
+# table is empty (fresh install). Never the primary source.
+_FALLBACK_CATEGORIES = [
     "Food & Dining", "Food & Dining (Café)", "Food & Dining (Fast Food)",
     "Transportation", "Transportation (Online)", "Transportation (Fuel)",
     "Shopping", "Shopping (Online)", "Shopping (Groceries)",
@@ -477,7 +616,7 @@ def list_all_categories() -> str:
     the system vocabulary. Your final CATEGORY must exactly match one of
     these names — do NOT invent category names. If uncertain, use 'Other'.
     """
-    return "Valid categories:\n" + "\n".join(f"  - {c}" for c in KNOWN_CATEGORIES)
+    return "Valid categories:\n" + "\n".join(f"  - {c}" for c in _CATEGORIES)
 ```
 
 **C# equivalent** (Python module-level `list` constant → `static readonly string[]`; generator expression → LINQ `Select` + `string.Join`):
@@ -485,12 +624,17 @@ def list_all_categories() -> str:
 ```csharp
 public static class CategoriesTool
 {
-    // Static list — categories change rarely; constrains the agent's final
-    // pick to known names (prevents category hallucination).
-    public static readonly string[] KnownCategories =
+    // Populated at startup from the live vocabulary; constrains the agent's
+    // final pick to real names (prevents category hallucination).
+    private static string[] _categories = [];
+
+    public static void LoadCategories(IReadOnlyList<string> categories) =>
+        _categories = categories.Count > 0 ? [.. categories] : FallbackCategories;
+
+    // Fallback ONLY — DB unreachable at startup, or a fresh install.
+    private static readonly string[] FallbackCategories =
     [
-        "Food & Dining", "Food & Dining (Café)", "Food & Dining (Fast Food)",
-        "Transportation", "Transportation (Online)", "Transportation (Fuel)",
+        "Food & Dining", "Transportation", "Shopping", "Bills & Utilities",
         // ... same list as the Python version ...
         "Transfer", "ATM Withdrawal", "Other",
     ];
@@ -499,11 +643,13 @@ public static class CategoriesTool
     [Description("Return the complete list of valid category names. Your final CATEGORY must " +
                  "exactly match one of these names — do NOT invent category names.")]
     public static string ListAllCategories() =>
-        "Valid categories:\n" + string.Join("\n", KnownCategories.Select(c => $"  - {c}"));
+        "Valid categories:
+" + string.Join("
+", _categories.Select(c => $"  - {c}"));
 }
 ```
 
-> **Why a static list vs a DB query?** Categories rarely change, and a DB call on every agent iteration adds latency + connection overhead. The agent's constraint is behavioral: the system prompt tells it "your final category MUST be from `list_all_categories()`." Hallucinated names fail downstream validation and appear in Langfuse — they're easy to catch. A future version can make this dynamic without changing the tool signature.
+> **Why a startup snapshot rather than a per-call DB query?** Two separate questions, two separate answers. *Where do the names come from?* The database — always; a hardcoded list drifts and the agent ends up constrained to categories that don't exist, which is worse than no constraint at all. *How often do we read it?* Once, at startup — a DB round trip on every agent iteration adds latency and connection churn for a vocabulary that changes maybe monthly. Snapshot-at-startup gets both: real data, zero per-call cost. The tradeoff is staleness until restart, which for category names is acceptable and easy to see in Langfuse when it isn't.
 
 > **The tool docstring IS the schema description.** The LLM sees only what's written in the docstring when it decides whether to call a tool. Ambiguous docstrings produce ambiguous tool choice. Each docstring here explicitly states when to use the tool ("Use this tool FIRST", "Use this when rules return No rules matched") to steer the agent toward the intended call order.
 
@@ -553,7 +699,14 @@ class CategorizationResult:
     reasoning: str
     tool_calls_count: int
 
-def _parse_result(raw: str) -> CategorizationResult:
+def _safe_float(value: str, default: float = 0.5) -> float:
+    """LLMs emit 'CONFIDENCE: 0.9 (high)' often enough to matter."""
+    try:
+        return float(value.split()[0])
+    except (ValueError, IndexError):
+        return default
+
+def _parse_result(raw: str, tool_calls_count: int = 0) -> CategorizationResult:
     """Parse the agent's final text into a structured result."""
     lines = {}
     for line in raw.strip().splitlines():
@@ -562,9 +715,9 @@ def _parse_result(raw: str) -> CategorizationResult:
             lines[key.strip().upper()] = value.strip()
     return CategorizationResult(
         category=lines.get("CATEGORY", "Other"),
-        confidence=float(lines.get("CONFIDENCE", "0.5")),
+        confidence=_safe_float(lines.get("CONFIDENCE", "")),
         reasoning=lines.get("REASONING", raw[:200]),
-        tool_calls_count=0,  # set from the caller based on Langfuse span count
+        tool_calls_count=tool_calls_count,
     )
 
 class CategorizerAgent:
@@ -577,6 +730,10 @@ class CategorizerAgent:
         self._agent = ToolCallingAgent(
             tools=[search_category_rules, find_similar_transactions, list_all_categories],
             model=model,
+            # The strategy prompt goes HERE — the kwarg name you confirmed in
+            # STEP 1b (`instructions=` on current smolagents). NOT additional_args:
+            # that carries task *variables* and would silently discard this.
+            instructions=_SYSTEM_PROMPT,
             max_steps=3,         # cap: rules → history → vocabulary → done
             verbosity_level=1,   # log intermediate steps to stdout in dev
         )
@@ -592,11 +749,16 @@ class CategorizerAgent:
             f"  Amount (IDR): {amount_idr:,.0f}"
         )
         try:
-            raw = self._agent.run(task, additional_args={"system_prompt": _SYSTEM_PROMPT})
-            result = _parse_result(raw)
+            raw = self._agent.run(task)
+            # Real step count from the agent's own memory — the attribute you
+            # confirmed in STEP 1b. Never hardcode this: a field that is always
+            # 0 is worse than no field, because it looks like a measurement.
+            steps = getattr(self._agent, "memory", None)
+            tool_calls = len(steps.steps) if steps is not None else 0
+            result = _parse_result(str(raw), tool_calls_count=tool_calls)
             logger.info(
-                "agent_categorized description=%r category=%r confidence=%s",
-                description, result.category, result.confidence,
+                "agent_categorized description=%r category=%r confidence=%s tool_calls=%d",
+                description, result.category, result.confidence, result.tool_calls_count,
             )
             return result
         except Exception:
@@ -674,18 +836,27 @@ public class CategorizerAgent
 
 > **Why `max_steps=3`?** The three tools are sequenced: rules → history → vocabulary. In practice 1–2 iterations suffice — rules match or they don't. `max_steps=3` caps runaway loops where the LLM keeps calling the same tool with different keywords. Chapter 8's LangGraph replaces this with explicit `END` routing nodes — you'll see exactly what that solves.
 
+> **Notice the tension in `_parse_result`.** This chapter argues at length that structured tool calls beat free-text parsing — then parses the final answer with `str.partition(":")`. That's a real inconsistency, and worth sitting with rather than glossing over. The principled fix is a `final_answer` tool with a typed schema (`category`, `confidence`, `reasoning`), so the last hop is validated like every other tool call. The plan ships the string version because it keeps STEP 3 readable and makes the failure mode visible: run the smoke test, watch `_safe_float` catch at least one malformed confidence, *then* you understand why schemas exist. Upgrading to `final_answer` is the natural first improvement — and better interview material than having done it right the first time.
+
+> **Add a timeout on the model.** `max_steps=3` bounds iterations, not wall-clock — a hung provider call holds a thread-pool slot forever. Pass a request timeout through `LiteLLMModel` (e.g. `LiteLLMModel(model_id=model_id, timeout=30)`; confirm the kwarg in STEP 1b) and record the observed p95 latency in STEP 7 so you can quote the agent's real cost against `/categorize`.
+
 > **Why is `categorize()` synchronous?** `smolagents.ToolCallingAgent.run()` is synchronous (it manages its own internal async where needed). Called directly inside `async def`, it blocks the FastAPI event loop. The endpoint calls it via `asyncio.to_thread()` — same fix as FlashRank in Chapter 4. Don't force it async; trust the thread pool.
 
 ### [ ] STEP 4 — Wire OTel tracing (Langfuse auto-capture)
 
-In [main.py](../../../services/ai-service/app/main.py), add ONE line after the existing OTel exporter setup (from PF-AI001):
+In [main.py](../../../services/ai-service/app/main.py), add ONE line — but **placement matters**.
+
+The existing OTel setup from PF-AI001 runs at *module level*: `TracerProvider(...)` and `trace.set_tracer_provider(provider)` execute at import, well before `lifespan()` runs. So calling `instrument_smolagents()` inside the lifespan (STEP 5) binds to a provider that is already live — correct by construction.
 
 ```python
 from smolagents.monitoring import instrument_smolagents   # smolagents >= 1.9
 
-# At startup, after OTLP exporter is configured:
+# Inside lifespan(), after app.state.categorizer_agent is created —
+# the module-level trace.set_tracer_provider() has already run.
 instrument_smolagents()
 ```
+
+> **Do not "simplify" this to a module-level call placed above the exporter setup.** `instrument_smolagents()` binds to whichever `TracerProvider` is active *at call time*. Register it first and it captures a no-op provider — the agent runs, no error appears, and tool spans vanish. That's Knowledge Check #5, and it is very easy to cause by tidying imports.
 
 This registers a hook that wraps `ToolCallingAgent.run()`, tool dispatch, and every LLM completion with OTel spans. Because the OTLP exporter to Langfuse is already configured (`OTEL_EXPORTER_OTLP_ENDPOINT` env var, wired in PF-AI001), every agent run flows to Langfuse without additional config.
 
@@ -730,27 +901,59 @@ public record CategorizeAgentResponse(
     string Category, double Confidence, string Reasoning, int ToolCallsCount);
 ```
 
-In [main.py](../../../services/ai-service/app/main.py) lifespan, after the existing services are wired:
+Add a rules loader next to the existing `_load_categories()` in [main.py](../../../services/ai-service/app/main.py) — same shape, same failure posture (a DB outage must not crash startup):
+
+```python
+async def _load_rules(db_url: str) -> dict[str, str]:
+    """Snapshot the 106 category rules for the agent's search_category_rules tool.
+
+    Columns are (id, keyword, type, category, keyword_length) — see
+    supabase/migrations/20260101000000_initial_schema.sql. Mirrors
+    _load_categories(): failure degrades the tool, never blocks the service.
+    """
+    try:
+        conn = await asyncpg.connect(db_url)
+        try:
+            rows = await conn.fetch("SELECT keyword, category FROM category_rules")
+        finally:
+            await conn.close()
+        return {r["keyword"]: r["category"] for r in rows}
+    except Exception:
+        logger.exception("failed to load category rules — agent rule tool will return no matches")
+        return {}
+```
+
+Then wire it in the lifespan, **after** `app.state.retriever` and `app.state.categories` already exist:
 
 ```python
 from app.agents.categorizer_agent import CategorizerAgent
 from app.agents.tools.category_rules import load_rules
-from app.agents.tools.similarity import configure as configure_search_url
+from app.agents.tools.categories import load_categories
+from app.agents.tools.similarity import configure as configure_retriever
 from smolagents.monitoring import instrument_smolagents
 
-# Snapshot the 106 category rules for the agent's search_category_rules tool.
-# Pull from the DB via the existing asyncpg connection (same pool as the retriever).
-rules_rows = await app.state.retriever._conn.fetch(
-    "SELECT keyword, category_name FROM category_rules LIMIT 500"
-)
-load_rules({row["keyword"]: row["category_name"] for row in rules_rows})
+# Tool 1 — rules snapshot straight from the DB.
+rules = await _load_rules(settings.database_url)
+load_rules(rules)
 
-# Wire the similarity tool's search URL to ourselves (avoids hardcoding port).
-configure_search_url("http://localhost:8000/search")
+# Tool 2 — hand the tool the SAME retriever instance /search and /ask use.
+configure_retriever(app.state.retriever)
+
+# Tool 3 — reuse the vocabulary already loaded on line ~91 for the query planner.
+load_categories(app.state.categories)
 
 app.state.categorizer_agent = CategorizerAgent()
-instrument_smolagents()
+instrument_smolagents()          # after set_tracer_provider() — see STEP 4
+logger.info("Categorizer agent ready — %d rules, %d categories",
+            len(rules), len(app.state.categories))
 ```
+
+> **Three things the earlier draft of this plan got wrong here — all worth understanding, because they're the standard way agent wiring breaks:**
+> 1. `app.state.retriever._conn` **does not exist.** [retriever.py](../../../services/ai-service/app/services/retriever.py) opens a fresh `asyncpg.connect()` per call and closes it in a `finally` — there is no long-lived connection to borrow. Reaching into another object's private attribute is what made this look plausible; it would have raised `AttributeError` at startup.
+> 2. The column is **`category`, not `category_name`.** Verified against the initial-schema migration. A wrong column name here fails at startup with an asyncpg error that names the column — easy to fix, but only if you don't skip past it.
+> 3. The vocabulary must come from **`app.state.categories`**, not a hand-written constant. It's already loaded four lines above.
+>
+> The pattern: an agent is mostly *wiring existing services into tool functions*. Almost every bug in that wiring is a wrong assumption about the services, not about the agent framework.
 
 Add the endpoint:
 
@@ -847,6 +1050,14 @@ def test_parse_result_falls_back_to_other_on_garbage_output():
     result = _parse_result("nothing useful here at all")
     assert result.category == "Other"
     assert result.confidence == pytest.approx(0.5)
+
+def test_parse_result_survives_non_numeric_confidence():
+    # LLMs annotate confidence often enough that float() would 502 a good run.
+    raw = "CATEGORY: Transfer\nCONFIDENCE: 0.8 (high)\nREASONING: Rule matched."
+    assert _parse_result(raw).confidence == pytest.approx(0.8)
+
+    raw_bad = "CATEGORY: Transfer\nCONFIDENCE: high\nREASONING: Rule matched."
+    assert _parse_result(raw_bad).confidence == pytest.approx(0.5)
 
 @patch("app.agents.categorizer_agent.ToolCallingAgent")
 @patch("app.agents.categorizer_agent.LiteLLMModel")
@@ -950,31 +1161,53 @@ Prints: description | category | confidence | reasoning (truncated) | tool_calls
 import asyncio
 import httpx
 
+# Each fixture carries the category you expect. "Non-null category" is not a
+# quality bar — five "Other"s would pass it. Set `expected` to a name that
+# actually exists in YOUR vocabulary (check GET /search results or the DB).
 TEST_TRANSACTIONS = [
-    {"description": "STARBUCKS COFFEE GRAND INDONESIA", "wallet": "BCA", "amount_idr": 72000},
-    {"description": "TOKOPEDIA*BELANJA ELEKTRONIK", "wallet": "BCA", "amount_idr": 1500000},
-    {"description": "PLN PREPAID TOKEN LISTRIK", "wallet": "Superbank", "amount_idr": 200000},
-    {"description": "GJ*GRAB CAR JAKARTA SELATAN", "wallet": "BCA", "amount_idr": 35000},
-    {"description": "TRANSFER MASUK DARI RIKKY", "wallet": "BCA", "amount_idr": 5000000},
+    {"description": "STARBUCKS COFFEE GRAND INDONESIA", "wallet": "BCA",
+     "amount_idr": 72000, "expected": "Food & Drink"},
+    {"description": "TOKOPEDIA*BELANJA ELEKTRONIK", "wallet": "BCA",
+     "amount_idr": 1500000, "expected": "Shopping"},
+    {"description": "PLN PREPAID TOKEN LISTRIK", "wallet": "Superbank",
+     "amount_idr": 200000, "expected": "Bills & Utilities"},
+    {"description": "GJ*GRAB CAR JAKARTA SELATAN", "wallet": "BCA",
+     "amount_idr": 35000, "expected": "Transportation"},
+    {"description": "TRANSFER MASUK DARI RIKKY", "wallet": "BCA",
+     "amount_idr": 5000000, "expected": "Transfer"},
 ]
 
 URL = "http://localhost:8000/categorize-agent"
+FAST_URL = "http://localhost:8000/categorize"
 
 async def main() -> None:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    passed = 0
+    async with httpx.AsyncClient(timeout=60.0) as client:
         for tx in TEST_TRANSACTIONS:
-            resp = await client.post(URL, json=tx)
+            payload = {k: v for k, v in tx.items() if k != "expected"}
+            t0 = time.perf_counter()
+            resp = await client.post(URL, json=payload)
             resp.raise_for_status()
+            elapsed = time.perf_counter() - t0
             r = resp.json()
+
+            ok = r["category"] == tx["expected"]
+            passed += ok
             print(f"\n{'─' * 70}")
             print(f"  Description : {tx['description']}")
-            print(f"  Category    : {r['category']}  (confidence={r['confidence']:.2f})")
+            print(f"  Expected    : {tx['expected']}")
+            print(f"  Got         : {r['category']}  {'✅' if ok else '❌'}"
+                  f"  (confidence={r['confidence']:.2f})")
             print(f"  Reasoning   : {r['reasoning'][:120]}...")
-            print(f"  Tool calls  : {r['tool_calls_count']}")
+            print(f"  Tool calls  : {r['tool_calls_count']}    Latency: {elapsed:.2f}s")
+
+    print(f"\n{'═' * 70}\n  {passed}/{len(TEST_TRANSACTIONS)} correct")
 
 if __name__ == "__main__":
     asyncio.run(main())
 ```
+
+Add `import time` alongside `asyncio` and `httpx`.
 
 **C# equivalent** (`asyncio.run(main())` → `async Task Main`; `httpx.AsyncClient` → `HttpClient` + `System.Net.Http.Json`; f-string report → interpolated strings):
 
@@ -1016,7 +1249,11 @@ cd services/ai-service && uvicorn app.main:app --reload --port 8000
 cd services/ai-service && PYTHONPATH=. python scripts/test_agent.py
 ```
 
-Expected output: all 5 transactions get a non-null category from `KNOWN_CATEGORIES`, confidence ≥ 0.5, and a reasoning string citing which tool produced the evidence.
+**The bar: 5/5 exact matches**, each with `tool_calls_count ≥ 1` and a reasoning string naming the tool that produced the evidence.
+
+If you get 3/5, that is the interesting outcome — don't lower the bar. Open the two failing traces in Langfuse and diagnose *which link broke*: did the agent skip `search_category_rules` (docstring ordering, see Knowledge Check #3)? Did `find_similar_transactions` return `uncategorized` rows (STEP 1c not applied to both retriever paths)? Did it invent a category name (vocabulary snapshot empty)? Each failure maps to a specific line you wrote. That diagnosis loop is the actual skill this chapter teaches — a first run that passes 5/5 teaches less.
+
+Also record the latency numbers. You now have the honest version of the comparison story: *"the agent is N× slower than the fast path and costs 1–3 LLM calls instead of 0–1; here's the trace that justifies it."*
 
 **What to look for in Langfuse after the smoke test:** open the dashboard and find the 5 new traces. Each trace shows a tree: parent = agent run, children = individual tool call spans. Click into a span to see the tool input (the keyword passed) and the tool output (matched rules or similar transactions). *This* is the "observable agentic reasoning" demo — not just a prediction, a full reasoning trail.
 
@@ -1031,10 +1268,13 @@ This course bridges smolagents' tool-calling primitives to LangChain's function-
 ### [ ] STEP 9 — Full test pass + commit
 
 ```bash
-cd services/ai-service && PYTHONPATH=. pytest tests/test_categorizer_agent.py -v
-cd c:\workspaces\personal-finance
+# Full suite — STEP 1c touched shared retrieval code, so run everything,
+# not just the new file.
+cd services/ai-service && PYTHONPATH=. pytest -q
+cd /c/workspaces/personal-finance
 git add services/ai-service/app/agents/
 git add services/ai-service/app/models.py
+git add services/ai-service/app/services/retriever.py
 git add services/ai-service/app/main.py
 git add services/ai-service/pyproject.toml
 git add services/ai-service/tests/test_categorizer_agent.py
@@ -1051,9 +1291,11 @@ git commit -m "PF-AI007: Chapter 7 — Transaction Categorizer Agent (smolagents
 
 ## 📌 Notes
 
-- **smolagents version check first.** `instrument_smolagents()` lives in `smolagents.monitoring` from v1.9+. Run `python -c "import smolagents; print(smolagents.__version__)"` before STEP 4. If the module doesn't exist, upgrade: `pip install --upgrade smolagents`.
-- **`find_similar_transactions` requires the AI service running.** It calls `/search` via httpx in a `asyncio.run()`. In unit tests this tool is never called (the agent is mocked). In the smoke test, start the service first on port 8000. Alternative: import `RetrievalService` directly and call `asyncio.run(service.search(...))` to avoid the HTTP roundtrip.
-- **Category rules DB column name.** The `load_rules()` call in the lifespan uses `row["keyword"]` and `row["category_name"]` — match these to the actual column names in the `category_rules` table (check the Supabase schema). If the column is named differently (e.g. `pattern` or `category`), update the query in [main.py](../../../services/ai-service/app/main.py).
+- **smolagents version check first.** STEP 1b covers this — `instrument_smolagents()` lives in `smolagents.monitoring` from v1.9+, and the system-prompt kwarg name has moved across releases. Don't start STEP 3 without it.
+- **`find_similar_transactions` needs the DB, not the HTTP service.** It calls `app.state.retriever` in-process via `asyncio.run()`, so a running Postgres with embeddings (PF-AI003 backfill) is the real prerequisite. In unit tests the tool is never called (the agent is mocked). In the smoke test, the service is running anyway.
+- **STEP 1c touches two retriever paths.** `_search_vector()` **and** `_fetch_results_by_ids()` both build `SearchResult`. Patch only the first and vector search shows categories while hybrid/BM25 silently shows `None` — a bug that appears only when you flip `search_mode`.
+- **`category_rules` columns are `(id, keyword, type, category, keyword_length)`.** Verified against [20260101000000_initial_schema.sql](../../../supabase/migrations/20260101000000_initial_schema.sql). There is no `category_name`.
+- **Tool errors must not escape.** Every `@tool` returns a string on failure — never raises. A raised exception aborts the run and throws away evidence the agent already gathered.
 - **`max_steps=3` may need tuning.** If the agent hits the step limit (you'll see "Max iterations reached" in the logs), investigate *why* before raising the limit. Usually it's an ambiguous tool docstring — the LLM doesn't know when to stop. Fix the docstring; don't just raise `max_steps`.
 - **Why not LangChain / LlamaIndex for this chapter?** Those frameworks arrive in Chapter 8+ (LangGraph) and later. Building in raw smolagents first means you understand what the frameworks abstract. "I know what LangGraph adds because I built the raw version first" is a stronger position than "I just used LangChain from day one."
 - **THINK-05 (frozen contract):** `CategorizeAgentRequest` and `CategorizeAgentResponse` are new contract surface. When .NET grows a `/categorize-agent` proxy (future feature, not in this chapter), freeze these fields and update [ai-service.md](../../rules/ai-service.md).
@@ -1084,7 +1326,7 @@ Organized by when you need them — read just before the step that uses it.
 ## 🧠 Learning Strategy
 
 **Daily loop for Chapter 7:**
-- **Morning (60–90 min, deep block #1):** STEP 0 (HF Agents Course) + STEP 1 (install). Stop when you can explain the ReAct loop from memory without looking at notes.
+- **Morning (60–90 min, deep block #1):** STEP 0 (HF Agents Course) + STEPs 1/1b/1c (install, API check, `SearchResult.category`). Stop when you can explain the ReAct loop from memory without looking at notes.
 - **Midday (90 min, deep block #2):** STEPs 2–3 (tools + agent). Stop when `CategorizerAgent.categorize("STARBUCKS", "BCA", 72000)` runs without error (even if output is imperfect — you're verifying the loop works, not the quality yet).
 - **Afternoon (60 min):** STEPs 4–5 (OTel + endpoint). The Langfuse span tree is this chapter's demo artifact — don't skip the verification.
 - **Next session (60 min):** STEPs 6–9 (tests + smoke test + commit + log). The smoke test is not optional.

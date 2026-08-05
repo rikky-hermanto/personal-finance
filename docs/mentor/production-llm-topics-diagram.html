@@ -19,7 +19,7 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0;height:100%;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
-  #app{position:relative;width:100%;height:100vh;overflow:hidden;background:
+  #app{position:relative;width:100%;height:100vh;overflow:hidden;color:var(--text);background:
     radial-gradient(var(--bg-dot) 1px, transparent 1px) 0 0/22px 22px, var(--bg);}
   header{position:absolute;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:16px;
     padding:14px 20px;background:var(--header-grad);border-bottom:1px solid var(--border);box-shadow:var(--shadow)}
@@ -49,8 +49,14 @@
   .node.status-progress{position:absolute}
   .node.status-progress::after{content:"";position:absolute;top:8px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--progress)}
   .node.status-planned{border-style:dashed;border-color:var(--border-hover);background:var(--header-grad)}
-  .node.kind-stub{border-style:dashed;background:var(--chip-bg);display:flex;align-items:center;justify-content:center;
-    font-size:12px;color:var(--chip-text);text-align:center;border-width:1.4px}
+  .node.kind-stub{border-style:dashed;background:var(--stub-bg,var(--chip-bg));border-color:var(--stub-accent,var(--border-hover));
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;color:var(--stub-accent,var(--chip-text));text-align:center;border-width:1.4px}
+  .node.kind-stub::before{content:"";position:absolute;top:7px;bottom:7px;width:3px;border-radius:2px;background:var(--stub-accent)}
+  .node.kind-stub.stub-up::before{left:6px}
+  .node.kind-stub.stub-down::before{left:auto;right:6px}
+  .node.kind-stub.stub-up{padding-left:16px}
+  .node.kind-stub.stub-down{padding-right:16px}
   .tooltip{position:fixed;z-index:50;max-width:290px;background:var(--panel);border:1px solid var(--border);
     border-radius:10px;padding:10px 12px;box-shadow:var(--shadow);font-size:12.3px;color:var(--chip-text);pointer-events:none;display:none}
   .tooltip .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
@@ -109,26 +115,28 @@
 <script>
 /* ---------- DATA ---------- */
 // status: live | progress | planned
+// x/y are intentionally absent here — layoutGroups() derives them from
+// GROUP_EDGES below (a real layered-graph layout, not hand-placed pixels).
 const GROUPS = [
-  {id:'foundations', x:40,  y:340, w:230, h:96, icon:'📏', color:'#5b8def', status:'live',
+  {id:'foundations', w:230, h:96, icon:'📏', color:'#5b8def', status:'live',
     title:'Foundations you own', subtitle:'Observability + evals + embeddings (Ch1–4, done)',
     desc:'Already shipped and measured in the personal-finance AI service: Langfuse tracing (Ch1), the eval harness (Ch2), pgvector embeddings + retrieval (Ch3), grounded RAG generation (Ch4). Everything else on this map assumes these exist first — you cannot claim a KV-cache win, a routing decision, or a guardrail without a measuring tape already in place.'},
-  {id:'strategy', x:780, y:460, w:230, h:96, icon:'🧭', color:'#a35bef', status:'progress',
+  {id:'strategy', w:230, h:96, icon:'🧭', color:'#a35bef', status:'progress',
     title:'Strategy layer', subtitle:'Harness/context engineering, caching, build-vs-buy tradeoffs',
     desc:'The "how do you think about the system" layer that sits above any single technique: harness engineering (the scaffolding around the model, not just the prompt), context engineering (what goes into the window and why), prompt vs semantic caching, and the fine-tune vs ICL vs RAG vs distillation decision tree. Mostly NEW vocabulary — closest existing anchor is Ch6 Advanced RAG, where you already make a build-vs-buy call for hybrid search.'},
-  {id:'reliability', x:440, y:40, w:230, h:96, icon:'🛠️', color:'#3fbf7f', status:'progress',
+  {id:'reliability', w:230, h:96, icon:'🛠️', color:'#3fbf7f', status:'progress',
     title:'Reliability & agents', subtitle:'Structured output, function calling, guardrails, routing',
     desc:'Failure-proofing the request/response and tool-call surface: schema validation + repair loops for structured output, tool-contract + idempotency rules for function calling, loop/tool budgets + termination conditions for agents, and model routing with graceful degraded-mode fallback. Direct extension of Ch7 (smolagents) and Ch8 (LangGraph) — this is "what makes that agent safe to run unattended."'},
-  {id:'advrag', x:430, y:250, w:230, h:96, icon:'🔍', color:'#e0a94d', status:'progress',
+  {id:'advrag', w:230, h:96, icon:'🔍', color:'#e0a94d', status:'progress',
     title:'Advanced RAG & retrieval evals', subtitle:'Chunking, hybrid search, reranking, freshness, P@5/recall',
     desc:'Squeezing accuracy out of the retrieval pipeline (Ch6, already the plan) plus the eval side that proves the squeeze worked: recall, precision, grounding/attribution, citation quality. This group is where RAG architecture and retrieval evals meet — you cannot claim a hybrid-search lift without the retrieval-eval half.'},
-  {id:'quality', x:800, y:160, w:230, h:96, icon:'📊', color:'#4d9fe0', status:'progress',
+  {id:'quality', w:230, h:96, icon:'📊', color:'#4d9fe0', status:'progress',
     title:'Quality & ops at scale', subtitle:'Golden sets, LLM-as-judge, observability, cost attribution, failure modes',
     desc:'Evals grow up: golden sets, regression tests, adversarial tests, LLM-as-judge, human evals — all sitting on top of the Ch2 harness. Observability grows from "trace one call" (Ch1) to drift + error-rate dashboards. New: cost attribution per feature/tenant/journey (not just per model), and a named catalog of production failure modes (hallucinated tool calls, malformed JSON, stale retrieval, runaway agents, silent eval regressions) to test against.'},
-  {id:'safety', x:1160, y:70, w:230, h:96, icon:'🔒', color:'#e0574d', status:'planned',
+  {id:'safety', w:230, h:96, icon:'🔒', color:'#e0574d', status:'planned',
     title:'Safety & multi-tenant', subtitle:'Prompt injection defense, permission boundaries, cache/context isolation',
     desc:'Genuinely new ground: defending against prompt injection and data leakage, enforcing permission boundaries per tool call, and — once any caching or shared-context system exists — guaranteeing no cross-user contamination in that cache. Personal-finance is single-tenant today, so this is staff-level differentiator material, not a near-term build.'},
-  {id:'infra', x:1140, y:460, w:230, h:96, icon:'⚙️', color:'#8b8f98', status:'planned',
+  {id:'infra', w:230, h:96, icon:'⚙️', color:'#8b8f98', status:'planned',
     title:'Inference serving internals', subtitle:'KV cache, prefill/decode, batching, quantization, spec. decoding',
     desc:'The systems layer underneath every provider you already call: KV cache management + eviction, why prefill and decode optimize differently, continuous batching + paged attention, speculative decoding, and INT8/INT4/FP8/AWQ/GPTQ quantization tradeoffs. You consume these as a Gemini/Anthropic API caller, you do not operate them — this is ML-infra/systems territory, explicitly filed under the deferred "Fine-tuning / MLOps / guardrails-at-scale" layer (month 4+) unless a target JD demands it.'},
 ];
@@ -196,6 +204,104 @@ const LEAF_EDGES = {
   infra: [[0,1],[1,2],[2,3],[3,4]],
 };
 
+/* ---------- AUTO-LAYOUT ----------
+ * Derives each group's x/y from the GROUP_EDGES graph instead of hand-placed
+ * pixels, so the map re-derives a sensible arrangement if a topic or edge is
+ * ever added/removed. A simplified layered-graph layout (reduced Sugiyama):
+ *
+ * 1) Column = layer, assigned by longest path over the "primary" (solid)
+ *    edges only, root(s) = layer 0. A node with no primary predecessor
+ *    (infra) falls back to 1 + its dashed ("cross-cutting") predecessor's
+ *    layer, so it still lands after the topic it's noted as building on.
+ * 2) Row = Y position within a column, assigned left-to-right by a
+ *    single-pass barycenter heuristic: each node's Y is the average Y of
+ *    its primary predecessors from STRICTLY EARLIER columns (same-column /
+ *    lateral edges, e.g. the dashed strategy->reliability note, are
+ *    excluded from this — their source isn't positioned yet, and they're
+ *    still drawn as cross-cutting connectors afterward without influencing
+ *    layout). Ties fall back to declaration order, so the layout is
+ *    deterministic. A minimum row gap is enforced afterward to prevent
+ *    overlap when several nodes land on close/equal barycenters.
+ * 3) A root with no positioned predecessor of its own (foundations) is
+ *    re-centered on the average Y of its direct primary children once
+ *    they're placed, so a hub node sits centered on its fan-out instead of
+ *    pinned to the top.
+ *
+ * Column spacing guarantees zero x-overlap between layers by construction;
+ * no edge in this graph spans more than one layer, so no dummy/virtual
+ * routing nodes are needed (a same-layer edge is instead handled by
+ * sideOf() picking a top/bottom port — see drawGroupEdges).
+ */
+function layoutGroups(){
+  const W = 230, H = 96, COL_GAP = 110, ROW_GAP = 40, MARGIN_X = 40, MARGIN_Y = 40;
+  const declOrder = GROUPS.map(g=>g.id);
+  const primaryIn = {}, secondaryIn = {};
+  declOrder.forEach(id=>{ primaryIn[id]=[]; secondaryIn[id]=[]; });
+  GROUP_EDGES.forEach(([a,b,dashed])=>{
+    (dashed ? secondaryIn[b] : primaryIn[b]).push(a);
+  });
+
+  // ---- 1) layer = column, via memoized longest path ----
+  const layer = {};
+  function layerOf(id){
+    if(layer[id] !== undefined) return layer[id];
+    layer[id] = 0; // recursion guard, overwritten below
+    const preds = primaryIn[id];
+    if(preds.length) layer[id] = 1 + Math.max(...preds.map(layerOf));
+    else if(secondaryIn[id].length) layer[id] = 1 + Math.max(...secondaryIn[id].map(layerOf));
+    else layer[id] = 0;
+    return layer[id];
+  }
+  declOrder.forEach(layerOf);
+  const maxLayer = Math.max(...Object.values(layer));
+  const columns = Array.from({length:maxLayer+1}, ()=>[]);
+  declOrder.forEach(id=>columns[layer[id]].push(id));
+
+  // ---- 2) row (Y) per column, left to right, barycenter of earlier cols ----
+  const y = {};
+  columns.forEach((ids, colIdx)=>{
+    if(colIdx===0){
+      ids.forEach((id,i)=>{ y[id] = i*(H+ROW_GAP); });
+      return;
+    }
+    const scored = ids.map(id=>{
+      const primPreds = primaryIn[id].filter(p=>y[p]!==undefined);
+      // Same primary-then-secondary fallback as layerOf(): a node placed by
+      // its dashed predecessor (infra, via strategy) should also inherit
+      // that predecessor's row, not just its column — otherwise it has no
+      // Y anchor at all and just stacks wherever the collision-avoidance
+      // pass happens to push it.
+      const preds = primPreds.length ? primPreds : secondaryIn[id].filter(p=>y[p]!==undefined);
+      const bary = preds.length ? preds.reduce((s,p)=>s+y[p],0)/preds.length : null;
+      return {id, bary, declIdx: declOrder.indexOf(id)};
+    });
+    scored.sort((a,b)=>{
+      if(a.bary===null && b.bary===null) return a.declIdx-b.declIdx;
+      if(a.bary===null) return 1;
+      if(b.bary===null) return -1;
+      return (a.bary-b.bary) || (a.declIdx-b.declIdx);
+    });
+    let prevY = -Infinity;
+    scored.forEach(s=>{
+      let ny = s.bary===null ? 0 : s.bary;
+      if(ny < prevY + (H+ROW_GAP)) ny = prevY + (H+ROW_GAP);
+      y[s.id] = ny;
+      prevY = ny;
+    });
+  });
+
+  // ---- 3) re-center roots on their own primary children ----
+  columns[0].forEach(id=>{
+    const children = declOrder.filter(c=>primaryIn[c].includes(id));
+    if(children.length) y[id] = children.reduce((s,c)=>s+y[c],0)/children.length;
+  });
+
+  GROUPS.forEach(g=>{
+    g.x = MARGIN_X + layer[g.id]*(W+COL_GAP);
+    g.y = MARGIN_Y + y[g.id];
+  });
+}
+
 /* ---------- STATE ---------- */
 let scale = 1, ox = 40, oy = 0, panning=false, panStart=null, dragNode=null, dragStart=null;
 let currentGroup = null;
@@ -206,6 +312,31 @@ const edgesSvg = document.getElementById('edges');
 const wrap = document.getElementById('canvasWrap');
 const tooltip = document.getElementById('tooltip');
 
+/* ---------- Drag-position persistence ----------
+ * A dragged node's position survives a refresh. Keyed by "<view>::<id>" —
+ * view is 'overview' for the top-level groups, or the group's own id when
+ * dragging one of its leaf cards — so a leaf index reused across different
+ * groups' drill-downs (every group has a leaf 0, 1, 2...) never collides
+ * with another group's saved leaf position.
+ */
+const POSITIONS_KEY = 'pf-diagram-production-llm-topics:positions';
+const savedPositions = (function(){
+  try { return JSON.parse(localStorage.getItem(POSITIONS_KEY)) || {}; }
+  catch(e){ return {}; }
+})();
+function positionKey(view, id){ return view + '::' + id; }
+function saveNodePosition(key, x, y){
+  savedPositions[key] = {x, y};
+  try { localStorage.setItem(POSITIONS_KEY, JSON.stringify(savedPositions)); }
+  catch(e){ /* storage unavailable — position just won't persist */ }
+}
+function applySavedGroupPositions(){
+  GROUPS.forEach(g=>{
+    const saved = savedPositions[positionKey('overview', g.id)];
+    if(saved){ g.x = saved.x; g.y = saved.y; }
+  });
+}
+
 function statusColor(s){ return s==='live' ? 'var(--live)' : s==='progress' ? 'var(--progress)' : 'var(--planned)'; }
 function statusLabel(s){ return s==='live' ? 'Already covered' : s==='progress' ? 'Upcoming in curriculum' : 'New / deferred'; }
 
@@ -213,6 +344,7 @@ function applyTransform(){ world.style.transform = `translate(${ox}px,${oy}px) s
 
 function renderOverview(){
   currentGroup = null;
+  hideTooltip(); // the hovered card is about to be destroyed and will never fire mouseleave
   document.getElementById('back').style.display = 'none';
   document.getElementById('hSub').textContent = 'Where the X-list of 22 production-infra topics fits Rikky\'s 12-chapter AI Engineering pivot curriculum — click a group to drill in';
   nodesLayer.innerHTML = '';
@@ -227,7 +359,7 @@ function renderOverview(){
     el.addEventListener('mouseenter', (e)=>showTooltip(e,g));
     el.addEventListener('mousemove', moveTooltip);
     el.addEventListener('mouseleave', hideTooltip);
-    el.addEventListener('mousedown', (e)=>startDrag(e, el, g));
+    el.addEventListener('mousedown', (e)=>startDrag(e, el, g, undefined, positionKey('overview', g.id)));
     el.addEventListener('click', (e)=>{ if(!el._dragged) openGroup(g.id); });
     nodesLayer.appendChild(el);
   });
@@ -243,29 +375,96 @@ function hexToRgba(hex, a){
 
 function centerOf(g){ return {x:g.x+g.w/2, y:g.y+g.h/2}; }
 
+// Port-based routing for the overview graph. A plain center-to-center curve
+// (picking left/right purely from an x comparison) breaks two ways once
+// positions come from layoutGroups() instead of a hand-tuned grid: (a)
+// several edges from/to the same node's side all leave/enter at the exact
+// same point and stack on each other (foundations has 3 outgoing edges;
+// quality has 2 incoming), and (b) a same-column pair — expected here,
+// since same graph-depth nodes share a column by design — has no x
+// difference to pick a side from, so "x < x ? right : left" exits the
+// wrong side and loops the long way around. Each node gets ports on all 4
+// sides; the dominant axis (dx vs dy) picks left/right vs top/bottom, and
+// edges sharing a side spread along it instead of bunching at its center.
+function sideOf(a, b){
+  const ac = centerOf(a), bc = centerOf(b);
+  const dx = bc.x-ac.x, dy = bc.y-ac.y;
+  if(Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'right' : 'left';
+  return dy >= 0 ? 'bottom' : 'top';
+}
+function sidePoint(n, side, frac){
+  switch(side){
+    case 'left': return {x:n.x, y:n.y+n.h*frac};
+    case 'right': return {x:n.x+n.w, y:n.y+n.h*frac};
+    case 'top': return {x:n.x+n.w*frac, y:n.y};
+    default: return {x:n.x+n.w*frac, y:n.y+n.h};
+  }
+}
+const GROUP_LANE_GAP = 22;
+function assignGroupPorts(){
+  const byId = {};
+  GROUPS.forEach(g=>{ byId[g.id]=g; });
+  const opposite = {left:'right', right:'left', top:'bottom', bottom:'top'};
+  const raw = GROUP_EDGES.map(([a,b,dashed])=>{
+    const side = sideOf(byId[a], byId[b]);
+    return {from:a, to:b, dashed:!!dashed, aSide:side, bSide:opposite[side]};
+  });
+  const buckets = {};
+  raw.forEach((r,idx)=>{
+    const ak = r.from+'|'+r.aSide, bk = r.to+'|'+r.bSide;
+    (buckets[ak]=buckets[ak]||[]).push({idx, isA:true, otherId:r.to});
+    (buckets[bk]=buckets[bk]||[]).push({idx, isA:false, otherId:r.from});
+  });
+  Object.keys(buckets).forEach(key=>{
+    const side = key.split('|')[1];
+    const perpAxis = (side==='left'||side==='right') ? 'y' : 'x';
+    const arr = buckets[key];
+    arr.sort((p,q)=>byId[p.otherId][perpAxis]-byId[q.otherId][perpAxis]);
+    const n = arr.length;
+    arr.forEach((item,i)=>{
+      const frac = n===1 ? 0.5 : 0.22+0.56*(i/(n-1));
+      const lane = n===1 ? 0 : i-(n-1)/2;
+      if(item.isA){ raw[item.idx].aFrac=frac; raw[item.idx].aLane=lane; }
+      else { raw[item.idx].bFrac=frac; raw[item.idx].bLane=lane; }
+    });
+  });
+  raw.forEach(r=>{ r.laneOffset = ((r.aLane||0)+(r.bLane||0))*GROUP_LANE_GAP; });
+  return {list:raw, byId};
+}
+
 function drawGroupEdges(){
+  const {list, byId} = assignGroupPorts();
   let svg = '';
-  GROUP_EDGES.forEach(([a,b,dashed])=>{
-    const ga = GROUPS.find(g=>g.id===a), gb = GROUPS.find(g=>g.id===b);
-    svg += edgePath(ga, gb, dashed);
+  list.forEach(pe=>{
+    const p1 = sidePoint(byId[pe.from], pe.aSide, pe.aFrac);
+    const p2 = sidePoint(byId[pe.to], pe.bSide, pe.bFrac);
+    const horizontal = pe.aSide==='left' || pe.aSide==='right';
+    let d;
+    if(horizontal){
+      const midX = (p1.x+p2.x)/2 + pe.laneOffset;
+      d = `M ${p1.x} ${p1.y} C ${midX} ${p1.y}, ${midX} ${p2.y}, ${p2.x} ${p2.y}`;
+    } else {
+      const midY = (p1.y+p2.y)/2 + pe.laneOffset;
+      d = `M ${p1.x} ${p1.y} C ${p1.x} ${midY}, ${p2.x} ${midY}, ${p2.x} ${p2.y}`;
+    }
+    const arrow = portArrowPoints(p2, pe.bSide);
+    svg += `<path d="${d}" fill="none" stroke="var(--edge)" stroke-width="1.6" ${pe.dashed?'stroke-dasharray="6 5"':''}/>
+      <polygon points="${arrow}" fill="var(--edge)"/>`;
   });
   edgesSvg.innerHTML = svg;
 }
-
-function edgePath(ga, gb, dashed){
-  const ca = centerOf(ga), cb = centerOf(gb);
-  // pick side ports
-  const sx = ca.x < cb.x ? ga.x+ga.w : ga.x;
-  const sy = ca.y;
-  const tx = ca.x < cb.x ? gb.x : gb.x+gb.w;
-  const ty = cb.y;
-  const midx = (sx+tx)/2;
-  const d = `M ${sx} ${sy} C ${midx} ${sy}, ${midx} ${ty}, ${tx} ${ty}`;
-  const arrow = arrowPoints(tx, ty, sx<tx?1:-1);
-  return `<path d="${d}" fill="none" stroke="var(--edge)" stroke-width="1.6" ${dashed?'stroke-dasharray="6 5"':''}/>
-    <polygon points="${arrow}" fill="var(--edge)"/>`;
+function portArrowPoints(p2, bSide){
+  const size=6;
+  const dir = {left:{x:1,y:0}, right:{x:-1,y:0}, top:{x:0,y:1}, bottom:{x:0,y:-1}}[bSide];
+  const perp = {x:-dir.y, y:dir.x};
+  const baseX = p2.x - dir.x*size*1.6, baseY = p2.y - dir.y*size*1.6;
+  const b1 = {x:baseX+perp.x*size, y:baseY+perp.y*size};
+  const b2 = {x:baseX-perp.x*size, y:baseY-perp.y*size};
+  return `${p2.x},${p2.y} ${b1.x},${b1.y} ${b2.x},${b2.y}`;
 }
 
+// Unrelated to the port routing above — used only by the leaf-level
+// drill-down edges, which are always a simple horizontal chain.
 function arrowPoints(x,y,dir){
   const size=6;
   const tipx = x, tipy = y;
@@ -277,13 +476,17 @@ function arrowPoints(x,y,dir){
 function openGroup(id){
   const g = GROUPS.find(x=>x.id===id);
   currentGroup = id;
+  hideTooltip(); // the hovered card is about to be destroyed and will never fire mouseleave
   document.getElementById('back').style.display = 'inline-block';
   document.getElementById('hSub').textContent = g.title + ' — ' + g.subtitle;
   nodesLayer.innerHTML = '';
   const leaves = LEAF[id];
   const cols = leaves.length;
   const w=210, h=88, gapX=40, gapY=0, startX=60, startY=90;
-  const positions = leaves.map((l,i)=>({x:startX+i*(w+gapX), y:startY}));
+  const positions = leaves.map((l,i)=>{
+    const saved = savedPositions[positionKey(id, i)];
+    return saved ? {x:saved.x, y:saved.y} : {x:startX+i*(w+gapX), y:startY};
+  });
   const leafEls = [];
   leaves.forEach((l,i)=>{
     const el = document.createElement('div');
@@ -294,28 +497,51 @@ function openGroup(id){
     el.addEventListener('mouseenter', (e)=>showTooltip(e,{title:l.title, subtitle:l.sub, desc:l.desc, status:l.status}));
     el.addEventListener('mousemove', moveTooltip);
     el.addEventListener('mouseleave', hideTooltip);
-    el.addEventListener('mousedown', (e)=>startDrag(e, el, positions[i], drawLeafEdges));
+    el.addEventListener('mousedown', (e)=>startDrag(e, el, positions[i], drawLeafEdges, positionKey(id, i)));
     el.addEventListener('click', (e)=>{ if(!el._dragged) openPanel(l, g); });
     nodesLayer.appendChild(el);
     leafEls.push(el);
   });
-  // stub cards for other groups (upstream/downstream)
+  // Stub cards for the groups this one connects to at the higher (overview)
+  // level — source/upstream on the left, destinations/downstream on the
+  // right, so drilling in never loses the direction shown in the overview
+  // (e.g. Strategy layer: Foundations feeds in from the left, Reliability
+  // and Inference-serving both lead out to the right). Real edges are drawn
+  // below (in drawLeafEdges) from each stub to the leaf-row's bounding box —
+  // position alone doesn't read as "connected," a stub with no line looks
+  // like an unrelated floating card.
   const outbound = GROUP_EDGES.filter(([a])=>a===id);
   const inbound = GROUP_EDGES.filter(([,b])=>b===id);
-  let stubX = startX; const stubY = startY + h + 60;
-  [...inbound.map(e=>({id:e[0],dir:'up'})), ...outbound.map(e=>({id:e[1],dir:'down'}))].forEach(s=>{
-    const sg = GROUPS.find(x=>x.id===s.id);
+  const STUB_W = 160, STUB_H = 52, STUB_GAP = 22, STUB_MARGIN = 60;
+  function layoutStubs(edges, mapId, dir){
+    const rowLeft = Math.min(...positions.map(p=>p.x));
+    const rowRight = Math.max(...positions.map(p=>p.x+w));
+    const rowMidY = (Math.min(...positions.map(p=>p.y)) + Math.max(...positions.map(p=>p.y+h)))/2;
+    const n = edges.length;
+    const totalH = n*STUB_H + Math.max(0,n-1)*STUB_GAP;
+    const top = rowMidY - totalH/2;
+    return edges.map((e,i)=>({
+      sg: GROUPS.find(x=>x.id===mapId(e)),
+      dashed: !!e[2], dir,
+      x: dir==='up' ? rowLeft-STUB_MARGIN-STUB_W : rowRight+STUB_MARGIN,
+      y: top + i*(STUB_H+STUB_GAP),
+    }));
+  }
+  const upStubs = layoutStubs(inbound, e=>e[0], 'up');
+  const downStubs = layoutStubs(outbound, e=>e[1], 'down');
+  [...upStubs, ...downStubs].forEach(sp=>{
     const el = document.createElement('div');
-    el.className = 'node kind-stub ' + (s.dir==='up'?'stub-up':'stub-down');
-    el.style.left = stubX+'px'; el.style.top = stubY+'px'; el.style.width='150px'; el.style.height='48px';
-    el.style.background = hexToRgba(sg.color,.10);
-    el.style.borderColor = sg.color;
-    el.innerHTML = `<div>${sg.icon} ${sg.title}<br><span style="opacity:.75">${s.dir==='up'?'◂ open':'open ▸'}</span></div>`;
-    el.addEventListener('click', ()=>openGroup(sg.id));
+    el.className = 'node kind-stub ' + (sp.dir==='up'?'stub-up':'stub-down');
+    el.style.left = sp.x+'px'; el.style.top = sp.y+'px'; el.style.width=STUB_W+'px'; el.style.height=STUB_H+'px';
+    el.style.setProperty('--stub-accent', sp.sg.color);
+    el.style.setProperty('--stub-bg', hexToRgba(sp.sg.color,.10));
+    el.innerHTML = `<div>${sp.sg.icon} ${sp.sg.title}<br><span style="opacity:.85;font-weight:700">${sp.dir==='up'?'◂ open':'open ▸'}</span></div>`;
+    el.addEventListener('click', ()=>openGroup(sp.sg.id));
     nodesLayer.appendChild(el);
-    stubX += 170;
   });
-  // edges within leaves
+  // edges: leaf-to-leaf chain, plus source/destination connectors from each
+  // stub into the leaf row's bounding box (recomputed live so a dragged leaf
+  // keeps the connector anchored correctly).
   function drawLeafEdges(){
     let svg = '';
     (LEAF_EDGES[id]||[]).forEach(([a,b])=>{
@@ -324,6 +550,23 @@ function openGroup(id){
       const midx = (sx+tx)/2;
       const d = `M ${sx} ${sy} C ${midx} ${sy}, ${midx} ${ty}, ${tx} ${ty}`;
       svg += `<path d="${d}" fill="none" stroke="var(--edge)" stroke-width="1.6"/><polygon points="${arrowPoints(tx,ty,1)}" fill="var(--edge)"/>`;
+    });
+    const rowLeft = Math.min(...positions.map(p=>p.x));
+    const rowRight = Math.max(...positions.map(p=>p.x+w));
+    const rowTop = Math.min(...positions.map(p=>p.y));
+    const rowBottom = Math.max(...positions.map(p=>p.y+h));
+    const clampY = y => Math.max(rowTop+12, Math.min(rowBottom-12, y));
+    upStubs.forEach(sp=>{
+      const sx = sp.x+STUB_W, sy = sp.y+STUB_H/2, tx = rowLeft, ty = clampY(sy);
+      const midx = (sx+tx)/2;
+      const d = `M ${sx} ${sy} C ${midx} ${sy}, ${midx} ${ty}, ${tx} ${ty}`;
+      svg += `<path d="${d}" fill="none" stroke="var(--edge)" stroke-width="1.6" ${sp.dashed?'stroke-dasharray="6 5"':''}/><polygon points="${arrowPoints(tx,ty,1)}" fill="var(--edge)"/>`;
+    });
+    downStubs.forEach(sp=>{
+      const tx = sp.x, ty = sp.y+STUB_H/2, sx = rowRight, sy = clampY(ty);
+      const midx = (sx+tx)/2;
+      const d = `M ${sx} ${sy} C ${midx} ${sy}, ${midx} ${ty}, ${tx} ${ty}`;
+      svg += `<path d="${d}" fill="none" stroke="var(--edge)" stroke-width="1.6" ${sp.dashed?'stroke-dasharray="6 5"':''}/><polygon points="${arrowPoints(tx,ty,1)}" fill="var(--edge)"/>`;
     });
     edgesSvg.innerHTML = svg;
   }
@@ -372,12 +615,16 @@ window.addEventListener('mousemove', (e)=>{
     if(dragNode.onMove) dragNode.onMove();
   }
 });
-window.addEventListener('mouseup', ()=>{ panning=false; wrap.classList.remove('dragging'); dragNode=null; });
+window.addEventListener('mouseup', ()=>{
+  panning=false; wrap.classList.remove('dragging');
+  if(dragNode && dragNode.el._dragged && dragNode.posKey) saveNodePosition(dragNode.posKey, dragNode.g.x, dragNode.g.y);
+  dragNode=null;
+});
 
-function startDrag(e, el, g, onMove){
+function startDrag(e, el, g, onMove, posKey){
   e.stopPropagation();
   el._dragged = false;
-  dragNode = {el, ox: g.x, oy: g.y, g, onMove: onMove || drawGroupEdges};
+  dragNode = {el, ox: g.x, oy: g.y, g, onMove: onMove || drawGroupEdges, posKey};
   dragStart = {x:e.clientX, y:e.clientY};
 }
 
@@ -427,6 +674,8 @@ function toggleTheme(){
 }
 
 /* ---------- init ---------- */
+layoutGroups();
+applySavedGroupPositions();
 renderOverview();
 </script>
 </body>

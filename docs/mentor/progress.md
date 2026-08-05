@@ -611,6 +611,42 @@
 
 **Streak: 1 day**
 
+### 2026-07-30 — Day 65
+
+**Session: Chapter 7 (PF-AI007) plan hardened before writing any implementation code; diagram engine gained a computed layered layout**
+
+- Reviewed and substantially revised the PF-AI007 (smolagents tool-calling `CategorizerAgent`) plan before touching `app/agents/`:
+  - Added **STEP 1b** — verify the installed smolagents API surface (constructor kwargs for the system prompt, whether `smolagents.monitoring.instrument_smolagents` is importable, where the step log lives) before writing agent code. Flagged explicitly that `additional_args=` looks like the kwarg for a strategy/system prompt and isn't — it injects task *variables*; passing the strategy there would make the agent silently ignore tool-ordering instructions with no error raised.
+  - Added **STEP 1c** — `SearchResult` (models.py) has no `category` field today, so `find_similar_transactions` could only ever report "unknown" for historical categories. Spec'd adding `category: str | None` and selecting `t.category` in both `_search_vector()` and `_fetch_results_by_ids()` in retriever.py (missing the second path was called out explicitly — hybrid/BM25 search would silently keep returning `None`).
+  - Reworked the `find_similar_transactions` tool spec from a self-HTTP call to `localhost:8000/search` into an in-process `RetrievalService` call — no self-HTTP round trip — with the tool degrading to a plain string on failure instead of raising into the agent loop.
+  - `list_all_categories` now specified to snapshot live vocabulary from `app.state.categories` at startup, hardcoded list kept only as an empty-DB fallback.
+  - Tightened acceptance criteria: `tool_calls_count` must be derived from the agent's own step log (never hardcoded); the 5-transaction smoke test now requires an exact category match per row instead of "non-null".
+  - None of this is implemented yet — STEP 1b/1c and everything from STEP 2 onward in the plan's own checklist are still unchecked.
+- Built `docs/mentor/production-llm-topics-diagram.html` and used it to push two reusable upgrades into the tech-write skill's diagram engine:
+  - A computed layered layout (longest-path column assignment + single-pass barycenter row placement) for diagrams whose node set grows over time (roadmaps, curricula) — replaces hand-tuned fixed coordinates, verified via a Node.js simulation for zero node overlaps and zero backward edges.
+  - Dragged node positions now persist across a reload via `localStorage`.
+  - Fixed a real light/dark theme bug in the diagram template: `color` was declared only on `html, body`, so any descendant without its own explicit `color` inherited the dark-theme value even after switching to light. Fixed by re-declaring `color: var(--text)` on `#app` itself.
+- Added `.claude/plans/learning/diagram-pf-ai007-agent-loop.html` (the agent tool-calling loop for Chapter 7) and relocated `diagram-pf-ai006-rag-patterns.html` from `docs/architecture/` into the learning-plans folder — it documents a learning chapter, not shipped architecture.
+- Unrelated same-day work happened on the Trading Desk feature (PF-136, mandate presets) — out of scope for this log, noted only so the working tree's other uncommitted files aren't mistaken for pivot work.
+
+**Chapter 7 (PF-AI007) checklist progress:**
+- [ ] STEP 0 — Learn: the agent mental model (theory anchor)
+- [ ] STEP 1 — Install smolagents + litellm
+- [ ] STEP 1b — Verify the smolagents API surface ← spec'd this session, not yet run
+- [ ] STEP 1c — Add `category` to `SearchResult` ← spec'd this session, not yet implemented
+- [ ] STEP 2 onward — package structure, agent, tools, endpoint, tracing, smoke test, unit tests
+
+**Retros (blockers & surprises):**
+- **Two real gaps caught by reasoning through STEP 3 before writing code, not by debugging after.** `SearchResult` missing `category` would have made Tool 2 permanently useless (always "unknown"); `additional_args=` silently not being the system-prompt kwarg would have produced a mis-ordered agent with no error. Both are cheaper to fix in the plan than in a debugging session.
+- **Logging gap:** no entry since Day 59 (2026-07-24) — 6 days of plan/tooling work went unlogged until now, same recurring pattern noted on Day 37 and Day 48. Log same-day even a one-line stub next time.
+
+**Remaining for next session:**
+- Run STEP 1b's verification script against the actually-installed smolagents version and record the three answers here
+- Implement STEP 1c (`category` field) and confirm `test_retriever.py` / `test_hybrid_search.py` still pass
+- Then proceed to STEP 2 (package structure) → STEP 3 (`CategorizerAgent`)
+
+**Streak: 1 day** (gap 2026-07-25 → 2026-07-29 unlogged)
+
 ### 2026-07-24 — Day 59
 
 **Session: Chapter 6 (PF-AI006) closed — hybrid search measured live and LOST to pure vector; default kept at `vector`** *(logged retroactively 2026-07-26)*

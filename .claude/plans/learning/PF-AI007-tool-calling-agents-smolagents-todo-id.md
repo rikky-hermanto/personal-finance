@@ -64,9 +64,9 @@ Tiga tool-nya sengaja mengikuti urutan lapis yang sudah ada di 4-layer categoriz
             ┌────────────────────────┐  ┌────────────────────────┐  ┌────────────────────────┐
             │ search_category_rules  │  │ find_similar_trans      │  │ list_all_categories    │
             │ (keyword)               │  │ (description)           │  │ ()                     │
-            │ → cocokkan ke 106 rule  │  │ → panggil /search        │  │ → daftar kategori      │
-            │   yang sudah ada        │  │   (pgvector RAG,        │  │   valid, biar agent    │
-            │                         │  │   dari Chapter 3)       │  │   tidak mengarang      │
+            │ → cocokkan ke 106 rule  │  │ → panggil Retrieval-     │  │ → daftar kategori      │
+            │   yang sudah ada        │  │   Service in-process     │  │   valid (dari DB),     │
+            │                         │  │   (pgvector, Chapter 3) │  │   biar tidak mengarang │
             └────────────────────────┘  └────────────────────────┘  └────────────────────────┘
 ```
 
@@ -106,9 +106,21 @@ Ganjalannya, model memutuskan *apakah dan kapan* memanggil sebuah tool murni dar
 
 **Docstring sebagai kontrak.** Tulis docstring yang menyebutkan *kapan* tool ini dipakai ("Use this tool FIRST", "gunakan kalau rules mengembalikan tidak ada yang cocok"), makna tiap argumen, dan bentuk hasilnya. Docstring **adalah** skema yang jadi acuan rencana LLM. → *Ini yang dipakai chapter ini.*
 
+### Tool cuma sebagus data yang dikembalikan service di belakangnya
+
+Ini bagian yang paling gampang dilewati, dan justru yang paling mahal kalau kelewat.
+
+Tool 2 (`find_similar_transactions`) tujuannya satu: memberi tahu agent **bagaimana user dulu mengkategorikan transaksi serupa**. Itu bukti utamanya. Masalahnya, hasil `/search` dari Chapter 3 — `SearchResult` — isinya `transaction_id, similarity, description, date, amount_idr, flow, wallet`. **Tidak ada `category` di situ.**
+
+Perhatikan bentuk kegagalannya. Tidak ada exception. Tidak ada error di log. Agent tetap jalan, tetap memanggil tiga tool, tetap menghasilkan pohon span yang rapi di Langfuse, dan tetap mengembalikan sebuah kategori. Yang terjadi cuma: tool 2 mengembalikan `unknown` untuk setiap baris, sehingga salah satu dari tiga sumber buktinya kosong melompong sepanjang waktu. Dilihat dari luar, semuanya "berhasil".
+
+Makanya chapter ini menambahkan `category` ke `SearchResult` dan ikut men-`SELECT t.category` di **dua** jalur retriever (`_search_vector()` dan `_fetch_results_by_ids()` — kalau cuma yang pertama, hybrid/BM25 diam-diam mengembalikan `None`).
+
+Pelajaran yang bisa dibawa ke mana-mana: **membangun agent itu sebagian besar kerjanya menyambungkan service yang sudah ada jadi fungsi tool.** Hampir semua bug di situ bukan soal framework agent-nya, tapi soal asumsi yang salah tentang service yang disambungkan. Dan framework tidak akan pernah memberi tahu kamu kalau sebuah tool sedang mengembalikan hal yang tidak berguna — dia cuma tahu tool itu tidak melempar exception.
+
 ### Kenapa `max_steps=3`
 
-Tiga tool-nya sengaja berurutan: rules → history → daftar kategori. Praktiknya 1–2 iterasi biasanya cukup — rule cocok atau tidak. `[max_steps](glossary-rag-id.md#max-steps)=3` membatasi loop yang kebablasan, di mana LLM terus memanggil tool yang sama dengan keyword berbeda-beda. Chapter 8 (LangGraph) menggantikan batas implisit ini dengan node routing `END` eksplisit — nanti kelihatan persis apa yang dia selesaikan.
+Tiga tool-nya punya urutan yang disarankan lewat docstring: rules → history → daftar kategori. Tapi ini urutan *preferensi*, bukan rantai wajib — tiap putaran loop memanggil **satu** tool saja, dan yang memilih adalah LLM. Praktiknya 1–2 iterasi biasanya cukup: rule cocok atau tidak. `[max_steps](glossary-rag-id.md#max-steps)=3` membatasi loop yang kebablasan, di mana LLM terus memanggil tool yang sama dengan keyword berbeda-beda. Chapter 8 (LangGraph) menggantikan batas implisit ini dengan node routing `END` eksplisit — nanti kelihatan persis apa yang dia selesaikan.
 
 ---
 
@@ -121,10 +133,13 @@ Sekarang baru masuk ke kode yang akan ditulis. File yang akan dibuat/diubah — 
 | [\_\_init\_\_.py](../../../services/ai-service/app/agents/__init__.py) (`app/agents/`) | Baru — package kosong |
 | [categorizer_agent.py](../../../services/ai-service/app/agents/categorizer_agent.py) | Baru — `CategorizerAgent` + `CategorizationResult` + `_parse_result` |
 | [category_rules.py](../../../services/ai-service/app/agents/tools/category_rules.py) | Baru — tool `search_category_rules` + `load_rules()` |
-| [similarity.py](../../../services/ai-service/app/agents/tools/similarity.py) | Baru — tool `find_similar_transactions` + `configure()` |
-| [categories.py](../../../services/ai-service/app/agents/tools/categories.py) | Baru — tool `list_all_categories` + `KNOWN_CATEGORIES` |
-| [models.py](../../../services/ai-service/app/models.py) | Diedit — tambah `CategorizeAgentRequest`, `CategorizeAgentResponse` |
-| [main.py](../../../services/ai-service/app/main.py) | Diedit — endpoint `POST /categorize-agent`; wire agent di lifespan; panggil `instrument_smolagents()` |
+| [similarity.py](../../../services/ai-service/app/agents/tools/similarity.py) | Baru — tool `find_similar_transactions` + `configure(retriever)` |
+| [categories.py](../../../services/ai-service/app/agents/tools/categories.py) | Baru — tool `list_all_categories` + `load_categories()` |
+| [models.py](../../../services/ai-service/app/models.py) | Diedit — tambah `category` ke `SearchResult` **dan** tambah `CategorizeAgentRequest`, `CategorizeAgentResponse` |
+| [retriever.py](../../../services/ai-service/app/services/retriever.py) | Diedit — ikut `SELECT t.category` di `_search_vector()` **dan** `_fetch_results_by_ids()` |
+| [main.py](../../../services/ai-service/app/main.py) | Diedit — `_load_rules()`; wire agent + snapshot tool di lifespan; endpoint `POST /categorize-agent`; panggil `instrument_smolagents()` |
+
+Perhatikan dua baris terakhir: chapter ini **mengubah kode retrieval dari Chapter 3**, bukan cuma menambah folder baru. Alasannya ada di bagian [Kesalahan Umum #1](#kesalahan-umum) — dan itu justru pelajaran paling berguna dari chapter ini.
 
 **Tool 1 — cari rule.** Docstring-nya secara eksplisit bilang "gunakan ini DULUAN" — ini yang membuat agent mengecek rule sebelum melempar ke similarity search, bukan sebaliknya:
 
@@ -146,10 +161,15 @@ def search_category_rules(keyword: str) -> str:
 
 Rule 106 yang sudah ada disnapshot sekali ke dict di memori lewat `load_rules()` saat service startup — bukan query DB tiap iterasi loop, karena rule jarang berubah dan snapshot yang agak basi jauh lebih murah daripada round-trip DB di setiap langkah agent.
 
-**Tool 3 — daftar kategori valid.** Tool ini paling sederhana (list statis, tanpa panggilan DB), tapi perannya penting: mencegah agent mengarang nama kategori.
+**Tool 3 — daftar kategori valid.** Tool ini paling sederhana, tapi perannya penting: mencegah agent mengarang nama kategori. Daftarnya **diambil dari DB**, di-snapshot sekali saat startup — bukan ditulis tangan di kode. Service ini sudah punya vokabuler itu: [`_load_categories()`](../../../services/ai-service/app/main.py) melakukan `SELECT DISTINCT category FROM transactions` dan menyimpannya di `app.state.categories` untuk query planner. Tinggal dipakai ulang.
 
 ```python
-KNOWN_CATEGORIES = ["Food & Dining", "Transportation", "Shopping", ..., "Other"]
+_CATEGORIES: list[str] = []
+
+def load_categories(categories: list[str]) -> None:
+    """Dipanggil dari lifespan main.py, sumbernya app.state.categories."""
+    global _CATEGORIES
+    _CATEGORIES = list(categories) if categories else list(_FALLBACK_CATEGORIES)
 
 @tool
 def list_all_categories() -> str:
@@ -158,8 +178,10 @@ def list_all_categories() -> str:
     Your final CATEGORY must exactly match one of these names — do NOT invent
     category names. If uncertain, use 'Other'.
     """
-    return "Valid categories:\n" + "\n".join(f"  - {c}" for c in KNOWN_CATEGORIES)
+    return "Valid categories:\n" + "\n".join(f"  - {c}" for c in _CATEGORIES)
 ```
+
+`_FALLBACK_CATEGORIES` (list tulis tangan) tetap ada, tapi **cuma sebagai cadangan** kalau DB tidak bisa dihubungi saat startup atau tabel transaksi masih kosong di instalasi baru. Kenapa bukan list tulis tangan sebagai sumber utama — dibahas di [Optimisasi #8](#optimisasi).
 
 **`CategorizerAgent`** — kelas yang membungkus `ToolCallingAgent` dengan tiga tool, model lewat `LiteLLMModel`, dan `max_steps=3`. System prompt-nya secara eksplisit menuliskan urutan strategi (rules → history → daftar kategori → jawaban berformat tetap):
 
@@ -171,14 +193,23 @@ class CategorizerAgent:
         self._agent = ToolCallingAgent(
             tools=[search_category_rules, find_similar_transactions, list_all_categories],
             model=model,
+            instructions=_SYSTEM_PROMPT,   # ← strategi urutan tool masuk DI SINI
             max_steps=3,
         )
 
     def categorize(self, description: str, wallet: str, amount_idr: float) -> CategorizationResult:
         task = f"Categorize this bank transaction:\n  Description: {description}\n  Bank: {wallet}\n  Amount (IDR): {amount_idr:,.0f}"
-        raw = self._agent.run(task, additional_args={"system_prompt": _SYSTEM_PROMPT})
-        return _parse_result(raw)
+        raw = self._agent.run(task)
+        steps = getattr(self._agent, "memory", None)
+        tool_calls = len(steps.steps) if steps is not None else 0
+        return _parse_result(str(raw), tool_calls_count=tool_calls)
 ```
+
+Dua detail di blok ini yang gampang salah, dan dua-duanya gagal tanpa error:
+
+**Pertama, system prompt masuk lewat `instructions=` di constructor — bukan `additional_args=` di `run()`.** `additional_args` itu untuk mengoper *variabel task*, bukan instruksi sistem. Kalau strategi urutan tool ditaruh di sana, smolagents menerimanya tanpa protes lalu mengabaikannya: agent jalan normal, tidak ada exception, cuma urutan tool-nya jadi ngawur. Ini persis kegagalan yang dibahas di [Kesalahan Umum #4](#kesalahan-umum) — dan alasan kenapa plan asli sekarang punya satu step khusus (STEP 1b) buat mengecek signature `ToolCallingAgent.__init__` sebelum menulis kode agent.
+
+**Kedua, `tool_calls_count` diambil dari catatan langkah milik agent sendiri**, bukan diisi `0` lalu "nanti diisi pemanggil". Field angka yang isinya selalu 0 lebih berbahaya daripada tidak ada field sama sekali — bentuknya seperti hasil pengukuran, jadi tidak ada yang curiga.
 
 Perhatikan: `categorize()` di sini adalah fungsi **sinkron** — `ToolCallingAgent.run()` bawaan smolagents memang sinkron. Dipanggil langsung di dalam `async def` endpoint, dia akan menahan event loop selama agent berjalan (bisa 1–5 detik). Endpoint-nya membungkus panggilan ini dengan `asyncio.to_thread(...)` — pola yang sama dengan FlashRank di Chapter 4 ([lihat glossary](glossary-rag-id.md#asyncio-to-thread)).
 
@@ -208,7 +239,23 @@ async def categorize_with_agent(request: CategorizeAgentRequest) -> CategorizeAg
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
 ```
 
-Kode lengkap tool ke-2 (`find_similar_transactions`), semua test unit (mocked, tanpa panggilan LLM asli), port C# baris-per-baris untuk tiap blok, dan script smoke test 5-transaksi ada di file asli: [PF-AI007-tool-calling-agents-smolagents-todo.md](PF-AI007-tool-calling-agents-smolagents-todo.md), STEP 2–7.
+**Tool 2 — dan sikap penanganan error yang beda dari biasanya.** Tool ini memanggil `RetrievalService` yang sama persis dengan yang dipakai `/search` dan `/ask` (langsung di dalam proses — bukan HTTP ke port sendiri). Yang menarik bukan itu, tapi cara dia menangani kegagalan:
+
+```python
+    if _RETRIEVER is None:
+        return "Similarity search unavailable."
+    try:
+        results = asyncio.run(_RETRIEVER.search(query=description, top_k=3))
+    except Exception:
+        logger.exception("similarity tool failed description=%r", description)
+        return "Similarity search unavailable."
+```
+
+Di endpoint biasa, melempar exception itu benar — pemanggil memang perlu tahu ada yang rusak. **Di dalam loop agent, tidak.** Exception yang lolos dari sebuah tool membatalkan seluruh run dan membuang semua bukti yang sudah susah payah dikumpulkan agent di iterasi sebelumnya. Mengembalikan string `"Similarity search unavailable."` membuat loop tetap hidup: LLM membacanya sebagai satu observasi biasa, dan masih bisa menjawab berbekal bukti dari rule dengan confidence yang lebih rendah.
+
+Ringkasnya: **tool itu menurunkan kualitas jawaban (degrade), agent yang memutuskan.** Ini postur error handling yang memang berbeda dari sisa codebase ini, dan layak diingat sebagai pola tersendiri.
+
+Kode lengkap tool ke-2, semua test unit (mocked, tanpa panggilan LLM asli), port C# baris-per-baris untuk tiap blok, dan script smoke test 5-transaksi ada di file asli: [PF-AI007-tool-calling-agents-smolagents-todo.md](PF-AI007-tool-calling-agents-smolagents-todo.md), STEP 1b–7.
 
 ---
 
@@ -224,13 +271,19 @@ Keputusan desain yang diambil di plan chapter ini, dengan alasan konkretnya:
 
 4. **Trace Langfuse lewat satu hook OTel, bukan tracing manual per tool call.** `instrument_smolagents()` cukup satu kali panggil di startup — karena exporter OTLP ke Langfuse (dari PF-AI001) sudah aktif, semua run agent, tool call, dan LLM completion otomatis terekam sebagai pohon span tanpa kode tracing tambahan di tiap fungsi.
 
-5. **`max_steps=3`, dipasangkan langsung dengan urutan 3 tool.** Bukan angka sembarang — cocok dengan jumlah langkah strategi (rules → history → daftar kategori). Kalau agent sering mentok di batas ini, itu sinyal untuk memperbaiki docstring, bukan menaikkan angkanya.
+5. **`max_steps=3` itu jatah langkah, bukan satu langkah per tool.** Angkanya memang disamakan dengan panjang strategi (rules → history → daftar kategori), tapi jangan dibaca sebagai "tool 1 di langkah 1, tool 2 di langkah 2". Satu rule yang langsung cocok bisa menyudahi run di langkah pertama, dan LLM boleh saja menghabiskan dua langkah di tool yang sama dengan keyword berbeda. Kalau agent sering mentok di batas ini, itu sinyal untuk memperbaiki docstring, bukan menaikkan angkanya.
 
 6. **`asyncio.to_thread` untuk memanggil `agent.run()` yang sinkron.** `ToolCallingAgent.run()` smolagents itu blocking. Dipanggil langsung di dalam `async def`, dia menahan event loop selama proses agent berjalan (1–5 detik) — semua request lain (termasuk `/health`) ikut macet. `asyncio.to_thread` melepaskannya ke thread pool.
 
 7. **Endpoint `/categorize-agent` terpisah, tidak menggantikan `/categorize`.** `/categorize` yang sudah ada adalah jalur produksi — cepat, 4 lapis, tanpa overhead agent. Jalur agent lebih lambat (1–3 panggilan LLM per request) dan dipakai untuk debugging, edge case, dan demo. Keduanya hidup berdampingan supaya bisa dibandingkan langsung: transaksi yang sama, jalur cepat bilang "Shopping", agent bilang "Shopping (Online)" dengan alasan "rule Tokopedia cocok + 3 transaksi mirip di riwayat mengonfirmasi Shopping (Online)."
 
-8. **Daftar kategori statis (`list_all_categories`), bukan query DB.** Kategori jarang berubah, dan panggilan DB di tiap iterasi loop agent menambah latency + overhead koneksi. Pembatasannya bersifat perilaku: system prompt memberi tahu model bahwa kategori final HARUS berasal dari `list_all_categories()`. Kategori yang dikarang akan gagal validasi hilir dan kelihatan di Langfuse — gampang ditangkap.
+8. **Snapshot vokabuler kategori saat startup — bukan query per iterasi, tapi juga bukan list tulis tangan.** Ini sebenarnya dua pertanyaan berbeda yang sering ketuker jadi satu.
+
+   *Datanya dari mana?* **Dari DB — selalu.** List yang ditulis tangan di kode pasti lama-lama melenceng dari isi database. Dan agent yang dibatasi ke daftar nama yang ternyata tidak ada di sistem itu lebih buruk daripada agent yang tidak dibatasi sama sekali: dia sekarang mengarang dengan percaya diri, karena merasa sedang memilih dari daftar resmi. Vokabuler aslinya juga sudah tersedia — `app.state.categories` sudah di-load saat startup buat query planner.
+
+   *Dibacanya seberapa sering?* **Sekali saja, saat startup.** Round-trip DB di tiap iterasi loop agent menambah latency dan overhead koneksi untuk data yang berubahnya mungkin sebulan sekali.
+
+   Snapshot-saat-startup memberi dua-duanya: data asli, biaya per panggilan nol. Konsekuensinya daftar itu basi sampai service di-restart — untuk nama kategori, itu masih wajar, dan kalaupun bermasalah gampang kelihatan di Langfuse. Yang tidak wajar adalah menukar "hemat query" dengan "datanya karangan".
 
 ---
 
@@ -242,6 +295,9 @@ Aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing pent
 - **Docstring tool harus eksplisit soal urutan pemanggilan** ("Use this tool FIRST", "gunakan kalau X kosong") — bukan cuma menjelaskan apa yang dilakukan tool itu, tapi kapan dia relevan dipanggil.
 - **`max_steps` yang mentok adalah sinyal diagnostik, bukan alasan menaikkan limit.** Biasanya berarti docstring ambigu — model tidak tahu kapan harus berhenti.
 - **Kerjaan sinkron blocking (seperti `agent.run()`) harus dilepas dari event loop** lewat `asyncio.to_thread` (Python) atau `Task.Run` (C#/.NET) — sama seperti pola FlashRank di Chapter 4.
+- **Tool gagal → kembalikan string, jangan `raise`.** Exception yang lolos dari tool membatalkan seluruh run agent dan membuang bukti yang sudah dikumpulkan. `"Similarity search unavailable."` membuat loop tetap jalan dengan bukti yang tersisa. Tool degrade, agent yang memutuskan.
+- **Cek dulu data yang benar-benar dikembalikan service di balik tiap tool**, jangan diasumsikan dari nama fungsinya. Tool yang mengembalikan hal tidak berguna tidak akan pernah melempar error — dia kelihatan sukses.
+- **Verifikasi signature library sebelum menulis kode agent** (`instructions=` vs `additional_args=`, nama modul monitoring, atribut catatan langkah). API smolagents berpindah antar rilis minor, dan salah pakai kwarg gagalnya diam-diam.
 - **Jangan pernah memanggil LLM asli di unit test.** Mock `ToolCallingAgent` di level class — pola yang sama dengan mocking `anthropic.AsyncAnthropic` di test ekstraksi.
 - **Kegagalan agent/LLM harus mengembalikan HTTP 502, bukan 200 dengan kategori kosong.** Kontrak error service ini eksplisit melarang 200-dengan-kosong.
 - **Aktifkan exporter OTLP dulu, baru panggil `instrument_smolagents()`.** Hook-nya mengikat ke `TracerProvider` yang aktif *pada saat dipanggil* — kalau urutannya terbalik, hook itu terikat ke provider kosong.
@@ -251,28 +307,39 @@ Aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing pent
 
 ## Kesalahan Umum
 
-> Chapter ini belum dibangun (status: To Do), jadi belum ada bug "kejadian betulan" dari sesi build — beda dengan PF-AI004 yang sudah live-verified. Daftar di bawah adalah jebakan-jebakan yang sudah diantisipasi di file plan asli (bagian 📌 Notes dan Anti-patterns) plus skenario di Knowledge Check-nya — bukan insiden nyata. Bagian ini akan diperbarui jadi bug betulan setelah chapter ini benar-benar dikerjakan.
+> Chapter ini belum dibangun (status: To Do), jadi sebagian besar daftar ini adalah jebakan yang *diantisipasi* di plan — bukan insiden nyata dari sesi build, beda dengan PF-AI004 yang sudah live-verified.
+>
+> **Kecuali empat yang pertama.** Nomor 1–4 ditemukan saat review arsitektur terhadap plan-nya, dengan mengecek langsung ke kode dan skema database yang ada sekarang. Draft pertama plan ini benar-benar memuat keempatnya. Semuanya sudah diperbaiki di file plan asli — tapi ditulis di sini apa adanya, karena bentuk kegagalannya jauh lebih berharga daripada perbaikannya.
 
-1. **Pakai `CodeAgent` alih-alih `ToolCallingAgent`.** Eksekusi kode di web service adalah lubang keamanan — pilihan yang jelas-jelas salah untuk konteks ini, dicatat eksplisit di plan sebagai anti-pattern nomor satu.
+1. **`SearchResult` tidak punya field `category` — tool 2 mengembalikan `unknown` untuk semua baris.** Tool yang seharusnya jadi sumber bukti "riwayat" ternyata tidak membawa kategori sama sekali. Tidak ada error, tidak ada log, pohon span di Langfuse tetap rapi. Agent tetap menjawab — cuma dengan satu dari tiga sumber buktinya kosong. Ini kegagalan paling berbahaya di seluruh chapter justru karena bentuknya mirip keberhasilan. Perbaikannya: tambah `category` ke model, dan `SELECT t.category` di **dua** jalur retriever.
 
-2. **Memanggil `agent.run()` langsung di dalam `async def` tanpa `asyncio.to_thread`.** Menahan event loop selama durasi agent (1–5 detik) — semua request konkuren lain (termasuk `/health`) ikut timeout.
+2. **System prompt dioper lewat `additional_args=` di `run()`, bukan `instructions=` di constructor.** `additional_args` itu untuk variabel task. Strategi urutan tool yang ditaruh di sana diterima tanpa protes lalu diabaikan — seluruh premis "docstring + prompt yang mengatur urutan tool" jadi tidak pernah benar-benar diuji, dan tidak ada satu pun error yang muncul.
 
-3. **Docstring `search_category_rules` tidak bilang "gunakan ini DULUAN".** Kalau ini kelewatan, agent bisa saja memanggil `find_similar_transactions` lebih dulu — Langfuse akan menunjukkan urutan tool call yang salah walau tidak ada error yang meledak.
+3. **`app.state.retriever._conn` dipakai untuk query rule di lifespan — atribut itu tidak ada.** `RetrievalService` membuka `asyncpg.connect()` baru tiap panggilan dan menutupnya di `finally`; tidak ada koneksi jangka panjang yang bisa dipinjam. Yang bikin ini kelihatan masuk akal: kebiasaan menjangkau atribut privat milik objek lain. Akibatnya `AttributeError` saat startup.
 
-4. **Testing dengan panggilan LLM asli, bukan mock `ToolCallingAgent` di level class.** Selain boros biaya, `ToolCallingAgent.__init__` bisa mencoba validasi/inisialisasi model LiteLLM yang gagal di CI tanpa API key — plan asli secara eksplisit meminta mocking di level class untuk menghindari ini.
+4. **`tool_calls_count` di-hardcode `0` dengan komentar "nanti diisi pemanggil" — dan tidak ada pemanggil yang mengisinya.** Field itu muncul di response model, di acceptance criteria, dan di output smoke test. Angka yang selalu 0 tapi berbentuk hasil pengukuran lebih menyesatkan daripada tidak ada angka sama sekali.
 
-5. **Memberi agent 7+ tool.** Makin banyak tool = makin susah dilacak kenapa agent memilih urutan tertentu ketika dia loop.
+5. **Pakai `CodeAgent` alih-alih `ToolCallingAgent`.** Eksekusi kode di web service adalah lubang keamanan — pilihan yang jelas-jelas salah untuk konteks ini, dicatat eksplisit di plan sebagai anti-pattern nomor satu.
 
-6. **Melewati verifikasi pohon span di Langfuse setelah smoke test.** Trace tree itu bukti utama chapter ini — kalau dilewati, klaim "saya membangun agent yang bisa diobservasi" jadi klaim kosong tanpa bukti.
+6. **Memanggil `agent.run()` langsung di dalam `async def` tanpa `asyncio.to_thread`.** Menahan event loop selama durasi agent (1–5 detik) — semua request konkuren lain (termasuk `/health`) ikut timeout.
 
-7. **Return HTTP 200 dengan kategori kosong saat agent gagal**, alih-alih 502 sesuai kontrak error yang sudah dipakai konsisten di service ini.
+7. **Docstring `search_category_rules` tidak bilang "gunakan ini DULUAN".** Kalau ini kelewatan, agent bisa saja memanggil `find_similar_transactions` lebih dulu — Langfuse akan menunjukkan urutan tool call yang salah walau tidak ada error yang meledak.
 
-8. **`instrument_smolagents()` dipanggil sebelum OTLP exporter dikonfigurasi.** Hook-nya terikat ke `TracerProvider` yang aktif saat itu — kalau exporter belum siap, hook itu mengirim ke provider kosong; parent trace bisa tetap muncul dari tracer lain yang sudah ada duluan, tapi child span tiap tool call hilang tanpa error yang kelihatan.
+8. **Tool melempar exception ke dalam loop agent.** Satu panggilan DB yang lagi rewel bisa membatalkan seluruh run dan membuang bukti yang sudah dikumpulkan di iterasi sebelumnya. Tool harus mengembalikan string kegagalan, bukan `raise`.
 
-9. **Tidak mengecek versi smolagents sebelum STEP 4.** `instrument_smolagents()` cuma ada di `smolagents.monitoring` sejak v1.9+ — kalau versi lebih lama, modulnya tidak ada dan langkah ini gagal diam-diam kalau tidak dicek lebih dulu.
+9. **Testing dengan panggilan LLM asli, bukan mock `ToolCallingAgent` di level class.** Selain boros biaya, `ToolCallingAgent.__init__` bisa mencoba validasi/inisialisasi model LiteLLM yang gagal di CI tanpa API key — plan asli secara eksplisit meminta mocking di level class untuk menghindari ini.
 
-10. **Nama kolom `category_rules` di query `load_rules()` (`keyword`, `category_name`) beda dari skema Supabase yang sebenarnya.** Plan asli mencatat ini sebagai hal yang wajib dicek dulu sebelum STEP 5 dijalankan, bukan diasumsikan.
+10. **Memberi agent 7+ tool.** Makin banyak tool = makin susah dilacak kenapa agent memilih urutan tertentu ketika dia loop.
 
+11. **Melewati verifikasi pohon span di Langfuse setelah smoke test.** Trace tree itu bukti utama chapter ini — kalau dilewati, klaim "saya membangun agent yang bisa diobservasi" jadi klaim kosong tanpa bukti.
+
+12. **Return HTTP 200 dengan kategori kosong saat agent gagal**, alih-alih 502 sesuai kontrak error yang sudah dipakai konsisten di service ini.
+
+13. **`instrument_smolagents()` dipanggil sebelum OTLP exporter dikonfigurasi.** Hook-nya terikat ke `TracerProvider` yang aktif saat itu — kalau exporter belum siap, hook itu mengirim ke provider kosong; parent trace bisa tetap muncul dari tracer lain yang sudah ada duluan, tapi child span tiap tool call hilang tanpa error yang kelihatan. (Di service ini `trace.set_tracer_provider()` jalan di level modul, jadi memanggilnya di dalam lifespan sudah aman — yang berbahaya justru "merapikan" import lalu memindahkannya ke atas.)
+
+14. **Tidak mengecek API smolagents sebelum menulis kode agent.** Bukan cuma versi: nama kwarg system prompt, keberadaan modul `monitoring`, dan atribut catatan langkah semuanya berpindah antar rilis minor. Plan asli sekarang menaruh ini sebagai satu step tersendiri (STEP 1b, 5 menit) justru karena salah tebak di sini gagalnya diam-diam.
+
+15. **Menebak nama kolom `category_rules` alih-alih membacanya.** Kolomnya `(id, keyword, type, category, keyword_length)` — tidak ada `category_name`. Draft pertama plan memakai `category_name`. Pelajaran umumnya bukan soal nama kolom ini, tapi soal kebiasaannya: skema itu dibaca, bukan diasumsikan.
 ---
 
 ## Summary
@@ -289,11 +356,16 @@ Aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing pent
 
 | Metrik | Target di plan | Hasil aktual |
 |--------|-----------------|--------------|
-| Transaksi smoke test dapat kategori valid | 5/5 | *diukur* |
-| Confidence minimum smoke test | ≥ 0.5 | *diukur* |
+| Kategori **tepat sesuai label harapan** di smoke test | 5/5 | *diukur* |
+| `tool_calls_count` per transaksi | ≥ 1 | *diukur* |
+| Latency agent vs `/categorize` (jalur cepat) | dicatat, bukan ditarget | *diukur* |
 | Tool call child span per run terlihat di Langfuse | ya | *diverifikasi* |
 
+Perhatikan baris pertama: patokannya **cocok persis dengan label yang diharapkan**, bukan sekadar "dapat kategori yang valid" — lima jawaban "Other" lolos patokan yang kedua. Dan kalau hasilnya 3/5, itu justru hasil yang menarik: buka dua trace yang gagal di Langfuse, lalu telusuri mata rantai mana yang putus (docstring urutan? `category` di retriever? snapshot vokabuler kosong?). Tiap kegagalan menunjuk ke satu baris yang kamu tulis sendiri. Diagnosis itu keterampilan aslinya — run pertama yang langsung 5/5 justru mengajarkan lebih sedikit.
+
 **Pelajaran terpenting chapter ini (dari desain plan-nya):** agent bukan model yang "lebih pintar" — dia model yang sama, ditaruh di dalam loop pengumpulan bukti, dengan akses ke tool yang eksplisit. Keamanan produksi di sini bukan soal membatasi kemampuan model, tapi soal membatasi *bentuk* aksinya (tool call JSON terstruktur, bukan kode bebas) — dan docstring tool adalah kontrak yang benar-benar dibaca dan dipatuhi model, bukan sekadar catatan untuk manusia.
+
+**Pelajaran kedua, dari review arsitektur terhadap plan ini:** membangun agent itu sebagian besar kerjanya **menyambungkan service yang sudah ada jadi fungsi tool** — dan hampir semua bug di situ bukan soal framework agent-nya, tapi soal asumsi yang salah tentang service yang disambungkan. Empat masalah pertama di [Kesalahan Umum](#kesalahan-umum) semuanya berbentuk sama: kolom yang ternyata tidak ada, atribut yang ternyata tidak ada, kwarg yang ternyata diabaikan, angka yang ternyata tidak pernah diisi. Tidak satu pun berhubungan dengan ReAct atau smolagents. Dan tiga dari empat gagal **tanpa melempar error** — agent tetap jalan, tetap menjawab, trace-nya tetap rapi. Di sistem agentic, "tidak ada error" bukan bukti bahwa semuanya bekerja.
 
 **Kalimat penutup untuk interview** (target dari plan asli, dipakai setelah chapter ini selesai): *"Saya membangun transaction categorizer agent pakai smolagents ToolCallingAgent dengan 3 tool: pencarian rule berbasis keyword, semantic similarity search lewat pgvector (dari Chapter 3), dan penjaga kosakata kategori. Agent-nya menjalankan loop ReAct — maksimal 3 iterasi — dan tiap tool call jadi child span di Langfuse. Saya bisa tunjukkan trace-nya: dia panggil search_category_rules, dapat 'tidak ada yang cocok', lalu panggil find_similar_transactions, ketemu 3 transaksi 'Shopping (Online)' di riwayat, dan mengembalikan kategori itu dengan confidence 0.7. Itu penalaran agentic yang bisa diobservasi — bukan sekadar demo, tapi artefak produksi yang bisa di-debug."*
 
