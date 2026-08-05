@@ -24,7 +24,7 @@ const InvestmentLayout = () => {
 
   return (
     <div className="flex flex-col h-full bg-transparent">
-      <div className="flex items-center px-6 pt-6 pb-5 border-b border-border gap-6">
+      <div className="flex items-center px-6 pt-6 pb-5 gap-6">
         <div className="flex items-baseline gap-3">
           <h1 className="text-2xl font-bold text-foreground tracking-tight">Investments</h1>
         </div>

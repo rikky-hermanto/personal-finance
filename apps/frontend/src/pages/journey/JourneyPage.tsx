@@ -68,7 +68,7 @@ export const JourneyPage = () => {
             </span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mt-8">
           <Button asChild variant="ghost" size="sm">
             <Link to="/journey/achievements">
               <Trophy className="w-4 h-4 mr-1.5" />
