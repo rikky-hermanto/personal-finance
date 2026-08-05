@@ -45,7 +45,8 @@ def test_rrf_merge_empty_bm25_falls_back_to_vector_order():
 
 
 def _make_mock_row(transaction_id=1, similarity=0.0, description="TRANSFER PLN",
-                    date="2026-03-01", amount_idr=250000.0, flow="DB", wallet="BCA"):
+                    date="2026-03-01", amount_idr=250000.0, flow="DB", wallet="BCA",
+                    category="Bills & Utilities"):
     data = {
         "transaction_id": transaction_id,
         "id": transaction_id,
@@ -55,6 +56,7 @@ def _make_mock_row(transaction_id=1, similarity=0.0, description="TRANSFER PLN",
         "amount_idr": amount_idr,
         "flow": flow,
         "wallet": wallet,
+        "category": category,
     }
     row = MagicMock()
     row.__getitem__ = MagicMock(side_effect=lambda key: data[key])

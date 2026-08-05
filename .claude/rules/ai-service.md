@@ -108,6 +108,7 @@ The .NET API maps these HTTP status codes to user-visible errors:
 | LLM returned malformed output   | 502    | `"llm_parse_error"`       |
 | Anthropic API unreachable       | 502    | `"provider_unavailable"`  |
 | max_tokens truncation           | 502    | `"response_truncated"`    |
+| LLM provider rate limit exhausted (after internal retries) | 502 | `"llm_rate_limited"` |
 | Unexpected server error         | 500    | `"internal_error"`        |
 
 Never return HTTP 200 with an empty transactions list when parsing fails — use 502.

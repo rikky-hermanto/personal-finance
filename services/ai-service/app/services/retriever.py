@@ -139,7 +139,8 @@ class RetrievalService:
                 t.date::text AS date,
                 t.amount_idr,
                 t.flow,
-                COALESCE(a.name, '') AS wallet
+                COALESCE(a.name, '') AS wallet,
+                t.category
             FROM transactions t
             LEFT JOIN accounts a ON a.id = t.account_id
             WHERE t.id = ANY($1::bigint[])
@@ -156,6 +157,7 @@ class RetrievalService:
                 amount_idr=float(row["amount_idr"]),
                 flow=row["flow"],
                 wallet=row["wallet"],
+                category=row["category"],
             )
             for tid in ids
             if (row := by_id.get(tid)) is not None
@@ -253,7 +255,8 @@ class RetrievalService:
                 t.date::text AS date,
                 t.amount_idr,
                 t.flow,
-                COALESCE(a.name, '') AS wallet
+                COALESCE(a.name, '') AS wallet,
+                t.category
             FROM transaction_embeddings te
             JOIN transactions t ON t.id = te.transaction_id
             LEFT JOIN accounts a ON a.id = t.account_id
@@ -272,6 +275,7 @@ class RetrievalService:
                 amount_idr=float(row["amount_idr"]),
                 flow=row["flow"],
                 wallet=row["wallet"],
+                category=row["category"],
             )
             for row in rows
         ]

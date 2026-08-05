@@ -1,8 +1,8 @@
 # PF-AI007 — Chapter 7: First Agent — smolagents (Transaction Categorizer)
 
 > **Learning Phase:** Phase 2 · Chapter 7 of 12 · Day ~37 of 90
-> **Status:** To Do
-> **Started:** (set when you begin)
+> **Status:** In Progress — STEPs 0–6 and 9 done; STEP 7 (5-transaction smoke test) blocked at 1/5 on Gemini free-tier daily quota (20 req/day, exhausted) — see [progress.md](../../../docs/mentor/progress.md) 2026-08-05 (Day 71) entry
+> **Started:** 2026-08-05
 > **Planned from branch:** main
 > **Pivot goal:** Close the single biggest gap on current AI Eng JDs. "Agentic systems" is the hard one to fake. smolagents is the minimum-surface entry: one LLM, a set of tools, a loop. Grok the ReAct loop here — the state machines, routing, and multi-agent patterns in Chapter 8 (LangGraph) make sense only after you've seen what they're abstracting. After this chapter you can say: "I built a tool-calling agent that categorizes transactions by iterating over rule-matching, semantic similarity search, and spending-pattern context — every tool call is traced in Langfuse."
 
@@ -233,18 +233,30 @@ GrabFood match was excluded as a different product line.
 
 ## ✅ Acceptance Criteria
 
-- [ ] `pip install "smolagents[litellm]" litellm` succeeds; both added to `pyproject.toml` main deps
-- [ ] **smolagents API surface verified** (STEP 1b): `smolagents.__version__` recorded; `ToolCallingAgent.__init__` accepts an instructions/system-prompt argument; `smolagents.monitoring.instrument_smolagents` importable; the step-count attribute on the agent identified
-- [ ] **`SearchResult` carries `category`** — `models.py` gains `category: str | None`; `retriever.py` selects `t.category` in `_search_vector` **and** `_fetch_results_by_ids`; existing `test_retriever.py` / `test_hybrid_search.py` still pass
-- [ ] `app/agents/categorizer_agent.py` — `CategorizerAgent` wrapping a `ToolCallingAgent` with 3 tools; accepts `description`, `wallet`, `amount_idr`; returns `CategorizationResult(category, confidence, reasoning, tool_calls_count)` with `tool_calls_count` derived from the agent's own step log (never hardcoded)
-- [ ] `app/agents/tools/category_rules.py` — `search_category_rules(keyword)` `@tool`; queries the 106-rule snapshot loaded at startup from `SELECT keyword, category FROM category_rules`; returns matched rule + category pairs as string; returns "No rules matched." when empty
-- [ ] `app/agents/tools/similarity.py` — `find_similar_transactions(description)` `@tool`; calls the in-process `RetrievalService` (pgvector RAG, PF-AI003) — no self-HTTP; returns top-3 descriptions **with their real historical categories**; returns a degradation string (not an exception) when search is unavailable
-- [ ] `app/agents/tools/categories.py` — `list_all_categories()` `@tool`; returns the **live** vocabulary snapshotted from `app.state.categories` at startup, with the hardcoded list used only as an empty-DB fallback
-- [ ] `POST /categorize-agent` endpoint in `main.py` — accepts `CategorizeAgentRequest`; returns `CategorizeAgentResponse(category, confidence, reasoning, tool_calls_count)`; LLM failures return 502 (never 200-with-empty)
-- [ ] Langfuse traces: every `/categorize-agent` call produces ≥1 tool-call child span visible in the Langfuse dashboard (parent = agent run; children = individual tool calls)
+- [x] `pip install "smolagents[litellm]" litellm` succeeds; both added to `pyproject.toml` main deps
+  > Verified: smolagents 1.26.0 + litellm 1.95.0 installed, both in `pyproject.toml`, `from smolagents import ToolCallingAgent, tool, LiteLLMModel` succeeds.
+- [x] **smolagents API surface verified** (STEP 1b): `smolagents.__version__` recorded; `ToolCallingAgent.__init__` accepts an instructions/system-prompt argument; `smolagents.monitoring.instrument_smolagents` importable; the step-count attribute on the agent identified
+  > Verified live against the installed version: version=1.26.0; `instructions=` confirmed accepted (via `MultiStepAgent.__init__`, inherited through `**kwargs`); `instrument_smolagents` is **NOT importable** in 1.26.0 (confirmed absent from package source, not just an import error) — used the plan's documented manual-span fallback instead; `agent.memory.steps` confirmed as the real step-count source on a constructed instance.
+- [x] **`SearchResult` carries `category`** — `models.py` gains `category: str | None`; `retriever.py` selects `t.category` in `_search_vector` **and** `_fetch_results_by_ids`; existing `test_retriever.py` / `test_hybrid_search.py` still pass
+  > Verified: both retriever paths edited; `pytest tests/test_retriever.py tests/test_hybrid_search.py` — 20/20 pass (required updating both files' `_make_mock_row()` fixtures to include the new `category` key — see STEP 1c note).
+- [x] `app/agents/categorizer_agent.py` — `CategorizerAgent` wrapping a `ToolCallingAgent` with 3 tools; accepts `description`, `wallet`, `amount_idr`; returns `CategorizationResult(category, confidence, reasoning, tool_calls_count)` with `tool_calls_count` derived from the agent's own step log (never hardcoded)
+  > Verified: unit tests assert `tool_calls_count` against a real populated `agent.memory.steps` mock; live run showed `tool_calls_count=5` (a real observed value, not hardcoded).
+- [x] `app/agents/tools/category_rules.py` — `search_category_rules(keyword)` `@tool`; queries the rule snapshot loaded at startup from `SELECT keyword, category FROM category_rules`; returns matched rule + category pairs as string; returns "No rules matched." when empty
+  > Verified live: local dev DB has 5 `category_rules` rows (not 106 — a much smaller dev dataset than the plan's docs describe elsewhere), tool correctly returned "No rules matched." for "salary" and real matches were exercised in unit tests.
+- [x] `app/agents/tools/similarity.py` — `find_similar_transactions(description)` `@tool`; calls the in-process `RetrievalService` (pgvector RAG, PF-AI003) — no self-HTTP; returns top-3 descriptions **with their real historical categories**; returns a degradation string (not an exception) when search is unavailable
+  > Verified live: local `transaction_embeddings` was empty at session start (prior DB reset wiped the PF-AI003 backfill) — ran `backfill_embeddings.py --yes` (24 txns) first, then the tool returned real similarity matches with real categories (e.g. "Salary" — Salary, similarity=0.62) in the live smoke test.
+- [x] `app/agents/tools/categories.py` — `list_all_categories()` `@tool`; returns the **live** vocabulary snapshotted from `app.state.categories` at startup, with the hardcoded list used only as an empty-DB fallback
+  > Verified live: returned the DB's real 5-category vocabulary (Bill, Emergency Fund, Food & Drinks, Loan, Salary), not the hardcoded fallback list.
+- [x] `POST /categorize-agent` endpoint in `main.py` — accepts `CategorizeAgentRequest`; returns `CategorizeAgentResponse(category, confidence, reasoning, tool_calls_count)`; LLM failures return 502 (never 200-with-empty)
+  > Verified live: real HTTP 200 response with correct fields for a real transaction; 502-on-exception path covered by `test_categorize_re_raises_on_agent_error` (re-raise confirmed) — the endpoint's own try/except → `HTTPException(502)` wrapping is code-reviewed, not independently curl-tested against a forced failure this session.
+- [x] Langfuse traces: every `/categorize-agent` call produces ≥1 tool-call child span visible in the Langfuse dashboard (parent = agent run; children = individual tool calls)
+  > Verified via the Langfuse public API (`GET /api/public/traces/{id}`) against a real call: `POST /categorize-agent` → `categorizer_agent_run` (AGENT) → 3 child TOOL spans, correctly nested by `parentObservationId`.
 - [ ] `scripts/test_agent.py` — 5-transaction smoke test runs and prints category + confidence + reasoning + tool count for each; **each transaction's category exactly matches its expected label** (see STEP 7 table), and each `tool_calls_count` is ≥ 1
-- [ ] `tests/test_categorizer_agent.py` — unit tests with mocked smolagents agent (no real LLM calls); covers: normal categorization, fallback to "Other" on empty output, non-numeric CONFIDENCE falls back to 0.5, 502-propagating exception re-raise
-- [ ] HF Agents Course Units 1–2 read; active-retrieval notes written in [progress.md](../../../docs/mentor/progress.md)
+  > Not met: script runs correctly and 1/5 transactions completed with an exact category match (`tool_calls_count=5`, ≥1). Remaining 4/5 blocked by Gemini's free-tier daily quota (20 req/day, exhausted mid-run) — see STEP 7 note. Deferred until quota resets or a paid tier / funded Anthropic key exists.
+- [x] `tests/test_categorizer_agent.py` — unit tests with mocked smolagents agent (no real LLM calls); covers: normal categorization, fallback to "Other" on empty output, non-numeric CONFIDENCE falls back to 0.5, 502-propagating exception re-raise
+  > Verified: `pytest tests/test_categorizer_agent.py` — 5/5 pass.
+- [x] HF Agents Course Units 1–2 read; active-retrieval notes written in [progress.md](../../../docs/mentor/progress.md)
+  > Verification note: active-retrieval answers (ReAct loop, ToolCallingAgent vs CodeAgent, docstring-as-schema, why the loop repeats) written into the 2026-08-05 (Day 71) entry — technically accurate content produced this session. Whether the HF course pages themselves were separately read is not something this execution session can independently verify.
 
 ## 🧭 Approach
 
@@ -282,7 +294,9 @@ smolagents v1.9+ ships with OpenTelemetry instrumentation. One call to `instrume
 
 ## 📋 TODO
 
-### [ ] STEP 0 — Learn: the agent mental model (theory anchor, 60–90 min)
+### [x] STEP 0 — Learn: the agent mental model (theory anchor, 60–90 min)
+
+> **Done 2026-08-05.** Active-retrieval answers (ReAct loop, ToolCallingAgent vs CodeAgent security rationale, docstring-as-schema, why the loop repeats) written into [progress.md](../../../docs/mentor/progress.md) under the 2026-08-05 (Day 71) entry.
 
 The Hugging Face Agents Course is the fastest way to grok the ReAct loop before building. Complete in this order:
 
@@ -306,7 +320,9 @@ The Hugging Face Agents Course is the fastest way to grok the ReAct loop before 
 
 > **The interview frame:** "An AI agent is a loop: the LLM observes tool output, reasons about what to do next, and acts by calling another tool — until it has enough evidence to produce a final answer. ReAct is the standard framing: Reason → Act → Observe → repeat. smolagents runs this loop explicitly; LangGraph (Chapter 8) makes the loop a directed graph so you can add conditional routing, retry nodes, and parallel tool calls. I built the categorizer in smolagents first — so when I explain LangGraph, I can say exactly what it adds."
 
-### [ ] STEP 1 — Install smolagents + litellm
+### [x] STEP 1 — Install smolagents + litellm
+
+> **Done 2026-08-05.** Installed `smolagents[litellm]>=1.9` + `litellm>=1.50`, resolved to **smolagents 1.26.0** / litellm 1.95.0. Both added to `pyproject.toml` main deps. Smoke import confirmed OK. Note: litellm's install upgraded `openai` 1.109.1→2.53.0, which conflicts with `langchain-openai`'s `<2.0` pin (RAGAS eval-only, dev extra) — confirmed `langchain_openai` is never imported from `app/` or `tests/`, only from `evals/`, so this doesn't affect the app or test suite (verified: `test_embedder.py`/`test_embedding_providers.py` still 23/23 pass against openai v2).
 
 Add to [pyproject.toml](../../../services/ai-service/pyproject.toml) main dependencies (runtime — not dev):
 
@@ -328,7 +344,9 @@ python -c "from smolagents import ToolCallingAgent, tool, LiteLLMModel; print('s
 
 > **Why `smolagents[litellm]`?** The `[litellm]` extra bundles LiteLLM as smolagents' provider backend. Without it, smolagents defaults to OpenAI only. With it, `LiteLLMModel(model_id="gemini/gemini-2.5-flash")` and `"anthropic/claude-sonnet-4-6"` both work — the same keys already in `config.py`, zero extra setup.
 
-### [ ] STEP 1b — Verify the smolagents API surface (5 min — do NOT skip)
+### [x] STEP 1b — Verify the smolagents API surface (5 min — do NOT skip)
+
+> **Done 2026-08-05 — and it caught a real divergence.** `smolagents.__version__` = 1.26.0. `ToolCallingAgent.__init__`'s own signature doesn't list `instructions`/`max_steps` directly — they're inherited via `**kwargs` from `MultiStepAgent.__init__`, confirmed present there and confirmed accepted end-to-end by actually constructing an instance. `agent.memory.steps` confirmed real and populated (instance-level, not class-level — `hasattr(ToolCallingAgent, "memory")` on the class is `False` by design, checked the instance instead). **`smolagents.monitoring.instrument_smolagents` does NOT exist in 1.26.0** — grepped the installed package source directly (zero opentelemetry/otel/instrument references anywhere in it), not just an import-name guess. This is newer than v1.9, so the plan's "upgrade if missing" branch didn't apply; used the plan's own documented fallback instead (STEP 4).
 
 smolagents is pre-1.0-stable in spirit: constructor kwargs and the monitoring module move between minor releases. Three things this plan depends on must be confirmed against *your installed version* before you write agent code. Getting this wrong costs an hour of silent misbehaviour in STEP 3.
 
@@ -362,7 +380,9 @@ Record the three answers in [progress.md](../../../docs/mentor/progress.md). The
 
 > **Why a whole step for this?** `additional_args=` looks like it would carry a system prompt and it does not — it injects task *variables*. Passing the strategy there means the agent silently ignores your tool-ordering instructions, the tools fire in the wrong order, and nothing errors. That's the exact failure mode Knowledge Check #3 describes. Verifying the signature costs five minutes; debugging the symptom costs an evening.
 
-### [ ] STEP 1c — Add `category` to `SearchResult` (blocks Tool 2)
+### [x] STEP 1c — Add `category` to `SearchResult` (blocks Tool 2)
+
+> **Done 2026-08-05.** `category: str | None = None` added to `SearchResult`; `t.category` selected in both `_search_vector()` and `_fetch_results_by_ids()`. Regression note beyond the plan's own text: adding the field broke the existing mocked-row fixtures in `test_retriever.py`/`test_hybrid_search.py` — `row["category"]` against a dict-backed `MagicMock.__getitem__` with no `"category"` key raises `KeyError`, since these tests never touch a real asyncpg `Record` (which does support safe `.get()`). Added `category` to both `_make_mock_row()` helpers rather than leave a real regression under an "unchanged" claim. `pytest tests/test_retriever.py tests/test_hybrid_search.py` — 20/20 pass.
 
 `find_similar_transactions` exists to tell the agent *how the user categorized similar past transactions*. Today it cannot: [SearchResult](../../../services/ai-service/app/models.py) has `transaction_id, similarity, description, date, amount_idr, flow, wallet` — no category. Without this change the tool returns `unknown` for every row and the agent's second evidence source is dead weight.
 
@@ -395,7 +415,9 @@ cd services/ai-service && PYTHONPATH=. pytest tests/test_retriever.py tests/test
 
 > **Why touch Chapter 3's code in Chapter 7?** Because the agent exposed a real gap: retrieval was built to answer "what did I spend on?" (Chapter 3–6), where the category was never needed in the result. An agent reasoning *about* categories needs it. This is the normal shape of agent work — the tools are usually fine, the data they surface is what's missing.
 
-### [ ] STEP 2 — Create the package structure + three tool files
+### [x] STEP 2 — Create the package structure + three tool files
+
+> **Done 2026-08-05.** `app/agents/` + `app/agents/tools/` created with `__init__.py`. All 3 tools built as specified (`search_category_rules`, `find_similar_transactions`, `list_all_categories`), each additionally wrapped in a `langfuse.start_as_current_observation(as_type="tool", ...)` span (see STEP 4 — manual tracing fallback, since `instrument_smolagents()` isn't available on smolagents 1.26). Sanity-checked all 3 import and execute correctly standalone before wiring into the agent.
 
 ```bash
 mkdir -p services/ai-service/app/agents/tools
@@ -653,7 +675,9 @@ public static class CategoriesTool
 
 > **The tool docstring IS the schema description.** The LLM sees only what's written in the docstring when it decides whether to call a tool. Ambiguous docstrings produce ambiguous tool choice. Each docstring here explicitly states when to use the tool ("Use this tool FIRST", "Use this when rules return No rules matched") to steer the agent toward the intended call order.
 
-### [ ] STEP 3 — Build `CategorizerAgent` in `app/agents/categorizer_agent.py`
+### [x] STEP 3 — Build `CategorizerAgent` in `app/agents/categorizer_agent.py`
+
+> **Done 2026-08-05, one deliberate deviation.** Built per spec (`instructions=` confirmed correct per STEP 1b, `max_steps=3`, `tool_calls_count` from `agent.memory.steps`, timeout=30 on the model). Deviation: `LiteLLMModel` is constructed with `api_key=settings.gemini_api_key` (or anthropic) passed explicitly, not left to ambient env vars — `pydantic-settings` reads `.env` into the `Settings` object but does not export those values into `os.environ`, so LiteLLM would find no key at all otherwise. Also wraps `categorize()` in a manual Langfuse `as_type="agent"` parent span (STEP 4 fallback). Confirmed importable and `_parse_result`/`_safe_float` behave per spec via a standalone check before writing tests.
 
 ```python
 """Transaction Categorizer Agent — smolagents ToolCallingAgent.
@@ -842,7 +866,9 @@ public class CategorizerAgent
 
 > **Why is `categorize()` synchronous?** `smolagents.ToolCallingAgent.run()` is synchronous (it manages its own internal async where needed). Called directly inside `async def`, it blocks the FastAPI event loop. The endpoint calls it via `asyncio.to_thread()` — same fix as FlashRank in Chapter 4. Don't force it async; trust the thread pool.
 
-### [ ] STEP 4 — Wire OTel tracing (Langfuse auto-capture)
+### [x] STEP 4 — Wire OTel tracing (Langfuse auto-capture)
+
+> **Done 2026-08-05 — via the plan's own documented fallback, not the one-liner.** `instrument_smolagents()` doesn't exist on smolagents 1.26.0 (confirmed in STEP 1b by reading the installed package source, not just a failed import). Used the plan's own contingency: manual Langfuse spans — `as_type="agent"` around `CategorizerAgent.categorize()`, `as_type="tool"` inside each of the 3 tool bodies. **Live-verified against the real Langfuse API** (`GET /api/public/traces/{id}`), not assumed: a real `/categorize-agent` call produced `POST /categorize-agent` (FastAPI auto-span) → `categorizer_agent_run` (AGENT) → 3 child TOOL spans (`search_category_rules`, `find_similar_transactions`, `list_all_categories`), each correctly nested by `parentObservationId`. This nesting works because `asyncio.to_thread` (STEP 5) copies the current `contextvars.Context` into the worker thread, which is what lets Langfuse's OTel-based context propagation survive the sync/async boundary.
 
 In [main.py](../../../services/ai-service/app/main.py), add ONE line — but **placement matters**.
 
@@ -869,7 +895,9 @@ This registers a hook that wraps `ToolCallingAgent.run()`, tool dispatch, and ev
 
 > **If smolagents < 1.9 (check `smolagents.__version__`):** the `monitoring` module may not exist. Fallback: wrap `CategorizerAgent.categorize()` with a manual Langfuse span using the existing `langfuse` client from PF-AI001. A 5-line decorator achieves the same parent/child trace shape.
 
-### [ ] STEP 5 — Add models + wire `POST /categorize-agent` in `main.py`
+### [x] STEP 5 — Add models + wire `POST /categorize-agent` in `main.py`
+
+> **Done 2026-08-05.** `CategorizeAgentRequest`/`CategorizeAgentResponse` added to `models.py`. `_load_rules()` added (mirrors `_load_categories()`'s fail-open posture exactly — verified the column names `(keyword, category)` against `category_rules`, no `category_name` mistake). Agent wired in `lifespan()` after `app.state.retriever`/`app.state.categories` exist. `asyncio.to_thread` added (needed a new `import asyncio` at the top of `main.py` — not previously imported there). Endpoint returns 502 on any exception. Live-verified: `curl`able, returned HTTP 200 with a correct category for a real transaction (see STEP 7).
 
 Extend [models.py](../../../services/ai-service/app/models.py):
 
@@ -1026,7 +1054,9 @@ public class CategorizeAgentController : ControllerBase
 
 > **Why 502 on agent failure (not 500)?** The error contract in `.claude/rules/ai-service.md`: LLM/provider failures are upstream-dependency errors → 502. Returning 200-with-empty is explicitly forbidden — it would poison any downstream evaluation with fake successes.
 
-### [ ] STEP 6 — Write unit tests in `tests/test_categorizer_agent.py`
+### [x] STEP 6 — Write unit tests in `tests/test_categorizer_agent.py`
+
+> **Done 2026-08-05.** All 5 tests from the plan implemented (parse structured fields, garbage fallback to Other, non-numeric confidence survival, categorize calls agent.run, re-raise on agent error) — plus an added assertion that `tool_calls_count` is genuinely read from a populated `agent.memory.steps` mock (not just present). `ToolCallingAgent`/`LiteLLMModel` mocked at the class level per the plan — no real LLM calls. 5/5 pass. Note: the real (unmocked) `langfuse` client is still exercised by these tests (matches existing codebase precedent — `gemini.py`/`anthropic.py` providers already do this in their own tests) — with real Langfuse keys configured locally this produces real (harmless) trace entries even from unit test runs; confirmed via the Langfuse API while investigating STEP 7 that two of these traces (inputs `"TX"` and `"GJ*GRAB CAR JAKARTA"`) are from this test file, not from the live smoke test.
 
 ```python
 """Unit tests for CategorizerAgent — mocked smolagents, no real LLM calls."""
@@ -1145,7 +1175,15 @@ cd services/ai-service && PYTHONPATH=. pytest tests/test_categorizer_agent.py -v
 
 > **Why mock `ToolCallingAgent` at the class level?** smolagents' `ToolCallingAgent.__init__` may attempt to validate or initialize the LiteLLM model, which fails in CI without API keys. Patching the class at import prevents that initialization. Same pattern as mocking `anthropic.AsyncAnthropic` in the extraction tests — per `.claude/rules/ai-service.md`.
 
-### [ ] STEP 7 — Write + run the 5-transaction smoke test
+### [!] STEP 7 — Write + run the 5-transaction smoke test
+
+> **Failure (partial): 1/5 exact matches confirmed live, not 5/5 — blocked by Gemini's free-tier daily quota (20 req/day), not a code defect.** `scripts/test_agent.py` built and runs correctly. The local dev DB's actual vocabulary (5 categories: `Bill`, `Emergency Fund`, `Food & Drinks`, `Loan`, `Salary`; only 5 `category_rules` rows) is far thinner than the plan's Starbucks/Tokopedia/Grab placeholder fixtures assume — rewrote the 5 test transactions around the DB's real categories per the plan's own script comment ("check GET /search results or the DB"). `transaction_embeddings` was also empty (a prior `supabase db reset` wiped the PF-AI003 backfill) — ran `backfill_embeddings.py --yes` (24 txns) first so Tool 2 had real vectors, otherwise it would have been dead weight by construction.
+>
+> Transaction 1 ("Monthly salary payment") completed the full ReAct loop correctly: `search_category_rules("salary")` → "No rules matched." → `find_similar_transactions` → 3 real "Salary" matches from the backfill (similarity 0.62) → `list_all_categories` → `CATEGORY: Salary`, exact match to expected. Live-verified via the Langfuse API: full trace tree present (agent span + 3 tool child spans, correctly nested) — satisfies the Langfuse acceptance criterion with real evidence, not a mocked one.
+>
+> Transaction 2 hit `429 RESOURCE_EXHAUSTED` mid-loop. First attempt: the 5-req/minute free-tier RPM cap (a single agent run alone burns ~4 completions in under 10s — back-to-back transactions trip it even though each run alone is under the limit). Added 65s inter-transaction pacing and retried; second attempt failed on the **daily** cap instead (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`, limit 20/day, already exhausted). `ANTHROPIC_API_KEY` is unset (no funded fallback). This is the third distinct confirmation of this exact wall in this project (Day 42, Day 48, now 2026-08-05/Day 71 — see [progress.md](../../../docs/mentor/progress.md)) — a fixed daily reset, not something same-day retries or pacing can work around. Stopped rather than burn tomorrow's quota chasing a 5/5 that couldn't complete today.
+>
+> **Deferred:** re-run the remaining 4/5 transactions once the Gemini daily quota resets or a paid tier / funded Anthropic key exists.
 
 Create [test_agent.py](../../../services/ai-service/scripts/test_agent.py):
 
@@ -1261,11 +1299,15 @@ Also record the latency numbers. You now have the honest version of the comparis
 
 ### [ ] STEP 8 — Stretch: DeepLearning.AI Functions, Tools and Agents with LangChain
 
+> Not attempted this session — explicitly optional per the plan ("don't let it block the commit"). Does not block Chapter 7 close-out.
+
 If time allows (this is optional — don't let it block the commit): complete DeepLearning.AI *Functions, Tools and Agents with LangChain* (free, ~3h) → https://learn.deeplearning.ai (search "Functions, Tools and Agents").
 
 This course bridges smolagents' tool-calling primitives to LangChain's function-calling API, which LangGraph (Chapter 8) builds on. Complete it between STEP 7 and the Chapter 8 start — not as a blocker to this chapter's commit.
 
-### [ ] STEP 9 — Full test pass + commit
+### [x] STEP 9 — Full test pass + commit
+
+> **Test pass done 2026-08-05: 138 passed, 1 pre-existing unrelated failure** (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py` — the same pre-existing failure logged 2026-07-24, untouched by this chapter). No regressions from PF-AI007 changes. **Commit intentionally NOT run** — per this session's execute skill, all changes are left uncommitted for the user to review in their git client rather than auto-committed.
 
 ```bash
 # Full suite — STEP 1c touched shared retrieval code, so run everything,
@@ -1283,7 +1325,9 @@ git status    # verify NO .env, NO credentials
 git commit -m "PF-AI007: Chapter 7 — Transaction Categorizer Agent (smolagents ToolCallingAgent, 3 tools, Langfuse traces)"
 ```
 
-### [ ] STEP 10 — Log progress
+### [x] STEP 10 — Log progress
+
+> **Done 2026-08-05.** Full session entry (Day 71) written to [progress.md](../../../docs/mentor/progress.md), including the STEP 0 active-retrieval answers, the STEP 1b version-surface findings, the tracing-fallback design, the STEP 1c regression + fix, and the STEP 7 quota-wall diagnosis.
 
 ```
 /mentor log Built Transaction Categorizer Agent (smolagents ToolCallingAgent, 3 tools: search_category_rules / find_similar_transactions / list_all_categories); all 5 smoke-test transactions categorized correctly; tool calls visible as Langfuse child spans. Chapter 7 complete.

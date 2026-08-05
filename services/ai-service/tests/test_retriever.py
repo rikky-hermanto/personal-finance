@@ -6,7 +6,8 @@ from app.models import SearchResult
 
 
 def _make_mock_row(transaction_id=1, similarity=0.9, description="GOPAY FOOD",
-                   date="2026-03-01", amount_idr=50000.0, flow="DB", wallet="BCA"):
+                   date="2026-03-01", amount_idr=50000.0, flow="DB", wallet="BCA",
+                   category="Food & Dining"):
     data = {
         "transaction_id": transaction_id,
         "similarity": similarity,
@@ -15,6 +16,7 @@ def _make_mock_row(transaction_id=1, similarity=0.9, description="GOPAY FOOD",
         "amount_idr": amount_idr,
         "flow": flow,
         "wallet": wallet,
+        "category": category,
     }
     row = MagicMock()
     row.__getitem__ = MagicMock(side_effect=lambda key: data[key])
