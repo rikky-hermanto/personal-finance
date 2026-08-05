@@ -26,6 +26,8 @@ dependencies = [
     "pgvector>=0.3",
     "flashrank>=0.2",
     "sse-starlette>=2.1",
+    "smolagents[litellm]>=1.9",
+    "litellm>=1.50",
 ]
 
 

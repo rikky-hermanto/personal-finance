@@ -203,6 +203,7 @@ class SearchResult(BaseModel):
     amount_idr: float
     flow: str
     wallet: str
+    category: str | None = None   # PF-AI007: historical category — agent evidence
 
 
 class SearchResponse(BaseModel):
@@ -259,3 +260,19 @@ class AskResponse(BaseModel):
     intent: str = "lookup"              # "aggregate" | "lookup" — which path served this
     verified: bool = True               # citations/markers validated against real context
     total_idr: float | None = None      # aggregate path only — SQL total, the source of truth
+
+
+# ── Chapter 7: Agent Categorization ────────────────────────────────────────────
+
+class CategorizeAgentRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    description: str = Field(..., min_length=1, max_length=500)
+    wallet: str = Field(default="Unknown")
+    amount_idr: float = Field(default=0.0, ge=0.0)
+
+
+class CategorizeAgentResponse(BaseModel):
+    category: str
+    confidence: float
+    reasoning: str
+    tool_calls_count: int

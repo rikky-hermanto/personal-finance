@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 import datetime
@@ -12,7 +13,7 @@ from sse_starlette.sse import EventSourceResponse
 # In the lifespan context manager or @app.on_event("shutdown"):
 from app.observability import langfuse
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
 from app.services.reranker import RerankerService
@@ -27,6 +28,10 @@ from app.services.categorizer import Categorizer
 from app.services.merchant_suggester import MerchantSuggester
 from app.services.portfolio_reviewer import PortfolioReviewer
 from app.services.journey_advisor import JourneyAdvisor
+from app.agents.categorizer_agent import CategorizerAgent, AgentRateLimitedError
+from app.agents.tools.category_rules import load_rules
+from app.agents.tools.categories import load_categories as load_agent_categories
+from app.agents.tools.similarity import configure as configure_similarity_tool
 
 from opentelemetry import trace, metrics
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -71,6 +76,25 @@ async def _load_categories(db_url: str) -> list[str]:
         return []
 
 
+async def _load_rules(db_url: str) -> dict[str, str]:
+    """Snapshot the 106 category rules for the agent's search_category_rules tool.
+
+    Columns are (id, keyword, type, category, keyword_length) — see
+    supabase/migrations/20260101000000_initial_schema.sql. Mirrors
+    _load_categories(): failure degrades the tool, never blocks the service.
+    """
+    try:
+        conn = await asyncpg.connect(db_url)
+        try:
+            rows = await conn.fetch("SELECT keyword, category FROM category_rules")
+        finally:
+            await conn.close()
+        return {r["keyword"]: r["category"] for r in rows}
+    except Exception:
+        logger.exception("failed to load category rules — agent rule tool will return no matches")
+        return {}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     provider = ProviderFactory.create(settings)
@@ -98,6 +122,20 @@ async def lifespan(app: FastAPI):
         categories=app.state.categories,
     )
     app.state.provider = provider
+
+    # Chapter 7 — Transaction Categorizer Agent (smolagents ToolCallingAgent).
+    # Tool 1 — rules snapshot straight from the DB.
+    rules = await _load_rules(settings.database_url)
+    load_rules(rules)
+    # Tool 2 — hand the tool the SAME retriever instance /search and /ask use.
+    configure_similarity_tool(app.state.retriever)
+    # Tool 3 — reuse the vocabulary already loaded above for the query planner.
+    load_agent_categories(app.state.categories)
+    app.state.categorizer_agent = CategorizerAgent()
+    logger.info(
+        "Categorizer agent ready — %d rules, %d categories", len(rules), len(app.state.categories),
+    )
+
     logger.info(
         "Loaded %d category vocabulary entries for the planner", len(app.state.categories),
     )
@@ -232,6 +270,37 @@ async def categorize_transaction(request: CategorizeRequest) -> CategorizeRespon
     if not request.available_categories:
         raise HTTPException(status_code=422, detail="available_categories must not be empty")
     return await app.state.categorizer.categorize(request)
+
+
+@app.post("/categorize-agent", response_model=CategorizeAgentResponse)
+async def categorize_with_agent(request: CategorizeAgentRequest) -> CategorizeAgentResponse:
+    """Categorize a transaction using the ReAct agent with visible reasoning trace.
+
+    Slower than /categorize (1-3 LLM calls vs 0-1) but shows its work — use for
+    debugging edge cases, demos, or when the fast path returns 'Other'.
+    """
+    try:
+        result = await asyncio.to_thread(
+            app.state.categorizer_agent.categorize,
+            request.description,
+            request.wallet,
+            request.amount_idr,
+        )
+        return CategorizeAgentResponse(
+            category=result.category,
+            confidence=result.confidence,
+            reasoning=result.reasoning,
+            tool_calls_count=result.tool_calls_count,
+        )
+    except AgentRateLimitedError as exc:
+        # Distinct from llm_parse_error: the provider's own quota is exhausted,
+        # not a malformed/unparseable response — a caller should back off and
+        # retry later (or switch provider), not treat this as a code bug.
+        logger.warning("categorize-agent rate-limited: %s", exc)
+        raise HTTPException(status_code=502, detail="llm_rate_limited") from exc
+    except Exception as exc:
+        logger.exception("agent categorization failed")
+        raise HTTPException(status_code=502, detail="llm_parse_error") from exc
 
 @app.post("/portfolio-review", response_model=PortfolioReviewResponse)
 async def portfolio_review(req: PortfolioReviewRequest) -> PortfolioReviewResponse:
