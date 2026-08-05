@@ -1,4 +1,3 @@
-param([switch]$SkipApiPort)
 $ErrorActionPreference = "Continue"
 
 # 1. Check if docker is running
@@ -40,12 +39,9 @@ if (Test-Path $launchSettingsPath) {
     Write-Host "Could not find launchSettings.json, falling back to port $port" -ForegroundColor Yellow
 }
 
-# 3. Stop conflicting processes on known service ports
-$portsToFree = @(8080, 8000, 3000, 3100, 3200, 9090, 12345)
-
-if (-not $SkipApiPort) {
-    $portsToFree += $port
-}
+# 3. Stop conflicting processes on known service ports (always includes the API port,
+# so a leftover backend process from a previous run never blocks a fresh start)
+$portsToFree = @(8080, 8000, 3000, 3100, 3200, 9090, 12345, $port)
 foreach ($p in $portsToFree) {
     $connections = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue
     foreach ($conn in $connections) {
@@ -54,4 +50,12 @@ foreach ($p in $portsToFree) {
             Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
         }
     }
+}
+
+# 4. Also stop any leftover PersonalFinance.Api process by name, in case it hasn't
+# bound to the port yet (e.g. still starting up) or is listening elsewhere
+$apiProcesses = Get-Process -Name "PersonalFinance.Api" -ErrorAction SilentlyContinue
+foreach ($proc in $apiProcesses) {
+    Write-Host "Stopping leftover backend process PersonalFinance.Api (PID: $($proc.Id))" -ForegroundColor Yellow
+    Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
 }
