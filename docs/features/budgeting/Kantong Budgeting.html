@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kantong — Budgeting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{borderRadius:{lg:'var(--radius)',md:'calc(var(--radius) - 2px)',sm:'calc(var(--radius) - 4px)'},fontFamily:{sans:['Inter','system-ui','sans-serif']},colors:{border:'hsl(var(--border))',input:'hsl(var(--input))',ring:'hsl(var(--ring))',background:'hsl(var(--background))',foreground:'hsl(var(--foreground))',primary:{DEFAULT:'hsl(var(--primary))',foreground:'hsl(var(--primary-foreground))'},secondary:{DEFAULT:'hsl(var(--secondary))',foreground:'hsl(var(--secondary-foreground))'},muted:{DEFAULT:'hsl(var(--muted))',foreground:'hsl(var(--muted-foreground))'},card:{DEFAULT:'hsl(var(--card))',foreground:'hsl(var(--card-foreground))'},destructive:{DEFAULT:'hsl(var(--destructive))',foreground:'hsl(var(--destructive-foreground))'},success:'hsl(var(--success))',warning:'hsl(var(--warning))',info:'hsl(var(--info))'}}}};
+</script>
+<style>
+:root{color-scheme:light;--background:42 17% 94%;--foreground:35 9% 19%;--card:0 0% 100%;--card-foreground:35 9% 19%;--primary:35 9% 19%;--primary-foreground:0 0% 100%;--secondary:39 18% 91%;--secondary-foreground:35 9% 19%;--muted:39 18% 91%;--muted-foreground:0 0% 42%;--destructive:354 91% 65%;--destructive-foreground:0 0% 100%;--border:39 18% 88%;--input:39 18% 91%;--ring:35 9% 19%;--radius:12px;--success:170 90% 32%;--warning:32 88% 45%;--info:220 91% 55%}
+.dark{color-scheme:dark;--background:240 10% 3%;--foreground:0 0% 98%;--card:240 6% 8%;--card-foreground:210 12% 90%;--primary:220 91% 65%;--primary-foreground:0 0% 100%;--secondary:240 6% 12%;--secondary-foreground:0 0% 100%;--muted:240 6% 10%;--muted-foreground:210 8% 55%;--destructive:354 91% 65%;--border:240 6% 13%;--input:240 6% 10%;--ring:220 91% 65%;--success:165 70% 45%;--warning:35 91% 60%;--info:220 91% 65%}
+html,body{height:100%}
+body{margin:0;background:hsl(var(--background));color:hsl(var(--foreground));font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-feature-settings:'ss01','cv11','tnum';-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+a{color:hsl(var(--foreground));text-decoration-color:hsl(var(--foreground)/.3)}a:hover{color:hsl(var(--foreground));text-decoration-color:hsl(var(--foreground))}
+.pf-card{background:hsl(var(--card));color:hsl(var(--card-foreground));border:1px solid hsl(var(--border));border-radius:var(--radius)}
+.font-data{font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums;font-feature-settings:'tnum'}
+.zen-canvas{background-image:linear-gradient(rgba(0,0,0,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.018) 1px,transparent 1px);background-size:80px 80px}
+.dark .zen-canvas{background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px)}
+.grow-bar{transition:width .7s cubic-bezier(.16,1,.3,1)}
+.pop-in{animation:popIn .3s cubic-bezier(.16,1,.3,1)}@keyframes popIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+.kt-range{-webkit-appearance:none;appearance:none;height:20px;background:transparent;cursor:pointer}
+.kt-range::-webkit-slider-runnable-track{height:5px;border-radius:99px;background:hsl(var(--foreground)/.09)}
+.kt-range::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;margin-top:-6.5px;border-radius:99px;background:hsl(var(--card));border:2px solid hsl(var(--success));box-shadow:0 1px 3px rgb(0 0 0/.18)}
+.kt-range::-moz-range-track{height:5px;border-radius:99px;background:hsl(var(--foreground)/.09)}
+.kt-range::-moz-range-thumb{width:15px;height:15px;border-radius:99px;background:hsl(var(--card));border:2px solid hsl(var(--success))}
+@media (prefers-reduced-motion:reduce){.grow-bar{transition:none}.pop-in{animation:none}}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:hsl(var(--foreground)/.12);border-radius:10px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#efeae1"/><rect x="30" y="34" width="40" height="10" rx="3" fill="#312e2b"/><rect x="30" y="48" width="40" height="10" rx="3" fill="#0a9a86"/><rect x="30" y="62" width="26" height="10" rx="3" fill="#4a7fd0"/></svg></template>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="pf-kantong-data.js"></script>
+<script type="text/babel" src="pf-icons.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="pf-kantong.jsx"></script>
+<script type="text/babel" src="pf-kantong-app.jsx"></script>
+</body>
+</html>
