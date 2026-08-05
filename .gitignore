@@ -107,3 +107,6 @@ docs/ideas/prototypes/trading-desk/ref/
 docs/ideas/prototypes/trading-desk/screenshots/
 docs/ideas/prototypes/trading-desk/.thumbnail
 
+
+# Stray downloaded binaries
+*.exe
