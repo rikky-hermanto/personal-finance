@@ -245,4 +245,14 @@ Expected: both exit 0, with no new errors attributable to `MandatePresetPicker.t
 - No backend, type (`desk.ts`), or hook changes — `useMandatePresets()` and `MandatePreset` already exist and are already wired into `MandateTab` from PF-136.
 - No new tests added — this codebase has no frontend test harness yet (PF-038, still open); verification is manual (STEP 3) plus lint/build (STEP 4), consistent with how PF-133's frontend-only pieces were verified.
 - Cross-file wiring check: `grep -rn "MandatePresetPicker" apps/frontend/src` returns exactly two hits — the component definition and its one consumer (`MandateTab.tsx`). No orphaned references.
+
+## Amendment (2026-07-30) — flipped default per live UX feedback
+
+The first shipped version of this ticket made the picker the **default** landing screen for every "Edit" click, first-run or not — exactly the concern flagged as a follow-up in STEP 3's execution note above (no live browser click-through happened before shipping). Seeing it live, the picker-first flow put a "Pick a starting point" screen in front of the common case (tweaking one field on an existing mandate), not just the rare case (switching risk tiers) — confirmed via `/ux-review` (Finding #1, Blocking: Cognitive Load / Frequency-Friction Mismatch).
+
+Fix applied in the same two files:
+- `MandateTab.tsx`: "Edit (creates new draft)" now calls `startDraft()` directly (fields-first, matching pre-PF-137 behavior). A new "Browse presets" ghost button inside the open draft form (rendered only when `editing && presets.length > 0`) sets `pickingPreset = true` to open the picker as an opt-in overlay; `showPicker` is now `presets.length > 0 && (pickingPreset || (!latest && !editing))` — first-run auto-display is unchanged, mid-edit display is opt-in only.
+- `MandatePresetPicker.tsx`: `onCustom` is now optional (omitted for the mid-edit toggle, since a manual form is already open — only "Cancel" is offered there); `customLabel` prop removed as dead weight (no longer needed once `onCustom` became conditional); added a `currentPresetKey` prop that renders a "Current" badge on the matching preset card (Should Fix #1 from the same review) and a one-line non-destructive caption under each preset's CTA ("Opens as a draft — nothing changes until you save.", Should Fix #3).
+
+Verified: `npm run lint` (zero new issues in either file) and `npm run build` (exit 0) both clean. Not re-verified with a live browser click-through — same tooling gap as the original STEP 3.
 - **Follow-up recommended:** do a real browser click-through of the 5 scenarios in STEP 3 next time the dev server is open interactively — this execution verified the logic by trace + API check only, not visually.

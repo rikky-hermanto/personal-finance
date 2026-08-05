@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ApproveMandatePayload, SaveMandateDraftPayload,
-  approveMandate, getDeskState, getMandateVersions, resolveReconIssue, saveMandateDraft, setPositionSleeve,
+  approveMandate, getDeskState, getMandatePresets, getMandateVersions, resolveReconIssue, saveMandateDraft, setPositionSleeve,
 } from '@/api/deskApi';
 
 const DESK_STATE_KEY = ['desk', 'state'];
 const DESK_MANDATE_VERSIONS_KEY = ['desk', 'mandate', 'versions'];
+const DESK_MANDATE_PRESETS_KEY = ['desk', 'mandate', 'presets'];
 
 export function useDeskState() {
   return useQuery({ queryKey: DESK_STATE_KEY, queryFn: getDeskState });
@@ -13,6 +14,10 @@ export function useDeskState() {
 
 export function useDeskMandateVersions() {
   return useQuery({ queryKey: DESK_MANDATE_VERSIONS_KEY, queryFn: getMandateVersions });
+}
+
+export function useMandatePresets() {
+  return useQuery({ queryKey: DESK_MANDATE_PRESETS_KEY, queryFn: getMandatePresets });
 }
 
 // Every mutation invalidates desk state — the sticky GateBar must reflect server truth
