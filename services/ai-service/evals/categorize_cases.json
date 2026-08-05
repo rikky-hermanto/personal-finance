@@ -1,0 +1,86 @@
+{
+  "default_categories": [
+    "Admin Fee",
+    "Education",
+    "E-Wallet",
+    "Entertainment",
+    "Food & Dining",
+    "Groceries",
+    "Health",
+    "Income",
+    "Investment",
+    "Saving",
+    "Shopping",
+    "Transfer",
+    "Transportation",
+    "Travel",
+    "Utilities",
+    "Withdrawing"
+  ],
+  "cases": [
+    {
+      "id": "grab_fee",
+      "description": "Grab Fee",
+      "remarks": "",
+      "flow": "DB",
+      "amount_idr": 15000,
+      "account_name": "NeoBank",
+      "expected": "Transportation"
+    },
+    {
+      "id": "gofood_qris",
+      "description": "GOFOOD GEPREK BENSU GADING",
+      "remarks": "QRIS (PAYMENT)",
+      "flow": "DB",
+      "amount_idr": 37500,
+      "account_name": "NeoBank",
+      "expected": "Food & Dining"
+    },
+    {
+      "id": "pln_bill",
+      "description": "PEMBAYARAN PLN",
+      "remarks": "",
+      "flow": "DB",
+      "amount_idr": 425000,
+      "account_name": "BCA",
+      "expected": "Utilities"
+    },
+    {
+      "id": "salary_credit",
+      "description": "TRANSFER MASUK GAJI",
+      "remarks": "",
+      "flow": "CR",
+      "amount_idr": 18500000,
+      "account_name": "BCA",
+      "expected": "Income"
+    },
+    {
+      "id": "admin_fee",
+      "description": "BIAYA ADM",
+      "remarks": "",
+      "flow": "DB",
+      "amount_idr": 15000,
+      "account_name": "BCA",
+      "expected": "Admin Fee"
+    },
+    {
+      "id": "ambiguous_indomaret",
+      "description": "INDOMARET GADING SERPONG",
+      "remarks": "",
+      "flow": "DB",
+      "amount_idr": 87000,
+      "account_name": "Superbank",
+      "expected_any": ["Groceries", "Shopping"]
+    },
+    {
+      "id": "restricted_vocab_vet",
+      "description": "Sunset Vet Ubud",
+      "remarks": "",
+      "flow": "DB",
+      "amount_idr": 172000,
+      "account_name": "SeaBank",
+      "available_categories": ["Food & Dining", "Health", "Groceries"],
+      "expected": "Health"
+    }
+  ]
+}
