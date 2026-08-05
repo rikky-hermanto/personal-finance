@@ -7,17 +7,20 @@ import { cn } from '@/lib/utils';
 interface Props {
   presets: MandatePreset[];
   onSelect: (params: MandateParams, presetKey: string) => void;
-  onCustom: () => void;
+  onCustom?: () => void;
   onCancel?: () => void;
-  customLabel?: string;
+  currentPresetKey?: string | null;
 }
 
 /**
- * First-run entry point into mandate creation. A user should never have to choose 20 risk
- * parameters cold — they pick a tier, see it in plain language, and can still open the full
- * parameter form afterwards. Locked tiers render as locked, never as a selectable menu item.
+ * Entry point into picking a mandate tier — either first-run (no `onCancel`, since there's
+ * nothing to return to) or as an opt-in toggle from an in-progress draft (`onCancel` returns to
+ * the fields without discarding them; `onCustom` is omitted there since the manual form is
+ * already open). A user should never have to choose 20 risk parameters cold — they pick a tier,
+ * see it in plain language, and can still open the full parameter form afterwards. Locked tiers
+ * render as locked, never as a selectable menu item.
  */
-const MandatePresetPicker = ({ presets, onSelect, onCustom, onCancel, customLabel }: Props) => (
+const MandatePresetPicker = ({ presets, onSelect, onCustom, onCancel, currentPresetKey }: Props) => (
   <div className="space-y-4">
     <div className="space-y-1">
       <h2 className="text-sm font-semibold">Pick a starting point</h2>
@@ -42,6 +45,11 @@ const MandatePresetPicker = ({ presets, onSelect, onCustom, onCancel, customLabe
               <div className="flex items-center gap-1.5 text-sm font-semibold">
                 {p.locked && <Lock className="h-3 w-3 text-muted-foreground" aria-hidden />}
                 {p.name}
+                {p.key === currentPresetKey && (
+                  <span className="text-[10px] font-normal uppercase tracking-wide text-muted-foreground border border-border rounded px-1 py-0.5">
+                    Current
+                  </span>
+                )}
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">{p.tagline}</p>
             </div>
@@ -69,9 +77,14 @@ const MandatePresetPicker = ({ presets, onSelect, onCustom, onCancel, customLabe
             {p.locked ? (
               <p className="text-[11px] text-muted-foreground">{p.unlockRequirement}</p>
             ) : (
-              <Button size="sm" className="w-full" onClick={() => onSelect(p.params, p.key)}>
-                Use {p.name}
-              </Button>
+              <>
+                <Button size="sm" className="w-full" onClick={() => onSelect(p.params, p.key)}>
+                  Use {p.name}
+                </Button>
+                <p className="text-[10px] text-muted-foreground mt-1 text-center">
+                  Opens as a draft — nothing changes until you save.
+                </p>
+              </>
             )}
           </div>
         </div>
@@ -79,9 +92,11 @@ const MandatePresetPicker = ({ presets, onSelect, onCustom, onCancel, customLabe
     </div>
 
     <div className="flex gap-2">
-      <Button size="sm" variant="ghost" onClick={onCustom} className="text-xs">
-        {customLabel ?? 'Advanced — set every parameter myself'}
-      </Button>
+      {onCustom && (
+        <Button size="sm" variant="ghost" onClick={onCustom} className="text-xs">
+          Advanced — set every parameter myself
+        </Button>
+      )}
       {onCancel && (
         <Button size="sm" variant="ghost" onClick={onCancel} className="text-xs">
           Cancel

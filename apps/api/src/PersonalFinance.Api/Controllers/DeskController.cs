@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Application.Commands.Desk;
+using PersonalFinance.Application.Constants;
 using PersonalFinance.Application.Interfaces;
 
 namespace PersonalFinance.Api.Controllers;
@@ -21,6 +22,13 @@ public class DeskController(IMediator mediator, IDeskService deskService, IDeskM
     {
         var versions = await mandateService.GetVersionsAsync();
         return Ok(versions);
+    }
+
+    [HttpGet("mandate/presets")]
+    public async Task<IActionResult> GetMandatePresets()
+    {
+        var state = await deskService.GetStateAsync();
+        return Ok(DeskDefaults.BuildPresets(state.JournalStats));
     }
 
     [HttpPost("mandate/draft")]

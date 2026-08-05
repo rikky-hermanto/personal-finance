@@ -1,4 +1,4 @@
-import { DeskMandateVersion, DeskPosition, DeskReconIssue, DeskState, MandateParams } from '@/types/desk';
+import { DeskMandateVersion, DeskPosition, DeskReconIssue, DeskState, MandateParams, MandatePreset } from '@/types/desk';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7209';
 const BASE_URL = `${API_BASE_URL}/api/desk`;
@@ -12,6 +12,12 @@ export async function getDeskState(): Promise<DeskState> {
 export async function getMandateVersions(): Promise<DeskMandateVersion[]> {
   const res = await fetch(`${BASE_URL}/mandate/versions`);
   if (!res.ok) throw new Error('Failed to fetch mandate versions');
+  return res.json();
+}
+
+export async function getMandatePresets(): Promise<MandatePreset[]> {
+  const res = await fetch(`${BASE_URL}/mandate/presets`);
+  if (!res.ok) throw new Error('Failed to fetch mandate presets');
   return res.json();
 }
 

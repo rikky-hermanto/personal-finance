@@ -42,8 +42,10 @@ const MandateTab = () => {
   const [reviewed, setReviewed] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
-  // Shown on first-run automatically, or after the user clicks "Edit" while presets exist.
-  const showPicker = presets.length > 0 && !editing && (pickingPreset || !latest);
+  // Shown on first-run automatically (nothing to edit yet), or as an opt-in toggle from an
+  // already-open draft ("Browse presets") — never as the default landing screen for an edit,
+  // since most edits are a field tweak, not a tier switch.
+  const showPicker = presets.length > 0 && (pickingPreset || (!latest && !editing));
 
   const startDraft = () => {
     setDraft(latest?.params ?? draft);
@@ -58,14 +60,6 @@ const MandateTab = () => {
     setChangeReason(`Started from the ${params.preset} preset.`);
     setPickingPreset(false);
     setEditing(true);
-  };
-
-  const openPicker = () => {
-    if (presets.length > 0) {
-      setPickingPreset(true);
-    } else {
-      startDraft();
-    }
   };
 
   const submitDraft = () => {
@@ -88,9 +82,9 @@ const MandateTab = () => {
         <MandatePresetPicker
           presets={presets}
           onSelect={choosePreset}
-          onCustom={startDraft}
-          onCancel={latest ? () => setPickingPreset(false) : undefined}
-          customLabel={latest ? 'Edit current version manually' : undefined}
+          onCustom={editing ? undefined : startDraft}
+          onCancel={editing ? () => setPickingPreset(false) : undefined}
+          currentPresetKey={editing ? presetKey : null}
         />
       ) : (
       <>
@@ -98,11 +92,18 @@ const MandateTab = () => {
         <div className="text-sm font-semibold">
           {editing ? 'New draft' : latest ? `Version ${latest.version} — ${latest.status}` : 'No mandate yet'}
         </div>
-        {!editing && (
-          <Button size="sm" variant="outline" onClick={openPicker}>
-            {latest ? 'Edit (creates new draft)' : 'Create mandate'}
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {editing && presets.length > 0 && (
+            <Button size="sm" variant="ghost" onClick={() => setPickingPreset(true)}>
+              Browse presets
+            </Button>
+          )}
+          {!editing && (
+            <Button size="sm" variant="outline" onClick={startDraft}>
+              {latest ? 'Edit (creates new draft)' : 'Create mandate'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {(editing || latest) && (
