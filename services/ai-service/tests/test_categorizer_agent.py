@@ -9,6 +9,20 @@ from app.agents.categorizer_agent import (
     _is_rate_limit_error,
     _parse_result,
 )
+from app.agents.tools import categories as categories_module
+
+
+@pytest.fixture(autouse=True)
+def _reset_category_vocabulary():
+    """The prose-scan fallback reads app.agents.tools.categories' module-level
+    vocabulary — isolate each test from whatever an earlier test (or the real
+    app lifespan) left loaded there. Set the list directly rather than via
+    load_categories([]), which substitutes the built-in fallback vocabulary
+    for an empty list rather than actually clearing it.
+    """
+    categories_module._CATEGORIES = []
+    yield
+    categories_module._CATEGORIES = []
 
 
 def test_parse_result_extracts_structured_fields():
@@ -36,6 +50,37 @@ def test_parse_result_survives_non_numeric_confidence():
 
     raw_bad = "CATEGORY: Transfer\nCONFIDENCE: high\nREASONING: Rule matched."
     assert _parse_result(raw_bad).confidence == pytest.approx(0.5)
+
+
+def test_parse_result_scans_prose_when_model_ignores_the_format():
+    # Reproduces the live 2026-08-08 smoke-test failure: the model answered in
+    # prose instead of the demanded `CATEGORY:` line for 3 of 5 transactions.
+    categories_module.load_categories(["Bill", "Food & Drinks", "Emergency Fund", "Loan", "Salary"])
+    raw = 'The transaction "Electricity bill payment" should be categorized as **Bill**....'
+    assert _parse_result(raw).category == "Bill"
+
+
+def test_parse_result_prose_scan_handles_multi_word_category():
+    categories_module.load_categories(["Bill", "Food & Drinks", "Emergency Fund", "Loan", "Salary"])
+    raw = 'The transaction "Food and drinks purchase" should be categorized as **Food & Drinks**....'
+    assert _parse_result(raw).category == "Food & Drinks"
+
+
+def test_parse_result_prose_scan_ignores_description_text_not_naming_the_category():
+    # The transaction description itself can contain words that happen to also
+    # be category names — the "categorized as **X**" phrase must win over a
+    # blind substring scan of the whole raw text.
+    categories_module.load_categories(["Bill", "Loan"])
+    raw = 'The transaction "Loan-linked bill payment" should be categorized as **Bill**, not Loan.'
+    assert _parse_result(raw).category == "Bill"
+
+
+def test_parse_result_prose_scan_rejects_unknown_bolded_word():
+    # A bolded word that isn't in the loaded vocabulary must not be treated as
+    # a category — only cross-checked matches count.
+    categories_module.load_categories(["Bill", "Loan"])
+    raw = "This transaction is **definitely** unclear, no rule or history matched."
+    assert _parse_result(raw).category == "Other"
 
 
 @patch("app.agents.categorizer_agent.ToolCallingAgent")

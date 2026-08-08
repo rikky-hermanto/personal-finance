@@ -30,6 +30,14 @@ def load_categories(categories: list[str]) -> None:
     _CATEGORIES = list(categories) if categories else list(_FALLBACK_CATEGORIES)
 
 
+def get_categories() -> list[str]:
+    """Public accessor for the loaded vocabulary — used by the result parser's
+    prose-scan fallback in categorizer_agent.py when the model narrates instead
+    of emitting a literal `CATEGORY: <name>` line.
+    """
+    return list(_CATEGORIES)
+
+
 @tool
 def list_all_categories() -> str:
     """Return the complete list of valid category names.
