@@ -9,11 +9,12 @@ each app/agents/tools/*.py tool body instead of a single startup call.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 
 from smolagents import LiteLLMModel, ToolCallingAgent
 
-from app.agents.tools.categories import list_all_categories
+from app.agents.tools.categories import get_categories, list_all_categories
 from app.agents.tools.category_rules import search_category_rules
 from app.agents.tools.similarity import find_similar_transactions
 from app.config import settings
@@ -78,15 +79,64 @@ def _safe_float(value: str, default: float = 0.5) -> float:
         return default
 
 
+_BOLD_SPAN_RE = re.compile(r"\*\*([^*]+)\*\*")
+
+
+def _scan_prose_for_category(raw: str) -> str | None:
+    """Fallback for when the model narrates instead of emitting the literal
+    `CATEGORY: <name>` line the system prompt demands (confirmed live
+    2026-08-08: 3 of 5 smoke-test transactions answered in prose instead —
+    e.g. '...should be categorized as **Bill**....' — with no CATEGORY: token
+    anywhere in the text, so no amount of looser line/key matching finds it).
+
+    Checks each *known* category name against the phrase directly (longest
+    name first, so "Food & Drinks" wins over a shorter name that happens to be
+    a substring of it) rather than capturing an unknown-length span generically
+    — a generic `[\\w &]*?` capture terminates early at the first internal
+    space in a multi-word name, which silently mis-extracts "Food" out of
+    "Food & Drinks". Also cross-checks bolded spans and a last-resort whole-text
+    scan so an unrelated bolded word, or a category name that happens to also
+    appear in the transaction description itself, can't produce a false match.
+    """
+    valid = get_categories()
+    if not valid:
+        return None
+    by_length = sorted(valid, key=len, reverse=True)
+
+    for name in by_length:
+        pattern = re.compile(rf"categoriz\w* as\s*\*{{0,2}}{re.escape(name)}\*{{0,2}}\b", re.IGNORECASE)
+        if pattern.search(raw):
+            return name
+
+    valid_lower = {c.lower(): c for c in valid}
+    for span in _BOLD_SPAN_RE.findall(raw):
+        candidate = valid_lower.get(span.strip().lower())
+        if candidate:
+            return candidate
+
+    for name in by_length:
+        if re.search(rf"\b{re.escape(name)}\b", raw, re.IGNORECASE):
+            return name
+    return None
+
+
 def _parse_result(raw: str, tool_calls_count: int = 0) -> CategorizationResult:
-    """Parse the agent's final text into a structured result."""
+    """Parse the agent's final text into a structured result.
+
+    Line-exact `KEY: value` matching alone silently defaulted every prose-only
+    answer to "Other" with no way to tell a genuine "uncertain" from a format
+    miss. Strip a leading run of `*` from parsed keys (models bold the label,
+    e.g. `**CATEGORY:** Bill`) and fall back to a vocabulary-checked prose scan
+    before giving up.
+    """
     lines = {}
     for line in raw.strip().splitlines():
         if ":" in line:
             key, _, value = line.partition(":")
-            lines[key.strip().upper()] = value.strip()
+            lines[key.strip("* ").upper()] = value.strip()
+    category = lines.get("CATEGORY") or _scan_prose_for_category(raw) or "Other"
     return CategorizationResult(
-        category=lines.get("CATEGORY", "Other"),
+        category=category,
         confidence=_safe_float(lines.get("CONFIDENCE", "")),
         reasoning=lines.get("REASONING", raw[:200]),
         tool_calls_count=tool_calls_count,

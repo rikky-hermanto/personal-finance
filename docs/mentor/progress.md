@@ -719,3 +719,47 @@
 - Chapter 8 (PF-AI008 — LangGraph) is next once Chapter 7's smoke test closes out; the "bulan itu" conversation-memory case from Day 48 is already pre-loaded as its motivating example
 
 **Streak: 1 day** (gap 2026-07-25 → 2026-08-04 unlogged)
+
+### 2026-08-08 — Day 74
+
+**Session: Smoke-test continuation surfaces a prose-parsing bug in CategorizerAgent — fixed with a vocabulary-checked fallback**
+
+- Resumed STEP 7 smoke testing now that Gemini's daily quota had reset since the Day 71 block, and hit a different failure mode than a clean 5/5: 3 of 5 transactions answered in prose (e.g. `"...should be categorized as **Bill**...."`) instead of the system prompt's demanded `CATEGORY: <name>` line, so `_parse_result`'s line-exact `KEY: value` matching silently defaulted them to `"Other"` with no way to tell a genuine low-confidence answer from a format miss.
+- Added `get_categories()` to [categories.py](../../services/ai-service/app/agents/tools/categories.py) and a `_scan_prose_for_category()` fallback in [categorizer_agent.py](../../services/ai-service/app/agents/categorizer_agent.py): checks the "categorized as **Name**" phrase against every known category (longest name first, so a multi-word name like "Food & Drinks" can't get truncated on its own internal space), then cross-checks bolded spans, then a last-resort whole-text scan — each tier only matches against the *actual loaded vocabulary*, so a random bolded word can't be mistaken for a category.
+- Also fixed `_parse_result` to strip a leading run of `*` from parsed keys, since some prose responses bold the label itself (`**CATEGORY:** Bill`).
+- Added 4 new tests to [test_categorizer_agent.py](../../services/ai-service/tests/test_categorizer_agent.py): prose-only category extraction, a multi-word category name, a category name that coincidentally appears inside the transaction description itself (must not false-match), and an unrelated bolded word being correctly rejected. Added an `autouse` fixture to reset the module-level `_CATEGORIES` list between tests, since the prose-scan fallback reads shared state that earlier tests (or the real app lifespan) could otherwise leak.
+
+**Chapter 7 (PF-AI007) checklist progress:**
+- [x] Prose-parsing fallback for `_parse_result` — fixes a real bug surfaced during the live smoke test, not a hypothetical
+- [ ] STEP 7 — 5-transaction smoke test still not confirmed 5/5 with this fix in place; no re-run executed this session. The plan file's status header ("1/5, blocked on Gemini quota") was **not** updated — that quota wall is a separate issue from this parsing bug and may or may not still apply
+
+**Retros (blockers & surprises):**
+- **Prose-only answers silently defaulting to "Other":** the agent's final synthesis sometimes ignores the system prompt's exact-format instruction under real (non-mocked) generation, and the existing unit tests — built against hand-written mock outputs that always followed the format — never exercised this path. → **Fix:** added a vocabulary-checked prose-scan fallback plus 4 tests reproducing the real live-observed prose strings, so this failure mode is now covered by both code and tests.
+
+**Remaining for tomorrow:**
+- Re-run `scripts/test_agent.py` for all 5 transactions with the prose-scan fix in place; confirm whether it's now a clean 5/5 or the Gemini daily-quota wall from Day 71 still applies
+- Reconcile the plan file's STEP 7 status header and acceptance-criteria note once a real re-run result exists
+- Chapter 8 (PF-AI008 — LangGraph) remains next once Chapter 7's smoke test formally closes
+
+**Streak: 1 day** (gap 2026-08-06 → 2026-08-07 unlogged)
+
+### 2026-08-09 — Day 75
+
+**Session: Walked the PF-AI007 ReAct trace table — clarified per-tool data sourcing, documented it in the plan**
+
+- Answered a question about the PF-AI007 walkthrough table (Step / Observe / Reason / Act / Result): for each of the 3 agent tools, does it actually hit a live DB, an LLM, or something else? Traced it in the real code instead of guessing.
+- Confirmed `search_category_rules` (Step 1) and `list_all_categories` (Step 3) both read **in-memory snapshots** — `_CATEGORY_RULES` and `_CATEGORIES`, populated once from Postgres (`SELECT keyword, category FROM category_rules`, and the categories vocabulary) during FastAPI's `lifespan()` startup, never re-queried per request. `find_similar_transactions` (Step 2) is the one live call — it hits `app.state.retriever`, the same pgvector-backed retriever `/search` uses, so newly-ingested transactions are searchable immediately, unlike the other two which only refresh on service restart.
+- Added a **Data source** column to the walkthrough table in [PF-AI007-tool-calling-agents-smolagents-todo.md](../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md), documenting this snapshot-vs-live distinction per step with file/line links — the tradeoff (a new category rule needs a service restart to take effect; similarity search doesn't) is now explicit instead of implicit.
+- Noted in passing, not fixed: `docs/architecture/diagram-pf-ai007-agent-loop.html` and `.claude/plans/learning/diagram-pf-ai007-agent-loop.html` are both currently tracked in git with the same content — the `docs/architecture/` copy was deleted from the working tree but never staged, so it still shows as a pending deletion. Flagged for cleanup, not touched this session.
+
+**Chapter 7 (PF-AI007) checklist progress:**
+- [x] Plan file's example walkthrough table now documents each tool's actual data source (snapshot vs. live), closing a documentation gap the original table left implicit
+
+**Retros (blockers & surprises):**
+- None — clean session, doc clarification only, no code changed.
+
+**Remaining for tomorrow:**
+- STEP 7 re-run from the 2026-08-08 entry is still outstanding
+- Reconcile the two `diagram-pf-ai007-agent-loop.html` copies (pick one location, remove the other) next time this plan file is touched
+
+**Streak: 2 days**
