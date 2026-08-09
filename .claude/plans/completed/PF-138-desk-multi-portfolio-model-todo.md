@@ -1,7 +1,7 @@
 # PF-138 — Desk multi-portfolio model: portfolio grain, symbol aggregation, retire duplicate-cash recon
 
 > **Ticket:** PF-138 (local plan — no GitHub issue; project uses `.claude/plans/`)
-> **Status:** To Do
+> **Status:** Done
 > **Started:** 2026-07-30
 > **Planned from branch:** main
 

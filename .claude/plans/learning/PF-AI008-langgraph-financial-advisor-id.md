@@ -24,7 +24,7 @@ Target chapter ini: endpoint baru, `POST /advisor`, yang bertingkah seperti oran
 
 Empat konsep baru menyelesaikan masalah di atas:
 
-1. **[StateGraph](glossary-rag-id.md#stategraph)** — Chapter 7 sudah mengenalkan agent lewat smolagents' `ToolCallingAgent.run()`, tapi loop di dalamnya tersembunyi di satu pemanggilan library — kamu tidak bisa melihat atau menguji langkah-langkah internalnya satu per satu. LangGraph menulis loop yang sama sebagai graf eksplisit: tiap langkah jadi **node** (fungsi biasa), tiap aturan lompat jadi **edge** (fungsi routing) — semuanya bisa dites sendiri-sendiri tanpa memanggil LLM.
+1. **[StateGraph](glossary-rag-id.md#stategraph)** — Chapter 7 sudah mengenalkan agent lewat `ToolCallingAgent.run()` di smolagents, tapi loop di dalamnya tersembunyi di satu pemanggilan library — kamu tidak bisa melihat atau menguji langkah-langkah internalnya satu per satu. LangGraph menulis loop yang sama sebagai graf eksplisit: tiap langkah jadi **node** (fungsi biasa), tiap aturan lompat jadi **edge** (fungsi routing) — semuanya bisa dites sendiri-sendiri tanpa memanggil LLM.
 
 2. **[Reducer `add_messages`](glossary-rag-id.md#add-messages)** — riwayat percakapan (`messages`) di state LangGraph butuh cara khusus supaya pesan baru **ditambahkan**, bukan menimpa yang lama. Tanpa ini, giliran bicara kedua akan lupa total giliran pertama — bukan karena bug yang meledak, tapi karena state-nya diam-diam diganti.
 
@@ -39,9 +39,9 @@ Diagram besar chapter ini — satu agent, empat tool data-fetch, memori antar gi
   ("gimana kondisi     │  Advisor = LLM + 4 tool     │      + session_id
    keuangan saya?")    │                             │
                        │   observe ◄──┐              │   loop (ReAct):
-                       │      │       │              │   pyramid → cashflow →
+                       │      │       │              │   contoh: pyramid → cashflow →
                        │   reason      │ hasil        │   spending → investment
-                       │      │       │ tool         │   (cuma yang dibutuhkan)
+                       │      │       │ tool         │   (panggil seperlunya)
                        │      ▼       │              │
                        │    act ──────┘               │
                        │  (panggil satu tool)          │
@@ -54,32 +54,31 @@ Diagram besar chapter ini — satu agent, empat tool data-fetch, memori antar gi
 Dan topologi graf-nya sendiri — tiga node, satu jalur error terpisah:
 
 ```
-     AdvisorRequest {query, session_id?}
-            │
-            ▼
-     ┌─────────────────────────────────────────────────────┐
-     │  StateGraph — AdvisorState                          │
-     │                                                     │
-     │  ┌─────────┐   ada tool_calls?  ┌──────────────┐   │
-     │  │  agent  │ ──── YA ─────────► │  tool_node    │   │
-     │  │ (LLM +  │ ◄──── amati ────── │ get_pyramid_  │   │
-     │  │  tools) │                    │ scores() dst. │   │
-     │  └────┬────┘ ──── TIDAK ──────► │ (4 tool)      │   │
-     │       │ error?      SELESAI     └──────────────┘   │
-     │       └──── YA ──────────► fallback                 │
-     │                                                     │
-     │  MemorySaver checkpointer — state per session_id   │
-     └─────────────────────────────────────────────────────┘
-            │
-            ▼
-     AdvisorResponse {answer, session_id, steps_taken}
+      AdvisorRequest {query, session_id?}
+             │
+             ▼
+      ┌──────────────────────────────────────────────────────────────┐
+      │ StateGraph — AdvisorState                                     │
+      │                                                              │
+      │  ┌─────────┐── error? YA ──────────────────────► fallback   │
+      │  │  agent  │── tidak ada error + tool_calls? YA ► tool_node │
+      │  │ (LLM +  │◄────────────── amati ────────────── (4 tool)  │
+      │  │  tools) │                                                  │
+      │  └────┬────┘                                                  │
+      │       └── selain itu ───────────────────────────► SELESAI    │
+      │                                                              │
+      │ MemorySaver checkpointer — state per session_id              │
+      └──────────────────────────────────────────────────────────────┘
+             │
+             ▼
+      AdvisorResponse {answer, session_id, steps_taken}
 ```
 
 ---
 
 ## Cara Kerjanya
 
-Bagian ini menjelaskan tiap konsep dengan cara "tangga": mulai dari versi paling sederhana, lihat di mana dia mentok, baru pahami kenapa versi berikutnya dibutuhkan — ladder dari file plan asli, disusun ulang dalam Bahasa Indonesia.
+Bagian ini menjelaskan tiap konsep dengan cara "tangga": mulai dari versi paling sederhana, lihat di mana dia mentok, baru pahami kenapa versi berikutnya dibutuhkan — struktur bertahap dari file plan asli, disusun ulang dalam Bahasa Indonesia.
 
 ### Dari loop tersembunyi smolagents sampai graf eksplisit LangGraph
 
@@ -101,9 +100,9 @@ Ganjalannya, LangGraph tidak menggabungkan update dict seperti yang kamu kira. K
 
 **`try/except` di endpoint.** Semua endpoint AI service yang sudah ada (`/parse-pdf`, `/journey/advise`) membungkus logikanya di satu `try/except` dan mengembalikan HTTP 502 kalau gagal.
 
-Ganjalannya, pola itu cocok untuk satu pemanggilan tunggal. Dia tidak cocok untuk graf multi-langkah — exception yang dilempar dari dalam sebuah tool call, tiga lompatan jauh di dalam percakapan, menjalar sampai meledakkan seluruh giliran tanpa pesan yang ramah, dan tidak ada cara menguji "apa yang terjadi kalau sebuah tool gagal" tanpa benar-benar melempar exception lewat beberapa lapis pemanggilan.
+Ganjalannya, pola itu cocok untuk satu pemanggilan tunggal. Dia tidak cocok untuk graf multi-langkah — exception dari sebuah tool call dapat menjalar melewati beberapa node lalu meledakkan seluruh giliran tanpa pesan yang ramah, dan tidak ada cara menguji "apa yang terjadi kalau sebuah tool gagal" tanpa benar-benar melempar exception lewat beberapa lapis pemanggilan.
 
-**Node menangkap exception-nya sendiri, edge yang mengarahkan ke sekitarnya.** Node yang gagal menyetel `state["error"]` alih-alih melempar. Sebuah conditional edge (`should_continue`) mengecek field itu lebih dulu dan mengarahkan ke node `fallback` khusus kalau field itu terisi — fungsi biasa, bisa dites dengan fixture state tanpa mocking exception sama sekali. → *Ini yang dipakai chapter ini.* Jalur fallback muncul sebagai node sungguhan di topologi graf dan di trace Langfuse, bukan stack trace yang terkubur di log.
+**Node menangkap exception-nya sendiri, lalu edge mengarahkan ke fallback.** Node yang gagal menyetel `state["error"]` alih-alih melempar. Sebuah conditional edge (`should_continue`) mengecek field itu lebih dulu dan mengarahkan state tersebut ke node `fallback` khusus kalau field itu terisi — fungsi biasa, bisa dites dengan fixture state tanpa mocking exception sama sekali. → *Ini yang dipakai chapter ini.* Jalur fallback muncul sebagai node sungguhan di topologi graf dan di trace Langfuse, bukan stack trace yang terkubur di log.
 
 ### Ingatan lintas giliran: `MemorySaver` dan `thread_id`
 
@@ -111,7 +110,7 @@ Ganjalannya, pola itu cocok untuk satu pemanggilan tunggal. Dia tidak cocok untu
 
 Ganjalannya, percakapan advisor yang sungguhan butuh giliran ke-2 mengingat apa yang sudah diambil giliran ke-1 — mengambil ulang pyramid scores dan data cashflow di tiap follow-up membuang panggilan tool percuma, dan tidak bisa menjawab "gimana cara benerin kategori yang tadi" tanpa memaksa user mengulang sendiri.
 
-**`MemorySaver` + `thread_id`.** Sebuah **checkpointer** menyimpan state graf setelah tiap eksekusi, dan memuatnya kembali sebelum eksekusi berikutnya, dikunci dengan sebuah `thread_id` opak yang kamu kirim di `config`. Kirim `thread_id` yang sama (dipetakan dari `session_id`) di giliran ke-2, dan LangGraph melanjutkan tepat dari tempat giliran 1 berhenti — tanpa mengambil ulang, tanpa mengulang konteks. → *Ini yang dipakai chapter ini.* **Teaser, belum dibangun di sini:** `MemorySaver` cuma di-memori proses; deployment produksi mengganti ke `PostgresSaver` dengan perubahan satu baris — tool-tool Chapter 9 (MCP) memakai bentuk state yang sama ini.
+**`MemorySaver` + `thread_id`.** Sebuah **checkpointer** menyimpan state graf setelah tiap eksekusi, dan memuatnya kembali sebelum eksekusi berikutnya, dikunci dengan sebuah `thread_id` opak yang kamu kirim di `config`. Kirim `thread_id` yang sama (dipetakan dari `session_id`) di giliran ke-2, dan LangGraph melanjutkan tepat dari tempat giliran 1 berhenti — tanpa mengambil ulang, tanpa mengulang konteks. Untuk follow-up, jangan kirim ulang field data tersimpan sebagai `None`, supaya state checkpoint tidak tertimpa. → *Ini yang dipakai chapter ini.* **Teaser, belum dibangun di sini:** `MemorySaver` cuma di-memori proses; deployment produksi dapat beralih ke `PostgresSaver` dengan interface checkpointer yang sama, meski tetap perlu konfigurasi storage tambahan — tool-tool Chapter 9 (MCP) memakai bentuk state yang sama ini.
 
 ---
 
@@ -171,7 +170,7 @@ async def get_pyramid_scores() -> dict:
     }
 ```
 
-Catatan penting yang gampang kelewat: tidak ada endpoint `/api/investments/summary` khusus di .NET. `get_investment_summary` menyusun jawabannya dari **dua** endpoint yang sudah ada (`/api/networth/current` + `/api/networth/allocation`), dan `get_cashflow_summary` / `get_spending_by_category` sama-sama memanggil `/api/transactions/aggregated`, cuma masing-masing mengambil potongan berbeda dari satu payload yang sama. Ini bukan kelalaian — plan aslinya secara eksplisit memilih menyusun ulang endpoint yang sudah ada daripada membuat endpoint agregat baru di luar cakupan chapter AI service.
+Catatan penting yang gampang kelewat: tidak ada endpoint `/api/investments/summary` khusus di .NET. `get_investment_summary` menyusun data ringkasannya dari **dua** endpoint yang sudah ada (`/api/networth/current` + `/api/networth/allocation`), dan `get_cashflow_summary` / `get_spending_by_category` sama-sama memanggil `/api/transactions/aggregated`, cuma masing-masing mengambil potongan berbeda dari satu payload yang sama. Ini bukan kelalaian — plan aslinya secara eksplisit memilih menyusun ulang endpoint yang sudah ada daripada membuat endpoint agregat baru di luar cakupan chapter AI service.
 
 **Jantung graf-nya** — fungsi routing plus cara node-node itu disambung:
 
@@ -208,7 +207,7 @@ def build_graph() -> StateGraph:
     return builder.compile(checkpointer=MemorySaver())
 ```
 
-Perhatikan `builder.add_edge("tools", "agent")` — ini yang menutup loop ReAct (Reason → Act → Observe → Reason lagi). Kalau edge ini hilang dan diganti langsung ke `END`, agent tidak pernah "melihat" hasil tool yang baru dia panggil sendiri (lihat bug nomor 3 di bagian Kesalahan Umum).
+Perhatikan `builder.add_edge("tools", "agent")` — ini yang menutup loop ReAct (Reason → Act → Observe → Reason lagi). Kalau edge ini hilang dan diganti langsung ke `END`, agent tidak pernah "melihat" hasil tool yang baru dia panggil sendiri (lihat Kesalahan Umum #2).
 
 **Pembungkus service-nya** — dan di sinilah satu bug beneran sudah ketangkap waktu plan ini ditulis:
 
@@ -218,8 +217,6 @@ async def ask(self, request: AdvisorRequest) -> AdvisorResponse:
     config = {"configurable": {"thread_id": session_id}}
     initial_state = {
         "messages": [HumanMessage(content=self._build_query(request))],
-        "pyramid_scores": None, "cashflow_summary": None,
-        "spending_by_category": None, "investment_summary": None,
         "error": None, "session_id": session_id,
     }
     final_state = await advisor_graph.ainvoke(initial_state, config=config)
@@ -254,15 +251,15 @@ Kode lengkap semua 4 tool, port C# baris-per-baris untuk tiap blok, semua test u
 
 Keputusan desain yang diambil di plan chapter ini, dengan alasan konkretnya:
 
-1. **LangGraph, bukan loop smolagents diperluas manual.** smolagents (Chapter 7) menyembunyikan loopnya di dalam `.run()`. LangGraph adalah loop yang sama, dibuat eksplisit sebagai graf: node adalah fungsi, edge adalah keputusan routing, state mengalir di antaranya. Setelah melihat versi yang dikelola library (Chapter 7), abstraksi graf ini jadi masuk akal, bukan terasa seperti sihir.
+1. **LangGraph, bukan loop smolagents yang diperluas secara manual.** smolagents (Chapter 7) menyembunyikan loopnya di dalam `.run()`. LangGraph adalah loop yang sama, dibuat eksplisit sebagai graf: node adalah fungsi, edge adalah keputusan routing, state mengalir di antaranya. Setelah melihat versi yang dikelola library (Chapter 7), abstraksi graf ini jadi masuk akal, bukan terasa seperti sihir.
 
-2. **`langchain-anthropic` sebagai wrapper LLM agent, terpisah dari `ProviderFactory` ekstraksi.** `ProviderFactory` (SDK Anthropic/Gemini mentah) tetap dipakai untuk ekstraksi — permukaan itu beku (THINK-05). Agent memakai `ChatAnthropic` dari `langchain-anthropic`, yang membungkus API Claude yang sama, tapi hidup di modul terpisah supaya tidak mencemari pipeline ekstraksi. Konsekuensinya: `/advisor` butuh `ANTHROPIC_API_KEY` terlepas dari setting `AI_PROVIDER` service — advisor selalu bicara ke Claude.
+2. **`langchain-anthropic` sebagai wrapper LLM agent, terpisah dari `ProviderFactory` ekstraksi.** `ProviderFactory` (SDK Anthropic/Gemini mentah) tetap dipakai untuk ekstraksi — bagian itu tidak diubah (THINK-05). Agent memakai `ChatAnthropic` dari `langchain-anthropic`, yang membungkus API Claude yang sama, tapi hidup di modul terpisah supaya tidak mencemari pipeline ekstraksi. Konsekuensinya: `/advisor` butuh `ANTHROPIC_API_KEY` terlepas dari setting `AI_PROVIDER` service — advisor selalu bicara ke Claude.
 
-3. **Tool memanggil .NET API, bukan database langsung — dan memakai ulang yang sudah ada.** Business logic (pyramid scoring, agregasi kategori, alokasi net worth) hidup di service .NET. Melewatinya dan langsung ke DB akan menduplikasi logika dan rusak begitu service itu berevolusi. Ini juga membuat tool-tool ini gampang jadi tool MCP di Chapter 9 — sama-sama panggilan HTTP dengan skema nama, tidak ada yang perlu ditulis ulang.
+3. **Tool memanggil .NET API, bukan database langsung — dan memakai ulang yang sudah ada.** Business logic (pyramid scoring, agregasi kategori, alokasi net worth) hidup di service .NET. Melewatinya dan langsung ke DB akan menduplikasi logika dan rusak begitu service itu berevolusi. Ini juga membuat tool-tool ini gampang jadi tool MCP di Chapter 9 — sama-sama berupa panggilan HTTP dengan interface tool yang jelas, tidak ada yang perlu ditulis ulang.
 
-4. **`MemorySaver`, bukan database, untuk memori sesi.** `MemorySaver` adalah checkpointer in-memory, seumur hidup proses. Untuk skala personal-use project ini, itu sudah benar. Framing untuk interview: "saya pakai `MemorySaver` untuk development; produksi tinggal ganti `PostgresSaver` atau `RedisSaver` dengan satu baris — API checkpointer LangGraph agnostik terhadap storage."
+4. **`MemorySaver`, bukan database, untuk memori sesi.** `MemorySaver` adalah checkpointer in-memory, seumur hidup proses. Untuk skala personal-use project ini, itu sudah benar. Framing untuk interview: "saya pakai `MemorySaver` untuk development; produksi dapat beralih ke `PostgresSaver` atau `RedisSaver` dengan interface checkpointer yang sama, meski tetap perlu konfigurasi storage tambahan."
 
-5. **Routing error lewat graf, bukan exception yang menjalar.** Node menangkap exception-nya sendiri dan menyetel `state["error"]`; conditional edge mengarahkan state ber-error ke node `fallback` yang mengembalikan pesan ramah. Ini pola yang idiomatis di LangGraph, dan inilah yang membedakan agent produksi dari sekadar demo: crash ditangani oleh graf, bukan oleh HTTP 500.
+5. **Routing error lewat graf, bukan exception yang menjalar.** Node menangkap exception-nya sendiri dan menyetel `state["error"]`; conditional edge mengarahkan state ber-error ke node `fallback` yang mengembalikan pesan ramah. Ini pola yang idiomatis di LangGraph, dan inilah yang membedakan agent produksi dari sekadar demo: kegagalan yang dapat ditangani dialihkan oleh graf ke fallback, alih-alih langsung berakhir sebagai error endpoint.
 
 6. **`date_from`/`date_to` dilipat ke teks prompt, bukan jadi argumen tool.** Endpoint dashboard .NET tidak menerima rentang tanggal bebas (dia menerima `year`/`month`/`months`), jadi periode yang diminta user ditambahkan ke teks query yang dilihat agent, bukan dialirkan sebagai argumen terstruktur ke tool. Ini simplifikasi sengaja untuk chapter ini, bukan kelupaan.
 
@@ -275,10 +272,10 @@ Keputusan desain yang diambil di plan chapter ini, dengan alasan konkretnya:
 Aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing penting:
 
 - **Satu agent, empat tool, tiga node dulu** — jangan bangun graf multi-agent sebelum graf single-agent-nya solid. Multi-agent adalah wilayah Phase 3, bukan chapter ini.
-- **Jangan panggil `llm.invoke()` di level modul saat import.** Panggilan API saat import merusak test dan memperlambat startup — instansiasi di dalam fungsi node, seperti pola `_build_llm()` di atas.
+- **Jangan membuat instance LLM di level modul saat import.** Instansiasi di level modul merusak test karena terjadi sebelum `settings` sempat di-patch; buat instance di dalam fungsi node, seperti pola `_build_llm()` di atas.
 - **`thread_id` itu opak — jangan divalidasi seolah dia data user biasa tanpa namespace.** Dari sudut pandang checkpointer, `thread_id` cuma bytes; ID pendek atau UUID buatan user cukup aman di skala personal, tapi nilai yang benar-benar tidak dipercaya bisa bertabrakan sesi kalau tidak diberi namespace di skala produksi.
 - **`isinstance`, bukan `hasattr`, untuk menyaring tipe pesan.** Lihat bug yang sudah dijelaskan di bagian Implementasi — atribut yang selalu ada di semua tipe bukan sinyal tipe yang bisa diandalkan.
-- **Jangan panggil `advisor_graph.ainvoke` asli di unit test** — itu membuka koneksi LLM/DB sungguhan. Test node dan fungsi routing secara terisolasi (lihat `should_continue` di atas); integrasi penuh diuji lewat 5 skenario manual dengan trace Langfuse sebagai bukti.
+- **Jangan panggil `advisor_graph.ainvoke` asli di unit test** — itu membuka koneksi LLM/API sungguhan. Test node dan fungsi routing secara terisolasi (lihat `should_continue` di atas); integrasi penuh diuji lewat 5 skenario manual dengan trace Langfuse sebagai verifikasi.
 - **Jangan sentuh `app/services/journey_advisor.py`.** Endpoint itu melayani UI quest-card dan sudah stabil. Chapter 8 menambahkan `POST /advisor` di sampingnya, bukan menggantinya.
 
 ---
@@ -319,12 +316,12 @@ Aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing pent
 | Metrik | Target di plan | Hasil aktual |
 |--------|-----------------|--------------|
 | Skenario eval lulus (dari 5) | 5/5 | *diukur* |
-| Giliran ke-2 tidak mengambil ulang data yang sama (S4) | 0 re-fetch | *diverifikasi* |
+| Giliran ke-2 tidak mengambil ulang data yang sama (skenario S4/follow-up) | 0 re-fetch | *diverifikasi* |
 | Trace Langfuse per giliran advisor terlihat lengkap | ya | *diverifikasi* |
 
 **Pelajaran terpenting chapter ini (dari desain plan-nya):** LangGraph tidak membuat agent "lebih pintar" — dia membuat loop yang sama yang sudah dipakai smolagents di Chapter 7 jadi **bisa diinspeksi**: tiap langkah adalah fungsi yang bisa dites sendiri, tiap keputusan routing adalah edge yang bisa dites tanpa LLM, dan kegagalan adalah node nyata di graf, bukan stack trace yang terkubur. Reducer `add_messages` adalah detail kecil yang mahal kalau terlewat — satu anotasi yang membedakan agent yang "ingat" dari agent yang diam-diam amnesia tiap giliran.
 
-**Kalimat penutup untuk interview** (target dari plan asli, dipakai setelah chapter ini selesai): *"Saya mengganti prompt satu-kali-tembak dengan LangGraph StateGraph — tiga node (agent, tool_node, fallback), empat tool pengambil data yang memanggil API .NET saya sendiri, routing kondisional lewat should_continue, dan MemorySaver untuk persistensi sesi. Saya punya trace Langfuse yang membuktikan giliran kedua memakai state yang sudah tersimpan alih-alih memanggil ulang tool, plus 5 test skenario termasuk satu yang adversarial di mana agent-nya benar menolak mengarang data untuk tahun 3000."*
+**Kalimat penutup untuk interview** (target dari plan asli, dipakai setelah chapter ini selesai): *"Saya mengganti prompt satu-kali-tembak dengan LangGraph StateGraph — tiga node (agent, tool_node, fallback), empat tool pengambil data yang memanggil API .NET saya sendiri, routing kondisional lewat should_continue, dan MemorySaver untuk persistensi sesi. Saya punya trace Langfuse yang menunjukkan giliran kedua memakai state yang sudah tersimpan alih-alih memanggil ulang tool, plus 5 test skenario termasuk satu yang adversarial di mana agent-nya benar menolak mengarang data untuk tahun 3000."*
 
 **Lanjutannya:** Chapter 9 (MCP) menjadikan 4 tool ini tool MCP dengan perubahan minimal — bentuk state yang sama dipakai ulang. Detail lengkap TODO steps, port C# baris-per-baris tiap blok kode, semua kode test, dan Knowledge Check quiz ada di file asli: [PF-AI008-langgraph-financial-advisor.md](PF-AI008-langgraph-financial-advisor.md).
 
