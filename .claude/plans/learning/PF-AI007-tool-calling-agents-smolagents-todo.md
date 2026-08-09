@@ -13,6 +13,8 @@
   - [What is an agent?](#what-is-an-agent)
   - [ToolCallingAgent vs CodeAgent](#toolcallingagent-vs-codeagent)
   - [The tool docstring is the schema](#the-tool-docstring-is-the-schema)
+  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
+  - [🧠 Learning Strategy](#-learning-strategy)
 - [🔧 Implementation](#-implementation)
   - [🎯 Objective](#-objective)
   - [✅ Acceptance Criteria](#-acceptance-criteria)
@@ -33,8 +35,6 @@
     - [STEP 9 — Full test pass + commit](#--step-9--full-test-pass--commit)
     - [STEP 10 — Log progress](#--step-10--log-progress)
   - [📌 Notes](#-notes)
-  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
-  - [🧠 Learning Strategy](#-learning-strategy)
   - [📝 Knowledge Check](#-knowledge-check)
 
 # 📖 Introduction
@@ -126,9 +126,59 @@ shape. The docstring **is** the schema the LLM plans against. *This is what the 
 
 ▶ **Watch/read for this concept:** smolagents — Writing good tools → https://huggingface.co/docs/smolagents/en/tutorials/building_good_tools
 
+## 📚 Resources / Theory to Learn
+
+Read all of this before starting `# 🔧 Implementation` below — organized by which build step each concept feeds.
+
+### Concept 1 — The ReAct agent loop (STEP 0)
+- **HF Agents Course, Unit 1** → https://huggingface.co/learn/agents-course/unit1/introduction — the canonical agent loop (Observe → Reason → Act). Read Unit 1 in full before writing a single line of agent code.
+- **HF Agents Course, Unit 2 — smolagents** → https://huggingface.co/learn/agents-course/unit2/smolagents — `@tool`, `ToolCallingAgent` vs `CodeAgent`, running the first example. Estimated 25 min.
+- **Yao et al., *ReAct: Synergizing Reasoning and Acting in Language Models*** (2022) → https://arxiv.org/abs/2210.03629 — skim abstract + Figure 1 for the canonical ReAct diagram; skip the math. The interview vocabulary ("Reason → Act → Observe") comes from this paper.
+
+### Concept 2 — ToolCallingAgent vs CodeAgent (STEP 3)
+- **smolagents docs — Agent types** → https://huggingface.co/docs/smolagents/en/conceptual_guides/react_and_code_agents — the side-by-side comparison. Read before writing `CategorizerAgent` to cement why you're choosing `ToolCallingAgent`.
+- **smolagents docs — Writing good tools** → https://huggingface.co/docs/smolagents/en/tutorials/building_good_tools — "the tool docstring IS the schema description." Bad docstrings = bad tool choices. Read before STEP 2.
+
+### Concept 3 — OTel tracing in smolagents (STEP 4)
+- **smolagents docs — Monitoring** → https://huggingface.co/docs/smolagents/en/tutorials/inspect_runs — the `instrument_smolagents()` call and what OTel spans it emits.
+- **Langfuse — OpenTelemetry integration** → https://langfuse.com/docs/opentelemetry — how our existing OTLP exporter receives smolagents spans. Skim the "Traces" section to understand the parent/child span shape.
+
+### Concept 4 — Bridge to LangGraph (preview for Chapter 8)
+- **LangChain blog — *Introduction to LangGraph*** → https://blog.langchain.dev/langgraph/ — read the first two sections only ("What is LangGraph" + "Motivation"). The key insight: LangGraph replaces the implicit `max_steps` loop with an explicit state graph. Everything you built in Chapter 7 becomes one node in Chapter 8's graph.
+- **DeepLearning.AI — *Functions, Tools and Agents with LangChain*** → https://learn.deeplearning.ai — the STEP 8 stretch task; bridges smolagents to LangChain primitives that LangGraph sits on top of.
+
+## 🧠 Learning Strategy
+
+**Daily loop for Chapter 7:**
+- **Morning (60–90 min, deep block #1):** STEP 0 (HF Agents Course) + STEPs 1/1b/1c (install, API check, `SearchResult.category`). Stop when you can explain the ReAct loop from memory without looking at notes.
+- **Midday (90 min, deep block #2):** STEPs 2–3 (tools + agent). Stop when `CategorizerAgent.categorize("STARBUCKS", "BCA", 72000)` runs without error (even if output is imperfect — you're verifying the loop works, not the quality yet).
+- **Afternoon (60 min):** STEPs 4–5 (OTel + endpoint). The Langfuse span tree is this chapter's demo artifact — don't skip the verification.
+- **Next session (60 min):** STEPs 6–9 (tests + smoke test + commit + log). The smoke test is not optional.
+
+**The 5 principles applied to Chapter 7:**
+1. **Active retrieval:** STEP 0's write-from-memory section. If you can't explain ReAct without notes, the tools will work by accident — not by design.
+2. **Project-first:** don't read the smolagents docs cover-to-cover. Read Unit 1–2, then open the project and build STEP 2. Pull docs when you hit a wall.
+3. **Same-day shipping:** tools + agent (STEPs 2–3) in session 1; endpoint + tests (STEPs 4–6) in session 2. Two commits, not one.
+4. **Interleaving:** while smolagents installs (STEP 1), skim the Chapter 8 LangGraph intro. Not distraction — context priming. You'll see Chapter 7 and Chapter 8 as two levels of the same abstraction.
+5. **Teach-back:** after STEP 3, close the editor. Say out loud: "smolagents is the ReAct loop — observe tools, reason about next step, call a tool, repeat. LangGraph makes each step a node in a graph so you can add conditional routing. MCP makes each tool a server any agent can call. I've built the raw version now."
+
+**Anti-patterns to avoid:**
+- ❌ Using `CodeAgent` instead of `ToolCallingAgent`. Code execution in a web service is a security vulnerability — explicitly the wrong call here.
+- ❌ Calling `agent.run()` directly inside `async def` without `asyncio.to_thread`. You'll stall the event loop for the full agent duration (1–5s) and timeout every concurrent request.
+- ❌ Calling the real LLM in unit tests. Mock `ToolCallingAgent` at the class level — per ai-service.md patterns.
+- ❌ Giving the agent 7+ tools. Start with 3 and measure. More tools = more indirection = harder to trace when the agent loops.
+- ❌ Skipping the Langfuse verification after the smoke test. The trace tree is the proof point. Without it, "I built an observable agent" is an empty claim.
+- ❌ Returning 200 with empty category on LLM failure. The error contract says 502 — evaluation harnesses depend on it.
+
+**The Sunday metric:**
+> "What can I say in an interview today that I couldn't say last Sunday?"
+> Target answer: *"I built a transaction categorizer agent using smolagents ToolCallingAgent with 3 tools: rule-based keyword search, semantic similarity search via pgvector (from Chapter 3), and a category vocabulary guard. The agent runs a ReAct loop — max 3 iterations — and every tool call is a Langfuse child span. I can show you the trace where it called search_category_rules, got 'No rules matched', then called find_similar_transactions, found 3 past 'Shopping (Online)' transactions, and returned that category with 0.7 confidence. That's observable agentic reasoning — not just a demo, a debuggable production artifact."*
+
 # 🔧 Implementation
 
 ## 🎯 Objective
+
+> **Use case:** A transaction gets miscategorized and there's no way to see why — the LLM guessed from the description alone, so there's nothing to debug and nothing to demo. Give the categorizer tools and a reasoning loop so every prediction ships with a visible, traceable evidence trail.
 
 The existing 4-layer categorizer ([categorizer.py](../../../services/ai-service/app/services/categorizer.py), PF-103) runs silently: rule match → preset → history cache → LLM fallback. It's correct ~85% of the time but opaque — when it's wrong, there's no reasoning trace to debug, and nothing to demo in an interview.
 
@@ -140,65 +190,32 @@ The **Transaction Categorizer Agent** replaces the silent LLM-fallback layer wit
 
 This is what "observable AI reasoning" looks like in a job interview demo.
 
-```
-                    Transaction Categorizer Agent — ONE loop, repeated ≤ 3× total
-                    (the "3" is the step budget, NOT one try per tool — a rule
-                     match can end everything after iteration 1)
-                  ┌──────────────────────────────────────────────────────────┐
-                  │   LLM: LiteLLM → Gemini 2.5 Flash (or Anthropic)         │
-  Input:          │                                                          │
-  description +   │   ┌──►[Observe]──►[Reason]──►[Act: pick ONE tool]──┐    │
-  wallet + amount ─┼───┘                                                │    │
-                  │   ▲                                                 │    │
-                  │   └──────────────── tool's result ───────────────────┘    │
-                  │        (fed back in; loop repeats OR LLM has enough        │
-                  │         evidence already and exits to Final Answer)        │
-                  └───────────────────────────┬──────────────────────────────┘
-                                               │
-                             each "Act" round picks exactly ONE of:
-                  ┌────────────────────────────┼────────────────────────────┐
-                  ▼                            ▼                            ▼
-      ┌───────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
-      │ search_category_rules │  │ find_similar_trans    │  │ list_all_categories  │
-      │ (keyword: str)        │  │ (description: str)    │  │ ()                   │
-      │                       │  │                        │  │                      │
-      │ → keyword-matches     │  │ → calls /search        │  │ → returns all known  │
-      │   against 106 rules,  │  │   endpoint (pgvector   │  │   category names so  │
-      │   returns rule +      │  │   RAG from PF-AI003)   │  │   agent constrains   │
-      │   category pairs      │  │   → top-3 with their   │  │   final pick to      │
-      │                       │  │   historical cats      │  │   valid vocabulary   │
-      └───────────┬───────────┘  └───────────┬────────────┘  └───────────┬──────────┘
-                  │                           │                          │
-                  └─────────── only the ONE tool actually called ────────┘
-                               returns here — the other two are simply
-                               unused this round, not "failed"
-                                               │
-                           result flows back up into [Observe] ↑
-                       (see diagram above — this is one cycle, not a fan-out)
-                                               │
-             Loop exits when either: max_steps=3 is reached, OR the LLM
-             itself decides it has enough evidence to answer — whichever
-             comes first. Then, once, outside the loop:
+```mermaid
+flowchart TD
+    IN["Input: description + wallet + amount"] --> OBS
 
-                            Final Answer (ToolCallingAgent):
-                            {
-                              "category": "Food & Dining",
-                              "confidence": 0.9,
-                              "reasoning": "Rule matched 'starbucks' → Food & Dining (Café);
-                                             3 similar past transactions confirmed."
-                            }
-                                               │
-                                   ┌───────────▼──────────────┐
-                                   │  Langfuse trace           │
-                                   │  Parent: /categorize-     │
-                                   │  agent (span)             │
-                                   │  ├─ search_category_rules │
-                                   │  │  (span: input/output)  │
-                                   │  ├─ find_similar_trans    │
-                                   │  │  (span: input/output)  │
-                                   │  └─ LLM completion (span) │
-                                   └──────────────────────────┘
+    subgraph LOOP["ONE loop, repeated ≤ 3× total (LLM: LiteLLM → Gemini 2.5 Flash or Anthropic)<br/>the &quot;3&quot; is the step budget, NOT one try per tool — a rule match can end everything after iteration 1"]
+        OBS[Observe] --> REA[Reason]
+        REA --> ACT{"Act: pick exactly ONE tool"}
+
+        ACT -->|keyword search| T1["search_category_rules(keyword)<br/>→ keyword-matches against 106 rules,<br/>returns rule + category pairs"]
+        ACT -->|semantic search| T2["find_similar_transactions(description)<br/>→ calls /search endpoint (pgvector RAG,<br/>PF-AI003) → top-3 with historical cats"]
+        ACT -->|vocabulary check| T3["list_all_categories()<br/>→ returns all known category names,<br/>constrains final pick to valid vocabulary"]
+
+        T1 --> RES["Tool result fed back —<br/>only the ONE tool called returns here,<br/>the other two are unused this round, not &quot;failed&quot;"]
+        T2 --> RES
+        T3 --> RES
+        RES -->|loop repeats| OBS
+    end
+
+    RES -->|"max_steps=3 reached,<br/>OR LLM has enough evidence"| FA
+
+    FA["Final Answer (ToolCallingAgent)<br/>{ category: &quot;Food &amp; Dining&quot;,<br/>&nbsp;&nbsp;confidence: 0.9,<br/>&nbsp;&nbsp;reasoning: &quot;Rule matched 'starbucks' → Food &amp; Dining (Café);<br/>&nbsp;&nbsp;3 similar past transactions confirmed.&quot; }"]
+
+    FA --> LF["Langfuse trace<br/>Parent: /categorize-agent (span)<br/>├─ search_category_rules (span: input/output)<br/>├─ find_similar_transactions (span: input/output)<br/>└─ LLM completion (span)"]
 ```
+
+> **Why the original ASCII version was ambiguous:** a single fan-out arrow from `[Act: tool_call]` straight to all three tool boxes reads as "call all three every time" or worse, "try each one until it works" — neither is true. Only **one** tool is invoked per iteration, chosen by the LLM's `[Reason]` step; the loop cycles back through `[Observe]` before deciding whether to act again. This flowchart routes the result back into the loop explicitly and labels the branch as a menu of choices, not parallel/sequential fallback paths.
 
 > **Why the original version was ambiguous:** a single fan-out arrow from `[Act: tool_call]` straight to all three tool boxes reads as "call all three every time" or worse, "try each one until it works" — neither is true. Only **one** tool is invoked per iteration, chosen by the LLM's `[Reason]` step; the loop cycles back through `[Observe]` before deciding whether to act again. The revised version routes the result back into the loop explicitly and labels the fan-out as a menu of choices, not parallel/sequential fallback branches.
 
@@ -1345,54 +1362,6 @@ git commit -m "PF-AI007: Chapter 7 — Transaction Categorizer Agent (smolagents
 - **THINK-05 (frozen contract):** `CategorizeAgentRequest` and `CategorizeAgentResponse` are new contract surface. When .NET grows a `/categorize-agent` proxy (future feature, not in this chapter), freeze these fields and update [ai-service.md](../../rules/ai-service.md).
 - **Next chapter (8 — LangGraph):** the `CategorizerAgent` becomes one *node* in the Financial Advisor graph. The 3 tools become graph tools. `max_steps=3` becomes explicit `END` routing. You'll understand what LangGraph adds — and why — because you've now seen what it replaces.
 - **Deferred:** conversation memory within a categorization session (Chapter 8), MCP server exposing tools to Claude Desktop (Chapter 9), streaming the reasoning steps token-by-token (Chapter 5 streaming applies to `/ask` first).
-
-## 📚 Resources / Theory to Learn
-
-Organized by when you need them — read just before the step that uses it.
-
-### Concept 1 — The ReAct agent loop (STEP 0)
-- **HF Agents Course, Unit 1** → https://huggingface.co/learn/agents-course/unit1/introduction — the canonical agent loop (Observe → Reason → Act). Read Unit 1 in full before writing a single line of agent code.
-- **HF Agents Course, Unit 2 — smolagents** → https://huggingface.co/learn/agents-course/unit2/smolagents — `@tool`, `ToolCallingAgent` vs `CodeAgent`, running the first example. Estimated 25 min.
-- **Yao et al., *ReAct: Synergizing Reasoning and Acting in Language Models*** (2022) → https://arxiv.org/abs/2210.03629 — skim abstract + Figure 1 for the canonical ReAct diagram; skip the math. The interview vocabulary ("Reason → Act → Observe") comes from this paper.
-
-### Concept 2 — ToolCallingAgent vs CodeAgent (STEP 3)
-- **smolagents docs — Agent types** → https://huggingface.co/docs/smolagents/en/conceptual_guides/react_and_code_agents — the side-by-side comparison. Read before writing `CategorizerAgent` to cement why you're choosing `ToolCallingAgent`.
-- **smolagents docs — Writing good tools** → https://huggingface.co/docs/smolagents/en/tutorials/building_good_tools — "the tool docstring IS the schema description." Bad docstrings = bad tool choices. Read before STEP 2.
-
-### Concept 3 — OTel tracing in smolagents (STEP 4)
-- **smolagents docs — Monitoring** → https://huggingface.co/docs/smolagents/en/tutorials/inspect_runs — the `instrument_smolagents()` call and what OTel spans it emits.
-- **Langfuse — OpenTelemetry integration** → https://langfuse.com/docs/opentelemetry — how our existing OTLP exporter receives smolagents spans. Skim the "Traces" section to understand the parent/child span shape.
-
-### Concept 4 — Bridge to LangGraph (preview for Chapter 8)
-- **LangChain blog — *Introduction to LangGraph*** → https://blog.langchain.dev/langgraph/ — read the first two sections only ("What is LangGraph" + "Motivation"). The key insight: LangGraph replaces the implicit `max_steps` loop with an explicit state graph. Everything you built in Chapter 7 becomes one node in Chapter 8's graph.
-- **DeepLearning.AI — *Functions, Tools and Agents with LangChain*** → https://learn.deeplearning.ai — the STEP 8 stretch task; bridges smolagents to LangChain primitives that LangGraph sits on top of.
-
-## 🧠 Learning Strategy
-
-**Daily loop for Chapter 7:**
-- **Morning (60–90 min, deep block #1):** STEP 0 (HF Agents Course) + STEPs 1/1b/1c (install, API check, `SearchResult.category`). Stop when you can explain the ReAct loop from memory without looking at notes.
-- **Midday (90 min, deep block #2):** STEPs 2–3 (tools + agent). Stop when `CategorizerAgent.categorize("STARBUCKS", "BCA", 72000)` runs without error (even if output is imperfect — you're verifying the loop works, not the quality yet).
-- **Afternoon (60 min):** STEPs 4–5 (OTel + endpoint). The Langfuse span tree is this chapter's demo artifact — don't skip the verification.
-- **Next session (60 min):** STEPs 6–9 (tests + smoke test + commit + log). The smoke test is not optional.
-
-**The 5 principles applied to Chapter 7:**
-1. **Active retrieval:** STEP 0's write-from-memory section. If you can't explain ReAct without notes, the tools will work by accident — not by design.
-2. **Project-first:** don't read the smolagents docs cover-to-cover. Read Unit 1–2, then open the project and build STEP 2. Pull docs when you hit a wall.
-3. **Same-day shipping:** tools + agent (STEPs 2–3) in session 1; endpoint + tests (STEPs 4–6) in session 2. Two commits, not one.
-4. **Interleaving:** while smolagents installs (STEP 1), skim the Chapter 8 LangGraph intro. Not distraction — context priming. You'll see Chapter 7 and Chapter 8 as two levels of the same abstraction.
-5. **Teach-back:** after STEP 3, close the editor. Say out loud: "smolagents is the ReAct loop — observe tools, reason about next step, call a tool, repeat. LangGraph makes each step a node in a graph so you can add conditional routing. MCP makes each tool a server any agent can call. I've built the raw version now."
-
-**Anti-patterns to avoid:**
-- ❌ Using `CodeAgent` instead of `ToolCallingAgent`. Code execution in a web service is a security vulnerability — explicitly the wrong call here.
-- ❌ Calling `agent.run()` directly inside `async def` without `asyncio.to_thread`. You'll stall the event loop for the full agent duration (1–5s) and timeout every concurrent request.
-- ❌ Calling the real LLM in unit tests. Mock `ToolCallingAgent` at the class level — per ai-service.md patterns.
-- ❌ Giving the agent 7+ tools. Start with 3 and measure. More tools = more indirection = harder to trace when the agent loops.
-- ❌ Skipping the Langfuse verification after the smoke test. The trace tree is the proof point. Without it, "I built an observable agent" is an empty claim.
-- ❌ Returning 200 with empty category on LLM failure. The error contract says 502 — evaluation harnesses depend on it.
-
-**The Sunday metric:**
-> "What can I say in an interview today that I couldn't say last Sunday?"
-> Target answer: *"I built a transaction categorizer agent using smolagents ToolCallingAgent with 3 tools: rule-based keyword search, semantic similarity search via pgvector (from Chapter 3), and a category vocabulary guard. The agent runs a ReAct loop — max 3 iterations — and every tool call is a Langfuse child span. I can show you the trace where it called search_category_rules, got 'No rules matched', then called find_similar_transactions, found 3 past 'Shopping (Online)' transactions, and returned that category with 0.7 confidence. That's observable agentic reasoning — not just a demo, a debuggable production artifact."*
 
 ## 📝 Knowledge Check
 

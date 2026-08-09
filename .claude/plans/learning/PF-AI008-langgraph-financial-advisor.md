@@ -13,6 +13,9 @@
   - [The add_messages reducer](#the-add_messages-reducer)
   - [Conditional routing and the fallback node](#conditional-routing-and-the-fallback-node)
   - [Memory across turns — MemorySaver and thread_id](#memory-across-turns--memorysaver-and-thread_id)
+  - [A real example: the reference-resolution gap this chapter closes](#a-real-example-the-reference-resolution-gap-this-chapter-closes)
+  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
+  - [🧠 Learning Strategy](#-learning-strategy)
 - [🔧 Implementation](#-implementation)
   - [🎯 Objective](#-objective)
   - [✅ Acceptance Criteria](#-acceptance-criteria)
@@ -34,8 +37,6 @@
     - [STEP 12 — Full test pass + commit](#--step-12--full-test-pass--commit)
     - [STEP 13 — Log progress](#--step-13--log-progress)
   - [📌 Notes](#-notes)
-  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
-  - [🧠 Learning Strategy](#-learning-strategy)
   - [📝 Knowledge Check](#-knowledge-check)
 
 # 📖 Introduction
@@ -184,11 +185,72 @@ moving from a stateless endpoint to a LangGraph agent with `add_messages` histor
 `MemorySaver` checkpointer keyed by session — state that survives between separate HTTP calls is
 exactly what pronoun/reference resolution needs and a single-shot planner call cannot provide."
 
----
+## 📚 Resources / Theory to Learn
+
+Read all of this before starting `# 🔧 Implementation` below — organized by which build step each concept feeds.
+
+### Concept 1 — LangGraph core (Steps 1–5)
+
+- **LangGraph quickstart** → https://langchain-ai.github.io/langgraph/tutorials/introduction/ — build the minimal ReAct agent; the graph structure becomes obvious by contrast with your smolagents loop.
+- **LangGraph how-to: add memory** → https://langchain-ai.github.io/langgraph/how-tos/persistence/ — the MemorySaver + `thread_id` pattern, exactly as used in Step 6.
+- **LangGraph how-to: handle tool errors** → https://langchain-ai.github.io/langgraph/how-tos/tool-calling-errors/ — how errors in ToolNode propagate and how to route around them. Supplements the error-state pattern in `call_agent`.
+
+### Concept 2 — Tool definition with LangChain (Step 4)
+
+- **LangChain `@tool` docs** → https://python.langchain.com/docs/concepts/tools/ — the decorator form, how docstrings become tool descriptions (the LLM reads them!), async support.
+- **LangChain ToolNode** → https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/#tool-calling — how ToolNode dispatches `AIMessage.tool_calls` → tool functions → `ToolMessage` results.
+
+### Concept 3 — Checkpointers and session memory (Step 6)
+
+- **LangGraph persistence docs** → https://langchain-ai.github.io/langgraph/concepts/persistence/ — why `thread_id` maps to a conversation; when `MemorySaver` is right vs `PostgresSaver`.
+- **`add_messages` reducer explanation** → https://langchain-ai.github.io/langgraph/concepts/low_level/#reducers — the non-obvious part: why state fields need reducers, what happens without one.
+
+### Concept 4 — Agent evals with traces (Step 10)
+
+- **Langfuse LangChain integration** → https://langfuse.com/docs/integrations/langchain — how to wire Langfuse tracing into LangChain/LangGraph calls via `CallbackHandler`. Adds per-node cost + latency to the Langfuse dashboard.
+- **Braintrust — *Evaluating Agents*** → https://braintrust.dev/blog/evaluating-agents — the trajectory-eval approach: score tool call sequence, not just final output. Good framing for the manual S4 evaluation.
+
+### Videos (targeted, not full courses)
+
+- **DeepLearning.AI — *LangGraph: Multi-Agent Workflows*** (free, 3h) → https://learn.deeplearning.ai/courses/langgraph-multi-agent-workflows — the Chapter 8 slot from the learning path. Module 1 (state + routing) + Module 3 (memory) map directly to what you're building.
+- **LangGraph Academy** → https://academy.langchain.com/courses/intro-to-langgraph — the LangChain official tutorial; more structured than the quickstart. Use as a reference, not a watch-through.
+
+## 🧠 Learning Strategy
+
+**Daily loop for Chapter 8:**
+
+- **Day 1 (theory + state + tools — Steps 1–4):** LangGraph quickstart first (45 min). Then TypedDict state (15 min) and tools module (60 min). Stop when `pytest tests/test_advisor_tools.py` is green.
+- **Day 2 (graph + routing — Step 5):** Build the graph. The `should_continue` routing function is the hardest part — test it in isolation (Step 9, routing tests) before wiring the full graph. Stop when the graph compiles and the routing tests pass.
+- **Day 3 (service + endpoint + smoke — Steps 6–8):** Wrap the graph in `AdvisorService`, wire `/advisor`, run the two-turn smoke test. Stop when turn 2 shows 0 re-fetches in Langfuse.
+- **Day 4 (evals + commit — Steps 10–13):** Run 5 scenarios, record pass/fail, update metrics doc, commit.
+
+**The 5 principles applied:**
+
+1. **Active retrieval:** Step 1's three questions, written from memory. If you can't explain why `add_messages` is needed, you'll write a state type that silently drops conversation history.
+2. **Project-first:** The tools call your real .NET API — this is grounded in your actual pyramid scores and cashflow, not toy data.
+3. **Same-day shipping:** Graph compiling (Day 2) is the gate; don't move to Day 3 without the routing tests green.
+4. **Interleaving:** While the LangGraph models download, write the tool unit tests. Parallelise setup and build work.
+5. **Teach-back:** The ReAct loop framing ("nodes are functions, edges are routing, state flows through") and the MemorySaver `thread_id` story are the two teach-backs. Say them without notes.
+
+**Anti-patterns to avoid this chapter:**
+
+- ❌ Building a multi-agent graph before the single-agent graph is solid. One agent, four tools, three nodes — that's Chapter 8. Multi-agent is Phase 3 territory.
+- ❌ Calling `llm.invoke()` inside a node at module import time. Import-time API calls break tests and slow startup. Instantiate inside the function (see `_build_llm()` pattern above).
+- ❌ Passing `session_id` directly as `thread_id` without validating it. LangGraph's `thread_id` is opaque bytes from the checkpointer's perspective — a short UUID or user-generated ID string is fine; an untrusted user value could collide sessions if not namespaced (acceptable at personal scale, note it for production).
+- ❌ Using `hasattr` as a stand-in for a type check when filtering messages. See the bug fixed in Step 6 — `isinstance` is the correct tool; a shared-but-always-present attribute is not a reliable type signal.
+- ❌ Using `ainvoke` with `stream_mode="values"` in unit tests — it opens a real DB/LLM connection. Mock the graph or test nodes in isolation.
+- ❌ Touching `app/services/journey_advisor.py`. That endpoint serves the quest-card UI and is stable. Chapter 8 adds `POST /advisor` alongside it.
+
+**The Sunday metric:**
+
+> "What can I say in an interview today that I couldn't say last Sunday?"
+> Target answer: *"I replaced a single-shot prompt with a LangGraph StateGraph — three nodes (agent, tool_node, fallback), four data-fetch tools calling my .NET API, conditional routing via `should_continue`, and MemorySaver session persistence. I have Langfuse traces proving turn 2 uses cached state instead of re-calling tools, and 5 scenario tests including an adversarial one where the agent correctly refuses to fabricate data for year 3000."*
 
 # 🔧 Implementation
 
 ## 🎯 Objective
+
+> **Use case:** Ask a follow-up like "berapa gaji yg saya terima bulan itu" and the stateless chat silently sums every month ever, because nothing carries the prior turn's period forward. Give the advisor real state — conversation history, its own data-fetch tools, and session memory that survives across HTTP calls — so multi-turn questions resolve against what was already established.
 
 Build a **separate conversational agent** — `POST /advisor` — using LangGraph:
 
@@ -1296,67 +1358,6 @@ git commit -m "PF-AI008: LangGraph Financial Health Advisor — stateful agent, 
 - **THINK-05 new contract surface.** `AdvisorRequest`/`AdvisorResponse` are new fields. When `.NET` grows a `/advisor` proxy for the chat UI, those field names freeze. Add a note in [ai-service.md](../../rules/ai-service.md) at that point.
 - **Chapter 5 upgrade path.** When Chapter 5 adds SSE streaming, `AdvisorService.ask()` switches from `ainvoke` to `astream_events`, yielding token deltas as they arrive. The node/graph structure is unchanged; only the transport layer changes. That's the value of the service wrapper abstraction.
 - **Deferred:** multi-agent collaboration (supervisor + specialist agents), streaming SSE (Chapter 5), MCP tool wiring (Chapter 9 — these tools become MCP tools with minimal change), persistent checkpointer with Postgres, a real per-holding investment-return endpoint.
-
-## 📚 Resources / Theory to Learn
-
-Organized by concept — read when you hit the wall for that step, not front-loaded.
-
-### Concept 1 — LangGraph core (Steps 1–5)
-
-- **LangGraph quickstart** → https://langchain-ai.github.io/langgraph/tutorials/introduction/ — build the minimal ReAct agent; the graph structure becomes obvious by contrast with your smolagents loop.
-- **LangGraph how-to: add memory** → https://langchain-ai.github.io/langgraph/how-tos/persistence/ — the MemorySaver + `thread_id` pattern, exactly as used in Step 6.
-- **LangGraph how-to: handle tool errors** → https://langchain-ai.github.io/langgraph/how-tos/tool-calling-errors/ — how errors in ToolNode propagate and how to route around them. Supplements the error-state pattern in `call_agent`.
-
-### Concept 2 — Tool definition with LangChain (Step 4)
-
-- **LangChain `@tool` docs** → https://python.langchain.com/docs/concepts/tools/ — the decorator form, how docstrings become tool descriptions (the LLM reads them!), async support.
-- **LangChain ToolNode** → https://langchain-ai.github.io/langgraph/concepts/agentic_concepts/#tool-calling — how ToolNode dispatches `AIMessage.tool_calls` → tool functions → `ToolMessage` results.
-
-### Concept 3 — Checkpointers and session memory (Step 6)
-
-- **LangGraph persistence docs** → https://langchain-ai.github.io/langgraph/concepts/persistence/ — why `thread_id` maps to a conversation; when `MemorySaver` is right vs `PostgresSaver`.
-- **`add_messages` reducer explanation** → https://langchain-ai.github.io/langgraph/concepts/low_level/#reducers — the non-obvious part: why state fields need reducers, what happens without one.
-
-### Concept 4 — Agent evals with traces (Step 10)
-
-- **Langfuse LangChain integration** → https://langfuse.com/docs/integrations/langchain — how to wire Langfuse tracing into LangChain/LangGraph calls via `CallbackHandler`. Adds per-node cost + latency to the Langfuse dashboard.
-- **Braintrust — *Evaluating Agents*** → https://braintrust.dev/blog/evaluating-agents — the trajectory-eval approach: score tool call sequence, not just final output. Good framing for the manual S4 evaluation.
-
-### Videos (targeted, not full courses)
-
-- **DeepLearning.AI — *LangGraph: Multi-Agent Workflows*** (free, 3h) → https://learn.deeplearning.ai/courses/langgraph-multi-agent-workflows — the Chapter 8 slot from the learning path. Module 1 (state + routing) + Module 3 (memory) map directly to what you're building.
-- **LangGraph Academy** → https://academy.langchain.com/courses/intro-to-langgraph — the LangChain official tutorial; more structured than the quickstart. Use as a reference, not a watch-through.
-
-## 🧠 Learning Strategy
-
-**Daily loop for Chapter 8:**
-
-- **Day 1 (theory + state + tools — Steps 1–4):** LangGraph quickstart first (45 min). Then TypedDict state (15 min) and tools module (60 min). Stop when `pytest tests/test_advisor_tools.py` is green.
-- **Day 2 (graph + routing — Step 5):** Build the graph. The `should_continue` routing function is the hardest part — test it in isolation (Step 9, routing tests) before wiring the full graph. Stop when the graph compiles and the routing tests pass.
-- **Day 3 (service + endpoint + smoke — Steps 6–8):** Wrap the graph in `AdvisorService`, wire `/advisor`, run the two-turn smoke test. Stop when turn 2 shows 0 re-fetches in Langfuse.
-- **Day 4 (evals + commit — Steps 10–13):** Run 5 scenarios, record pass/fail, update metrics doc, commit.
-
-**The 5 principles applied:**
-
-1. **Active retrieval:** Step 1's three questions, written from memory. If you can't explain why `add_messages` is needed, you'll write a state type that silently drops conversation history.
-2. **Project-first:** The tools call your real .NET API — this is grounded in your actual pyramid scores and cashflow, not toy data.
-3. **Same-day shipping:** Graph compiling (Day 2) is the gate; don't move to Day 3 without the routing tests green.
-4. **Interleaving:** While the LangGraph models download, write the tool unit tests. Parallelise setup and build work.
-5. **Teach-back:** The ReAct loop framing ("nodes are functions, edges are routing, state flows through") and the MemorySaver `thread_id` story are the two teach-backs. Say them without notes.
-
-**Anti-patterns to avoid this chapter:**
-
-- ❌ Building a multi-agent graph before the single-agent graph is solid. One agent, four tools, three nodes — that's Chapter 8. Multi-agent is Phase 3 territory.
-- ❌ Calling `llm.invoke()` inside a node at module import time. Import-time API calls break tests and slow startup. Instantiate inside the function (see `_build_llm()` pattern above).
-- ❌ Passing `session_id` directly as `thread_id` without validating it. LangGraph's `thread_id` is opaque bytes from the checkpointer's perspective — a short UUID or user-generated ID string is fine; an untrusted user value could collide sessions if not namespaced (acceptable at personal scale, note it for production).
-- ❌ Using `hasattr` as a stand-in for a type check when filtering messages. See the bug fixed in Step 6 — `isinstance` is the correct tool; a shared-but-always-present attribute is not a reliable type signal.
-- ❌ Using `ainvoke` with `stream_mode="values"` in unit tests — it opens a real DB/LLM connection. Mock the graph or test nodes in isolation.
-- ❌ Touching `app/services/journey_advisor.py`. That endpoint serves the quest-card UI and is stable. Chapter 8 adds `POST /advisor` alongside it.
-
-**The Sunday metric:**
-
-> "What can I say in an interview today that I couldn't say last Sunday?"
-> Target answer: *"I replaced a single-shot prompt with a LangGraph StateGraph — three nodes (agent, tool_node, fallback), four data-fetch tools calling my .NET API, conditional routing via `should_continue`, and MemorySaver session persistence. I have Langfuse traces proving turn 2 uses cached state instead of re-calling tools, and 5 scenario tests including an adversarial one where the agent correctly refuses to fabricate data for year 3000."*
 
 ## 📝 Knowledge Check
 

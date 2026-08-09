@@ -574,11 +574,15 @@ distractions instead.
 2. **`# 📑 Table of Contents`** — the navigation index. Sits between the metadata blockquote and
    the Introduction. Rules below.
 3. **`# 📖 Introduction`** — the concept walkthrough (the on-ramp). Rules below.
-4. **`# 🔧 Implementation`** — `## 🎯 Objective` → `## ✅ Acceptance Criteria` → `## 🧭 Approach` →
+4. `## 📚 Resources / Theory to Learn` — reference / deeper dives, nested as the tail end of the
+   Introduction (after the concept ladder, before `# 🔧 Implementation`). The *one* best hands-on
+   resource per concept is still pulled UP into the ladder at its wall; this section is the full
+   reading list, read before touching code — not pull-when-stuck reference material anymore.
+5. `## 🧠 Learning Strategy` — daily loop, the 5 principles, anti-patterns, the Sunday metric.
+   Also nested under Introduction, immediately after Resources — theory and strategy are both
+   read before implementation starts.
+6. **`# 🔧 Implementation`** — `## 🎯 Objective` → `## ✅ Acceptance Criteria` → `## 🧭 Approach` →
    `## 📂 Affected Files` → `## 📋 TODO` (steps) → reference tables → `## 📌 Notes`
-5. `## 📚 Resources / Theory to Learn` — reference / deeper dives (now SECONDARY; the *one* best
-   hands-on resource per concept is pulled UP into the ladder, the rest stay here)
-6. `## 🧠 Learning Strategy` — daily loop, the 5 principles, anti-patterns, the Sunday metric
 7. `## 📝 Knowledge Check` — the quiz (always the FINAL section; see below)
 
 **Heading style:** every `#`/`##` section heading gets a leading emoji (above) — scannable at a
@@ -596,12 +600,13 @@ new plans and added when revising any plan that lacks one. Canonical exemplar:
 - **Heading:** `# 📑 Table of Contents` — its own H1 with the 📑 icon (used by no other section).
   The TOC never lists itself, and there is no `---` divider around it.
 - **Depth:** mirror the heading tree down to `##`. Each `#` section is a top-level bullet; each
-  `##` under it nests one level (the `## 📚 Resources`, `## 🧠 Learning Strategy`, `## 📝 Knowledge
-  Check` sections are `##` children of `# 🔧 Implementation`, so they nest under it). **Under
-  `## 📋 TODO`, nest every `### STEP N` heading** — the steps are the build's backbone and the
-  longest stretch of the file, so they earn direct links. Do *not* expand the `###` items under any
-  other `##` section (Resources concepts, Knowledge Check questions) — the section link is enough;
-  only TODO's steps get third-level entries.
+  `##` under it nests one level (`## 📚 Resources` and `## 🧠 Learning Strategy` are `##` children of
+  `# 📖 Introduction` — they sit at the tail of the ladder, read before implementation starts;
+  `## 📝 Knowledge Check` is a `##` child of `# 🔧 Implementation`, nested under it as the closing
+  section). **Under `## 📋 TODO`, nest every `### STEP N` heading** — the steps are the build's
+  backbone and the longest stretch of the file, so they earn direct links. Do *not* expand the
+  `###` items under any other `##` section (Resources concepts, Knowledge Check questions) — the
+  section link is enough; only TODO's steps get third-level entries.
 - **Links are GitHub-slug anchors.** Compute each `#anchor` with GitHub's rule: lowercase → drop
   every character that isn't `[a-z0-9]`, space, hyphen, or underscore → replace spaces with
   hyphens. The consequences below are correct output, not bugs to "clean up":
@@ -629,6 +634,8 @@ new plans and added when revising any plan that lacks one. Canonical exemplar:
 - [📖 Introduction](#-introduction)
   - [{Concept A heading}](#concept-a-heading)
   - [{Concept B heading}](#concept-b-heading)
+  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
+  - [🧠 Learning Strategy](#-learning-strategy)
 - [🔧 Implementation](#-implementation)
   - [🎯 Objective](#-objective)
   - [✅ Acceptance Criteria](#-acceptance-criteria)
@@ -639,8 +646,6 @@ new plans and added when revising any plan that lacks one. Canonical exemplar:
     - [STEP 1 — {title}](#x-step-1--title)
     - … one entry per STEP, in order …
   - [📌 Notes](#-notes)
-  - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
-  - [🧠 Learning Strategy](#-learning-strategy)
   - [📝 Knowledge Check](#-knowledge-check)
 ```
 
@@ -678,7 +683,8 @@ is exactly what a good hands-on video does; the ladder ports it into the plan fi
 - **Use a real example from this project** at each wall (an actual query, an actual transaction
   row) so the problem is concrete, not abstract.
 - **Embed the single best hands-on resource at its stage** (`▶ Watch/read for this: <url>`), not in
-  a bibliography. The Resources section keeps the rest as pull-when-stuck references.
+  a bibliography. The Resources section at the tail of the ladder keeps the rest — read in full
+  before `# 🔧 Implementation` starts, not pulled only when stuck.
 - **End the ladder where the chapter ships** — climb only to the sophistication this chapter
   actually implements; name the next stage as a one-line teaser, don't teach it.
 - **One mini-ladder per distinct concept.** A chapter covering chunking + re-ranking + generation
