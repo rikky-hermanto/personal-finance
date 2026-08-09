@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PF-AI007 — Transaction Categorizer Agent Loop</title>
 <style>
   @font-face {
@@ -167,8 +170,27 @@
   .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 8px 18px var(--shadow-strong); }
   .node.status-planned { border-style: dashed; border-width: 1.5px; border-color: var(--border-hover); background: var(--header-grad); }
   .node.status-planned:hover { border-color: var(--border-hover); background: var(--card-bg-hover); }
-  .node.kind-stub { padding: 10px 14px; }
+  /* A stub is a pointer to ANOTHER stage, not one more internal card. Dashed
+     border + a fill tinted with the target group's own colour + an accent bar
+     on the side facing that group, so it never reads as a sibling of the leaf
+     cards it sits beside. The gradient layer composites the tint OVER the
+     card background instead of replacing it — a bare translucent fill sits
+     too close to the cream canvas on the light theme to register. */
+  .node.kind-stub {
+    padding: 10px 14px;
+    border-style: dashed;
+    border-color: var(--stub-accent, var(--border-hover));
+    background: linear-gradient(var(--stub-bg), var(--stub-bg)), var(--card-bg);
+  }
+  .node.kind-stub:hover { border-color: var(--stub-accent, var(--border-hover)); }
   .node.kind-stub .node-title { font-size: 12.5px; }
+  .node.kind-stub .stub-bar {
+    position: absolute; background: var(--stub-accent, var(--border-hover));
+  }
+  .node.kind-stub .stub-bar.on-left   { left: 0;   top: 0; bottom: 0; width: 3px; }
+  .node.kind-stub .stub-bar.on-right  { right: 0;  top: 0; bottom: 0; width: 3px; }
+  .node.kind-stub .stub-bar.on-top    { top: 0;    left: 0; right: 0; height: 3px; }
+  .node.kind-stub .stub-bar.on-bottom { bottom: 0; left: 0; right: 0; height: 3px; }
   .node.dragging { cursor: grabbing; z-index: 30; transform: none; box-shadow: 0 12px 26px var(--shadow-strong); transition: none; }
 
   .status-dot {
@@ -442,6 +464,23 @@
       return layer[id];
     }
     declOrder.forEach(layerOf);
+    // A node with no incoming edge of any kind defaults to layer 0, which
+    // parks it in the leftmost column even when the only thing it feeds sits
+    // two columns to the right — the connecting edge then spans the whole
+    // canvas and runs straight under every card in between (this is exactly
+    // what "Existing 4-Layer Categorizer → CategorizerAgent" did to the
+    // "POST /categorize-agent" card). Pull such a root forward so it sits
+    // directly left of its earliest successor. Its edges all still point
+    // right, so nothing else about the layering changes.
+    var outOf = {};
+    declOrder.forEach(function (id) { outOf[id] = []; });
+    GROUP_EDGES.forEach(function (e) { outOf[e.from].push(e.to); });
+    declOrder.forEach(function (id) {
+      if (primaryIn[id].length || secondaryIn[id].length) return;
+      if (!outOf[id].length) return;
+      var earliest = Math.min.apply(null, outOf[id].map(function (s) { return layer[s]; }));
+      layer[id] = Math.max(0, earliest - 1);
+    });
     var maxLayer = Math.max.apply(null, declOrder.map(function (id) { return layer[id]; }));
     var columns = [];
     for (var c = 0; c <= maxLayer; c++) columns.push([]);
@@ -515,11 +554,14 @@
       badges: ["FastAPI"],
       detail: "Calls app.state.categorizer_agent.categorize(...) via asyncio.to_thread, then maps the result onto CategorizeAgentResponse (including tool_calls_count). Any exception becomes a 502 — never a 200 with an empty category.",
       files: ["services/ai-service/app/main.py"], tickets: ["PF-AI007"] },
-    { id: "B2", parent: "endpoint", x: 340, y: 200, w: 272, h: 142, icon: "🧵", title: "asyncio.to_thread wrapper", subtitle: "keeps the event loop free", status: "live",
+    // B2/B3 sit in a SECOND column, not stacked under B1. A card that fans out
+    // to two siblings must stand perpendicular to the way they're stacked —
+    // stacked in one column, B1→B3 had to run straight under B2 to reach it.
+    { id: "B2", parent: "endpoint", x: 680, y: 20, w: 272, h: 142, icon: "🧵", title: "asyncio.to_thread wrapper", subtitle: "keeps the event loop free", status: "live",
       badges: ["asyncio.to_thread"],
       detail: "ToolCallingAgent.run() is synchronous/blocking (1–5s per call). Called raw inside an async def endpoint, it would stall the event loop for every other request, including /health. Same pattern already used for FlashRank in Chapter 4.",
       files: ["services/ai-service/app/main.py"], tickets: ["PF-AI007"] },
-    { id: "B3", parent: "endpoint", x: 340, y: 390, w: 272, h: 142, icon: "🚫", title: "Error contract: two 502s", subtitle: "never 200 with an empty category", status: "live",
+    { id: "B3", parent: "endpoint", x: 680, y: 210, w: 272, h: 142, icon: "🚫", title: "Error contract: two 502s", subtitle: "never 200 with an empty category", status: "live",
       badges: ["502 llm_parse_error", "502 llm_rate_limited"],
       detail: "Two distinct 502 details, deliberately not collapsed into one. AgentRateLimitedError → 'llm_rate_limited' means the provider's quota is exhausted and the caller should back off or switch provider; anything else → 'llm_parse_error' means a genuine failure to produce a usable answer. Neither ever returns 200 with a hollow result.",
       files: ["services/ai-service/app/main.py"], tickets: ["PF-AI007"] },
@@ -586,9 +628,15 @@
       badges: ["DB-sourced", "no invented names"],
       detail: "Prevents the agent from inventing category names. Sourced from app.state.categories (DB SELECT DISTINCT, snapshotted at startup) — a hand-written fallback list only covers the empty-DB / DB-down case.",
       files: ["services/ai-service/app/agents/tools/categories.py"], tickets: ["PF-AI007"] },
-    { id: "E4", parent: "tools", x: 1020, y: 590, w: 272, h: 134, icon: "📜", title: "Docstring = schema", subtitle: "the only thing the LLM reads", status: "live",
-      badges: ["not just documentation"],
-      detail: "The model decides whether and when to call a tool purely from its docstring — that's the entire plan-time interface. A vague docstring can silently cause wrong tool ordering with no visible bug.",
+    // `flank: "right"` stands E4 in the right-hand outer column, stacked with
+    // the Snapshots stub, instead of as a fourth card under the tool stack.
+    // All three tools point at it, and from the flank those three arrows turn
+    // in the same corridor the tools→data arrows use: they cross each other,
+    // which reads fine, instead of running under E2/E3 to arrive, which does
+    // not. Its x/y below are ignored for layout — the flank column places it.
+    { id: "E4", parent: "tools", flank: "right", x: 1020, y: 590, w: 272, h: 134, icon: "📜", title: "Docstring = schema", subtitle: "the only thing the LLM reads", status: "live",
+      badges: ["not just documentation", "applies to every tool"],
+      detail: "A property of all three tools, not a fourth tool. The model decides whether and when to call a tool purely from its docstring; that's the entire plan-time interface. A vague docstring can silently cause wrong tool ordering with no visible bug.",
       files: ["services/ai-service/app/agents/tools/"], tickets: ["PF-AI007"] },
 
     { id: "F1", parent: "data", x: 1020, y: 20, w: 272, h: 136, icon: "📄", title: "load_rules() snapshot", subtitle: "106 rules → in-memory dict at startup", status: "live",
@@ -643,13 +691,21 @@
     { from: "E3", to: "D6", dashed: true, hot: true },
     { from: "D6", to: "D7" },
     { from: "D7", to: "D8" },
+    // Each tool is declared by its docstring — E4 sits in the right flank
+    // column (see its node comment) so these three arrows turn in the same
+    // corridor as the tools→data ones instead of tunnelling through the stack.
     { from: "E1", to: "E4" },
     { from: "E2", to: "E4" },
     { from: "E3", to: "E4" },
     { from: "E1", to: "F1" },
     { from: "E3", to: "F2" },
     { from: "E2", to: "F3" },
-    { from: "D1", to: "G1", dashed: true },
+    // Tracing hangs off D6, not D1. The span tree is "parent = the agent run,
+    // child = each tool body", so it attaches to the act step that calls the
+    // tools — which is also what keeps the obs stub on the same flank as the
+    // tools stub instead of reaching back across the whole agent-core view and
+    // running under the LiteLLMModel card to get there.
+    { from: "D6", to: "G1", dashed: true },
     { from: "G1", to: "G2" }
   ];
 
@@ -717,12 +773,35 @@
   // .from/.to). Must run after all involved nodes exist in livePos.
   // Pixel spread applied to an edge's elbow midline when it shares a
   // source/target port bucket with other edges — see laneOffset below.
-  var LANE_GAP = 26;
+  var LANE_GAP = 18;
+  // Collapses an A→B / B→A pair into ONE line carrying an arrowhead at each
+  // end. Two separate lines between the same pair read as two relationships
+  // and, routed through the same narrow corridor, braid around each other —
+  // that is most of what made the tool fan-out unreadable. One double-headed
+  // line says "round trip", which is exactly what a ReAct call/return is.
+  // Solid wins over dashed on merge: a live path with a dashed return leg is
+  // still a live path.
+  function mergeBidirectional(list) {
+    var out = [], byPair = {};
+    list.forEach(function (e) {
+      var key = e.from < e.to ? e.from + " " + e.to : e.to + " " + e.from;
+      var seen = byPair[key];
+      if (seen) {
+        seen.bidir = true;
+        seen.hot = seen.hot || e.hot;
+        seen.dashed = seen.dashed && e.dashed;
+        return;
+      }
+      byPair[key] = { from: e.from, to: e.to, dashed: e.dashed, hot: e.hot, bidir: !!e.bidir };
+      out.push(byPair[key]);
+    });
+    return out;
+  }
   function assignPorts(list) {
     var raw = list.map(function (e) {
       var side = sideOf(livePos[e.from], livePos[e.to]);
       var opposite = { left: "right", right: "left", top: "bottom", bottom: "top" };
-      return { from: e.from, to: e.to, dashed: e.dashed, hot: e.hot, aSide: side, bSide: opposite[side] };
+      return { from: e.from, to: e.to, dashed: e.dashed, hot: e.hot, bidir: e.bidir, aSide: side, bSide: opposite[side] };
     });
     var buckets = {}; // "<nodeId>|<side>" -> [{ idx, isA, otherId }]
     raw.forEach(function (r, idx) {
@@ -738,17 +817,45 @@
       var n = arr.length;
       arr.forEach(function (item, i) {
         var frac = n === 1 ? 0.5 : 0.22 + 0.56 * (i / (n - 1));
-        var lane = n === 1 ? 0 : i - (n - 1) / 2;
-        if (item.isA) { raw[item.idx].aFrac = frac; raw[item.idx].aLane = lane; }
-        else { raw[item.idx].bFrac = frac; raw[item.idx].bLane = lane; }
+        if (item.isA) raw[item.idx].aFrac = frac;
+        else raw[item.idx].bFrac = frac;
       });
     });
-    // Port spreading alone only separates WHERE an edge leaves/enters a
-    // node — two edges can still share it if their midline lands on the
-    // same coordinate (e.g. two targets with the same x). laneOffset
-    // nudges the elbow's shared midline apart so parallel runs never
-    // trace an identical path (see edgePath).
-    raw.forEach(function (r) { r.laneOffset = ((r.aLane || 0) + (r.bLane || 0)) * LANE_GAP; });
+    // Port spreading alone only separates WHERE an edge leaves/enters a node —
+    // two edges can still share a turn line if their midline lands on the same
+    // coordinate. laneOffset nudges those apart, but it has to be assigned per
+    // CORRIDOR, not by summing each edge's lane index at its two ends: an edge
+    // that is outermost at its source and innermost at its target sums to the
+    // same offset as one that is the reverse, and the two elbows then share a
+    // vertical run — two edges drawn as one line. Bucketing by the corridor an
+    // edge turns in and spreading that bucket evenly makes the collision
+    // impossible; the gap shrinks to fit when the corridor is tight, and the
+    // sort (by target position, then source) keeps edges heading for the same
+    // card in adjacent lanes instead of interleaving them.
+    var corridors = {};
+    raw.forEach(function (r) {
+      var horiz = r.aSide === "left" || r.aSide === "right";
+      var a = livePos[r.from], b = livePos[r.to];
+      var p1 = sidePoint(a, r.aSide, r.aFrac), p2 = sidePoint(b, r.bSide, r.bFrac);
+      var base = horiz ? (p1.x + p2.x) / 2 : (p1.y + p2.y) / 2;
+      var lo, hi;
+      if (horiz) {
+        if (r.aSide === "right") { lo = a.x + a.w; hi = b.x; } else { lo = b.x + b.w; hi = a.x; }
+      } else {
+        if (r.aSide === "bottom") { lo = a.y + a.h; hi = b.y; } else { lo = b.y + b.h; hi = a.y; }
+      }
+      var key = (horiz ? "h" : "v") + "|" + Math.round(base / 6);
+      var c = corridors[key] || (corridors[key] = { items: [], width: Infinity });
+      c.width = Math.min(c.width, hi - lo);
+      c.items.push({ r: r, tgt: horiz ? p2.y : p2.x, src: horiz ? p1.y : p1.x });
+    });
+    Object.keys(corridors).forEach(function (key) {
+      var c = corridors[key], n = c.items.length;
+      if (n === 1) { c.items[0].r.laneOffset = 0; return; }
+      var gap = Math.min(LANE_GAP, Math.max(6, (c.width - 26) / (n - 1)));
+      c.items.sort(function (p, q) { return (p.tgt - q.tgt) || (p.src - q.src); });
+      c.items.forEach(function (item, i) { item.r.laneOffset = (i - (n - 1) / 2) * gap; });
+    });
     return raw;
   }
   // Rounds the interior vertices of a waypoint path — each corner gets
@@ -770,17 +877,31 @@
     d += " L " + last.x + " " + last.y;
     return d;
   }
+  // The elbow's turn line must stay inside the CORRIDOR between the two node
+  // boxes. Unclamped, a lane offset on a busy port bucket pushes the turn
+  // behind the source card or inside the target column, and the edge visibly
+  // loops back around its own endpoints — that hooked, tangled look was the
+  // whole "arah panahnya bingungin" bug, and it gets worse the narrower the
+  // gap between the two nodes is. When there is no usable corridor at all
+  // (boxes overlap on that axis) fall back to the plain midpoint.
+  function clampElbow(v1, v2, lo, hi, laneOffset) {
+    var mid = (v1 + v2) / 2 + (laneOffset || 0);
+    if (hi - lo < 18) return (v1 + v2) / 2;
+    return Math.min(hi - 9, Math.max(lo + 9, mid));
+  }
   // aSide/bSide are always opposite-axis mirrors (see assignPorts), so the
   // route is a simple near-orthogonal elbow: exit straight off the side,
   // turn once at the midline, straight into the other side.
-  function edgePath(p1, p2, aSide, bSide, laneOffset) {
+  function edgePath(p1, p2, aSide, bSide, laneOffset, a, b) {
     var horizontal = aSide === "left" || aSide === "right";
-    var pts;
+    var pts, lo, hi;
     if (horizontal) {
-      var midX = (p1.x + p2.x) / 2 + (laneOffset || 0);
+      if (aSide === "right") { lo = a.x + a.w; hi = b.x; } else { lo = b.x + b.w; hi = a.x; }
+      var midX = clampElbow(p1.x, p2.x, lo, hi, laneOffset);
       pts = [p1, { x: midX, y: p1.y }, { x: midX, y: p2.y }, p2];
     } else {
-      var midY = (p1.y + p2.y) / 2 + (laneOffset || 0);
+      if (aSide === "bottom") { lo = a.y + a.h; hi = b.y; } else { lo = b.y + b.h; hi = a.y; }
+      var midY = clampElbow(p1.y, p2.y, lo, hi, laneOffset);
       pts = [p1, { x: p1.x, y: midY }, { x: p2.x, y: midY }, p2];
     }
     return roundedWaypointPath(pts, 22);
@@ -804,31 +925,46 @@
   }
 
   function drawEdge(pe) {
-    var p1 = sidePoint(livePos[pe.from], pe.aSide, pe.aFrac);
-    var p2 = sidePoint(livePos[pe.to], pe.bSide, pe.bFrac);
+    var a = livePos[pe.from], b = livePos[pe.to];
+    var p1 = sidePoint(a, pe.aSide, pe.aFrac);
+    var p2 = sidePoint(b, pe.bSide, pe.bFrac);
+    var cls = (pe.dashed ? " dashed" : "") + (pe.hot ? " edge-hot" : "");
     var path = document.createElementNS(svgNS, "path");
-    path.setAttribute("d", edgePath(p1, p2, pe.aSide, pe.bSide, pe.laneOffset));
-    path.setAttribute("class", "edge-path" + (pe.dashed ? " dashed" : "") + (pe.hot ? " edge-hot" : ""));
+    path.setAttribute("d", edgePath(p1, p2, pe.aSide, pe.bSide, pe.laneOffset, a, b));
+    path.setAttribute("class", "edge-path" + cls);
     svg.appendChild(path);
     var arrow = document.createElementNS(svgNS, "polygon");
     arrow.setAttribute("points", arrowPoints(p2, pe.bSide));
-    arrow.setAttribute("class", "edge-arrow" + (pe.dashed ? " dashed" : "") + (pe.hot ? " edge-hot" : ""));
+    arrow.setAttribute("class", "edge-arrow" + cls);
     svg.appendChild(arrow);
-    edgeRecords.push({ aId: pe.from, bId: pe.to, pathEl: path, arrowEl: arrow, aSide: pe.aSide, aFrac: pe.aFrac, bSide: pe.bSide, bFrac: pe.bFrac, laneOffset: pe.laneOffset });
+    // A merged round trip gets its second head at the source port, pointing
+    // back INTO the source — so "calls and hears back" is one glance, not two
+    // lines the reader has to notice run in opposite directions.
+    var backArrow = null;
+    if (pe.bidir) {
+      backArrow = document.createElementNS(svgNS, "polygon");
+      backArrow.setAttribute("points", arrowPoints(p1, pe.aSide));
+      backArrow.setAttribute("class", "edge-arrow" + cls);
+      svg.appendChild(backArrow);
+    }
+    edgeRecords.push({ aId: pe.from, bId: pe.to, pathEl: path, arrowEl: arrow, backArrowEl: backArrow, aSide: pe.aSide, aFrac: pe.aFrac, bSide: pe.bSide, bFrac: pe.bFrac, laneOffset: pe.laneOffset });
   }
-  // Draws every edge in `list` after computing its ports in one pass, so
-  // parallel edges on the same node/side are spread out from the start.
+  // Draws every edge in `list` after merging round trips and computing ports
+  // in one pass, so parallel edges on the same node/side are spread out and
+  // no pair is ever drawn twice in opposite directions.
   function drawEdges(list) {
-    assignPorts(list).forEach(drawEdge);
+    assignPorts(mergeBidirectional(list)).forEach(drawEdge);
   }
 
   function updateEdgesFor(nodeId) {
     edgeRecords.forEach(function (rec) {
       if (rec.aId !== nodeId && rec.bId !== nodeId) return;
-      var p1 = sidePoint(livePos[rec.aId], rec.aSide, rec.aFrac);
-      var p2 = sidePoint(livePos[rec.bId], rec.bSide, rec.bFrac);
-      rec.pathEl.setAttribute("d", edgePath(p1, p2, rec.aSide, rec.bSide, rec.laneOffset));
+      var a = livePos[rec.aId], b = livePos[rec.bId];
+      var p1 = sidePoint(a, rec.aSide, rec.aFrac);
+      var p2 = sidePoint(b, rec.bSide, rec.bFrac);
+      rec.pathEl.setAttribute("d", edgePath(p1, p2, rec.aSide, rec.bSide, rec.laneOffset, a, b));
       rec.arrowEl.setAttribute("points", arrowPoints(p2, rec.bSide));
+      if (rec.backArrowEl) rec.backArrowEl.setAttribute("points", arrowPoints(p1, rec.aSide));
     });
   }
 
@@ -841,6 +977,7 @@
       var active = rec.aId === nodeId || rec.bId === nodeId;
       rec.pathEl.classList.toggle("edge-active", active);
       rec.arrowEl.classList.toggle("edge-active", active);
+      if (rec.backArrowEl) rec.backArrowEl.classList.toggle("edge-active", active);
     });
   }
   function clearEdgeFocus() {
@@ -848,6 +985,7 @@
     edgeRecords.forEach(function (rec) {
       rec.pathEl.classList.remove("edge-active");
       rec.arrowEl.classList.remove("edge-active");
+      if (rec.backArrowEl) rec.backArrowEl.classList.remove("edge-active");
     });
   }
 
@@ -1024,29 +1162,16 @@
     var local = LEAF_NODES.filter(function (n) { return n.parent === groupId; });
     local.forEach(function (n) { localIds[n.id] = true; });
 
-    var MARGIN = 210;
-    var minX = Math.min.apply(null, local.map(function (n) { return n.x; }));
-    var minY = Math.min.apply(null, local.map(function (n) { return n.y; }));
-    var maxX = Math.max.apply(null, local.map(function (n) { return n.x + n.w; }));
-    var maxY = Math.max.apply(null, local.map(function (n) { return n.y + n.h; }));
-    var offsetX = MARGIN - minX, offsetY = MARGIN - minY;
-    var canvasW = (maxX - minX) + MARGIN * 2;
-    var canvasH = (maxY - minY) + MARGIN * 2;
-
-    var placed = {};
-    local.forEach(function (n) {
-      placed[n.id] = { x: n.x + offsetX, y: n.y + offsetY, w: n.w, h: n.h, ref: n };
-    });
-
     // cross-group edges -> collapse to one stub per target group, on the side
     // implied by that group's position relative to this one in the overview.
-    // Deduped on (local leaf, direction): several edges from one local node to
-    // different leaves of the same remote group all collapse onto the same
-    // stub, so without this they'd draw as N identical overlapping lines that
-    // read as N distinct relationships. One line per direction is the honest
-    // summary — "this node feeds that group, and hears back from it".
+    // Deduped on (target group, local leaf) — NOT on direction. Several edges
+    // from one local node to different leaves of the same remote group all
+    // collapse onto the same stub, so without this they'd draw as N identical
+    // overlapping lines reading as N distinct relationships; and a pair that
+    // talks both ways becomes one double-headed line rather than two lines
+    // braiding through the same corridor in opposite directions.
     var crossByTarget = {};
-    var crossSeen = {};
+    var linkByKey = {};
     LEAF_EDGES.forEach(function (e) {
       var fromLocal = !!localIds[e.from], toLocal = !!localIds[e.to];
       if (fromLocal === toLocal) return;
@@ -1055,11 +1180,19 @@
       var otherLeaf = LEAF_BY_ID[otherId];
       var targetGroup = otherLeaf.parent;
       if (targetGroup === groupId) return;
-      var dedupKey = targetGroup + "|" + localLeafId + "|" + (fromLocal ? "out" : "in");
-      if (crossSeen[dedupKey]) return;
-      crossSeen[dedupKey] = true;
-      if (!crossByTarget[targetGroup]) crossByTarget[targetGroup] = [];
-      crossByTarget[targetGroup].push({ localLeafId: localLeafId, dashed: e.dashed, hot: e.hot, outbound: fromLocal });
+      var key = targetGroup + "|" + localLeafId;
+      var link = linkByKey[key];
+      if (!link) {
+        link = linkByKey[key] = { localLeafId: localLeafId, hot: false, out: false, into: false };
+        if (!crossByTarget[targetGroup]) crossByTarget[targetGroup] = [];
+        crossByTarget[targetGroup].push(link);
+      }
+      // Carry `hot` across the collapse: the agent→tools call and its return
+      // leg are the ReAct loop itself, and they're cross-group edges — drop
+      // the flag here and the loop loses its highlight in exactly the two
+      // drill-down views (agent-core, tools) where it's the whole point.
+      link.hot = link.hot || !!e.hot;
+      if (fromLocal) link.out = true; else link.into = true;
     });
 
     // Named distinctly from the module-level sideOf(a, b), which it would
@@ -1072,55 +1205,181 @@
       return dy >= 0 ? "bottom" : "top";
     }
 
-    var bySide = { left: [], right: [], top: [], bottom: [] };
-    Object.keys(crossByTarget).forEach(function (tg) {
-      var side = stubSideForGroup(tg);
-      bySide[side].push({ targetGroup: tg, links: crossByTarget[tg] });
-    });
-
     // Sized to fit a two-line wrapped group title plus the "open ›" line —
     // at 172x50 titles like "Existing 4-Layer Categorizer" were ellipsized
     // and the subtitle was clipped off the bottom of the card entirely.
     var STUB_W = 212, STUB_H = 78;
-    var stubPositions = {};
-    function distribute(count, start, end) {
-      if (count <= 1) return [(start + end) / 2];
-      var gap = Math.max(64, (end - start) / (count - 1));
-      var span = gap * (count - 1);
-      var s = (start + end) / 2 - span / 2;
-      var arr = [];
-      for (var i = 0; i < count; i++) arr.push(s + gap * i);
-      return arr;
-    }
-    var vSpread = distribute(bySide.left.length, MARGIN, canvasH - MARGIN);
-    bySide.left.forEach(function (item, i) { stubPositions[item.targetGroup] = { x: MARGIN - 24 - STUB_W, y: vSpread[i] - STUB_H / 2, side: "left" }; });
-    var vSpreadR = distribute(bySide.right.length, MARGIN, canvasH - MARGIN);
-    bySide.right.forEach(function (item, i) { stubPositions[item.targetGroup] = { x: canvasW - MARGIN + 24, y: vSpreadR[i] - STUB_H / 2, side: "right" }; });
-    var hSpreadT = distribute(bySide.top.length, MARGIN, canvasW - MARGIN);
-    bySide.top.forEach(function (item, i) { stubPositions[item.targetGroup] = { x: hSpreadT[i] - STUB_W / 2, y: MARGIN - 24 - STUB_H, side: "top" }; });
-    var hSpreadB = distribute(bySide.bottom.length, MARGIN, canvasW - MARGIN);
-    bySide.bottom.forEach(function (item, i) { stubPositions[item.targetGroup] = { x: hSpreadB[i] - STUB_W / 2, y: canvasH - MARGIN + 24, side: "bottom" }; });
+    // STUB_GAP is the corridor the elbow router turns inside. The old layout
+    // left 24px here and parked the stub at a NEGATIVE coordinate outside the
+    // canvas box, so (a) fit-to-view framed the leaves only and the reader had
+    // to pan to find the stub at all, and (b) every lane offset overshot the
+    // 24px gap and looped the line back around its own endpoints. Reserve the
+    // gutter as real padding, and the canvas grows to contain the stubs.
+    var STUB_GAP = 140, STUB_EDGE = 40, PAD = 96;
 
-    canvasW = Math.max(canvasW, STUB_W + 40);
-    canvasH = Math.max(canvasH, STUB_H + 40);
+    // ---- flank column ------------------------------------------------------
+    // A leaf marked `flank: "<side>"` is lifted OUT of the block and stacked in
+    // that side's outer column together with the stubs. This is what lets a
+    // third fan-out exist at all. A block of sibling cards only has two clear
+    // flanks; a third hub for the same siblings, dropped inside the block,
+    // forces every long edge to tunnel under the cards in between. Standing it
+    // in the flank column — level with the stub it shares the side with —
+    // gives all three fans the SAME corridor to turn in. They cross each other
+    // there, which is fine and readable; what is not readable is a line
+    // disappearing under a card.
+    var flankLeaves = local.filter(function (n) { return n.flank; });
+    var blockLeaves = local.filter(function (n) { return !n.flank; });
+    if (!blockLeaves.length) { blockLeaves = local; flankLeaves = []; }
+    var blockIds = {};
+    blockLeaves.forEach(function (n) { blockIds[n.id] = true; });
+
+    // Flank items are added BEFORE stubs so that when their centroids tie (both
+    // anchored to the same sibling set) the annotation takes the upper slot and
+    // the "open ▸" stub sits below it — stable, and it keeps the clickable
+    // jump-out card nearest the direction it points.
+    var bySide = { left: [], right: [], top: [], bottom: [] };
+    flankLeaves.forEach(function (n) {
+      var anchors = [];
+      LEAF_EDGES.forEach(function (e) {
+        if (e.from === n.id && blockIds[e.to]) anchors.push(e.to);
+        else if (e.to === n.id && blockIds[e.from]) anchors.push(e.from);
+      });
+      bySide[n.flank].push({ kind: "leaf", ref: n, anchors: anchors, w: n.w, h: n.h });
+    });
+    Object.keys(crossByTarget).forEach(function (tg) {
+      var links = crossByTarget[tg];
+      bySide[stubSideForGroup(tg)].push({
+        kind: "stub", targetGroup: tg, links: links, w: STUB_W, h: STUB_H,
+        anchors: links.map(function (l) { return l.localLeafId; })
+      });
+    });
+
+    // Every card on a flank shares one column, so the column is as wide as its
+    // widest occupant and everything in it aligns on the inner edge.
+    function flankSize(side, axis) {
+      if (!bySide[side].length) return 0;
+      return Math.max.apply(null, bySide[side].map(function (it) { return axis === "w" ? it.w : it.h; }));
+    }
+    var flankW = { left: flankSize("left", "w"), right: flankSize("right", "w") };
+    var flankH = { top: flankSize("top", "h"), bottom: flankSize("bottom", "h") };
+    var padLeft   = bySide.left.length   ? STUB_EDGE + flankW.left   + STUB_GAP : PAD;
+    var padRight  = bySide.right.length  ? STUB_EDGE + flankW.right  + STUB_GAP : PAD;
+    var padTop    = bySide.top.length    ? STUB_EDGE + flankH.top    + STUB_GAP : PAD;
+    var padBottom = bySide.bottom.length ? STUB_EDGE + flankH.bottom + STUB_GAP : PAD;
+
+    var minX = Math.min.apply(null, blockLeaves.map(function (n) { return n.x; }));
+    var minY = Math.min.apply(null, blockLeaves.map(function (n) { return n.y; }));
+    var maxX = Math.max.apply(null, blockLeaves.map(function (n) { return n.x + n.w; }));
+    var maxY = Math.max.apply(null, blockLeaves.map(function (n) { return n.y + n.h; }));
+    var offsetX = padLeft - minX, offsetY = padTop - minY;
+    var canvasW = (maxX - minX) + padLeft + padRight;
+    var canvasH = (maxY - minY) + padTop + padBottom;
+
+    var placed = {};
+    blockLeaves.forEach(function (n) {
+      placed[n.id] = { x: n.x + offsetX, y: n.y + offsetY, w: n.w, h: n.h, ref: n };
+    });
+
+    // A flank card sits level with the block cards it actually links to, not at
+    // the canvas midpoint. Centred on a tall column, its lines all run
+    // diagonally past unrelated cards before arriving; centred on its own
+    // neighbours they leave and arrive travelling the same way, which is what
+    // makes the direction readable without tracing the line.
+    function centroidOf(item, axis) {
+      var sum = 0, n = 0;
+      item.anchors.forEach(function (id) {
+        var p = placed[id];
+        if (!p) return;
+        sum += axis === "y" ? p.y + p.h / 2 : p.x + p.w / 2;
+        n += 1;
+      });
+      if (!n) return axis === "y" ? canvasH / 2 : canvasW / 2;
+      return sum / n;
+    }
+    // Places every card on one side at its own centroid, then pushes apart any
+    // that would overlap and slides the whole run back inside [lo, hi].
+    function stackSide(items, axis, lo, hi) {
+      var GAP = 24;
+      var scored = items.map(function (it, i) {
+        return { it: it, size: axis === "y" ? it.h : it.w, c: centroidOf(it, axis), i: i };
+      });
+      scored.sort(function (p, q) { return (p.c - q.c) || (p.i - q.i); });
+      var cursor = null;
+      scored.forEach(function (s) {
+        var v = s.c - s.size / 2;
+        if (cursor !== null && v < cursor) v = cursor;
+        s.pos = v;
+        cursor = v + s.size + GAP;
+      });
+      if (scored.length) {
+        var last = scored[scored.length - 1];
+        if (last.pos + last.size > hi) {
+          var shift = last.pos + last.size - hi;
+          scored.forEach(function (s) { s.pos -= shift; });
+        }
+        if (scored[0].pos < lo) {
+          var back = lo - scored[0].pos;
+          scored.forEach(function (s) { s.pos += back; });
+        }
+      }
+      return scored;
+    }
+
+    stackSide(bySide.left, "y", 16, canvasH - 16).forEach(function (s) {
+      s.it.px = STUB_EDGE; s.it.py = s.pos; s.it.side = "left";
+    });
+    stackSide(bySide.right, "y", 16, canvasH - 16).forEach(function (s) {
+      s.it.px = canvasW - STUB_EDGE - flankW.right; s.it.py = s.pos; s.it.side = "right";
+    });
+    stackSide(bySide.top, "x", 16, canvasW - 16).forEach(function (s) {
+      s.it.px = s.pos; s.it.py = STUB_EDGE; s.it.side = "top";
+    });
+    stackSide(bySide.bottom, "x", 16, canvasW - 16).forEach(function (s) {
+      s.it.px = s.pos; s.it.py = canvasH - STUB_EDGE - flankH.bottom; s.it.side = "bottom";
+    });
+
     setCanvasSize(canvasW, canvasH);
 
     // render local leaf nodes first so their live geometry exists before any edge reads it
     // tags + description are hover-only here (see makeNodeEl) — full detail is one click away
-    local.forEach(function (n) {
+    blockLeaves.forEach(function (n) {
       var p = placed[n.id];
       var nodeData = { id: n.id, x: p.x, y: p.y, w: p.w, h: p.h, icon: n.icon, title: n.title, subtitle: n.subtitle, status: n.status, badges: n.badges, detail: n.detail };
       var el = makeNodeEl(nodeData, "leaf", group.color, function () { selectLeaf(n.id); });
       nodesEl.appendChild(el);
     });
 
-    // render stub cards (jump to another group)
-    Object.keys(stubPositions).forEach(function (tg) {
-      var pos = stubPositions[tg];
-      var targetGroup = GROUP_BY_ID[tg];
-      var nodeData = { id: "stub-" + tg, x: pos.x, y: pos.y, w: STUB_W, h: STUB_H, icon: targetGroup.icon, title: targetGroup.title, subtitle: "open ›", status: targetGroup.status };
-      var el = makeNodeEl(nodeData, "stub", targetGroup.color, function () { openGroup(tg); });
-      nodesEl.appendChild(el);
+    // render the flank column: annotation leaves render as ordinary leaf cards
+    // (they are real components, not pointers), stubs render as jump cards.
+    // A stub's direction comes from the real edge list, never from which side
+    // of the canvas it landed on: a group we only send to reads "open ▸", one
+    // that only feeds us reads "◂ open", a genuine round trip "◂ open ▸".
+    ["left", "right", "top", "bottom"].forEach(function (side) {
+      bySide[side].forEach(function (it) {
+        if (it.kind === "leaf") {
+          var n = it.ref;
+          var leafData = { id: n.id, x: it.px, y: it.py, w: n.w, h: n.h, icon: n.icon, title: n.title, subtitle: n.subtitle, status: n.status, badges: n.badges, detail: n.detail };
+          nodesEl.appendChild(makeNodeEl(leafData, "leaf", group.color, function () { selectLeaf(n.id); }));
+          return;
+        }
+        var tg = it.targetGroup, targetGroup = GROUP_BY_ID[tg];
+        var anyOut = it.links.some(function (l) { return l.out; });
+        var anyIn = it.links.some(function (l) { return l.into; });
+        var label = anyOut && anyIn ? "◂ open ▸" : (anyOut ? "open ▸" : "◂ open");
+        var nodeData = { id: "stub-" + tg, x: it.px, y: it.py, w: STUB_W, h: STUB_H, icon: targetGroup.icon, title: targetGroup.title, subtitle: label, status: targetGroup.status };
+        var el = makeNodeEl(nodeData, "stub", targetGroup.color, function () { openGroup(tg); });
+        el.style.setProperty("--stub-accent", hexToRgba(targetGroup.color, 0.6));
+        el.style.setProperty("--stub-bg", hexToRgba(targetGroup.color, 0.12));
+        var bars = side === "left" || side === "right"
+          ? (anyOut && anyIn ? ["on-left", "on-right"] : [anyOut ? "on-right" : "on-left"])
+          : (anyOut && anyIn ? ["on-top", "on-bottom"] : [anyOut ? "on-bottom" : "on-top"]);
+        bars.forEach(function (b) {
+          var bar = document.createElement("div");
+          bar.className = "stub-bar " + b;
+          el.appendChild(bar);
+        });
+        nodesEl.appendChild(el);
+      });
     });
 
     // internal + cross-group stub edges are ported together so parallel
@@ -1131,13 +1390,11 @@
     Object.keys(crossByTarget).forEach(function (tg) {
       var stubId = "stub-" + tg;
       crossByTarget[tg].forEach(function (link) {
-        var aId = link.outbound ? link.localLeafId : stubId;
-        var bId = link.outbound ? stubId : link.localLeafId;
-        // Carry `hot` across the collapse: the agent→tools call and its return
-        // leg are the ReAct loop itself, and they're cross-group edges — drop
-        // the flag here and the loop loses its highlight in exactly the two
-        // drill-down views (agent-core, tools) where it's the whole point.
-        edgesToDraw.push({ from: aId, to: bId, dashed: true, hot: link.hot });
+        // Orient a one-way link the way it actually runs; a round trip is one
+        // line with a head at each end (see mergeBidirectional / drawEdge).
+        var aId = link.out ? link.localLeafId : stubId;
+        var bId = link.out ? stubId : link.localLeafId;
+        edgesToDraw.push({ from: aId, to: bId, dashed: true, hot: link.hot, bidir: link.out && link.into });
       });
     });
     drawEdges(edgesToDraw);

@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-08-04
+> **Last synced:** 2026-08-09
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -63,6 +63,23 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-133 | _(no issue)_ | Trading Desk Foundation (Risk OS Phase 1) — schema, C# gate engine + TS mirror (byte-identical parity), shell + 4 setup screens. Pre-Trade/Journal deferred to PF-134 |
 | PF-136 | _(no issue)_ | Trading Desk mandate presets — Learning/Standard tiers + earned unlock, plain-language parameter hints (CIO review 2026-07-30) |
 | PF-137 | _(no issue)_ | Show mandate presets when editing an existing mandate (follow-up to PF-136) — logic verified by code trace + API check, not a live browser click-through |
+| PF-138 | _(no issue)_ | Desk multi-portfolio model — portfolio grain, symbol aggregation, retire duplicate-cash recon (unblocked PF-134) |
+| PF-102 | _(no issue)_ | Sync Documentation with Current Codebase State |
+| PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
+| PF-105 | _(no issue)_ | Cold Start: Smart Defaults via Category Preset |
+| PF-106 | _(no issue)_ | Adopt Zen-Mode Skill into Personal Finance Frontend |
+| PF-107 | _(no issue)_ | PF-107 Phase 1B — Assets Management: Balance Sheet MVP |
+| PF-108 | _(no issue)_ | Safe-to-Spend + Variance Explainer (Spending Analysis MVP) |
+| PF-115 | _(no issue)_ | Integrate Cashflow Wallets → Assets Accounts (Wallet → Bank Account rename) |
+| PF-116 | _(no issue)_ | Transaction Running Balance View |
+| PF-117 | [#84](https://github.com/rikky-hermanto/personal-finance/issues/84) | Dashboard Overview: Data Accuracy & UX Polish |
+| PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
+| PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights (Phase 1) |
+| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview — "✦ Suggest (N)" button |
+| PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) — absorbs PF-123 |
+| PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
+| PF-128 | _(no issue)_ | Superbank PDF Parser: bank-specific LLM prompt + dispatch map |
+| PF-S10 | [#73](https://github.com/rikky-hermanto/personal-finance/issues/73) | Supabase Storage — bank-statements bucket + StorageService + upload endpoint |
 
 ---
 
@@ -70,18 +87,10 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
-| PF-117 | [#84](https://github.com/rikky-hermanto/personal-finance/issues/84) | Dashboard Overview: Data Accuracy & UX Polish |
-| PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
-| PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights (Phase 1) |
-| PF-121 | _(no issue)_ | AI-Narrated Anomaly Insights + Persistence (Phase 2, blocked by PF-120) |
-| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview — "✦ Suggest (N)" button |
+| PF-121 | _(no issue)_ | AI-Narrated Anomaly Insights + Persistence (Phase 2) |
 | PF-123 | _(no issue)_ | Fix ARCH-02: Move IBankIdentifier to Application/Interfaces |
-| PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) — absorbs PF-123 |
-| PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
 | PF-127 | _(no issue)_ | PII Redaction: Tracked Files + Untracked Plan Files (Pre-Open-Source) |
-| PF-128 | _(no issue)_ | Superbank PDF Parser: bank-specific LLM prompt + dispatch map |
 | PF-131 | _(no issue)_ | Mentor Auto-Blogging: `/mentor blog` draft + `/mentor blog post` → Hashnode |
-| PF-138 | _(no issue)_ | Desk multi-portfolio model — portfolio grain, symbol aggregation, retire duplicate-cash recon (blocks PF-134) |
 
 ---
 
@@ -100,7 +109,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | ~~PF-S07~~ | ~~[#70](https://github.com/rikky-hermanto/personal-finance/issues/70)~~ | ~~Delete PersonalFinance.Persistence project — eliminate EF Core~~ | ~~2~~ |
 | PF-S08 | [#71](https://github.com/rikky-hermanto/personal-finance/issues/71) | Supabase Auth — JWT middleware + user_id columns + RLS policies | 3 |
 | PF-S09 | [#72](https://github.com/rikky-hermanto/personal-finance/issues/72) | Frontend Supabase Auth — login/signup + JWT forwarding | 3 |
-| PF-S10 | [#73](https://github.com/rikky-hermanto/personal-finance/issues/73) | Supabase Storage — bank-statements bucket + StorageService + upload endpoint | 4 |
+| ~~PF-S10~~ | ~~[#73](https://github.com/rikky-hermanto/personal-finance/issues/73)~~ | ~~Supabase Storage — bank-statements bucket + StorageService + upload endpoint~~ | ~~4~~ |
 | PF-S11 | [#74](https://github.com/rikky-hermanto/personal-finance/issues/74) | Event-driven AI pipeline — statement_uploads + Webhook + Python /webhooks/process | 5 |
 | PF-S12 | [#75](https://github.com/rikky-hermanto/personal-finance/issues/75) | Supabase Realtime — React subscription for live AI processing status | 5 |
 | PF-S13 | [#76](https://github.com/rikky-hermanto/personal-finance/issues/76) | RAG pipeline — pgvector embeddings + match_transactions + natural language query | 6 |
@@ -172,24 +181,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Absorbed into PF-S06 (supabase-csharp handler rewrite — AI results written back directly) |
 | PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | Completed — `providers/{factory,anthropic,gemini}.py` exist; provider abstraction is live |
 | PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Superseded by PF-S08/PF-S09 (Supabase GoTrue replaces Auth0) |
-| PF-116 | _(no issue)_ | Transaction Running Balance View |
-| PF-117 | _(no issue)_ | Dashboard Overview: Data Accuracy & UX Polish |
-| PF-115 | _(no issue)_ | Integrate Cashflow Wallets → Assets Accounts (Wallet → Bank Account rename) |
-| PF-107 | _(no issue)_ | PF-107 Phase 1B — Assets Management: Balance Sheet MVP |
-| PF-108 | _(no issue)_ | Safe-to-Spend + Variance Explainer (Spending Analysis MVP) |
-| PF-S10 | _(no issue)_ | Supabase Storage: bank-statements bucket + StorageService + upload endpoint |
-| PF-104 | _(no issue)_ | Final Recommendation: Format-Drift Tolerant BCA CSV Parser |
-| PF-118 | _(no issue)_ | Dashboard Current Balance: inline strip + per-account popover |
-| PF-122 | _(no issue)_ | Bulk AI Categorization in Upload Preview |
-| PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across the full stack |
-| PF-124 | _(no issue)_ | BankIdentifier Matcher Registry (Chain of Responsibility + Strategy) |
-| PF-128 | _(no issue)_ | Superbank PDF Parser: Bank-Specific LLM Prompt |
-| PF-120 | _(no issue)_ | Cashflow Command Center: Shell + Deterministic Insights |
-| PF-137 | _(no issue)_ | Show mandate presets when editing an existing mandate |
-| PF-138 | _(no issue)_ | Desk multi-portfolio model: portfolio grain, symbol aggregation, retire duplicate-cash recon |
-| PF-138 | _(no issue)_ | Desk multi-portfolio model: portfolio grain, symbol aggregation, retire duplicate-cash recon |
-| PF-138 | _(no issue)_ | Desk multi-portfolio model: portfolio grain, symbol aggregation, retire duplicate-cash recon |
-| PF-108 | _(no issue)_ | Safe-to-Spend + Variance Explainer (Spending Analysis MVP) |
 
 ---
 
