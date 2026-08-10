@@ -1,4 +1,14 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:7208";
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL || "http://localhost:8000";
+
+// Local dev hosts for services without a frontend-facing base URL env var (see Ports & URLs in CLAUDE.md).
+export const SERVICE_URLS: Record<string, string> = {
+  "Backend API": `${API_BASE_URL}/health`, // no landing page at root, health check is what's actually live
+  "Database": "http://localhost:54323", // Supabase Studio
+  "AI Service": `${AI_SERVICE_URL}/docs`, // FastAPI interactive docs
+  "Grafana Monitoring": "http://localhost:3000",
+  "Frontend Application": typeof window !== "undefined" ? window.location.origin : "http://localhost:8080",
+};
 
 export interface HealthEntry {
   status: 'Healthy' | 'Unhealthy' | 'Degraded';
