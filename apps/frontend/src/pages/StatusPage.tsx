@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { CheckCircle2, XCircle, AlertCircle, RefreshCw, Activity } from 'lucide-react';
-import { getSystemHealth, mapHealthResponse, ServiceStatus } from '@/api/statusApi';
+import { CheckCircle2, XCircle, AlertCircle, RefreshCw, ExternalLink } from 'lucide-react';
+import { getSystemHealth, mapHealthResponse, ServiceStatus, SERVICE_URLS } from '@/api/statusApi';
 import { cn } from '@/lib/utils';
 
 const ServiceCard = ({ service }: { service: ServiceStatus }) => {
@@ -112,36 +112,52 @@ export default function StatusPage() {
                 <div key={i} className="p-4 h-16 animate-pulse bg-white/[0.01] rounded-xl" />
               ))
             ) : (
-              services.map(service => (
-                <div key={service.name} className="p-4 flex items-center justify-between hover:bg-white/[0.01] rounded-xl transition-colors group">
-                  <div className="flex items-center gap-5">
-                    <div className={cn(
-                      "w-2 h-2 rounded-full",
-                      service.status === 'online' ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" :
-                      service.status === 'offline' ? "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" :
-                      "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                    )} />
-                    <div>
-                      <h3 className="text-sm font-semibold tracking-tight">{service.name}</h3>
-                      <p className="text-[11px] text-muted-foreground/60 mt-0.5 line-clamp-1">{service.message || 'All systems normal'}</p>
+              services.map(service => {
+                const url = SERVICE_URLS[service.name];
+                const Row = url ? 'a' : 'div';
+                return (
+                  <Row
+                    key={service.name}
+                    {...(url ? { href: url, target: '_blank', rel: 'noopener noreferrer' } : {})}
+                    className={cn(
+                      "p-4 flex items-center justify-between hover:bg-white/[0.01] rounded-xl transition-colors group",
+                      url && "cursor-pointer"
+                    )}
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        service.status === 'online' ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" :
+                        service.status === 'offline' ? "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" :
+                        "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
+                      )} />
+                      <div>
+                        <h3 className="text-sm font-semibold tracking-tight flex items-center gap-1.5">
+                          {service.name}
+                          {url && (
+                            <ExternalLink className="w-3 h-3 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          )}
+                        </h3>
+                        <p className="text-[11px] text-muted-foreground/60 mt-0.5 line-clamp-1">{service.message || 'All systems normal'}</p>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <span className={cn(
-                      "text-[10px] font-black uppercase tracking-widest",
-                      service.status === 'online' ? "text-emerald-500" :
-                      service.status === 'offline' ? "text-rose-500" :
-                      "text-amber-500"
-                    )}>
-                      {service.status}
-                    </span>
-                    <p className="text-[9px] text-muted-foreground/20 font-mono mt-0.5">
-                      {service.duration}
-                    </p>
-                  </div>
-                </div>
-              ))
+
+                    <div className="text-right">
+                      <span className={cn(
+                        "text-[10px] font-black uppercase tracking-widest",
+                        service.status === 'online' ? "text-emerald-500" :
+                        service.status === 'offline' ? "text-rose-500" :
+                        "text-amber-500"
+                      )}>
+                        {service.status}
+                      </span>
+                      <p className="text-[9px] text-muted-foreground/20 font-mono mt-0.5">
+                        {service.duration}
+                      </p>
+                    </div>
+                  </Row>
+                );
+              })
             )}
           </div>
         </section>

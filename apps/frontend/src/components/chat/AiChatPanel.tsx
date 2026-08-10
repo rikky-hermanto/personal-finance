@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Maximize2, Sparkles, X } from 'lucide-react';
 import { useChatSession } from '@/hooks/useChatSession';
@@ -26,6 +26,24 @@ function formatSignedAmount(amountIdr: number, flow: ContextItem['flow']): strin
 }
 
 const SUGGESTION_CHIPS = ['Bandingkan vs bulan lalu', 'Rinci per minggu', 'Kategori terbesar?'];
+
+const EXAMPLE_QUESTIONS = [
+  'Berapa total pengeluaran bulan ini?',
+  'Kategori apa yang paling boros?',
+  'Transaksi terbesar minggu ini?',
+  'Berapa rata-rata pengeluaran harian?',
+  'Pemasukan vs pengeluaran bulan ini gimana?',
+  'Belanja makanan habis berapa bulan ini?',
+  'Ada transaksi yang janggal nggak?',
+  'Bandingkan pengeluaran bulan ini vs bulan lalu',
+  'Berapa sisa saldo yang aman buat dipakai?',
+  'Merchant mana yang paling sering muncul?',
+];
+
+function pickRandomQuestions(count: number): string[] {
+  const shuffled = [...EXAMPLE_QUESTIONS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
 
 const CitationCard = ({ contexts }: { contexts: ContextItem[] }) => {
   if (contexts.length === 0) return null;
@@ -64,6 +82,7 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const contextLabel = getContextLabel(pathname);
+  const [exampleQuestions] = useState(() => pickRandomQuestions(3));
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -126,13 +145,26 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3.5">
         {messages.length === 0 && (
-          <p className="text-[13px] text-muted-foreground text-center py-12">
-            Tanyakan tentang pengeluaran, tabungan, atau investasimu.
-            <br />
-            <span className="text-[11px] text-muted-foreground/60">
-              Saat ini hanya menjawab dari data transaksi.
-            </span>
-          </p>
+          <div className="flex-1 flex flex-col items-center justify-center text-center gap-4">
+            <p className="text-[13px] text-muted-foreground">
+              Tanyakan tentang pengeluaran, tabungan, atau investasimu.
+              <br />
+              <span className="text-[11px] text-muted-foreground/60">
+                Saat ini hanya menjawab dari data transaksi.
+              </span>
+            </p>
+            <div className="flex flex-wrap justify-center gap-1.5 px-2">
+              {exampleQuestions.map((question) => (
+                <button
+                  key={question}
+                  onClick={() => setInput(question)}
+                  className="text-[11px] text-muted-foreground border border-border rounded-full px-2.5 py-1 hover:text-foreground hover:border-foreground/25 transition-colors"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {messages.map((m, i) => {
           const isLast = i === messages.length - 1;

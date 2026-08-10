@@ -91,6 +91,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-123 | _(no issue)_ | Fix ARCH-02: Move IBankIdentifier to Application/Interfaces |
 | PF-127 | _(no issue)_ | PII Redaction: Tracked Files + Untracked Plan Files (Pre-Open-Source) |
 | PF-131 | _(no issue)_ | Mentor Auto-Blogging: `/mentor blog` draft + `/mentor blog post` → Hashnode |
+| PF-139 | _(no issue)_ | Contextual AI follow-up suggestions in chat — LLM-generated chips from the answer just streamed; also fixes stateless-antecedent bug in the static chips. plan: [`.claude/plans/PF-139-contextual-chat-followup-suggestions-todo.md`](.claude/plans/PF-139-contextual-chat-followup-suggestions-todo.md) |
 
 ---
 
@@ -197,5 +198,5 @@ Monitoring: ████████████████████ 100% (3
 Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
 ```
 
-> Next task ID: **PF-139** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI011)
+> Next task ID: **PF-140** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI011)
 > PF-134 is reserved for Trading Desk Phase 2 (Pre-Trade + Journal + gated trade-plan persistence), PF-135 for the deferred gate rules (correlation groups, FX staleness, sector concentration, liquidity).
