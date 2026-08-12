@@ -262,6 +262,36 @@ class AskResponse(BaseModel):
     total_idr: float | None = None      # aggregate path only — SQL total, the source of truth
 
 
+# ── PF-139: Contextual follow-up suggestions ─────────────────────────────────
+
+class FollowUpContext(BaseModel):
+    """One citation row, trimmed to what the suggester needs.
+
+    Accepts the frontend's full ContextItem — Pydantic drops transaction_id and
+    wallet, which add tokens without steering the suggestions.
+    """
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    date: str = ""
+    description: str = ""
+    amount_idr: float = 0.0
+    flow: str = ""
+
+
+class FollowUpRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    question: str = Field(..., min_length=1, max_length=500)
+    answer: str = Field(..., min_length=1, max_length=4000)
+    intent: str = "lookup"                  # "aggregate" | "lookup"
+    total_idr: float | None = None          # aggregate path — the SQL total
+    contexts: list[FollowUpContext] = Field(default_factory=list, max_length=5)
+
+
+class FollowUpResponse(BaseModel):
+    questions: list[str]
+
+
 # ── Chapter 7: Agent Categorization ────────────────────────────────────────────
 
 class CategorizeAgentRequest(BaseModel):

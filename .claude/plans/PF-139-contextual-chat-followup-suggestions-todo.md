@@ -19,16 +19,52 @@ here must be a self-contained question that names its own category and period.
 
 ## Acceptance Criteria
 
-- [ ] After an answer finishes streaming, three chips generated from that Q&A appear below it
-- [ ] Each generated chip is self-contained — names a category and/or a period, no bare "vs bulan lalu"
-- [ ] Chips render only under the newest answer; asking again replaces them
-- [ ] Clicking a chip fills the input; the user presses Enter to send (existing `setInput` behaviour)
-- [ ] Chips are written in the same language as the question that produced them
-- [ ] The empty state still shows 3 random picks from `EXAMPLE_QUESTIONS` — unchanged
-- [ ] A provider failure, timeout, or unconfident answer falls back to static chips with no visible error
-- [ ] The follow-up call never delays the answer: it is fired after the SSE `done` event
-- [ ] A new question in flight discards any stale suggestion response
+- [x] After an answer finishes streaming, three chips generated from that Q&A appear below it
+  > Verification note: confirmed end-to-end at the API level — a live call to `POST /ask/followups`
+  > against the running service (real Gemini call, not mocked) returned 3 self-contained questions
+  > built from a real Q&A pair. Frontend wiring (`onDone` → `loadFollowUps` → `patchLast` →
+  > `AiChatPanel` renders `chips`) verified by code read and a clean TypeScript build; not visually
+  > confirmed in a browser — no browser-automation tool is available in this session.
+- [x] Each generated chip is self-contained — names a category and/or a period, no bare "vs bulan lalu"
+  > Verification note: live output confirmed — "Berapa total pengeluaran Food & Drinks bulan lalu?",
+  > "Tampilkan transaksi Food & Drinks bulan ini.", "Kategori apa yang paling boros kedua bulan
+  > ini?" — every chip names its own category and/or period.
+- [x] Chips render only under the newest answer; asking again replaces them
+  > Verification note: `chips` is derived only from `messages[messages.length - 1]`, and a new
+  > `send()` immediately pushes a fresh assistant message with `followUps: undefined`, so a prior
+  > answer's chips cannot persist onto the new one. Verified by code read, not by driving a live
+  > browser session.
+- [x] Clicking a chip fills the input; the user presses Enter to send (existing `setInput` behaviour)
+  > Verification note: the chip button's `onClick` still calls `setInput(chip)` only — unchanged
+  > from the prior static-chip implementation.
+- [x] Chips are written in the same language as the question that produced them
+  > Verification note: live-confirmed — an Indonesian question produced 3 Indonesian-language chips.
+- [x] The empty state still shows 3 random picks from `EXAMPLE_QUESTIONS` — unchanged
+  > Verification note: `EXAMPLE_QUESTIONS`, `pickRandomQuestions`, and the `messages.length === 0`
+  > block were not touched by the STEP 7 edit.
+- [x] A provider failure, timeout, or unconfident answer falls back to static chips with no visible error
+  > Verification note: the provider-failure leg was live-reproduced (not simulated) during STEP 8 —
+  > see the STEP 8 note below — and confirmed to degrade to `{"questions": []}` with HTTP 200, no
+  > exception. The unconfident-answer leg is confirmed by code read: `onDone` checks
+  > `payload?.confident === false` and sets `followUps: []` directly, skipping the network call
+  > entirely. The timeout leg (`AbortSignal.timeout(8000)`) is present in code and uses a standard
+  > browser API, but was not independently fired live — doing so would require stalling the real
+  > provider for 8+ seconds, which wasn't attempted.
+- [x] The follow-up call never delays the answer: it is fired after the SSE `done` event
+  > Verification note: `loadFollowUps()` is only invoked from inside the `onDone` callback, after
+  > `setStreaming(false)` — never from `onMetadata` or `onToken`. Confirmed by code read.
+- [x] A new question in flight discards any stale suggestion response
+  > Verification note: `send()` aborts `followUpAbortRef.current` before starting the new turn, and
+  > the pending fetch's `.then` checks `controller.signal.aborted` before calling `patchLast`.
+  > Confirmed by code read.
 - [ ] `pytest` green in `services/ai-service`; `npm run lint` and `npm run build` clean in `apps/frontend`
+  > Not met, pre-existing/unrelated: `pytest` — 152 passed, 1 failed
+  > (`test_merchant_suggester.py::test_is_pii_keyword[REK123456-True]`) in a file this plan never
+  > touches; confirmed unrelated via `git status` (not among this session's edits) and it fails
+  > identically on the pre-existing baseline. All 8 new `test_followup_suggester.py` tests pass.
+  > `npm run lint` — 20 pre-existing errors across 19 unrelated files (e.g. `tailwind.config.ts`,
+  > `transactionsApi.ts`, shadcn `ui/` primitives); zero errors in the 3 files this plan touched
+  > (`chatApi.ts`, `useChatSession.ts`, `AiChatPanel.tsx`). `npm run build` — clean, 0 errors.
 
 ## Approach
 
@@ -61,7 +97,7 @@ and the panel falls back to static chips.
 
 ## TODO
 
-### [ ] STEP 1 — Add the request/response models
+### [x] STEP 1 — Add the request/response models
 
 Append to `services/ai-service/app/models.py`, after the `AskResponse` block:
 
@@ -104,7 +140,7 @@ class FollowUpResponse(BaseModel):
 
 ---
 
-### [ ] STEP 2 — Create the FollowUpSuggester service
+### [x] STEP 2 — Create the FollowUpSuggester service
 
 Create `services/ai-service/app/services/followup_suggester.py`:
 
@@ -228,9 +264,19 @@ class FollowUpSuggester:
 > can't produce an empty result set. `_clean` is a separate module-level function so it is testable
 > without constructing a provider.
 
+> **Deviation found during STEP 8 live testing:** `MAX_OUTPUT_TOKENS = 200` as specified above left
+> `response.text` empty on every real call. `gemini-2.5-flash` spends output tokens on an internal
+> thinking pass before producing visible JSON, and 200 wasn't enough headroom for both the thinking
+> pass and the 3-question payload — every live call silently degraded to the `[]` fallback via the
+> `except Exception` branch. The actual file was corrected to `MAX_OUTPUT_TOKENS = 2048`, matching
+> the cap `journey_advisor.py` already uses for the same model on a similar cheap-classification-style
+> call. Re-verified live after the change — see STEP 8. `test_suggest_caps_output_tokens` (STEP 4)
+> was updated to assert `2048` accordingly. Plan code block above is left as originally written per
+> the execute skill's "never modify the plan's content" rule; this note records the deviation.
+
 ---
 
-### [ ] STEP 3 — Wire the service and the endpoint
+### [x] STEP 3 — Wire the service and the endpoint
 
 Three edits in `services/ai-service/app/main.py`.
 
@@ -276,7 +322,7 @@ async def ask_followups(request: FollowUpRequest) -> FollowUpResponse:
 
 ---
 
-### [ ] STEP 4 — Unit tests for the suggester
+### [x] STEP 4 — Unit tests for the suggester
 
 Create `services/ai-service/tests/test_followup_suggester.py`:
 
@@ -391,9 +437,12 @@ async def test_suggest_caps_output_tokens():
 > The `max_output_tokens` assertion pins the cost cap so a later refactor can't silently drop it.
 > Per [.claude/rules/ai-service.md](../rules/ai-service.md), no test may reach a real provider.
 
+> **Note:** the actual test file asserts `max_output_tokens == 2048`, not `200` — see the STEP 2
+> deviation note above. The code block here is left as originally planned.
+
 ---
 
-### [ ] STEP 5 — Add the API client function
+### [x] STEP 5 — Add the API client function
 
 In `apps/frontend/src/api/chatApi.ts`, append after `streamAsk`:
 
@@ -436,7 +485,7 @@ export async function fetchFollowUps(
 
 ---
 
-### [ ] STEP 6 — Fetch follow-ups after the stream closes
+### [x] STEP 6 — Fetch follow-ups after the stream closes
 
 In `apps/frontend/src/hooks/useChatSession.ts`:
 
@@ -570,7 +619,7 @@ import { streamAsk, fetchFollowUps, type ContextItem } from '@/api/chatApi';
 
 ---
 
-### [ ] STEP 7 — Render dynamic chips in the panel
+### [x] STEP 7 — Render dynamic chips in the panel
 
 In `apps/frontend/src/components/chat/AiChatPanel.tsx`:
 
@@ -629,7 +678,7 @@ const FALLBACK_CHIPS = [
 
 ---
 
-### [ ] STEP 8 — Verify
+### [x] STEP 8 — Verify
 
 ```bash
 cd services/ai-service && pytest tests/test_followup_suggester.py -v && pytest
@@ -649,6 +698,30 @@ Then run the stack (`npm start`) and check by hand in the chat panel:
 > **Why:** steps 2 and 4 are the two acceptance criteria that no unit test can prove — self-contained
 > phrasing is a prompt-quality property, and the fallback path only shows up under real provider
 > failure. Step 5 confirms the added cost is observable rather than hidden (PF-AI001).
+
+> **Execution note:** ran both automated commands, plus a live smoke test against the real running
+> service (no browser-automation tool is available in this session, so items 1–3 and 5 above were
+> substituted with the closest available equivalent — a direct API-level check — rather than skipped
+> entirely):
+> - `pytest tests/test_followup_suggester.py -v` — 8/8 passed on first run.
+> - `pytest` (full suite, via `services/ai-service/.venv` — the venv resolved by a bare `pytest` on
+>   PATH lacks `smolagents` and cannot collect `app.main`) — 152 passed, 1 pre-existing failure
+>   unrelated to this plan (see Acceptance Criteria note).
+> - `npm run lint` — pre-existing errors only, none in this plan's 3 touched files.
+> - `npm run build` — clean.
+> - Live smoke test: started the AI service locally (Supabase was already running) and called
+>   `POST /ask/followups` directly with a synthetic Q&A. First call surfaced a real bug — see the
+>   STEP 2 deviation note — where `MAX_OUTPUT_TOKENS=200` produced an empty response on
+>   `gemini-2.5-flash` and silently fell back to `[]`. That failure *is* item 4's fallback path,
+>   live-observed rather than deliberately triggered. Fixed the constant, restarted, and called it
+>   again: got back `["Berapa total pengeluaran Food & Drinks bulan lalu?", "Tampilkan transaksi
+>   Food & Drinks bulan ini.", "Kategori apa yang paling boros kedua bulan ini?"]` — three
+>   self-contained, same-language, answer-grounded questions, satisfying item 1's substance.
+>   Items 2 and 3 (click-through behavior, stale-response discarding) and item 5 (Langfuse UI) were
+>   not exercised — they need a browser and/or the full stack (.NET API + frontend dev server), which
+>   were not brought up. Items 2 and 3 are covered by code read instead (see Acceptance Criteria
+>   notes above). The smoke-test AI service instance was stopped after verification; nothing was left
+>   running.
 
 ---
 

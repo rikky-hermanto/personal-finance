@@ -92,6 +92,7 @@ Domain judgment routes to `/cio` (is the finance sound), `/risk-officer` (limits
 | AI engineering use case map | [mentor/ai-engineering-usecase-map.md](mentor/ai-engineering-usecase-map.md) | What to build, when, why |
 | RAG + agents roadmap | [ideas/rag-and-agents-roadmap.md](ideas/rag-and-agents-roadmap.md) | PF-AI003/004 design thinking |
 | Loop engineering (interactive) | [mentor/diagram-loop-engineering.html](mentor/diagram-loop-engineering.html) | Node-graph of Addy Osmani's "Loop Engineering": the five primitives + memory, the reference loop, and the three risks; click a group to drill in, open in a browser |
+| PF-AI008 — LangGraph financial advisor (interactive) | [mentor/PF-AI008-langgraph-advisor-diagram.html](mentor/PF-AI008-langgraph-advisor-diagram.html) | Node-graph of Chapter 8's stateful `POST /advisor` agent: API surface → AdvisorState → StateGraph (agent · ToolNode · fallback) → 4 tools → existing .NET routes, plus MemorySaver session memory and what's deferred to Ch5/Ch9; click a group to drill in, open in a browser |
 
 ---
 

@@ -13,13 +13,14 @@ from sse_starlette.sse import EventSourceResponse
 # In the lifespan context manager or @app.on_event("shutdown"):
 from app.observability import langfuse
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse, FollowUpRequest, FollowUpResponse
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
 from app.services.reranker import RerankerService
 from app.services.answerer import AnswerService, SYSTEM_PROMPT, NARRATE_PROMPT, _format_context
 from app.services.query_planner import QueryPlanner
 from app.services.aggregator import AggregationService
+from app.services.followup_suggester import FollowUpSuggester
 from app.providers.factory import ProviderFactory
 from app.providers.embedding_factory import create_embedding_provider
 from app.services.llm_parser import LlmParser, LlmParseError
@@ -111,6 +112,7 @@ async def lifespan(app: FastAPI):
     # Query router: one temperature-0 planner call classifies intent + extracts filters;
     # aggregate questions go to deterministic SQL, lookups keep the retrieve→rerank funnel.
     app.state.planner = QueryPlanner(provider=provider)
+    app.state.followup_suggester = FollowUpSuggester(provider=provider)
     app.state.aggregator = AggregationService(db_url=settings.database_url)
     app.state.categories = await _load_categories(settings.database_url)
     app.state.answerer = AnswerService(
@@ -388,6 +390,18 @@ async def ask(request: AskRequest) -> AskResponse:
     except Exception as exc:
         logger.exception("ask failed")
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
+
+
+@app.post("/ask/followups", response_model=FollowUpResponse)
+async def ask_followups(request: FollowUpRequest) -> FollowUpResponse:
+    """Suggest 3 self-contained follow-up questions for the answer just streamed.
+
+    Deliberately never raises. Suggestions are decorative — a provider failure
+    returns an empty list and the client falls back to its static chips, rather
+    than painting an error beside an answer that succeeded.
+    """
+    questions = await app.state.followup_suggester.suggest(request, app.state.categories)
+    return FollowUpResponse(questions=questions)
 
 
 def _context_payload(rows) -> list[dict]:

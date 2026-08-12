@@ -25,7 +25,14 @@ function formatSignedAmount(amountIdr: number, flow: ContextItem['flow']): strin
   return flow === 'DB' ? `-${formatted}` : `+${formatted}`;
 }
 
-const SUGGESTION_CHIPS = ['Bandingkan vs bulan lalu', 'Rinci per minggu', 'Kategori terbesar?'];
+// Fallback only — shown when the LLM suggestion call fails, times out, or the
+// answer was unconfident. Each one is a complete question: /ask is stateless, so
+// a fragment like "Rinci per minggu" reaches the planner with no antecedent.
+const FALLBACK_CHIPS = [
+  'Bandingkan pengeluaran bulan ini vs bulan lalu',
+  'Rincikan pengeluaran bulan ini per minggu',
+  'Kategori apa yang paling boros bulan ini?',
+];
 
 const EXAMPLE_QUESTIONS = [
   'Berapa total pengeluaran bulan ini?',
@@ -97,7 +104,16 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
   }, [messages]);
 
   const lastMessage = messages[messages.length - 1];
-  const showChips = !streaming && lastMessage?.role === 'assistant' && lastMessage.content !== '';
+  const answered = !streaming && lastMessage?.role === 'assistant' && lastMessage.content !== '';
+  // undefined = suggestions still in flight; render nothing rather than flashing
+  // the fallback and swapping it out a moment later.
+  const chips = !answered
+    ? null
+    : lastMessage.followUps === undefined
+      ? null
+      : lastMessage.followUps.length > 0
+        ? lastMessage.followUps
+        : FALLBACK_CHIPS;
 
   return (
     <div
@@ -188,13 +204,13 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
             </div>
           );
         })}
-        {showChips && (
+        {chips && (
           <div className="flex flex-wrap gap-1.5 pt-1">
-            {SUGGESTION_CHIPS.map((chip) => (
+            {chips.map((chip) => (
               <button
                 key={chip}
                 onClick={() => setInput(chip)}
-                className="text-[11px] text-muted-foreground border border-border rounded-full px-2.5 py-1 hover:text-foreground hover:border-foreground/25 transition-colors"
+                className="text-[11px] text-left text-muted-foreground border border-border rounded-full px-2.5 py-1 hover:text-foreground hover:border-foreground/25 transition-colors"
               >
                 {chip}
               </button>

@@ -87,3 +87,33 @@ export function streamAsk(
 
   return controller;
 }
+
+export interface FollowUpParams {
+  question: string;
+  answer: string;
+  intent?: string;
+  total_idr?: number;
+  contexts: ContextItem[];
+}
+
+const FOLLOWUP_TIMEOUT_MS = 8000;
+
+/** Suggestions are optional garnish — every failure resolves to [], never throws. */
+export async function fetchFollowUps(
+  params: FollowUpParams,
+  signal: AbortSignal
+): Promise<string[]> {
+  try {
+    const res = await fetch(`${AI_URL}/ask/followups`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+      signal: AbortSignal.any([signal, AbortSignal.timeout(FOLLOWUP_TIMEOUT_MS)]),
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { questions?: string[] };
+    return data.questions ?? [];
+  } catch {
+    return [];
+  }
+}
