@@ -130,6 +130,8 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-AI006-PART2 | Sentence-Window + Auto-Merging (deferred) | Split dari PF-AI006; jalan setelah hybrid search selesai DAN ada keputusan produk soal statement-level Q&A. plan: [`.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md`](.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) |
 | PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) |
 | PF-AI010 | Categorization Eval Harness (real-LLM input → expected accuracy) | Ready. JSON case list + `eval_categorize.py`; measures label accuracy, out-of-vocab rate, confidence calibration. Gives PF-AI007's agent a baseline to beat. plan: [`.claude/plans/learning/PF-AI010-categorization-eval-harness-todo.md`](.claude/plans/learning/PF-AI010-categorization-eval-harness-todo.md) |
+| PF-AI011 | AI Security & Governance (Ch 9.5 — prompt injection, PII masking, secrets, guardrails) | Ready. Closes roadmap Stage 6 (zero coverage). Red-team `/ask` + agent → spotlighting + `InjectionScanner` + `PiiMasker` + output guard + `eval_injection.py` (block rate / FP rate) + threat-model doc; .NET dev keys → user-secrets. **Must merge before PF-AI012.** plan: [`.claude/plans/learning/PF-AI011-ai-security-governance-todo.md`](.claude/plans/learning/PF-AI011-ai-security-governance-todo.md) |
+| PF-AI012 | Deployment & LLMOps (Ch 9.75 — public URL, CD ship stage, response cache, cost story) | Ready. Closes roadmap Stage 7 gap. Azure Container Apps (scale-to-zero) + ACR + GH Actions OIDC deploy (tag = SHA) + Supabase Cloud w/ anonymized fixtures + API key/rate limit/budget alert + TTL response cache (attacks the Gemini 20 req/day wall). **Depends on PF-AI011.** plan: [`.claude/plans/learning/PF-AI012-deployment-llmops-todo.md`](.claude/plans/learning/PF-AI012-deployment-llmops-todo.md) |
 
 ---
 
@@ -198,5 +200,5 @@ Monitoring: ████████████████████ 100% (3
 Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
 ```
 
-> Next task ID: **PF-140** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI011)
+> Next task ID: **PF-140** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI013)
 > PF-134 is reserved for Trading Desk Phase 2 (Pre-Trade + Journal + gated trade-plan persistence), PF-135 for the deferred gate rules (correlation groups, FX staleness, sector concentration, liquidity).

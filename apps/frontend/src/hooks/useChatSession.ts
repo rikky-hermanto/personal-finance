@@ -1,5 +1,5 @@
 import { createContext, createElement, useContext, useRef, useState, type ReactNode } from 'react';
-import { streamAsk, type ContextItem } from '@/api/chatApi';
+import { streamAsk, fetchFollowUps, type ContextItem } from '@/api/chatApi';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -10,6 +10,7 @@ export interface ChatMessage {
   totalIdr?: number;          // aggregate — SQL total, rendered from data not prose
   count?: number;             // aggregate — total matching transactions
   error?: boolean;            // stream dropped mid-flight
+  followUps?: string[];       // undefined = still loading, [] = none (use static fallback)
 }
 
 interface ChatSessionContextValue {
@@ -28,6 +29,7 @@ export const ChatSessionProvider = ({ children }: { children: ReactNode }) => {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const followUpAbortRef = useRef<AbortController | null>(null);
 
   // All stream events write into the pending assistant message (the last one),
   // so evidence and flags live with the answer they belong to — never a global
@@ -46,22 +48,61 @@ export const ChatSessionProvider = ({ children }: { children: ReactNode }) => {
     const q = (query ?? input).trim();
     if (!q || streaming) return;
 
+    // A new question invalidates any in-flight suggestion request. Without this,
+    // a late response would land on the wrong message via patchLast.
+    followUpAbortRef.current?.abort();
+
     setMessages(prev => [...prev, { role: 'user', content: q }, { role: 'assistant', content: '' }]);
     setInput('');
     setStreaming(true);
 
+    // Buffered alongside the state updates: onDone needs the finished text and the
+    // contexts synchronously, and reading them back out of setMessages would race.
+    const answerBuffer: string[] = [];
+    let contextSnapshot: ContextItem[] = [];
+    let intentSnapshot: string | undefined;
+    let totalSnapshot: number | undefined;
+
+    const loadFollowUps = () => {
+      const controller = new AbortController();
+      followUpAbortRef.current = controller;
+      fetchFollowUps(
+        {
+          question: q,
+          answer: answerBuffer.join(''),
+          intent: intentSnapshot,
+          total_idr: totalSnapshot,
+          contexts: contextSnapshot,
+        },
+        controller.signal
+      ).then(questions => {
+        if (controller.signal.aborted) return;
+        patchLast(() => ({ followUps: questions }));
+      });
+    };
+
     abortRef.current = streamAsk(
       { query: q },
       {
-        onMetadata: (meta) => patchLast(() => ({
-          contexts: meta.contexts,
-          intent: meta.intent,
-          totalIdr: meta.total_idr,
-          count: meta.count,
-        })),
-        onToken: (token) => patchLast(last => ({ content: last.content + token })),
+        onMetadata: (meta) => {
+          contextSnapshot = meta.contexts;
+          intentSnapshot = meta.intent;
+          totalSnapshot = meta.total_idr;
+          patchLast(() => ({
+            contexts: meta.contexts,
+            intent: meta.intent,
+            totalIdr: meta.total_idr,
+            count: meta.count,
+          }));
+        },
+        onToken: (token) => {
+          answerBuffer.push(token);
+          patchLast(last => ({ content: last.content + token }));
+        },
         onDone: (payload) => {
           setStreaming(false);
+          intentSnapshot = payload?.intent ?? intentSnapshot;
+          totalSnapshot = payload?.total_idr ?? totalSnapshot;
           patchLast(last => {
             const patch: Partial<ChatMessage> = {
               verified: payload?.verified,
@@ -72,11 +113,20 @@ export const ChatSessionProvider = ({ children }: { children: ReactNode }) => {
               patch.content = 'Tidak ada transaksi yang relevan untuk pertanyaan itu.';
             return patch;
           });
+
+          // Nothing was answered — skip the call rather than pay for suggestions
+          // about an empty result. [] resolves the loading state to the fallback.
+          if (payload?.confident === false || answerBuffer.length === 0) {
+            patchLast(() => ({ followUps: [] }));
+            return;
+          }
+          loadFollowUps();
         },
         onError: () => {
           setStreaming(false);
           patchLast(last => ({
             error: true,
+            followUps: [],
             content: last.content === ''
               ? 'Terjadi kesalahan saat memuat jawaban — coba lagi.'
               : last.content,
@@ -88,6 +138,7 @@ export const ChatSessionProvider = ({ children }: { children: ReactNode }) => {
 
   const stop = () => {
     abortRef.current?.abort();
+    followUpAbortRef.current?.abort();
     setStreaming(false);
   };
 
