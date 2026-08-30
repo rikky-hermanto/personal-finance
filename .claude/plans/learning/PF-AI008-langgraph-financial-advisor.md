@@ -1,7 +1,7 @@
 # PF-AI008 — LangGraph: Stateful Financial Health Advisor
 
 > **Learning Phase:** Phase 2 · Chapter 8 of 12 · Day ~45 of 90
-> **Status:** To Do
+> **Status:** In Progress — code + unit tests complete (10/10 green); live smoke test (Step 8) and eval scenarios (Step 10) blocked on missing `ANTHROPIC_API_KEY`
 > **Planned from branch:** main
 > **Pivot goal:** Build a multi-step conversational agent with LangGraph — state, conditional routing, tool use, conversation memory, and error handling. After this chapter, you have the dominant agent framework in current AI Eng JDs checked off with a real, demo-able artifact grounded in your own financial data.
 
@@ -295,16 +295,21 @@ contract, not theory.
 
 ## ✅ Acceptance Criteria
 
-- [ ] `app/agents/state.py` — `AdvisorState` TypedDict with at least 6 fields; annotated `messages` using `add_messages` reducer
-- [ ] `app/agents/tools.py` — 4 `@tool`-decorated async functions (pyramid scores, cashflow summary, spending by category, investment summary) that call the **real** .NET API routes (`/api/journey/state`, `/api/transactions/aggregated`, `/api/networth/current` + `/api/networth/allocation` — see Step 4); unit-tested with mocked httpx
-- [ ] `app/agents/financial_advisor.py` — `StateGraph` compiled with: agent node, ToolNode, conditional edge (`should_continue`), fallback node, MemorySaver checkpointer
+- [x] `app/agents/state.py` — `AdvisorState` TypedDict with at least 6 fields; annotated `messages` using `add_messages` reducer
+- [x] `app/agents/tools.py` — 4 `@tool`-decorated async functions (pyramid scores, cashflow summary, spending by category, investment summary) that call the **real** .NET API routes (`/api/journey/state`, `/api/transactions/aggregated`, `/api/networth/current` + `/api/networth/allocation` — see Step 4); unit-tested with mocked httpx
+  > Verification note: built as `app/agents/advisor_tools.py`, not `tools.py` — `app/agents/tools/` already exists as a package (Chapter 7's smolagents tools) and a sibling `tools.py` module would silently shadow it on import. All 4 functions, signatures, and tests otherwise match exactly; 4/4 `test_advisor_tools.py` pass.
+- [x] `app/agents/financial_advisor.py` — `StateGraph` compiled with: agent node, ToolNode, conditional edge (`should_continue`), fallback node, MemorySaver checkpointer
 - [ ] `AdvisorService.ask(query, session_id)` returns `AdvisorResponse` with multi-step answer; same session_id replays state correctly (conversation memory works); the final answer is the agent's own synthesis, not a raw tool result
-- [ ] `POST /advisor` wired in FastAPI — accepts `{query, session_id?, date_from?, date_to?}`, returns `{answer, session_id, steps_taken}`
-- [ ] LLM failures in tool execution route to a fallback node, not a 500 crash
-- [ ] 5 written test scenarios (`evals/advisor_scenarios.json`) with expected behavior notes
-- [ ] `pytest` green — `tests/test_advisor_tools.py`, `tests/test_advisor_agent.py` (all mocked — no real API or LLM calls)
+  > Not met: mechanism is implemented correctly (verified by code review — `isinstance(m, AIMessage)` check, `thread_id` mapping to the checkpointer) but the behavioral claim (memory actually replays across turns) requires a live 2-turn call, blocked on missing `ANTHROPIC_API_KEY`.
+- [x] `POST /advisor` wired in FastAPI — accepts `{query, session_id?, date_from?, date_to?}`, returns `{answer, session_id, steps_taken}`
+  > Verification note: endpoint + Pydantic models confirmed structurally correct by reading the code; not exercised with a live request.
+- [x] LLM failures in tool execution route to a fallback node, not a 500 crash
+- [x] 5 written test scenarios (`evals/advisor_scenarios.json`) with expected behavior notes
+- [x] `pytest` green — `tests/test_advisor_tools.py`, `tests/test_advisor_agent.py` (all mocked — no real API or LLM calls)
 - [ ] Langfuse traces visible for each `/advisor` call — steps, token counts, latency per node
-- [ ] `pyproject.toml` updated: `langgraph>=0.2`, `langchain-anthropic>=0.3` in dependencies; `langchain-google-genai>=2.0` in optional/dev
+  > Not met: `CallbackHandler()` wired into the `ainvoke` config per the plan's own Notes section (the Step 6 code block omitted it), which is Langfuse's documented LangChain integration — but actual trace visibility in the dashboard requires a live call, blocked on missing `ANTHROPIC_API_KEY`.
+- [x] `pyproject.toml` updated: `langgraph>=0.2`, `langchain-anthropic>=0.3` in dependencies; `langchain-google-genai>=2.0` in optional/dev
+  > Verification note: all three present with additional upper-bounds (`<1.0`, `<1.0`, `<3.0`) — unbounded floors resolved to versions requiring `langchain-core>=1.4`+, which broke the pinned ragas/langchain-openai/langchain-community eval stack; pinned below that line instead, documented inline in pyproject.toml.
 
 ## 🧭 Approach
 
@@ -341,7 +346,9 @@ Out of scope: streaming the advisor over SSE (Chapter 5 builds that), multi-agen
 
 ## 📋 TODO
 
-### [ ] STEP 0 — Prerequisite gate: Chapter 7 smolagents complete
+### [x] STEP 0 — Prerequisite gate: Chapter 7 smolagents complete
+
+> **Verification note:** Chapter 7's code is shipped and live (`app/agents/categorizer_agent.py`, `POST /categorize-agent` wired in `main.py`) — confirmed by reading both files directly. Chapter 7's own formal closing checkbox (PF-AI007 STEP 7, a 5-transaction smoke test) is still open per `docs/mentor/progress.md` Day 83's note, which called it "the actual gate on Chapter 7 closing and Chapter 8 starting." Proceeded anyway because this execution was directly and explicitly requested against the PF-AI008 plan file — flagged here and in `docs/mentor/progress.md` rather than silently treated as cleared.
 
 Before LangGraph, you need the agent mental model: tool-use loop, observation → reasoning cycle, traces. Chapter 7 builds that with smolagents on the smallest possible surface. LangGraph is "the same loop, expressed as a graph."
 
@@ -350,7 +357,7 @@ Before LangGraph, you need the agent mental model: tool-use loop, observation �
 
 ---
 
-### [ ] STEP 1 — Theory anchor: LangGraph mental model (45 min)
+### [x] STEP 1 — Theory anchor: LangGraph mental model (45 min)
 
 The one genuine pre-read. The wall here is understanding *what LangGraph adds over a plain while loop*.
 
@@ -368,7 +375,7 @@ The one genuine pre-read. The wall here is understanding *what LangGraph adds ov
 
 ---
 
-### [ ] STEP 2 — THINK-03 gate: justify `AdvisorState` fields before coding
+### [x] STEP 2 — THINK-03 gate: justify `AdvisorState` fields before coding
 
 Per THINK-03 — list every state field, its type, an example value, and *why it lives in state* before writing code. Wrong types here create graph routing bugs (not SQL bugs, but equally opaque). Field shapes below are pinned to the real .NET DTOs the tools call (Step 4), not invented ones.
 
@@ -386,7 +393,9 @@ Per THINK-03 — list every state field, its type, an example value, and *why it
 
 ---
 
-### [ ] STEP 3 — Add deps; create `app/agents/state.py`
+### [x] STEP 3 — Add deps; create `app/agents/state.py`
+
+> **Verification note:** dependency versions upper-bounded beyond the plan's literal text (`langgraph>=0.2,<1.0`, `langchain-anthropic>=0.3,<1.0`) — see the STEP 4 note for why.
 
 Add to `pyproject.toml` dependencies:
 ```toml
@@ -449,7 +458,9 @@ public class AdvisorState
 
 ---
 
-### [ ] STEP 4 — Build `app/agents/tools.py` (the 4 data-fetch tools)
+### [x] STEP 4 — Build `app/agents/tools.py` (the 4 data-fetch tools)
+
+> **Verification note:** built as `app/agents/advisor_tools.py` — `app/agents/tools/` already exists as a package (Chapter 7's smolagents tools: `category_rules.py`, `similarity.py`, `categories.py`); a sibling `tools.py` module would silently shadow that package on import (Python resolves the package first). Also hit a real dependency cascade installing `langchain-anthropic`: the latest `langgraph` (1.2.7, already in the venv) requires `langchain-core>=1.4.7`, which breaks the pinned `ragas`/`langchain-openai`/`langchain-community` eval stack. Fixed by pinning `langgraph<1.0` (resolved to 0.6.11) and `langchain-anthropic<1.0` (0.3.22), which resolve against the already-installed `langchain-core 0.3.86` untouched; restored `anthropic` (raw SDK) to its original 0.95.0. `pip check` and the full pytest suite confirm no regressions.
 
 Create [tools.py](../../../services/ai-service/app/agents/tools.py):
 
@@ -716,7 +727,7 @@ public class AdvisorToolsTests
 
 ---
 
-### [ ] STEP 5 — Build `app/agents/financial_advisor.py` (the graph)
+### [x] STEP 5 — Build `app/agents/financial_advisor.py` (the graph)
 
 Create [financial_advisor.py](../../../services/ai-service/app/agents/financial_advisor.py):
 
@@ -921,7 +932,9 @@ public class FinancialAdvisorGraph
 
 ---
 
-### [ ] STEP 6 — Build `app/services/advisor.py` (the service wrapper)
+### [x] STEP 6 — Build `app/services/advisor.py` (the service wrapper)
+
+> **Verification note:** also wired the Langfuse `CallbackHandler` into the `ainvoke` config (`callbacks: [CallbackHandler()]`), per this plan's own Notes section — the code block above omitted it, but the Acceptance Criteria requires visible Langfuse traces, so it's included here rather than left out.
 
 Create [advisor.py](../../../services/ai-service/app/services/advisor.py):
 
@@ -1038,7 +1051,7 @@ public class AdvisorService
 
 ---
 
-### [ ] STEP 7 — Add `/advisor` models to `app/models.py`
+### [x] STEP 7 — Add `/advisor` models to `app/models.py`
 
 ```python
 # ── Chapter 8: LangGraph Financial Advisor ────────────────────────────────────
@@ -1076,7 +1089,9 @@ public record AdvisorResponse(
 
 ---
 
-### [ ] STEP 8 — Wire `POST /advisor` in `app/main.py`
+### [!] STEP 8 — Wire `POST /advisor` in `app/main.py`
+
+> **Failure:** endpoint wiring itself is done and structurally correct (imports, `_advisor = AdvisorService()`, route registered). The smoke test could not run — `ANTHROPIC_API_KEY` is not set in `.env` or the shell (checked both directly), and the advisor always requires it regardless of `AI_PROVIDER`. Turn-1/turn-2 behavior and the zero-re-fetch memory claim are unverified.
 
 In the lifespan, no additional setup is needed (advisor_graph is a module-level singleton compiled at import time). Just add the endpoint:
 
@@ -1142,7 +1157,7 @@ Verify:
 
 ---
 
-### [ ] STEP 9 — Unit tests for graph routing (`tests/test_advisor_agent.py`)
+### [x] STEP 9 — Unit tests for graph routing (`tests/test_advisor_agent.py`)
 
 The graph routing tests mock the LLM and ToolNode — no real API or LangGraph state needed:
 
@@ -1237,7 +1252,9 @@ public class AdvisorRoutingTests
 
 ---
 
-### [ ] STEP 10 — Write 5 evaluation scenarios (`evals/advisor_scenarios.json`)
+### [!] STEP 10 — Write 5 evaluation scenarios (`evals/advisor_scenarios.json`)
+
+> **Failure:** the scenarios file itself is written exactly as specified. Running them live against the service and recording pass/fail — the step's other half — is blocked by the same missing `ANTHROPIC_API_KEY`, same as STEP 8.
 
 Create [advisor_scenarios.json](../../../services/ai-service/evals/advisor_scenarios.json):
 
@@ -1299,7 +1316,9 @@ Record pass/fail per scenario in [ai-observability-metrics.md](../../../docs/per
 
 ---
 
-### [ ] STEP 11 — Update `docs/performances/ai-observability-metrics.md`
+### [x] STEP 11 — Update `docs/performances/ai-observability-metrics.md`
+
+> **Verification note:** appended with values marked `_pending_` and an explicit blocker note rather than fabricated numbers, since the underlying live run (STEP 10) didn't happen this session.
 
 Append:
 
@@ -1320,7 +1339,9 @@ Append:
 
 ---
 
-### [ ] STEP 12 — Full test pass + commit
+### [!] STEP 12 — Full test pass + commit
+
+> **Failure:** `pytest -v` run: 162 passed, 1 pre-existing failure unrelated to this chapter (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py` — confirmed via `git status` that neither that test file nor its source were touched this session). All 10 new advisor tests pass. The `git commit` portion of this step was intentionally not performed — the executing skill's policy is to leave all changes uncommitted for the user's own review, which overrides this step's literal instruction.
 
 ```bash
 cd services/ai-service && PYTHONPATH=. pytest -v          # all suites including new files
@@ -1341,7 +1362,9 @@ git commit -m "PF-AI008: LangGraph Financial Health Advisor — stateful agent, 
 
 ---
 
-### [ ] STEP 13 — Log progress
+### [x] STEP 13 — Log progress
+
+> **Verification note:** logged with an accurate summary reflecting what was actually built/verified vs. blocked — not the plan's optimistic template text, which claimed live Langfuse verification and turn-2 memory confirmation that didn't happen this session. See `docs/mentor/progress.md`, 2026-08-21 — Day 87.
 
 ```
 /mentor log Built LangGraph Financial Health Advisor: StateGraph with 3 nodes (agent, tools, fallback), 4 @tool functions calling .NET API, MemorySaver session memory, POST /advisor endpoint. Verified 5 scenarios in Langfuse — turn-2 memory confirmed (0 re-fetches). Chapter 8 complete.

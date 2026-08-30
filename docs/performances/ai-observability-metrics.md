@@ -286,3 +286,39 @@ with more matched terms higher, so this approximates real BM25 (score on any ter
 frequency/rarity) instead of a boolean AND filter. This is the same category of "mocked tests pass,
 real pipeline reveals the bug" finding already on record above for the citation-marker and
 asyncpg-date-binding bugs.
+
+## Chapter 8 (PF-AI008) — LangGraph Financial Health Advisor
+
+**What shipped:** `StateGraph` with 3 nodes (`agent`, `tools`, `fallback`), 4 `@tool` functions
+(`get_pyramid_scores`, `get_cashflow_summary`, `get_spending_by_category`, `get_investment_summary`)
+calling the real .NET API, conditional routing via `should_continue`, `MemorySaver` checkpointer
+keyed by `thread_id`. `POST /advisor` wired in `main.py`. Code + unit tests complete and green:
+`test_advisor_tools.py` (4 tests, mocked httpx) and `test_advisor_agent.py` (6 tests, pure routing
+logic) — no real LLM or API calls in either suite.
+
+> **⏳ Live measurement blocked (2026-08-21).** The Step 8 smoke test and the 5 scenarios in
+> `evals/advisor_scenarios.json` both require a live `POST /advisor` call, which requires
+> `ANTHROPIC_API_KEY` — the advisor always talks to Claude via `ChatAnthropic`, independent of
+> `AI_PROVIDER` (see the plan's Approach section). Checked both `services/ai-service/.env` and the
+> shell environment; neither has the key set (this project defaults to `GEMINI_API_KEY` only). The
+> table below is unfilled rather than estimated — filling it with placeholder numbers would misreport
+> unverified claims as measurements. Fill in on the next session once `ANTHROPIC_API_KEY` is added
+> to `.env` and the .NET API + AI service are both running: `curl` the two-turn smoke test in the
+> plan's Step 8, then run the 5 scenarios and inspect Langfuse traces per the pass criteria in
+> `advisor_scenarios.json`.
+
+| Metric | Value |
+|--------|-------|
+| Scenario pass rate (5 scenarios) | _pending — ANTHROPIC_API_KEY not configured_ |
+| Avg tool calls per first turn | _pending_ |
+| Session memory verified (S4 turn 2 = 0 re-fetches) | _pending_ |
+| Agent p50 response time (tool fetch + reasoning) | _pending_ |
+| /advisor p95 response time | _pending_ |
+| Langfuse traces: cost per advisor turn (Sonnet 4.6) | _pending_ |
+
+**The Sunday metric answer for this chapter (partial — code/tests verified, live traces pending):**
+*"I built a stateful conversational agent with LangGraph — StateGraph with conditional routing,
+ToolNode dispatching 4 live data-fetch tools against my .NET API, MemorySaver checkpointer for
+session persistence. Routing logic (`should_continue`, error → fallback) is unit-tested in
+isolation with zero LLM calls. The live 5-scenario run — including the turn-2 zero-re-fetch proof —
+is queued behind adding `ANTHROPIC_API_KEY` to this environment."*
