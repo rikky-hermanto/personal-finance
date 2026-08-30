@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     # Supabase Cloud: from Project Settings → Database → Connection string → URI
     database_url: str = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
 
+    # .NET API base URL — Chapter 8 advisor tools fetch pyramid/cashflow/net worth
+    # data over HTTP rather than querying Postgres directly (see app/agents/advisor_tools.py)
+    net_api_base_url: str = "http://localhost:7208"
+
     def validate_provider_key(self) -> None:
         if self.ai_provider == "gemini" and not self.gemini_api_key:
             print("WARNING: GEMINI_API_KEY is not set. AI features will fail.")

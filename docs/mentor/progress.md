@@ -98,11 +98,11 @@
 - [ ] Stretch: complete DeepLearning.AI Functions, Tools and Agents with LangChain (~3h)
 
 ### Chapter 8: LangGraph — State, Routing, Multi-Step
-- [ ] Design "Financial Health Advisor" agent (state, tools, routing)
-- [ ] Implement tools: `get_cashflow_summary`, `get_pyramid_scores`, `get_spending_by_category`
-- [ ] Build LangGraph graph: analyze → identify gaps → recommend → optional drilldown
-- [ ] Add conversation memory (session-scoped)
-- [ ] Test 5 financial scenarios with expected agent behavior
+- [x] Design "Financial Health Advisor" agent (state, tools, routing) — `AdvisorState` (2026-08-21)
+- [x] Implement tools: `get_cashflow_summary`, `get_pyramid_scores`, `get_spending_by_category` — plus a 4th, `get_investment_summary` (2026-08-21)
+- [x] Build LangGraph graph: `agent` ⇄ `tools` ReAct loop + `fallback` node, conditional routing via `should_continue` (2026-08-21)
+- [x] Add conversation memory (session-scoped) — `MemorySaver` + `thread_id` (2026-08-21)
+- [ ] Test 5 financial scenarios with expected agent behavior ← blocked, see Day 87 entry
 
 ## Phase 3 Task Checklist (Days 61–90)
 
@@ -763,3 +763,94 @@
 - Reconcile the two `diagram-pf-ai007-agent-loop.html` copies (pick one location, remove the other) next time this plan file is touched
 
 **Streak: 2 days**
+
+### 2026-08-10 — Day 76 *(logged retroactively 2026-08-12 — see Day 78 note)*
+
+**Session: Off-curriculum UX polish + PF-139 planning (create-diagram skill extracted, status page + chat empty-state)**
+
+- Extracted `create-diagram` as its own skill, delegated from `tech-write` (commit `5afd6fc3`) — formalizes the diagram-engine upgrades built ad hoc during Chapter 7 (Day 65: computed layered layout, drag-position persistence, the light/dark `color`-inheritance fix) into a reusable, named tool instead of leaving them buried inside `tech-write`.
+- Wired Status page rows to open the real service URL (Supabase Studio, FastAPI docs, Grafana) when known, and gave the chat's empty state 3 random example questions instead of a blank slate (commit `e84b734a`).
+- Authored the PF-139 plan ([PF-139-contextual-chat-followup-suggestions-todo.md](../../.claude/plans/PF-139-contextual-chat-followup-suggestions-todo.md)) and logged it on `BOARD.md` in the same commit. Acceptance criteria drafted; no build steps executed yet.
+
+**Chapter 7 (PF-AI007) checklist progress:** unchanged — the Day-75 outstanding item (re-run `scripts/test_agent.py` for all 5 transactions with the prose-scan fix) was not touched this session.
+
+**Retros (blockers & surprises):**
+- **Logging debt again — fourth occurrence on record** (after Day 37, Day 48, Day 65). Real work happened this date but wasn't written to `progress.md` until Day 78 (2026-08-12), reconstructed from `git log`. The lesson has been logged three times already and keeps recurring — worth treating as a standing habit gap, not a one-off.
+- None of this session's work advanced a chapter checklist item — it was UX polish plus planning for a feature outside the 12-chapter curriculum.
+
+**Remaining for tomorrow (as of this date):**
+- Chapter 7 STEP 7 re-run is still the actual blocking item for Chapter 7 close-out and Chapter 8 start
+- PF-139 build (STEPs 1–9) not yet started
+
+**Streak: 1 day** (gap in logging 2026-08-10 → 2026-08-11; this entry reconstructed from commit history on 2026-08-12)
+
+### 2026-08-12 — Day 78
+
+**Session: PF-139 shipped end-to-end; certification learning paths authored; two new curriculum chapters drafted (security/governance, deployment/LLMOps) — still off the Chapter 7/8 critical path**
+
+- Shipped PF-139 (contextual chat follow-up suggestions) fully: `FollowUpSuggester` service (Gemini, temperature 0) generating 3 self-contained follow-up chips after each answer streams; `POST /ask/followups` endpoint; frontend fires the call after SSE `done`, aborts stale requests when a new question is in flight, falls back to static example chips on any provider failure/timeout/unconfident answer. Live-verified against the running service (a real Gemini call), not just unit-mocked. Deviation logged: `MAX_OUTPUT_TOKENS` raised 200→2048 after live testing showed `gemini-2.5-flash`'s thinking pass exhausted the smaller cap before producing visible JSON — matches `journey_advisor.py`'s existing cap for the same model. 8 new unit tests pass. Committed `8d207b05`, pushed.
+- Researched and authored two certification learning-path docs — [cert-path-databricks-genai.md](cert-path-databricks-genai.md) and [cert-path-gcp-pmle.md](cert-path-gcp-pmle.md) — with real exam domain weights, a gap analysis mapped against shipped PF-AI tickets (PF-009/PF-011 structured output, PF-AI001–010 RAG/agents/eval work), and phased study plans. This is genuinely **Chapter 10 scope** ("Study + pass Databricks GenAI Engineer Associate OR Azure AI-102") done ahead of sequence — Chapters 8 and 9 haven't started yet. Committed `353a6356`, pushed.
+- Drafted two new learning plans extending the curriculum past Chapter 12: [PF-AI011-ai-security-governance-todo.md](../../.claude/plans/learning/PF-AI011-ai-security-governance-todo.md) (prompt injection, PII, secrets, guardrails) and [PF-AI012-deployment-llmops-todo.md](../../.claude/plans/learning/PF-AI012-deployment-llmops-todo.md) (public URL, CI/CD ship stage, caching, cost story) — both `Status: To Do`, no implementation started. Neither is currently represented in `learning-path.md`'s Chapter 1–12 structure. Committed `159f7196` alongside the PF-AI008 (LangGraph advisor) diagram, pushed.
+
+**Chapter 7 (PF-AI007) checklist progress:** unchanged from Day 75 — `[!] STEP 7` (5-transaction smoke test with the prose-scan fix) is still not re-run. **This is the actual gate on Chapter 7 closing and Chapter 8 starting**, and none of today's three commits touch it.
+
+**Retros (blockers & surprises):**
+- **Working ahead on Chapter 10 (certs) while Chapter 7 is still open.** Not a mistake, but worth naming plainly per the "be honest" rule: today's most visible output (cert docs, two new draft chapters) doesn't move the actual next gate. With the 90-day target dated 2026-08-25, the sequencing risk is spending research time on Chapter 10/11-adjacent material while Chapters 7–9 sit unclosed.
+- **PF-AI011/PF-AI012 aren't wired into the canonical curriculum doc yet.** They exist as standalone plan files, but `learning-path.md` (this skill's task-level source of truth) still only lists Chapters 1–12. Worth a deliberate decision — fold them in as Chapters 13–14, or keep them as an unscheduled backlog — rather than leaving two `Status: To Do` plans disconnected from the tracked path.
+- None — the PF-139 build itself was clean; the only recorded deviation (`MAX_OUTPUT_TOKENS`) was caught and fixed the same session, per the plan file's own note.
+
+**Remaining for next session:**
+- **Priority 1, unchanged since Day 75:** re-run `scripts/test_agent.py` for all 5 transactions with the prose-scan fix in place, confirm 5/5, close Chapter 7 STEP 7
+- Once Chapter 7 formally closes: Chapter 8 (PF-AI008 — LangGraph) is next; the "bulan itu" conversation-memory case (Day 48) and today's diagram are already pre-loaded
+- Decide whether PF-AI011/PF-AI012 get folded into `learning-path.md` as Chapters 13–14, or stay an unscheduled backlog
+
+**Streak: 1 day** (gap in logging 2026-08-10 → 2026-08-11, reconstructed above; 2026-08-12 logged same-day)
+
+### 2026-08-17 — Day 83
+
+**Session: Gap explained — CV refinement + starting job applications; resuming Chapter 7**
+
+- No pivot-curriculum build work 2026-08-13 → 2026-08-16. Time went to refining the CV and starting to send job applications — this maps to Chapter 10 (public presence) and Chapter 12 (active applications) tasks, not off-curriculum drift, done ahead of sequence same as the Day-78 cert docs. Detailed CV/application tracking stays in career-ops (out of scope for this log).
+- Resuming the curriculum today, picking up exactly where Day 78 left off.
+
+**Chapter 7 (PF-AI007) checklist status:** unchanged from Day 78 — `[!] STEP 7` (5-transaction smoke test with the prose-scan fix) still not re-run. This remains the actual gate on Chapter 7 closing and Chapter 8 starting.
+
+**Retros (blockers & surprises):**
+- None — the gap has a clear, named reason (CV + applications) rather than being unexplained downtime.
+
+**Remaining for next session:**
+- Re-run `scripts/test_agent.py` for all 5 transactions, confirm 5/5, close Chapter 7 STEP 7
+- Then Chapter 8 (PF-AI008 — LangGraph) is next
+
+### 2026-08-21 — Day 87
+
+**Session: PF-AI008 — LangGraph Financial Health Advisor (code + unit tests; live verification blocked)**
+
+- Built `AdvisorState` TypedDict (`state.py`) — 7 fields, `messages` annotated with the `add_messages` reducer
+- Built 4 `@tool` async functions calling the real .NET API (`get_pyramid_scores`, `get_cashflow_summary`, `get_spending_by_category`, `get_investment_summary`) — as `advisor_tools.py`, not the plan's `tools.py` (see Retros)
+- Built the `StateGraph` (`financial_advisor.py`): `agent` ⇄ `tools` ReAct loop, `should_continue` conditional routing, `fallback` node for graceful error recovery, `MemorySaver` checkpointer keyed by `thread_id`
+- Built `AdvisorService` (`advisor.py`) wrapping the graph, `POST /advisor` wired into `main.py`, `AdvisorRequest`/`AdvisorResponse` models
+- Wired the Langfuse `CallbackHandler` into the graph's `ainvoke` config for per-node tracing — from the plan's Notes section; the plan's own Step 6 code block had omitted it despite the Acceptance Criteria requiring visible traces
+- Unit tests: 4 tool tests (mocked httpx) + 6 routing tests (pure `should_continue`/`call_fallback` logic, zero LLM calls) — 10/10 green; full existing suite still green except one pre-existing, unrelated failure (`test_is_pii_keyword[REK123456]` in `test_merchant_suggester.py` — confirmed untouched by this session)
+- Wrote the 5 eval scenarios (`evals/advisor_scenarios.json`) and the "LangGraph mental model" active-retrieval section in `evals/README.md`
+- Updated `docs/performances/ai-observability-metrics.md` — Chapter 8 section, values marked pending rather than fabricated
+
+**Chapter 8 checklist progress:** see updated checklist above — 4/5 done, scenario testing blocked.
+
+**Retros (blockers & surprises):**
+- **Proceeded past an open pacing gate:** Day 83's note flagged Chapter 7's STEP 7 (5-transaction smoke test) as still not re-run and called it "the actual gate on Chapter 7 closing and Chapter 8 starting." Today's session was a direct, explicit request to execute the PF-AI008 plan file, so it went ahead rather than redirecting back to Chapter 7 — Chapter 7's actual shipped code (`categorizer_agent.py`, `/categorize-agent`) is present and working, so the *concepts* Chapter 8 depends on are there even though PF-AI007's own smoke-test checkbox is still open. Flagging this rather than quietly treating the gate as cleared.
+- **Namespace collision:** the plan's `app/agents/tools.py` would have silently shadowed the existing `app/agents/tools/` package (Chapter 7's smolagents tools — `category_rules.py`, `similarity.py`, `categories.py`), since Python resolves a package before a same-named sibling module on import. → **Fix:** named the new module `advisor_tools.py` instead; all 4 tool functions and their tests otherwise match the plan exactly.
+- **Dependency cascade:** `langgraph`'s latest (1.2.7, already sitting in the venv from an earlier session) requires `langchain-core>=1.4.7`. Installing `langchain-anthropic` unbounded pulled that in, broke the pinned `ragas`/`langchain-openai`/`langchain-community` eval stack (same failure class the existing `ragas` pin's own comment already warns about), and bumped the raw `anthropic` SDK 0.95.0→0.125.0. → **Fix:** pinned `langgraph<1.0` (resolved to 0.6.11) and `langchain-anthropic<1.0` (0.3.22), which resolve against the already-installed `langchain-core 0.3.86` untouched; restored `anthropic` to exactly 0.95.0. `pip check` confirms zero new conflicts — the remaining ones (`langchain-classic`, an `instructor` version mismatch, `langchain-openai` vs `openai` 2.x) are pre-existing and unused by any code in this repo.
+- **Missing credential:** `ANTHROPIC_API_KEY` is not set in `.env` or the shell (checked both directly). The advisor always uses `ChatAnthropic` regardless of `AI_PROVIDER` (Gemini is this project's default), so the Step 8 live two-turn smoke test and the Step 10 scenario runs could not execute. Everything not requiring a real Claude call — graph compilation, routing logic, tool dispatch shape — is built and green.
+
+**Remaining for tomorrow:**
+- Add `ANTHROPIC_API_KEY` to `.env`
+- Run the Step 8 two-turn smoke test (`curl` — verify turn 2 shows 0 re-fetches)
+- Run the 5 scenarios in `evals/advisor_scenarios.json` against the live service, record pass/fail
+- Fill in the real numbers in `docs/performances/ai-observability-metrics.md` Chapter 8 table (currently all "_pending_")
+- Re-run Chapter 7's PF-AI007 STEP 7 smoke test to formally close that gate, independent of Chapter 8
+- Chapter 8 complete once the above lands
+
+**Streak: 1 day** (gap 2026-08-18 → 2026-08-20 unlogged)
+
+**Streak: 1 day** (reset — gap 2026-08-13 → 2026-08-16)

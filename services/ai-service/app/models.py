@@ -306,3 +306,19 @@ class CategorizeAgentResponse(BaseModel):
     confidence: float
     reasoning: str
     tool_calls_count: int
+
+
+# ── Chapter 8: LangGraph Financial Advisor ────────────────────────────────────
+
+class AdvisorRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+    query: str = Field(..., min_length=1, max_length=1000)
+    session_id: str | None = None          # if None, a new session is created
+    date_from: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    date_to:   str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+
+
+class AdvisorResponse(BaseModel):
+    answer: str
+    session_id: str                         # echo back so frontend can continue the conversation
+    steps_taken: int = 0                    # number of tool-call hops in this turn

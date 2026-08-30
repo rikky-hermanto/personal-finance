@@ -13,7 +13,7 @@ from sse_starlette.sse import EventSourceResponse
 # In the lifespan context manager or @app.on_event("shutdown"):
 from app.observability import langfuse
 from app.config import settings
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse, FollowUpRequest, FollowUpResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse, FollowUpRequest, FollowUpResponse, AdvisorRequest, AdvisorResponse
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
 from app.services.reranker import RerankerService
@@ -29,6 +29,7 @@ from app.services.categorizer import Categorizer
 from app.services.merchant_suggester import MerchantSuggester
 from app.services.portfolio_reviewer import PortfolioReviewer
 from app.services.journey_advisor import JourneyAdvisor
+from app.services.advisor import AdvisorService
 from app.agents.categorizer_agent import CategorizerAgent, AgentRateLimitedError
 from app.agents.tools.category_rules import load_rules
 from app.agents.tools.categories import load_categories as load_agent_categories
@@ -191,6 +192,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Chapter 8 — advisor_graph (app/agents/financial_advisor.py) is a module-level
+# singleton compiled at import time; no lifespan wiring needed.
+_advisor = AdvisorService()
+
 
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
@@ -303,6 +308,17 @@ async def categorize_with_agent(request: CategorizeAgentRequest) -> CategorizeAg
     except Exception as exc:
         logger.exception("agent categorization failed")
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
+
+
+@app.post("/advisor", response_model=AdvisorResponse)
+async def advisor(request: AdvisorRequest) -> AdvisorResponse:
+    """Stateful financial advisor — multi-step, tool-grounded, session-persistent."""
+    try:
+        return await _advisor.ask(request)
+    except Exception as exc:
+        logger.exception("advisor failed")
+        raise HTTPException(status_code=502, detail="advisor_error") from exc
+
 
 @app.post("/portfolio-review", response_model=PortfolioReviewResponse)
 async def portfolio_review(req: PortfolioReviewRequest) -> PortfolioReviewResponse:

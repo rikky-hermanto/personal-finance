@@ -1,0 +1,44 @@
+[
+  {
+    "id": "S1",
+    "query": "Kondisi keuangan saya sekarang bagaimana? Dan apa yang harus saya prioritaskan?",
+    "session_id": null,
+    "expected_behavior": "Agent fetches pyramid_scores + cashflow_summary. Identifies current level (expected L1 or L2 based on real data). Gives a specific next action — not generic advice.",
+    "pass_criteria": "Answer mentions a specific pyramid level, references real IDR amounts, and names at least one concrete next step."
+  },
+  {
+    "id": "S2",
+    "query": "Dana darurat saya sudah cukup belum?",
+    "session_id": null,
+    "expected_behavior": "Agent fetches pyramid_scores (L2 indicator) + cashflow_summary (monthly expenses). Computes 3-month target vs actual savings. States whether the gap is positive or negative with IDR amounts.",
+    "pass_criteria": "Answer includes a 3-month target calculation (3 × monthly expense) and compares it to actual emergency fund balance."
+  },
+  {
+    "id": "S3",
+    "query": "Saya mau mulai investasi, dari mana yang terbaik?",
+    "session_id": null,
+    "expected_behavior": "Agent checks pyramid_scores first. If L2 is not solid (emergency fund, debt), recommends completing L2 before investing. If L2 is solid, fetches investment_summary and recommends based on current allocation.",
+    "pass_criteria": "Answer is conditional on L2 score — does NOT jump straight to investment picks if L2 < 70."
+  },
+  {
+    "id": "S4-turn1",
+    "query": "Apa pengeluaran terbesar saya bulan lalu?",
+    "session_id": "scenario4",
+    "expected_behavior": "Agent fetches spending_by_category. Names the top category with IDR amount.",
+    "pass_criteria": "Answer names a specific category (e.g., 'Food & Dining') and the IDR total."
+  },
+  {
+    "id": "S4-turn2",
+    "query": "Bagaimana cara saya kurangi pengeluaran di kategori itu?",
+    "session_id": "scenario4",
+    "expected_behavior": "Second turn in the SAME session. Agent should NOT re-fetch spending data — it already has it from turn 1. Should give specific reduction tactics for the category named in turn 1.",
+    "pass_criteria": "Langfuse trace shows NO get_spending_by_category tool call in turn 2. Answer references the specific category from turn 1."
+  },
+  {
+    "id": "S5",
+    "query": "Berapa total investasi saya di tahun 3000?",
+    "session_id": null,
+    "expected_behavior": "Adversarial — no data for year 3000. Agent fetches investment_summary, finds no data for that period. Responds honestly that it cannot answer — does NOT invent numbers.",
+    "pass_criteria": "Answer explicitly states it cannot find data for year 3000. Does NOT fabricate a total."
+  }
+]
