@@ -75,6 +75,9 @@ docs/mentor/
   ai-engineer-learning-tips.md   ← daily loop, retrieval/interleaving protocol, anti-patterns
   ai-engineer-learning-tips-id.md← Indonesian translation of the tips doc
   ai-engineering-usecase-map.md  ← AI engineering use-case map
+  what-ai-engineering-build/
+    prompt-engineering.md              ← topic doc: prompt iteration, testing, versioning
+    model-serving-inference-pipelines.md ← topic doc: model serving, inference pipelines
 
 .agents/skills/mentor/
   SKILL.md          ← skill brain (modes, rules, prompts)

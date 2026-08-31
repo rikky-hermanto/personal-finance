@@ -39,9 +39,9 @@ if (Test-Path $launchSettingsPath) {
     Write-Host "Could not find launchSettings.json, falling back to port $port" -ForegroundColor Yellow
 }
 
-# 3. Stop conflicting processes on known service ports (always includes the API port,
-# so a leftover backend process from a previous run never blocks a fresh start)
-$portsToFree = @(8080, 8000, 3000, 3100, 3200, 9090, 12345, $port)
+# 3. Stop conflicting processes on host-managed ports only (docker compose owns 3000/3100/3200/9090/12345 below -
+# killing their PID on Windows can kill Docker Desktop's shared backend process instead of just freeing a port)
+$portsToFree = @(8080, 8000, $port)
 foreach ($p in $portsToFree) {
     $connections = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue
     foreach ($conn in $connections) {
