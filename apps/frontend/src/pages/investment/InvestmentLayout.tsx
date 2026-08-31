@@ -3,10 +3,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { value: 'overview',  label: 'Overview',  path: '/investment/overview' },
-  { value: 'holdings',  label: 'Holdings',  path: '/investment/holdings' },
-  { value: 'snapshots', label: 'Snapshots', path: '/investment/snapshots' },
-  { value: 'ai-review', label: 'AI Review', path: '/investment/ai-review' },
+  { value: 'overview',      label: 'Overview',      path: '/investment/overview' },
+  { value: 'holdings',      label: 'Holdings',      path: '/investment/holdings' },
+  { value: 'snapshots',     label: 'Snapshots',     path: '/investment/snapshots' },
+  { value: 'ai-review',     label: 'AI Review',     path: '/investment/ai-review' },
+  { value: 'trading-desk',  label: 'Trading Desk',  path: '/desk' },
 ];
 
 const InvestmentLayout = () => {
