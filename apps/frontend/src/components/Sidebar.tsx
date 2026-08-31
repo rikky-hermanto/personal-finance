@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Mountain, Settings, Menu, X, PiggyBank, Sun, Moon, Landmark, Bot, TrendingUp,
-  Wallet, Receipt, Shield, Target, Flame, Coins, ScrollText, FileText, Briefcase, HeartPulse, ShieldHalf,
+  Wallet, Receipt, Shield, Target, Flame, Coins, ScrollText, FileText, Briefcase, HeartPulse,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
@@ -165,37 +165,6 @@ const Sidebar = () => {
           >
             <Landmark className={cn('w-4 h-4 flex-shrink-0 transition-colors', location.pathname.startsWith('/assets') ? 'text-foreground' : 'text-inherit group-hover:text-foreground')} strokeWidth={1.5} />
             <span className="flex-1 text-xs font-medium tracking-wide">Net Worth</span>
-          </button>
-        )}
-      </div>
-
-      {/* Trading Desk — floats below Net Worth, outside the pyramid (not a pyramid tier) */}
-      <div className={cn('px-3 pb-2', collapsed && 'flex justify-center')}>
-        {collapsed ? (
-          <button
-            onClick={() => navigate('/desk')}
-            title="Trading Desk"
-            className={cn(
-              'w-full flex items-center justify-center rounded-lg transition-all duration-150 group px-2 py-2',
-              location.pathname.startsWith('/desk')
-                ? 'bg-secondary text-foreground'
-                : 'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground'
-            )}
-          >
-            <ShieldHalf className={cn('w-4 h-4 flex-shrink-0 transition-colors', location.pathname.startsWith('/desk') ? 'text-foreground' : 'text-inherit group-hover:text-foreground')} strokeWidth={1.5} />
-          </button>
-        ) : (
-          <button
-            onClick={() => navigate('/desk')}
-            className={cn(
-              'w-full flex items-center justify-start text-left rounded-lg transition-all duration-150 group px-3 py-2 gap-2',
-              location.pathname.startsWith('/desk')
-                ? 'bg-secondary text-foreground'
-                : 'text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground'
-            )}
-          >
-            <ShieldHalf className={cn('w-4 h-4 flex-shrink-0 transition-colors', location.pathname.startsWith('/desk') ? 'text-foreground' : 'text-inherit group-hover:text-foreground')} strokeWidth={1.5} />
-            <span className="flex-1 text-xs font-medium tracking-wide">Trading Desk</span>
           </button>
         )}
       </div>
