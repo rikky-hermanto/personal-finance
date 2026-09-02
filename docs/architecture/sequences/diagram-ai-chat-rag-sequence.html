@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Chat RAG — Sequence</title>
+<style>
+  :root{
+    --bg:#f7f5f0; --bg-dot:#e7e3da; --text:#1c1c1e; --muted:#6b6b70;
+    --lane:#8a8a92; --lane-bg:#ffffff; --card-border:#d8d4c9;
+    --arrow:#3a3a40; --arrow-return:#8a8a92;
+    --loop-border:#c98a2c; --loop-bg:rgba(201,138,44,.06); --loop-label:#a3671c;
+    --alt-border:#4f6bd6; --alt-bg:rgba(79,107,214,.05); --alt-label:#3a52ad;
+    --note-bg:#fff9e8; --note-border:#e6d59a;
+    --err-bg:#fdeceb; --err-border:#e0a29c; --err-label:#a3392c;
+    --accent-u:#4f6bd6; --accent-fe:#2f9e6b; --accent-ai:#c9862c; --accent-qp:#8a4fd6;
+    --accent-rt:#2f9e9e; --accent-llm:#d64f8a; --accent-api:#2f8fd6; --accent-db:#5a5a62;
+    --accent-obs:#4d7ea8;
+    --header:#141519; --header-text:#f2f0ea;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b0b0d; --bg-dot:#1a1a1d; --text:#eceef0; --muted:#9a9aa2;
+      --lane:#54545c; --lane-bg:#141519; --card-border:#2a2b31;
+      --arrow:#c9cad0; --arrow-return:#8a8a92;
+      --loop-border:#f0b429; --loop-bg:rgba(240,180,41,.08); --loop-label:#f0b429;
+      --alt-border:#6f8bf0; --alt-bg:rgba(111,139,240,.10); --alt-label:#a8bcf5;
+      --note-bg:#1f1c10; --note-border:#4a3f1c;
+      --err-bg:#241413; --err-border:#7a3a34; --err-label:#e39089;
+      --header:#000000; --header-text:#f2f0ea; --accent-obs:#8fc1e8;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0b0d; --bg-dot:#1a1a1d; --text:#eceef0; --muted:#9a9aa2;
+    --lane:#54545c; --lane-bg:#141519; --card-border:#2a2b31;
+    --arrow:#c9cad0; --arrow-return:#8a8a92;
+    --loop-border:#f0b429; --loop-bg:rgba(240,180,41,.08); --loop-label:#f0b429;
+    --alt-border:#6f8bf0; --alt-bg:rgba(111,139,240,.10); --alt-label:#a8bcf5;
+    --note-bg:#1f1c10; --note-border:#4a3f1c;
+    --err-bg:#241413; --err-border:#7a3a34; --err-label:#e39089;
+    --header:#000000; --header-text:#f2f0ea; --accent-obs:#8fc1e8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+  #app{color:var(--text);}
+  body{
+    background-image:radial-gradient(var(--bg-dot) 1px, transparent 1px);
+    background-size:18px 18px;
+  }
+  header{
+    position:sticky;top:0;z-index:20;background:var(--header);color:var(--header-text);
+    padding:14px 22px;display:flex;align-items:center;justify-content:space-between;
+    box-shadow:0 1px 0 rgba(0,0,0,.25); flex-wrap:wrap; gap:10px;
+  }
+  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
+  header .sub{font-size:12px;color:#c9c9ce;margin-top:2px;font-weight:400}
+  .legend{display:flex;gap:12px;align-items:center;font-size:11.5px;color:#c9c9ce;flex-wrap:wrap}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+  #theme-toggle, #observer-toggle{
+    background:transparent;border:1px solid #35363d;color:var(--header-text);
+    border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;
+  }
+  #observer-toggle[aria-pressed="true"]{background:var(--accent-obs);border-color:var(--accent-obs);color:#0b0b0d;font-weight:600}
+  #observer-layer{opacity:0;pointer-events:none;transition:opacity .15s ease}
+  #app[data-observer="on"] #observer-layer{opacity:1;pointer-events:auto}
+  .obs-line{stroke:var(--accent-obs);stroke-width:1.3;stroke-dasharray:1.5 3.5}
+  .obs-label{font-size:10.5px;fill:var(--accent-obs);font-style:italic}
+  .tabs{display:flex;gap:8px;padding:14px 22px 0}
+  .tab-btn{
+    background:var(--lane-bg);border:1px solid var(--card-border);color:var(--text);
+    border-radius:8px 8px 0 0;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:500;
+    border-bottom:none; opacity:.6;
+  }
+  .tab-btn.active{opacity:1; box-shadow:0 -2px 0 var(--accent-ai) inset}
+  #wrap{padding:0 22px 60px;overflow-x:auto; border-top:1px solid var(--card-border); background:var(--lane-bg)}
+  #stage{margin:0 auto;display:block}
+  .lane-card{fill:var(--lane-bg);stroke:var(--card-border);}
+  .lane-title{font-size:13.5px;font-weight:600;fill:var(--text)}
+  .lane-sub{font-size:10.5px;fill:var(--muted)}
+  .lane-line{stroke:var(--lane);stroke-width:1.4;stroke-dasharray:3 4}
+  .msg-line{stroke:var(--arrow);stroke-width:1.6;fill:none}
+  .msg-line.ret{stroke:var(--arrow-return);stroke-dasharray:5 4}
+  .msg-label{font-size:11.5px;fill:var(--text)}
+  .msg-label.ret{fill:var(--muted)}
+  .msg-index{font-size:10.5px;fill:var(--muted);font-weight:600}
+  .loop-box{fill:var(--loop-bg);stroke:var(--loop-border);stroke-width:1.3}
+  .loop-tab{fill:var(--loop-border)}
+  .loop-tab-text{font-size:11px;fill:#141414;font-weight:700}
+  .loop-caption{font-size:11.5px;fill:var(--loop-label);font-style:italic}
+  .alt-box{fill:var(--alt-bg);stroke:var(--alt-border);stroke-width:1.3;stroke-dasharray:4 3}
+  .alt-tab{fill:var(--alt-border)}
+  .alt-tab-text{font-size:11px;fill:#fff;font-weight:700}
+  .alt-caption{font-size:11.5px;fill:var(--alt-label);font-style:italic}
+  .alt-div{stroke:var(--alt-border);stroke-width:1;stroke-dasharray:4 3}
+  .err-box{fill:var(--err-bg);stroke:var(--err-border);stroke-width:1.1}
+  .err-text{font-size:11px;fill:var(--err-label)}
+  .note-box{fill:var(--note-bg);stroke:var(--note-border);stroke-width:1.1}
+  .note-text{font-size:11.5px;fill:var(--text)}
+  footer{max-width:960px;margin:0 auto 40px;padding:20px 22px 0;color:var(--muted);font-size:12.5px;line-height:1.6}
+  footer code{background:var(--lane-bg);border:1px solid var(--card-border);border-radius:4px;padding:1px 5px;font-size:11.5px}
+  footer h3{font-size:13px;color:var(--text);margin:18px 0 6px}
+  .warn{margin-top:18px;padding:10px 14px;border:1px dashed var(--card-border);border-radius:8px;background:var(--lane-bg)}
+  .file{color:var(--muted)}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div>
+    <h1>AI Chat RAG — request/response sequence</h1>
+    <div class="sub">Two turns through <code style="color:#e8e8ec">POST /ask/stream</code> — a numeric ("aggregate") question and a lookup question — plus the transaction-indexing lane that feeds pgvector</div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--accent-u)"></span>User</span>
+    <span><span class="dot" style="background:var(--accent-fe)"></span>Frontend</span>
+    <span><span class="dot" style="background:var(--accent-ai)"></span>AI Service</span>
+    <span><span class="dot" style="background:var(--accent-qp)"></span>Planner/Retrieval</span>
+    <span><span class="dot" style="background:var(--accent-rt)"></span>Reranker</span>
+    <span><span class="dot" style="background:var(--accent-llm)"></span>Gemini</span>
+    <span><span class="dot" style="background:var(--accent-api)"></span>.NET API</span>
+    <span><span class="dot" style="background:var(--accent-db)"></span>Postgres</span>
+    <span><span class="dot" style="background:var(--accent-obs)"></span>Observer</span>
+    <button id="observer-toggle" aria-pressed="false">🔭 Observer</button>
+    <button id="theme-toggle">🌙</button>
+  </div>
+</header>
+<div class="tabs">
+  <button class="tab-btn active" data-view="ask">1 · Ask (aggregate + lookup)</button>
+  <button class="tab-btn" data-view="index">2 · Index (upload → pgvector)</button>
+</div>
+<div id="wrap">
+  <svg id="stage"></svg>
+</div>
+<footer>
+  <p><strong>Use case (view 1):</strong> the chat panel talks <em>directly</em> to the Python AI service over
+  SSE — there is no .NET participant in this flow at all. <code>QueryPlanner</code> makes one temperature-0
+  Gemini call to classify the question as <code>aggregate</code> (a number question, e.g. "berapa total belanja
+  makan bulan ini?") or <code>lookup</code> (a "which transactions..." question), then the two branches diverge
+  sharply: aggregate runs a plain SQL <code>SUM/COUNT</code> and only asks the LLM to narrate a number that is
+  already correct <em>before</em> generation starts (<code>verified:true</code> "by construction"); lookup runs
+  the pgvector similarity search → FlashRank rerank → sends the top-3 contexts to the client
+  <em>before</em> generating, then streams the grounded answer token-by-token.</p>
+  <p><strong>What closes each branch:</strong> the SSE <code>done</code> event always carries <code>verified</code>
+  and <code>confident</code> flags computed independently of the LLM's own claims — aggregate is verified by
+  construction (the number was computed in SQL, not asked of the model); lookup is verified by checking every
+  <code>[n]</code> citation marker the model emitted against the actual context set it was given
+  (<span class="file">main.py:542-547</span>). Any citation to a context that wasn't sent flips
+  <code>verified:false</code> client-side, not silently trusted.</p>
+  <h3>Error / empty-result paths (not drawn in the happy-path lanes above, but real)</h3>
+  <p>• Planner call fails → SSE <code>error</code> event <code>{detail:"planner_failed"}</code>, no answer generated.<br>
+  • Aggregate with <code>count==0</code> → <code>metadata</code>(total 0) + <code>done</code>(confident=false) — no LLM call at all.<br>
+  • Lookup with empty reranked contexts → <code>done</code>(confident=false, contexts:[]) — no LLM call; frontend shows a static "no relevant transactions" fallback.<br>
+  • <code>stream_generate</code> exception on either branch → SSE <code>error</code> event <code>{detail:"generation_failed"}</code>.<br>
+  • Frontend's <code>onclose</code>/<code>onerror</code> handlers in <code>chatApi.ts</code> deliberately <em>throw</em> to stop <code>fetch-event-source</code>'s silent auto-reconnect — a silent reconnect would silently re-run a paid LLM generation.</p>
+  <div class="warn">⚠️ No multi-turn memory: grep for <code>session_id|trace_id|thread_id</code> in the ai-service
+  chat path returns nothing — unlike the PF-AI008 advisor (which checkpoints state under <code>thread_id</code>),
+  each <code>/ask</code>, <code>/ask/stream</code>, and <code>/ask/followups</code> call is stateless and gets
+  its own independent Langfuse observation. <code>search_mode</code> defaults to <code>vector</code> — hybrid
+  BM25+RRF code exists (<span class="file">retriever.py</span>) but is not the active default (PF-AI006 eval:
+  vector alone scored higher, MRR@5 0.771 vs 0.750). Source: end-to-end code trace 2026-09-01, not docs.
+  Regenerate via <code>/create-diagram</code> if <code>main.py</code>'s <code>ask_stream()</code> branches change.</div>
+</footer>
+</div>
+<script>
+(function(){
+  var VIEWS = {
+    ask: {
+      actors: [
+        {id:'u',   label:'User',        sub:'chat UI',                   color:'var(--accent-u)'},
+        {id:'fe',  label:'Frontend',    sub:'AiChatPanel · SSE client',  color:'var(--accent-fe)'},
+        {id:'ai',  label:'AI Service',  sub:'FastAPI · /ask/stream',    color:'var(--accent-ai)'},
+        {id:'qp',  label:'Planner',     sub:'QueryPlanner + Retriever', color:'var(--accent-qp)'},
+        {id:'rt',  label:'Reranker',    sub:'FlashRank (local CPU)',    color:'var(--accent-rt)'},
+        {id:'llm', label:'Gemini',      sub:'gemini-2.5-flash · t=0',   color:'var(--accent-llm)'},
+        {id:'db',  label:'Postgres',    sub:'transactions + embeddings',color:'var(--accent-db)'},
+        {id:'obs', label:'Observer',    sub:'Langfuse · OTel',          color:'var(--accent-obs)', observer:true}
+      ],
+      steps: [
+        {t:'msg', from:'u', to:'fe', label:'"Berapa total belanja makan bulan ini?"'},
+        {t:'msg', from:'fe', to:'ai', label:'POST /ask/stream  {query}  (fetch-event-source)'},
+        {t:'obs', from:'ai', to:'obs', label:'OTel: FastAPI span POST /ask/stream (auto-instrumented)'},
+        {t:'msg', from:'ai', to:'qp', label:'QueryPlanner.plan(query, today, categories)'},
+        {t:'msg', from:'qp', to:'llm', label:'generate_json(SYSTEM_PROMPT, PLAN_SCHEMA)  temperature=0.0'},
+        {t:'ret', from:'llm', to:'qp', label:'{intent:"aggregate", categories:["Makan"], date_from, date_to}'},
+        {t:'obs', from:'llm', to:'obs', label:'Langfuse: gemini-generate-json span (planner classification)'},
+        {t:'ret', from:'qp', to:'ai', label:'plan — vocabulary guard drops any unknown category'},
+
+        {t:'altstart', label:'alt — intent = "aggregate"  (SQL first, LLM only narrates)'},
+        {t:'msg', from:'ai', to:'db', label:'SELECT COALESCE(SUM(amount_idr),0), COUNT(*) FROM transactions WHERE …'},
+        {t:'ret', from:'db', to:'ai', label:'rows → total_idr, count, top-5 largest'},
+        {t:'msg', from:'fe', to:'u', label:'SSE metadata: {total_idr, count}  ← sent before generation'},
+        {t:'msg', from:'ai', to:'llm', label:'stream_generate(NARRATE_PROMPT, total_idr)  temperature=0.0'},
+        {t:'ret', from:'llm', to:'ai', label:'token…token…token  (narration of the pre-computed number)'},
+        {t:'obs', from:'llm', to:'obs', label:'Langfuse: gemini-stream-generate span (narration)'},
+        {t:'msg', from:'fe', to:'u', label:'SSE done: {verified:true "by construction", confident:true}'},
+        {t:'altdiv', label:'else — intent = "lookup"  (retrieve → rerank → generate)'},
+        {t:'msg', from:'ai', to:'qp', label:'RetrievalService.search(query_embedding, plan, top_k=10)'},
+        {t:'msg', from:'qp', to:'db', label:'ORDER BY embedding <=> $1::vector  (pgvector cosine, ivfflat)'},
+        {t:'ret', from:'db', to:'qp', label:'10 nearest transaction_embeddings rows'},
+        {t:'msg', from:'qp', to:'rt', label:'rerank(query, candidates)  MiniLM-L-12-v2 cross-encoder'},
+        {t:'ret', from:'rt', to:'ai', label:'top_k=3 reranked contexts'},
+        {t:'msg', from:'fe', to:'u', label:'SSE metadata: {contexts[3]}  ← sent before generation'},
+        {t:'msg', from:'ai', to:'llm', label:'stream_generate(SYSTEM_PROMPT, contexts + query)  temperature=0.0'},
+        {t:'ret', from:'llm', to:'ai', label:'token…token…token  (cites contexts as [1] [2] [3])'},
+        {t:'obs', from:'llm', to:'obs', label:'Langfuse: gemini-stream-generate span (grounded answer)'},
+        {t:'msg', from:'fe', to:'u', label:'render streamed tokens live'},
+        {t:'note', label:'post-stream: [n] citation markers validated against the 3 sent contexts'},
+        {t:'msg', from:'fe', to:'u', label:'SSE done: {verified: markers⊆contexts, confident:true}'},
+        {t:'altend'},
+
+        {t:'msg', from:'fe', to:'ai', label:'POST /ask/followups  (fired after done, stateless — self-contained Qs)'},
+        {t:'ret', from:'ai', to:'fe', label:'200 {suggestions[]}  — [] on any failure, never throws'},
+        {t:'msg', from:'fe', to:'u', label:'render follow-up chips (static FALLBACK_CHIPS if empty)'}
+      ]
+    },
+    index: {
+      actors: [
+        {id:'u',   label:'User',        sub:'uploads statement',        color:'var(--accent-u)'},
+        {id:'api', label:'.NET API',    sub:'TransactionsController',   color:'var(--accent-api)'},
+        {id:'ai',  label:'AI Service',  sub:'POST /embed-transactions', color:'var(--accent-ai)'},
+        {id:'emb', label:'Embedder',    sub:'EmbeddingService',         color:'var(--accent-qp)'},
+        {id:'llm', label:'Gemini',      sub:'gemini-embedding-001',     color:'var(--accent-llm)'},
+        {id:'db',  label:'Postgres',    sub:'transaction_embeddings',   color:'var(--accent-db)'},
+        {id:'obs', label:'Observer',    sub:'Langfuse · OTel',          color:'var(--accent-obs)', observer:true}
+      ],
+      steps: [
+        {t:'msg', from:'u', to:'api', label:'upload bank statement (CSV/PDF) → parsed + deduped'},
+        {t:'msg', from:'api', to:'db', label:'AddTransactionsAsync(nonDuplicates)  — persist first'},
+        {t:'ret', from:'db', to:'api', label:'insert OK'},
+        {t:'note', label:'fire-and-forget Task.Run — embedding failure only logs a warning, never breaks the upload response'},
+        {t:'msg', from:'api', to:'ai', label:'POST /embed-transactions  (LlmSearchClient.EmbedTransactionsAsync)'},
+        {t:'obs', from:'ai', to:'obs', label:'OTel: FastAPI span POST /embed-transactions (auto-instrumented)'},
+        {t:'msg', from:'ai', to:'emb', label:'embed_and_store(transactions)  — no chunking, 1 embedding per row'},
+        {t:'note', label:'search_text = description | remarks | category | wallet'},
+        {t:'msg', from:'emb', to:'llm', label:'embed(search_text, task_type=RETRIEVAL_DOCUMENT)'},
+        {t:'ret', from:'llm', to:'emb', label:'768-dim vector → truncated + L2-renormalized to 1536-dim'},
+        {t:'obs', from:'emb', to:'obs', label:'Langfuse: embed-batch span (tokens, cost)'},
+        {t:'msg', from:'emb', to:'db', label:'INSERT INTO transaction_embeddings … ON CONFLICT (transaction_id) DO UPDATE'},
+        {t:'ret', from:'db', to:'emb', label:'upsert OK'},
+        {t:'ret', from:'ai', to:'api', label:'200 (best-effort — .NET only logs on failure)'}
+      ]
+    }
+  };
+
+  var svgNS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs){
+    var e = document.createElementNS(svgNS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  var MARGIN_X = 95, LANE_W = 158, LANE_TOP = 20, LANE_H = 54;
+  var ROW_H_MSG = 42, ROW_H_LOOP_PAD = 34, ROW_H_NOTE = 36;
+
+  function render(viewKey){
+    var view = VIEWS[viewKey];
+    var ACTORS = view.actors, STEPS = view.steps;
+    var actorX = {};
+    ACTORS.forEach(function(a, i){ actorX[a.id] = MARGIN_X + i * LANE_W; });
+
+    // frame width excludes the Observer lane so loop/alt boxes keep their
+    // existing footprint whether or not the observer toggle is on
+    var REAL_ACTORS = ACTORS.filter(function(a){ return !a.observer; });
+    var xLeft = actorX[REAL_ACTORS[0].id] - 118;
+    var xRight = actorX[REAL_ACTORS[REAL_ACTORS.length-1].id] + 90;
+
+    var y = LANE_TOP + LANE_H + 30;
+    var rows = [];
+    var loopStack = [];
+    var loopBoxes = [];
+    STEPS.forEach(function(s){
+      if (s.t === 'loopstart' || s.t === 'altstart'){
+        loopStack.push({y0: y - 14, label: s.label, kind: s.t === 'altstart' ? 'alt' : 'loop', divs: []});
+        rows.push({y: y, step: s});
+        y += ROW_H_LOOP_PAD;
+      } else if (s.t === 'altdiv'){
+        loopStack[loopStack.length-1].divs.push({y: y - 10, label: s.label});
+        y += 22;
+      } else if (s.t === 'loopend' || s.t === 'altend'){
+        var open = loopStack.pop();
+        loopBoxes.push({y0: open.y0, y1: y - 6, label: open.label, kind: open.kind, divs: open.divs});
+        y += 12;
+      } else if (s.t === 'note'){
+        rows.push({y: y, step: s});
+        y += ROW_H_NOTE;
+      } else {
+        rows.push({y: y, step: s});
+        y += ROW_H_MSG;
+      }
+    });
+    var totalH = y + 30;
+    var totalW = MARGIN_X * 2 + (ACTORS.length - 1) * LANE_W + 40;
+
+    var svg = document.getElementById('stage');
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute('width', totalW);
+    svg.setAttribute('height', totalH);
+    svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
+
+    var obsLayer = el('g', {id:'observer-layer'});
+    svg.appendChild(obsLayer);
+
+    ACTORS.forEach(function(a){
+      var x = actorX[a.id];
+      var target = a.observer ? obsLayer : svg;
+      var card = el('rect', {x: x-70, y: LANE_TOP, width:140, height:LANE_H, rx:10, class:'lane-card'});
+      target.appendChild(card);
+      var bar = el('rect', {x: x-70, y: LANE_TOP, width:5, height:LANE_H, rx:2, fill:a.color});
+      target.appendChild(bar);
+      var title = el('text', {x: x-52, y: LANE_TOP+24, class:'lane-title'});
+      title.textContent = a.label;
+      target.appendChild(title);
+      var sub = el('text', {x: x-52, y: LANE_TOP+40, class:'lane-sub'});
+      sub.textContent = a.sub;
+      target.appendChild(sub);
+      var line = el('line', {x1:x, y1: LANE_TOP+LANE_H, x2:x, y2: totalH-20, class:'lane-line'});
+      target.appendChild(line);
+    });
+
+    loopBoxes.forEach(function(b){
+      var cls = b.kind === 'alt' ? 'alt-box' : 'loop-box';
+      var tabCls = b.kind === 'alt' ? 'alt-tab' : 'loop-tab';
+      var tabTextCls = b.kind === 'alt' ? 'alt-tab-text' : 'loop-tab-text';
+      var capCls = b.kind === 'alt' ? 'alt-caption' : 'loop-caption';
+      var box = el('rect', {x:xLeft, y:b.y0, width:(xRight-xLeft), height:(b.y1-b.y0), rx:8, class:cls});
+      svg.appendChild(box);
+      var tabW = b.kind === 'alt' ? 26 : 34, tabH = 20;
+      var tab = el('path', {
+        d: 'M '+xLeft+' '+b.y0+' h '+tabW+' v '+ (tabH-8) +' l -8 8 h -'+(tabW-8)+' z',
+        class:tabCls
+      });
+      svg.appendChild(tab);
+      var tabText = el('text', {x:xLeft+7, y:b.y0+14, class:tabTextCls});
+      tabText.textContent = b.kind === 'alt' ? 'alt' : 'loop';
+      svg.appendChild(tabText);
+      var cap = el('text', {x:xLeft+tabW+8, y:b.y0+14, class:capCls});
+      cap.textContent = b.label;
+      svg.appendChild(cap);
+      (b.divs || []).forEach(function(d){
+        var divLine = el('line', {x1:xLeft, y1:d.y, x2:xRight, y2:d.y, class:'alt-div'});
+        svg.appendChild(divLine);
+        var divCap = el('text', {x:xLeft+8, y:d.y-4, class:capCls});
+        divCap.textContent = d.label;
+        svg.appendChild(divCap);
+      });
+    });
+
+    function arrowHead(x, y, dir){
+      var size = 7;
+      var pts = dir > 0
+        ? [[x,y],[x-size,y-size/1.6],[x-size,y+size/1.6]]
+        : [[x,y],[x+size,y-size/1.6],[x+size,y+size/1.6]];
+      return el('polygon', {points: pts.map(function(p){return p.join(',');}).join(' '), fill: 'currentColor'});
+    }
+
+    rows.forEach(function(r, idx){
+      var s = r.step, yy = r.y;
+      if (s.t === 'loopstart' || s.t === 'altstart') return;
+      if (s.t === 'obs'){
+        var ox1 = actorX[s.from], ox2 = actorX['obs'];
+        var oline = el('line', {x1:ox1, y1:yy, x2:ox2, y2:yy, class:'obs-line'});
+        obsLayer.appendChild(oline);
+        var ohead = arrowHead(ox2, yy, 1);
+        ohead.setAttribute('color', 'var(--accent-obs)');
+        obsLayer.appendChild(ohead);
+        var olabel = el('text', {x:(ox1+ox2)/2, y:yy-8, class:'obs-label', 'text-anchor':'middle'});
+        olabel.textContent = '📡 ' + s.label;
+        obsLayer.appendChild(olabel);
+        return;
+      }
+      if (s.t === 'note'){
+        var nb = el('rect', {x:xLeft, y:yy-16, width:(xRight-xLeft), height:26, rx:6, class:'note-box'});
+        svg.appendChild(nb);
+        var nt = el('text', {x:xLeft+12, y:yy+1, class:'note-text'});
+        nt.textContent = '📝 ' + s.label;
+        svg.appendChild(nt);
+        return;
+      }
+      var x1 = actorX[s.from], x2 = actorX[s.to];
+      var dir = x2 > x1 ? 1 : -1;
+      var isRet = s.t === 'ret';
+      var line = el('line', {x1:x1, y1:yy, x2:x2, y2:yy, class: 'msg-line' + (isRet ? ' ret' : '')});
+      svg.appendChild(line);
+      var head = arrowHead(x2, yy, dir);
+      head.setAttribute('color', isRet ? 'var(--arrow-return)' : 'var(--arrow)');
+      svg.appendChild(head);
+
+      var midX = (x1 + x2) / 2;
+      var label = el('text', {
+        x: midX, y: yy - 8,
+        class: 'msg-label' + (isRet ? ' ret' : ''),
+        'text-anchor':'middle'
+      });
+      label.textContent = s.label;
+      svg.appendChild(label);
+
+      var num = el('text', {x: Math.min(x1,x2) - 18, y: yy+4, class:'msg-index', 'text-anchor':'end'});
+      num.textContent = (idx+1) + '.';
+      svg.appendChild(num);
+    });
+  }
+
+  render('ask');
+
+  var tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      tabs.forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      render(btn.getAttribute('data-view'));
+    });
+  });
+
+  var appEl = document.getElementById('app');
+  var themeBtn = document.getElementById('theme-toggle');
+  function applyTheme(t){
+    appEl.setAttribute('data-theme', t);
+    themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+  }
+  applyTheme('light');
+  themeBtn.addEventListener('click', function(){
+    var cur = appEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(cur);
+  });
+
+  // observer toggle — off by default; reveals the Langfuse/OTel side-channel lane
+  var obsBtn = document.getElementById('observer-toggle');
+  function applyObserver(on){
+    appEl.setAttribute('data-observer', on ? 'on' : 'off');
+    obsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  applyObserver(false);
+  obsBtn.addEventListener('click', function(){
+    applyObserver(appEl.getAttribute('data-observer') !== 'on');
+  });
+})();
+</script>
+</div>
+</body>
+</html>
