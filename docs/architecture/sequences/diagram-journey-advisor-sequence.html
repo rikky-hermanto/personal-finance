@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PF-AI008 Advisor — Sequence</title>
+<style>
+  :root{
+    --bg:#f7f5f0; --bg-dot:#e7e3da; --text:#1c1c1e; --muted:#6b6b70;
+    --lane:#8a8a92; --lane-bg:#ffffff; --card-border:#d8d4c9;
+    --arrow:#3a3a40; --arrow-return:#8a8a92;
+    --loop-border:#c98a2c; --loop-bg:rgba(201,138,44,.06); --loop-label:#a3671c;
+    --note-bg:#fff9e8; --note-border:#e6d59a;
+    --accent-u:#4f6bd6; --accent-fe:#2f9e6b; --accent-ai:#c9862c; --accent-lg:#8a4fd6;
+    --accent-llm:#d64f8a; --accent-api:#2f8fd6; --accent-db:#5a5a62; --accent-obs:#4d7ea8;
+    --header:#141519; --header-text:#f2f0ea;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b0b0d; --bg-dot:#1a1a1d; --text:#eceef0; --muted:#9a9aa2;
+      --lane:#54545c; --lane-bg:#141519; --card-border:#2a2b31;
+      --arrow:#c9cad0; --arrow-return:#8a8a92;
+      --loop-border:#f0b429; --loop-bg:rgba(240,180,41,.08); --loop-label:#f0b429;
+      --note-bg:#1f1c10; --note-border:#4a3f1c;
+      --header:#000000; --header-text:#f2f0ea; --accent-obs:#8fc1e8;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0b0d; --bg-dot:#1a1a1d; --text:#eceef0; --muted:#9a9aa2;
+    --lane:#54545c; --lane-bg:#141519; --card-border:#2a2b31;
+    --arrow:#c9cad0; --arrow-return:#8a8a92;
+    --loop-border:#f0b429; --loop-bg:rgba(240,180,41,.08); --loop-label:#f0b429;
+    --note-bg:#1f1c10; --note-border:#4a3f1c;
+    --header:#000000; --header-text:#f2f0ea; --accent-obs:#8fc1e8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+  #app{color:var(--text);}
+  body{
+    background-image:radial-gradient(var(--bg-dot) 1px, transparent 1px);
+    background-size:18px 18px;
+  }
+  header{
+    position:sticky;top:0;z-index:20;background:var(--header);color:var(--header-text);
+    padding:14px 22px;display:flex;align-items:center;justify-content:space-between;
+    box-shadow:0 1px 0 rgba(0,0,0,.25);
+  }
+  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
+  header .sub{font-size:12px;color:#c9c9ce;margin-top:2px;font-weight:400}
+  .legend{display:flex;gap:14px;align-items:center;font-size:11.5px;color:#c9c9ce}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:3px;display:inline-block}
+  #theme-toggle, #observer-toggle{
+    background:transparent;border:1px solid #35363d;color:var(--header-text);
+    border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;
+  }
+  #observer-toggle[aria-pressed="true"]{background:var(--accent-obs);border-color:var(--accent-obs);color:#0b0b0d;font-weight:600}
+  #observer-layer{opacity:0;pointer-events:none;transition:opacity .15s ease}
+  #app[data-observer="on"] #observer-layer{opacity:1;pointer-events:auto}
+  .obs-line{stroke:var(--accent-obs);stroke-width:1.3;stroke-dasharray:1.5 3.5}
+  .obs-label{font-size:10.5px;fill:var(--accent-obs);font-style:italic}
+  #wrap{padding:26px 22px 60px;overflow-x:auto}
+  #stage{margin:0 auto;display:block}
+  .lane-card{fill:var(--lane-bg);stroke:var(--card-border);}
+  .lane-title{font-size:13.5px;font-weight:600;fill:var(--text)}
+  .lane-sub{font-size:10.5px;fill:var(--muted)}
+  .lane-line{stroke:var(--lane);stroke-width:1.4;stroke-dasharray:3 4}
+  .msg-line{stroke:var(--arrow);stroke-width:1.6;fill:none}
+  .msg-line.ret{stroke:var(--arrow-return);stroke-dasharray:5 4}
+  .msg-label{font-size:12px;fill:var(--text)}
+  .msg-label.ret{fill:var(--muted)}
+  .msg-index{font-size:10.5px;fill:var(--muted);font-weight:600}
+  .loop-box{fill:var(--loop-bg);stroke:var(--loop-border);stroke-width:1.3}
+  .loop-tab{fill:var(--loop-border)}
+  .loop-tab-text{font-size:11px;fill:#141414;font-weight:700}
+  .loop-caption{font-size:11.5px;fill:var(--loop-label);font-style:italic}
+  .note-box{fill:var(--note-bg);stroke:var(--note-border);stroke-width:1.1}
+  .note-text{font-size:11.5px;fill:var(--text)}
+  footer{max-width:900px;margin:0 auto 40px;padding:0 22px;color:var(--muted);font-size:12.5px;line-height:1.6}
+  footer code{background:var(--lane-bg);border:1px solid var(--card-border);border-radius:4px;padding:1px 5px;font-size:11.5px}
+  .warn{margin-top:18px;padding:10px 14px;border:1px dashed var(--card-border);border-radius:8px;background:var(--lane-bg)}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div>
+    <h1>PF-AI008 — Financial Health Advisor: request/response sequence</h1>
+    <div class="sub">One fulfilled turn of <code style="color:#e8e8ec">POST /advisor</code> — from user question to grounded answer</div>
+  </div>
+  <div class="legend">
+    <span><span class="dot" style="background:var(--accent-u)"></span>User</span>
+    <span><span class="dot" style="background:var(--accent-fe)"></span>Frontend</span>
+    <span><span class="dot" style="background:var(--accent-ai)"></span>AI Service</span>
+    <span><span class="dot" style="background:var(--accent-lg)"></span>LangGraph</span>
+    <span><span class="dot" style="background:var(--accent-llm)"></span>Claude</span>
+    <span><span class="dot" style="background:var(--accent-api)"></span>.NET API</span>
+    <span><span class="dot" style="background:var(--accent-db)"></span>Supabase/PG</span>
+    <span><span class="dot" style="background:var(--accent-obs)"></span>Observer</span>
+    <button id="observer-toggle" aria-pressed="false">🔭 Observer</button>
+    <button id="theme-toggle">🌙</button>
+  </div>
+</header>
+<div id="wrap">
+  <svg id="stage"></svg>
+</div>
+<footer>
+  <p><strong>Use case:</strong> user asks "Gimana kondisi keuangan saya bulan ini?" in the advisor chat.
+  The agent doesn't have the answer up front — it decides which of its 4 tools to call, fetches real
+  pyramid + cashflow data from the .NET API (backed by Supabase Postgres), reasons over the results, and
+  only then answers. The <span style="color:var(--loop-label)">amber box</span> is the ReAct loop
+  (<code>agent → tools → agent</code>) from <a href="#" style="color:inherit">financial_advisor.py</a> —
+  it runs once per tool the model decides it needs, twice in this example.</p>
+  <p><strong>What closes the loop:</strong> <code>should_continue</code> checks the last message for
+  <code>tool_calls</code>; once Claude replies with no further tool calls, the graph exits to <code>END</code>,
+  <code>MemorySaver</code> checkpoints the full state under <code>thread_id = session_id</code>, and
+  <code>AdvisorService</code> returns <code>{answer, session_id, steps_taken}</code> to the caller.</p>
+  <div class="warn">⚠️ Source: <code>.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md</code> (Steps 4–6).
+  Live 2-turn memory replay and Langfuse trace visibility are still blocked on a missing
+  <code>ANTHROPIC_API_KEY</code> per that plan's acceptance criteria — this diagram shows the designed/coded
+  single-turn flow, not a verified live trace. Regenerate via <code>/create-diagram</code> if the graph
+  topology changes.</div>
+</footer>
+</div>
+<script>
+(function(){
+  var ACTORS = [
+    {id:'u',   label:'User',        sub:'chat UI',                 color:'var(--accent-u)'},
+    {id:'fe',  label:'Frontend',    sub:'React advisor chat',      color:'var(--accent-fe)'},
+    {id:'ai',  label:'AI Service',  sub:'FastAPI · POST /advisor', color:'var(--accent-ai)'},
+    {id:'lg',  label:'LangGraph',   sub:'agent + ToolNode',        color:'var(--accent-lg)'},
+    {id:'llm', label:'Claude',      sub:'ChatAnthropic · sonnet',  color:'var(--accent-llm)'},
+    {id:'api', label:'.NET API',    sub:'journey / transactions',  color:'var(--accent-api)'},
+    {id:'db',  label:'Supabase PG', sub:'PostgREST · Postgres',    color:'var(--accent-db)'},
+    {id:'obs', label:'Observer',    sub:'Langfuse · OTel',         color:'var(--accent-obs)', observer:true}
+  ];
+
+  // step types: msg (solid, request), ret (dashed, response), loopstart, loopend, note,
+  // obs (dotted, fire-and-forget telemetry — toggled via header button, never numbered)
+  var STEPS = [
+    {t:'msg', from:'u', to:'fe', label:'"Gimana kondisi keuangan saya bulan ini?"'},
+    {t:'msg', from:'fe', to:'ai', label:'POST /advisor  {query, session_id:"sess-42"}'},
+    {t:'obs', from:'ai', to:'obs', label:'OTel: FastAPI span POST /advisor (auto-instrumented)'},
+    {t:'msg', from:'ai', to:'lg', label:'advisor_graph.ainvoke(state, thread_id=sess-42)'},
+    {t:'obs', from:'lg', to:'obs', label:'Langfuse CallbackHandler attached — traces every node this run'},
+
+    {t:'loopstart', label:'ReAct loop — agent ⇄ tools (runs per tool call, 2× here)'},
+
+    {t:'msg', from:'lg', to:'llm', label:'invoke(SYSTEM_PROMPT + messages, tools=TOOLS)'},
+    {t:'ret', from:'llm', to:'lg', label:'AIMessage(tool_calls=[get_pyramid_scores])'},
+    {t:'msg', from:'lg', to:'api', label:'GET /api/journey/state'},
+    {t:'msg', from:'api', to:'db', label:'SELECT journey scores (PostgREST)'},
+    {t:'ret', from:'db', to:'api', label:'rows → current_level, level_scores'},
+    {t:'ret', from:'api', to:'lg', label:'200 JourneyStateDto {currentLevel:2, levelScores:{L1:85, L2:42.5, L3:10}}'},
+
+    {t:'msg', from:'lg', to:'llm', label:'invoke(messages + ToolMessage(pyramid))  — re-reason'},
+    {t:'ret', from:'llm', to:'lg', label:'AIMessage(tool_calls=[get_cashflow_summary])'},
+    {t:'msg', from:'lg', to:'api', label:'GET /api/transactions/aggregated'},
+    {t:'msg', from:'api', to:'db', label:'SELECT aggregated transactions (current month)'},
+    {t:'ret', from:'db', to:'api', label:'rows → summary, currentMonth, topCategories'},
+    {t:'ret', from:'api', to:'lg', label:'200 DashboardDto {totalIncome, totalExpenses, net:3.0M, month:"2026-07"}'},
+
+    {t:'msg', from:'lg', to:'llm', label:'invoke(messages + ToolMessage(cashflow))  — re-reason'},
+    {t:'ret', from:'llm', to:'lg', label:'AIMessage(final answer, no tool_calls)'},
+
+    {t:'loopend'},
+
+    {t:'note', label:'should_continue → END · MemorySaver checkpoints state under thread_id="sess-42"'},
+    {t:'obs', from:'lg', to:'obs', label:'Langfuse: graph trace closed (3 generations, tokens, cost, latency)'},
+    {t:'ret', from:'lg', to:'ai', label:'AdvisorState {messages, session_id, steps_taken:2}'},
+    {t:'ret', from:'ai', to:'fe', label:'200 AdvisorResponse {answer, session_id, steps_taken:2}'},
+    {t:'ret', from:'fe', to:'u', label:'render answer bubble: "Anda di L2 Defense — dana darurat 42.5%..."'}
+  ];
+
+  var svgNS = 'http://www.w3.org/2000/svg';
+  function el(name, attrs){
+    var e = document.createElementNS(svgNS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  }
+
+  var MARGIN_X = 90, LANE_W = 158, LANE_TOP = 20, LANE_H = 54;
+  var ROW_H_MSG = 46, ROW_H_LOOP_PAD = 34, ROW_H_NOTE = 40;
+  var actorX = {};
+  ACTORS.forEach(function(a, i){ actorX[a.id] = MARGIN_X + i * LANE_W; });
+
+  // First pass: compute total height and loop box vertical spans
+  var y = LANE_TOP + LANE_H + 30;
+  var rows = []; // {y, step}
+  var loopStack = [];
+  var loopBoxes = []; // {y0, y1}
+  STEPS.forEach(function(s){
+    if (s.t === 'loopstart'){
+      loopStack.push({y0: y - 14, label: s.label});
+      rows.push({y: y, step: s});
+      y += ROW_H_LOOP_PAD;
+    } else if (s.t === 'loopend'){
+      var open = loopStack.pop();
+      loopBoxes.push({y0: open.y0, y1: y - 6, label: open.label});
+      y += 12;
+    } else if (s.t === 'note'){
+      rows.push({y: y, step: s});
+      y += ROW_H_NOTE;
+    } else {
+      rows.push({y: y, step: s});
+      y += ROW_H_MSG;
+    }
+  });
+  var totalH = y + 30;
+  var totalW = MARGIN_X * 2 + (ACTORS.length - 1) * LANE_W + 40;
+
+  var svg = document.getElementById('stage');
+  svg.setAttribute('width', totalW);
+  svg.setAttribute('height', totalH);
+  svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
+
+  var obsLayer = el('g', {id:'observer-layer'});
+  svg.appendChild(obsLayer);
+
+  // lifelines
+  ACTORS.forEach(function(a){
+    var x = actorX[a.id];
+    var target = a.observer ? obsLayer : svg;
+    var card = el('rect', {x: x-70, y: LANE_TOP, width:140, height:LANE_H, rx:10, class:'lane-card'});
+    target.appendChild(card);
+    var bar = el('rect', {x: x-70, y: LANE_TOP, width:5, height:LANE_H, rx:2, fill:a.color});
+    target.appendChild(bar);
+    var title = el('text', {x: x-52, y: LANE_TOP+24, class:'lane-title'});
+    title.textContent = a.label;
+    target.appendChild(title);
+    var sub = el('text', {x: x-52, y: LANE_TOP+40, class:'lane-sub'});
+    sub.textContent = a.sub;
+    target.appendChild(sub);
+    var line = el('line', {x1:x, y1: LANE_TOP+LANE_H, x2:x, y2: totalH-20, class:'lane-line'});
+    target.appendChild(line);
+  });
+
+  // loop boxes (draw before messages so they sit behind)
+  loopBoxes.forEach(function(b){
+    var xLeft = actorX['lg'] - 118;
+    var xRight = actorX['db'] + 90;
+    var box = el('rect', {x:xLeft, y:b.y0, width:(xRight-xLeft), height:(b.y1-b.y0), rx:8, class:'loop-box'});
+    svg.appendChild(box);
+    var tabW = 34, tabH = 20;
+    var tab = el('path', {
+      d: 'M '+xLeft+' '+b.y0+' h '+tabW+' v '+ (tabH-8) +' l -8 8 h -'+(tabW-8)+' z',
+      class:'loop-tab'
+    });
+    svg.appendChild(tab);
+    var tabText = el('text', {x:xLeft+7, y:b.y0+14, class:'loop-tab-text'});
+    tabText.textContent = 'loop';
+    svg.appendChild(tabText);
+    var cap = el('text', {x:xLeft+tabW+8, y:b.y0+14, class:'loop-caption'});
+    cap.textContent = b.label;
+    svg.appendChild(cap);
+  });
+
+  function arrowHead(x, y, dir){
+    // dir: 1 = pointing right, -1 = pointing left
+    var size = 7;
+    var pts = dir > 0
+      ? [[x,y],[x-size,y-size/1.6],[x-size,y+size/1.6]]
+      : [[x,y],[x+size,y-size/1.6],[x+size,y+size/1.6]];
+    return el('polygon', {points: pts.map(function(p){return p.join(',');}).join(' '), fill: 'currentColor'});
+  }
+
+  rows.forEach(function(r, idx){
+    var s = r.step, yy = r.y;
+    if (s.t === 'loopstart') return;
+    if (s.t === 'obs'){
+      var ox1 = actorX[s.from], ox2 = actorX['obs'];
+      var oline = el('line', {x1:ox1, y1:yy, x2:ox2, y2:yy, class:'obs-line'});
+      obsLayer.appendChild(oline);
+      var ohead = arrowHead(ox2, yy, 1);
+      ohead.setAttribute('color', 'var(--accent-obs)');
+      obsLayer.appendChild(ohead);
+      var olabel = el('text', {x:(ox1+ox2)/2, y:yy-8, class:'obs-label', 'text-anchor':'middle'});
+      olabel.textContent = '📡 ' + s.label;
+      obsLayer.appendChild(olabel);
+      return;
+    }
+    if (s.t === 'note'){
+      var xLeft = actorX['lg'] - 118, xRight = actorX['db'] + 90;
+      var nb = el('rect', {x:xLeft, y:yy-16, width:(xRight-xLeft), height:26, rx:6, class:'note-box'});
+      svg.appendChild(nb);
+      var nt = el('text', {x:xLeft+12, y:yy+1, class:'note-text'});
+      nt.textContent = '📝 ' + s.label;
+      svg.appendChild(nt);
+      return;
+    }
+    var x1 = actorX[s.from], x2 = actorX[s.to];
+    var dir = x2 > x1 ? 1 : -1;
+    var isRet = s.t === 'ret';
+    var line = el('line', {x1:x1, y1:yy, x2:x2, y2:yy, class: 'msg-line' + (isRet ? ' ret' : '')});
+    svg.appendChild(line);
+    var head = arrowHead(x2, yy, dir);
+    head.setAttribute('color', isRet ? 'var(--arrow-return)' : 'var(--arrow)');
+    svg.appendChild(head);
+
+    var midX = (x1 + x2) / 2;
+    var label = el('text', {
+      x: midX, y: yy - 8,
+      class: 'msg-label' + (isRet ? ' ret' : ''),
+      'text-anchor':'middle'
+    });
+    label.textContent = s.label;
+    svg.appendChild(label);
+
+    var num = el('text', {x: Math.min(x1,x2) - 18, y: yy+4, class:'msg-index', 'text-anchor':'end'});
+    num.textContent = (idx+1) + '.';
+    svg.appendChild(num);
+  });
+
+  // theme toggle
+  var appEl = document.getElementById('app');
+  var btn = document.getElementById('theme-toggle');
+  function applyTheme(t){
+    appEl.setAttribute('data-theme', t);
+    btn.textContent = t === 'dark' ? '☀️' : '🌙';
+  }
+  applyTheme('light');
+  btn.addEventListener('click', function(){
+    var cur = appEl.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    applyTheme(cur);
+  });
+
+  // observer toggle — off by default; reveals the Langfuse/OTel side-channel lane
+  var obsBtn = document.getElementById('observer-toggle');
+  function applyObserver(on){
+    appEl.setAttribute('data-observer', on ? 'on' : 'off');
+    obsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  applyObserver(false);
+  obsBtn.addEventListener('click', function(){
+    applyObserver(appEl.getAttribute('data-observer') !== 'on');
+  });
+})();
+</script>
+</div>
+</body>
+</html>

@@ -110,3 +110,7 @@ docs/ideas/prototypes/trading-desk/.thumbnail
 
 # Stray downloaded binaries
 *.exe
+
+# Added by /commit ignore — 2026-09-02
+# Confidential third-party/employer document, unrelated to this project — must not land in a public repo
+docs/architecture/quartext-tech-alignment-matrix.md

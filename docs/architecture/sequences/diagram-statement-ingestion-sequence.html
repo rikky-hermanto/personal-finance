@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statement Ingestion — Sequence</title>
+<style>
+  :root{
+    --bg:#f7f5f0; --bg-dot:#e7e3da; --text:#1c1c1e; --muted:#6b6b70;
+    --lane:#8a8a92; --lane-bg:#ffffff; --card-border:#d8d4c9;
+    --arrow:#3a3a40; --arrow-return:#8a8a92;
+    --loop-border:#c98a2c; --loop-bg:rgba(201,138,44,.06); --loop-label:#a3671c;
+    --alt-border:#4f6bd6; --alt-bg:rgba(79,107,214,.05); --alt-label:#3a53b0;
+    --phase-bg:rgba(120,120,130,.07); --phase-line:#c9c5ba; --phase-text:#6b6b70;
+    --note-bg:#fff9e8; --note-border:#e6d59a;
+    --db-bg:rgba(47,143,214,.10); --db-border:#8dbfe4;
+    --accent-u:#4f6bd6; --accent-fe:#2f9e6b; --accent-api:#c9862c; --accent-parse:#8a4fd6;
+    --accent-ai:#d64f8a; --accent-llm:#c0392b; --accent-svc:#2f8fd6; --accent-db:#5a5a62;
+    --accent-obs:#4d7ea8;
+    --header:#141519; --header-text:#f2f0ea; --header-sub:#c9c9ce; --header-border:#35363d;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0b0b0d; --bg-dot:#1a1a1d; --text:#eceef0; --muted:#9a9aa2;
+      --lane:#54545c; --lane-bg:#141519; --card-border:#2a2b31;
+      --arrow:#c9cad0; --arrow-return:#83838c;
+      --loop-border:#f0b429; --loop-bg:rgba(240,180,41,.08); --loop-label:#f0b429;
+      --alt-border:#6f8ae8; --alt-bg:rgba(111,138,232,.08); --alt-label:#8ea3ee;
+      --phase-bg:rgba(255,255,255,.04); --phase-line:#2f3037; --phase-text:#9a9aa2;
+      --note-bg:#1f1c10; --note-border:#4a3f1c;
+      --db-bg:rgba(47,143,214,.14); --db-border:#2f5f85; --accent-obs:#8fc1e8;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0b0b0d; --bg-dot:#1a1a1d; --text:#eceef0; --muted:#9a9aa2;
+    --lane:#54545c; --lane-bg:#141519; --card-border:#2a2b31;
+    --arrow:#c9cad0; --arrow-return:#83838c;
+    --loop-border:#f0b429; --loop-bg:rgba(240,180,41,.08); --loop-label:#f0b429;
+    --alt-border:#6f8ae8; --alt-bg:rgba(111,138,232,.08); --alt-label:#8ea3ee;
+    --phase-bg:rgba(255,255,255,.04); --phase-line:#2f3037; --phase-text:#9a9aa2;
+    --note-bg:#1f1c10; --note-border:#4a3f1c;
+    --db-bg:rgba(47,143,214,.14); --db-border:#2f5f85; --accent-obs:#8fc1e8;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;}
+  #app{color:var(--text)}
+  body{background-image:radial-gradient(var(--bg-dot) 1px, transparent 1px);background-size:18px 18px}
+  header{position:sticky;top:0;z-index:20;background:var(--header);color:var(--header-text);
+    padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:20px;
+    box-shadow:0 1px 0 rgba(0,0,0,.3)}
+  header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
+  header .sub{font-size:12px;color:var(--header-sub);margin-top:3px;font-weight:400}
+  .legend{display:flex;gap:13px;align-items:center;font-size:11.5px;color:var(--header-sub);flex-wrap:wrap;justify-content:flex-end}
+  .legend span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .swatch{width:20px;height:0;border-top:2px solid var(--header-sub);display:inline-block}
+  .swatch.dash{border-top-style:dashed}
+  #theme-toggle, #observer-toggle{background:transparent;border:1px solid var(--header-border);color:var(--header-text);
+    border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px}
+  #observer-toggle[aria-pressed="true"]{background:var(--accent-obs);border-color:var(--accent-obs);color:#0b0b0d;font-weight:600}
+  #observer-layer{opacity:0;pointer-events:none;transition:opacity .15s ease}
+  #app[data-observer="on"] #observer-layer{opacity:1;pointer-events:auto}
+  .obs-line{stroke:var(--accent-obs);stroke-width:1.3;stroke-dasharray:1.5 3.5}
+  .obs-label{font-size:10.3px;fill:var(--accent-obs);font-style:italic}
+  #wrap{padding:24px 22px 50px;overflow-x:auto}
+  #stage{display:block;margin:0 auto}
+  .lane-card{fill:var(--lane-bg);stroke:var(--card-border)}
+  .lane-title{font-size:13px;font-weight:600;fill:var(--text)}
+  .lane-sub{font-size:10px;fill:var(--muted)}
+  .lane-line{stroke:var(--lane);stroke-width:1.3;stroke-dasharray:3 4}
+  .msg-line{stroke:var(--arrow);stroke-width:1.6;fill:none}
+  .msg-line.ret{stroke:var(--arrow-return);stroke-dasharray:5 4}
+  .msg-label{font-size:11.8px;fill:var(--text)}
+  .msg-label.ret{fill:var(--muted)}
+  .msg-detail{font-size:10.3px;fill:var(--muted)}
+  .msg-index{font-size:10px;fill:var(--muted);font-weight:600}
+  .frag-box{fill:var(--loop-bg);stroke:var(--loop-border);stroke-width:1.25}
+  .frag-box.alt{fill:var(--alt-bg);stroke:var(--alt-border)}
+  .frag-tab{fill:var(--loop-border)}
+  .frag-tab.alt{fill:var(--alt-border)}
+  .frag-tab-text{font-size:10.5px;fill:#fff;font-weight:700}
+  .frag-caption{font-size:11px;fill:var(--loop-label);font-style:italic}
+  .frag-caption.alt{fill:var(--alt-label)}
+  .note-box{fill:var(--note-bg);stroke:var(--note-border);stroke-width:1.1}
+  .note-text{font-size:11.2px;fill:var(--text)}
+  .db-box{fill:var(--db-bg);stroke:var(--db-border);stroke-width:1.1}
+  .phase-band{fill:var(--phase-bg)}
+  .phase-text{font-size:11.5px;fill:var(--phase-text);font-weight:700;letter-spacing:.9px}
+  .phase-rule{stroke:var(--phase-line);stroke-width:1.1;stroke-dasharray:6 5}
+  footer{max-width:960px;margin:0 auto 46px;padding:0 22px;color:var(--muted);font-size:12.8px;line-height:1.65}
+  footer strong{color:var(--text)}
+  footer code{background:var(--lane-bg);border:1px solid var(--card-border);border-radius:4px;padding:1px 5px;font-size:11.5px}
+  .warn{margin-top:18px;padding:11px 15px;border:1px dashed var(--card-border);border-radius:8px;background:var(--lane-bg)}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div>
+    <h1>Bank Statement Ingestion — end-to-end sequence</h1>
+    <div class="sub">One Superbank PDF: drag-and-drop → LLM extraction → categorization → dedup → rows in Postgres</div>
+  </div>
+  <div class="legend">
+    <span><span class="swatch"></span>request</span>
+    <span><span class="swatch dash"></span>response</span>
+    <span style="color:var(--loop-label)">▮ loop / opt</span>
+    <span style="color:var(--alt-label)">▮ alt branch</span>
+    <span style="color:var(--accent-obs)">┄ Observer (Langfuse/OTel)</span>
+    <button id="observer-toggle" aria-pressed="false">🔭 Observer</button>
+    <button id="theme-toggle">🌙</button>
+  </div>
+</header>
+<div id="wrap"><svg id="stage"></svg></div>
+<footer>
+  <p><strong>The use case:</strong> the user drops <code>superbank-2026-07.pdf</code> into the Cashflow upload wizard.
+  It is a PDF with no deterministic layout, so it takes the LLM branch — the most complete path through the
+  pipeline. A BCA or Wise CSV would follow the identical shape with steps 10–15 replaced by a single in-process
+  <code>BcaCsvParser.ParseAsync()</code> call and no AI-service hop at all.</p>
+
+  <p><strong>Two HTTP requests, not one.</strong> <code>POST /upload-preview</code> parses and returns rows for
+  human review without writing anything; <code>POST /submit</code> is what actually persists. Nothing reaches
+  <code>transactions</code> until the user clicks submit — that is the design, and it is why deduplication runs
+  twice (once to tag rows amber in the preview, once as a hard filter at insert time).</p>
+
+  <p><strong>Deduplication is three-tier.</strong> Tier 1 is the SHA-256 file hash checked against
+  <code>uploaded_files</code> at step 4 — the same file twice returns <code>409 Conflict</code> before parsing costs
+  anything. Tiers 2/3 are the composite key <code>(date, amount_idr, description, account_name, flow,
+  bank_running_balance)</code> matched against a ±1-day window of existing rows, plus an in-batch pass so a file
+  that repeats a row internally doesn't import it twice.</p>
+
+  <p><strong>Categorization runs inside the parser, not after it</strong> — every parser ends with
+  <code>CategorizeBatchAsync()</code>, which resolves in four layers off two Supabase reads: description cache →
+  remarks cache → 106 user rules (longest keyword first) → preset dictionary. Rows nothing matches stay
+  <code>"Uncategorized"</code> and the user can hit <span style="white-space:nowrap">✦ Suggest</span> in the preview
+  for an LLM pass before submitting.</p>
+
+  <div class="warn">
+  ⚠️ <strong>Accuracy notes, verified against the code on 2026-09-01:</strong><br>
+  · The live path is <code>upload-preview</code> → <code>submit</code>. The 5-stage
+  <code>ITransactionPipelineService</code> (DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator →
+  DeduplicateCheck) is <em>only</em> called from <code>upload-preview-new</code>, the PF-S11 stub the frontend does
+  not call — so it is drawn greyed as not-on-this-path, not as a step this flow runs.<br>
+  · The Storage → Database Webhook → AI → Realtime event pipeline (PF-S11) is <strong>not built</strong>; ingestion
+  today is synchronous request/response as drawn.<br>
+  · Source: <code>TransactionsController.cs</code>, <code>BankIdentifier.cs</code>, <code>LlmPdfParser.cs</code>,
+  <code>CategoryRuleService.cs</code>, <code>TransactionService.cs</code>, <code>ai-service/app/main.py</code>.
+  Regenerate via <code>/create-diagram</code> after ingestion changes.
+  </div>
+</footer>
+</div>
+<script>
+(function(){
+  var ACTORS = [
+    {id:'u',     label:'User',          sub:'Cashflow › Upload',        color:'var(--accent-u)'},
+    {id:'fe',    label:'Frontend',      sub:'FileUpload wizard',        color:'var(--accent-fe)'},
+    {id:'api',   label:'.NET API',      sub:'TransactionsController',   color:'var(--accent-api)'},
+    {id:'parse', label:'Parser layer',  sub:'BankIdentifier · parsers', color:'var(--accent-parse)'},
+    {id:'ai',    label:'AI Service',    sub:'FastAPI · /parse-pdf',     color:'var(--accent-ai)'},
+    {id:'llm',   label:'Gemini',        sub:'gemini-2.5-flash · JSON',  color:'var(--accent-llm)'},
+    {id:'svc',   label:'App Services',  sub:'Category · Transaction',   color:'var(--accent-svc)'},
+    {id:'db',    label:'Supabase',      sub:'PostgREST · Postgres 17',  color:'var(--accent-db)'},
+    {id:'obs',   label:'Observer',      sub:'Langfuse · OTel',          color:'var(--accent-obs)', observer:true}
+  ];
+
+  var STEPS = [
+    {t:'phase', label:'PHASE 1 · PREVIEW — parse and review, nothing is written yet'},
+
+    {t:'msg', from:'u',  to:'fe',  label:'drop superbank-2026-07.pdf', detail:'wizard step 1 of 4'},
+    {t:'msg', from:'fe', to:'api', label:'POST /api/transactions/upload-preview', detail:'multipart: file + pdfPassword?'},
+    {t:'self', at:'api', label:'validate content-type, cap 10 MB, SHA-256 the bytes', detail:'hash = a91f…c204'},
+
+    {t:'msg', from:'api', to:'svc', label:'IsFileProcessedAsync(hash)'},
+    {t:'msg', from:'svc', to:'db',  label:'SELECT uploaded_files WHERE file_hash = …', db:true},
+    {t:'ret', from:'db',  to:'svc', label:'0 rows — file not seen before'},
+    {t:'ret', from:'svc', to:'api', label:'false', detail:'a hit here would short-circuit to 409 Conflict'},
+
+    {t:'msg', from:'api',   to:'parse', label:'IdentifyAsync(stream, "application/pdf")'},
+    {t:'self', at:'parse',  label:'IBankSignature chain — BCA · NeoBank · Superbank · Standard', detail:'no deterministic match on a Superbank PDF → BankKeys.LlmPdf'},
+    {t:'ret', from:'parse', to:'api',  label:'"LLM_PDF"'},
+
+    {t:'fragstart', kind:'alt', label:'alt — unrecognised PDF → LLM branch (a BCA/Wise CSV skips steps 10–15 entirely)'},
+    {t:'msg', from:'api',   to:'parse', label:'StatementImportService.ImportAsync(stream, "LLM_PDF")'},
+    {t:'msg', from:'parse', to:'ai',    label:'POST /parse-pdf', detail:'multipart file + password'},
+    {t:'obs', from:'ai', to:'obs', label:'OTel: FastAPI span POST /parse-pdf (auto-instrumented)'},
+    {t:'self', at:'ai',     label:'PyMuPDF extracts the text layer', detail:'pre-processing cuts LLM tokens 40–60%'},
+    {t:'msg', from:'ai',    to:'llm',   label:'extract_structured(superbank_v1 prompt, text)', detail:'temperature 0.0 · forced JSON schema'},
+    {t:'ret', from:'llm',   to:'ai',    label:'{ transactions: [ 45 rows ] }', detail:'date · description · flow · amount_idr · currency'},
+    {t:'obs', from:'ai', to:'obs', label:'Langfuse: gemini-extract-structured span (tokens, cost)'},
+    {t:'ret', from:'ai',    to:'parse', label:'200 PdfParseResponse', detail:'+ pages_processed'},
+    {t:'fragend'},
+
+    {t:'msg', from:'parse', to:'svc',  label:'CategorizeBatchAsync(45 rows)'},
+    {t:'msg', from:'svc',   to:'db',   label:'SELECT description, remarks, flow, category  ·  SELECT category_rules', db:true},
+    {t:'ret', from:'db',    to:'svc',  label:'history rows + 106 rules (longest keyword first)'},
+    {t:'self', at:'svc',    label:'4 layers: desc cache → remarks → rules → presets', detail:'no match stays "Uncategorized"'},
+    {t:'ret', from:'svc',   to:'parse', label:'rows tagged with category + type'},
+    {t:'ret', from:'parse', to:'api',   label:'List<TransactionDto>'},
+
+    {t:'msg', from:'api', to:'svc', label:'ResolveAccountIdsAsync — wallet text → account_id'},
+    {t:'msg', from:'svc', to:'db',  label:'SELECT accounts · institutions · wallet_account_alias', db:true},
+    {t:'ret', from:'db',  to:'svc', label:'alias hit, else fuzzy match (auto-learned into alias table)'},
+
+    {t:'msg', from:'api', to:'svc', label:'IdentifyDuplicatesAsync(rows)'},
+    {t:'msg', from:'svc', to:'db',  label:'SELECT transactions WHERE date BETWEEN min−1d AND max+1d', db:true},
+    {t:'ret', from:'db',  to:'svc', label:'existing rows in the window'},
+    {t:'ret', from:'svc', to:'api', label:'rows tagged isDuplicate', detail:'composite key + running-balance tie-break + in-batch pass'},
+
+    {t:'ret', from:'api', to:'fe', label:'200 { transactions: [45], hash }'},
+    {t:'ret', from:'fe',  to:'u',  label:'preview table — 42 new, 3 duplicates greyed out'},
+
+    {t:'fragstart', kind:'loop', label:'opt — user edits categories, or hits ✦ Suggest for an LLM pass over uncategorized rows'},
+    {t:'msg', from:'u',  to:'fe',  label:'fix a category / accept a suggestion'},
+    {t:'fragend'},
+
+    {t:'phase', label:'PHASE 2 · SUBMIT — this is where data reaches the database'},
+
+    {t:'msg', from:'u',  to:'fe',  label:'click "Submit 42 transactions"'},
+    {t:'msg', from:'fe', to:'api', label:'POST /api/transactions/submit', detail:'{ transactions, fileHash, fileName }'},
+
+    {t:'msg', from:'api', to:'svc', label:'EnsureCategoryRulesAsync + ResolveAccountIdsAsync', detail:'safety net — accountId can be dropped between preview and submit'},
+    {t:'msg', from:'api', to:'svc', label:'FilterOutDuplicatesAsync — hard filter this time'},
+    {t:'msg', from:'svc', to:'db',  label:'SELECT transactions (date window) — re-check', db:true},
+    {t:'ret', from:'db',  to:'svc', label:'existing rows'},
+
+    {t:'msg', from:'api', to:'svc', label:'AddTransactionsAsync(42 non-duplicates)'},
+    {t:'msg', from:'svc', to:'db',  label:'INSERT INTO transactions  ← the rows land here', db:true},
+    {t:'ret', from:'db',  to:'svc', label:'42 inserted rows with ids'},
+
+    {t:'msg', from:'api', to:'db', label:'INSERT uploaded_files(hash) · UPSERT wallet_account_alias', db:true, detail:'tier-1 guard armed for the next upload of this file'},
+
+    {t:'msg', from:'api', to:'ai', label:'POST /embed-transactions  — fire-and-forget', detail:'failure here must never break the import'},
+    {t:'obs', from:'ai', to:'obs', label:'OTel: FastAPI span POST /embed-transactions (auto-instrumented)'},
+    {t:'msg', from:'ai',  to:'db', label:'INSERT transaction_embeddings (pgvector, via asyncpg)', db:true},
+    {t:'obs', from:'ai', to:'obs', label:'Langfuse: embed-batch span (gemini-embedding-001, tokens, cost)'},
+
+    {t:'ret', from:'api', to:'fe', label:'200 { "42 transactions imported successfully.", transactions }'},
+    {t:'ret', from:'fe',  to:'u',  label:'wizard step 4 — done', detail:'Journey scores recalculate on the new rows'}
+  ];
+
+  var NS='http://www.w3.org/2000/svg';
+  function el(n,a){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);return e;}
+
+  var MARGIN_X=112, LANE_W=170, LANE_TOP=18, LANE_H=52;
+  var ROW_MSG=52, ROW_SELF=66, ROW_PHASE=52, FRAG_PAD_TOP=30, FRAG_PAD_BOT=16;
+  var ax={}; ACTORS.forEach(function(a,i){ ax[a.id]=MARGIN_X+i*LANE_W; });
+  // frame edges exclude the Observer lane so phase bands / fragment boxes keep
+  // their existing footprint whether or not the observer toggle is on
+  var REAL_ACTORS = ACTORS.filter(function(a){ return !a.observer; });
+  var LEFT_EDGE = MARGIN_X-80, RIGHT_EDGE = ax[REAL_ACTORS[REAL_ACTORS.length-1].id]+80;
+
+  var y = LANE_TOP+LANE_H+34, rows=[], stack=[], frags=[], phases=[];
+  STEPS.forEach(function(s){
+    if(s.t==='fragstart'){ stack.push({y0:y-16,label:s.label,kind:s.kind}); rows.push({y:y,s:s}); y+=FRAG_PAD_TOP; }
+    else if(s.t==='fragend'){ var o=stack.pop(); frags.push({y0:o.y0,y1:y-14,label:o.label,kind:o.kind}); y+=FRAG_PAD_BOT; }
+    else if(s.t==='phase'){ y+=14; phases.push({y:y,label:s.label}); y+=ROW_PHASE; }
+    else if(s.t==='self'){ rows.push({y:y,s:s}); y+=ROW_SELF; }
+    else { rows.push({y:y,s:s}); y+=ROW_MSG; }
+  });
+  var H=y+26, W=MARGIN_X*2+(ACTORS.length-1)*LANE_W+80;
+
+  var svg=document.getElementById('stage');
+  svg.setAttribute('width',W); svg.setAttribute('height',H);
+  svg.setAttribute('viewBox','0 0 '+W+' '+H);
+
+  var obsLayer = el('g', {id:'observer-layer'});
+  svg.appendChild(obsLayer);
+
+  // phase bands (behind everything)
+  phases.forEach(function(p){
+    svg.appendChild(el('rect',{x:LEFT_EDGE,y:p.y-26,width:(RIGHT_EDGE-LEFT_EDGE),height:34,rx:7,class:'phase-band'}));
+    svg.appendChild(el('line',{x1:LEFT_EDGE,y1:p.y+13,x2:RIGHT_EDGE,y2:p.y+13,class:'phase-rule'}));
+    var t=el('text',{x:LEFT_EDGE+16,y:p.y-4,class:'phase-text'}); t.textContent=p.label; svg.appendChild(t);
+  });
+
+  // fragment boxes
+  frags.forEach(function(f){
+    var x0=LEFT_EDGE+8, x1=RIGHT_EDGE-8, cls='frag-box'+(f.kind==='alt'?' alt':'');
+    svg.appendChild(el('rect',{x:x0,y:f.y0,width:(x1-x0),height:(f.y1-f.y0),rx:8,class:cls}));
+    var w = f.kind==='alt'?30:34;
+    svg.appendChild(el('path',{d:'M '+x0+' '+f.y0+' h '+w+' v 12 l -8 8 h -'+(w-8)+' z',class:'frag-tab'+(f.kind==='alt'?' alt':'')}));
+    var tt=el('text',{x:x0+7,y:f.y0+14,class:'frag-tab-text'}); tt.textContent=f.kind==='alt'?'alt':'opt'; svg.appendChild(tt);
+    var cp=el('text',{x:x0+w+9,y:f.y0+14,class:'frag-caption'+(f.kind==='alt'?' alt':'')}); cp.textContent=f.label; svg.appendChild(cp);
+  });
+
+  // lifelines
+  ACTORS.forEach(function(a){
+    var x=ax[a.id];
+    var target = a.observer ? obsLayer : svg;
+    target.appendChild(el('rect',{x:x-76,y:LANE_TOP,width:152,height:LANE_H,rx:10,class:'lane-card'}));
+    target.appendChild(el('rect',{x:x-76,y:LANE_TOP,width:5,height:LANE_H,rx:2,fill:a.color}));
+    var t=el('text',{x:x-58,y:LANE_TOP+23,class:'lane-title'}); t.textContent=a.label; target.appendChild(t);
+    var s=el('text',{x:x-58,y:LANE_TOP+39,class:'lane-sub'}); s.textContent=a.sub; target.appendChild(s);
+    target.appendChild(el('line',{x1:x,y1:LANE_TOP+LANE_H,x2:x,y2:H-14,class:'lane-line'}));
+  });
+
+  function head(x,y,dir,color){
+    var s=7, p = dir>0 ? [[x,y],[x-s,y-s/1.7],[x-s,y+s/1.7]] : [[x,y],[x+s,y-s/1.7],[x+s,y+s/1.7]];
+    return el('polygon',{points:p.map(function(q){return q.join(',');}).join(' '),fill:color});
+  }
+  function label(x,y,text,cls,anchor){
+    var t=el('text',{x:x,y:y,class:cls,'text-anchor':anchor||'middle'}); t.textContent=text; return t;
+  }
+
+  var n=0;
+  rows.forEach(function(r){
+    var s=r.s, yy=r.y;
+    if(s.t==='fragstart') return;
+    if(s.t==='obs'){
+      var ox1=ax[s.from], ox2=ax['obs'];
+      obsLayer.appendChild(el('line',{x1:ox1,y1:yy,x2:ox2,y2:yy,class:'obs-line'}));
+      obsLayer.appendChild(head(ox2,yy,1,'var(--accent-obs)'));
+      obsLayer.appendChild(label((ox1+ox2)/2,yy-9,'📡 '+s.label,'obs-label'));
+      return;
+    }
+    n++;
+
+    if(s.t==='self'){
+      var x=ax[s.at], w=26;
+      // Loop always drawn to the right of the lifeline; the label flips to the
+      // left for right-half actors so long text never runs off the canvas.
+      var rightHalf = x > (LEFT_EDGE+RIGHT_EDGE)/2;
+      var path=el('path',{d:'M '+x+' '+yy+' h '+w+' v 20 h -'+w,class:'msg-line'});
+      svg.appendChild(path);
+      svg.appendChild(head(x+3,yy+20,-1,'var(--arrow)'));
+      var lx = rightHalf ? x-14 : x+w+12, anc = rightHalf ? 'end' : 'start';
+      svg.appendChild(label(lx,yy+2,s.label,'msg-label',anc));
+      if(s.detail) svg.appendChild(label(lx,yy+17,s.detail,'msg-detail',anc));
+      svg.appendChild(label(rightHalf ? x+w+10 : x-24, yy+4, n+'.', 'msg-index', rightHalf?'start':'end'));
+      return;
+    }
+
+    var x1=ax[s.from], x2=ax[s.to], dir=x2>x1?1:-1, ret=(s.t==='ret');
+    var color = ret?'var(--arrow-return)':'var(--arrow)';
+
+    if(s.db){
+      var bx=Math.min(x1,x2), bw=Math.abs(x2-x1);
+      svg.appendChild(el('rect',{x:bx-4,y:yy-24,width:bw+8,height:30,rx:6,class:'db-box'}));
+    }
+
+    svg.appendChild(el('line',{x1:x1,y1:yy,x2:x2,y2:yy,class:'msg-line'+(ret?' ret':'')}));
+    svg.appendChild(head(x2,yy,dir,color));
+
+    var mid=(x1+x2)/2;
+    svg.appendChild(label(mid,yy-9,s.label,'msg-label'+(ret?' ret':'')));
+    if(s.detail) svg.appendChild(label(mid,yy+17,s.detail,'msg-detail'));
+    svg.appendChild(label(Math.min(x1,x2)-20,yy+4,n+'.','msg-index','end'));
+  });
+
+  var app=document.getElementById('app'), btn=document.getElementById('theme-toggle');
+  function theme(t){ app.setAttribute('data-theme',t); btn.textContent = t==='dark'?'☀️':'🌙'; }
+  theme('light');
+  btn.addEventListener('click',function(){ theme(app.getAttribute('data-theme')==='dark'?'light':'dark'); });
+
+  // observer toggle — off by default; reveals the Langfuse/OTel side-channel lane
+  var obsBtn = document.getElementById('observer-toggle');
+  function applyObserver(on){
+    app.setAttribute('data-observer', on ? 'on' : 'off');
+    obsBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  applyObserver(false);
+  obsBtn.addEventListener('click', function(){
+    applyObserver(app.getAttribute('data-observer') !== 'on');
+  });
+})();
+</script>
+</body>
+</html>
