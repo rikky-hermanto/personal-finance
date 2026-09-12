@@ -2,6 +2,8 @@
 
 Applies to `apps/api/`; also follow the root `AGENTS.md`.
 
+Read `../../.agents/rules/backend.md` and `../../.agents/rules/governance.md` for implementation and reviews.
+
 ## Architecture and conventions
 
 - Target .NET 10. The solution is `PersonalFinance.slnx` in this directory.

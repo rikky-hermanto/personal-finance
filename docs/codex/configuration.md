@@ -1,75 +1,33 @@
 # Codex adaptation inventory
 
-This setup adds independent Codex instructions and selected workflows. Claude files,
-including `.agents/.claude-plugin/plugin.json`, remain unchanged. There are no symlinks
-or automatic synchronization jobs between the two configurations.
+Codex has independent instructions, 32 adapted skills and six rules. Claude configuration remains unchanged. Both agents actively share `.claude/plans/`.
 
-## Mapping
-
-| Source | Codex destination / decision |
+| Source | Codex destination |
 |---|---|
-| Root `CLAUDE.md` and common rules | Root `AGENTS.md` |
-| Backend guide/rules | `apps/api/AGENTS.md` |
-| Frontend guide/rules | `apps/frontend/AGENTS.md` |
-| AI service rules | `services/ai-service/AGENTS.md` |
-| Zen UX and required base design principles | `.agents/skills/data-oriented-zenmode/`, self-contained with references |
-| Test workflow | `.agents/skills/test-all/` |
-| Local readiness workflow | `.agents/skills/ci-check/` |
-| REST endpoint workflow | `.agents/skills/add-endpoint/` |
-| Claude settings | Selected equivalents in `.codex/config.toml` and root instructions |
-| Existing mentor | Preserved without migration edits |
-| Other Claude skills | Not bulk-copied; remain available to Claude |
-| Claude plans/board | Read-only historical context for Codex; no automatic writes |
+| Root and service CLAUDE.md | Root and scoped AGENTS.md |
+| .claude/rules | .agents/rules, routed by AGENTS.md |
+| .claude/skills | .agents/skills; [inventory](skills-and-rules.md) |
+| Claude settings | Selected native settings in .codex/config.toml |
+| Plans, learning material and board | Shared .claude/plans; edit originals directly |
 
-## Settings decisions
+## Shared task state
 
-- Workspace-write sandbox and on-request approvals replace the broad Claude tool
-  allow list with Codex-native settings. Runtime/managed policies may override these
-  defaults; project configuration is loaded only for trusted projects.
-- Empty instruction fallback list avoids inheriting a user-level `CLAUDE.md` fallback.
-- Model selection remains in the user's Codex UI/profile; `opusplan` is not translated
-  into a guessed model or delegation strategy.
-- Destructive-action intent and no automatic AI co-author trailer are captured in
-  root instructions. Claude's tool-pattern strings are not valid Codex equivalents.
-- No extra writable directories, external notifications, MCP connections, or hook
-  commands are introduced.
+[Workflow conventions](../../.agents/WORKFLOWS.md) authorize plan creation, progress updates, board maintenance, learning material and archiving. Re-read before writing, preserve concurrent edits and avoid duplicate Codex plans. Respect the board's GitHub source-of-truth declaration; local edits do not imply remote synchronization or authorize remote mutations.
 
-The instruction to preserve Claude files is an agent behavior rule, not an OS-level
-write deny. Workspace-write alone does not make every `.claude` file read-only.
-This setup does not alter filesystem ACLs or claim a hard sandbox between agents.
+Non-plan Claude configuration, CLAUDE.md files, plugin metadata and Claude workflows remain protected. This separation is an instruction boundary, not a filesystem ACL.
 
-Configuration reference: [official Codex configuration documentation](https://learn.chatgpt.com/docs/config-file/config-basic).
+## Compatibility decisions
 
-## Separate agent and hook review
+Workspace-write and on-request approvals are project defaults; managed policies may override them. The empty instruction fallback list avoids inheriting CLAUDE.md. Model selection stays with the user. Claude tool allowlists, model routing, MCP connections and notification hooks are not imported.
 
-| Existing item | Review result |
-|---|---|
-| `planner` agent | Assumes GitHub issues and writes `.claude/plans`. Keep task context readable, use conversation plans or requested `docs/codex/plans/` files; do not enable the agent definition. |
-| `code-reviewer` agent | Contains obsolete EF conventions. Current architecture and review concerns are represented in scoped instructions; no subagent config added. |
-| `test-writer` agent | Uses removed EF InMemoryDatabase and old paths. Current testing conventions are in scoped instructions and test skills; do not copy its templates. |
-| `plan-complete-sync.py` | Mutates Claude board. Not enabled or executed by this adaptation. |
-| `skill-review-reminder.py` | Claude-specific hook payload. Not enabled; skill changes remain deliberate task work. |
-| `push-notify.sh` | Sends an external ntfy notification. Not enabled or executed. |
+Adaptations use current apps/services paths, Supabase persistence, Application DTOs, provider-based extraction and service-specific checks. Zen remains the default frontend UX. Local readiness checks are not guarantees about remote CI.
 
-## Compatibility corrections
+The mentor curriculum is retained with workflow/path compatibility edits. Claude's mentor skill already points at this shared .agents skill; its pointer and plugin manifest remain unchanged. No automatic configuration synchronization is installed.
 
-The Codex adaptation uses current `apps/` and `services/` paths, Supabase persistence,
-Application DTOs, existing desk/macro Vitest suites, extraction `account_name`, both
-Gemini and Anthropic extraction modes, and explicit app/node TypeScript checks.
-It does not claim the local readiness checks are enforced by current GitHub CI.
-
-Zen guidance resolves conflicting hover-only versus persistent navigation in favor
-of visible recessed navigation, preserves dark mode, and includes keyboard/touch
-access and reduced motion. Existing mentor and plugin metadata were not rewritten.
+Planner behavior is covered by plan/execute skills using shared plans. Reviewer/test-writer definitions contain older EF assumptions; current conventions are in Codex skills and scoped instructions. No Claude agents or hooks were enabled or executed.
 
 ## Usage
 
-Open a fresh Codex session after configuration changes. Ask to use `test-all`,
-`ci-check`, or `add-endpoint` by name; Zen guidance is also referenced directly by
-the frontend instructions. If the UI groups these skills under `mentor`, the existing
-Claude plugin manifest's name explains that label; the manifest is preserved.
-Discovery may depend on the client. The root instructions also point to each skill
-so Codex can read the local file explicitly.
+Ask for a skill by name or read its SKILL.md directly. Refresh the client if discovery metadata is stale. The existing plugin name may group skills under mentor; its manifest has not been renamed.
 
-No app behavior, dependencies, Claude workflows, board history, or model choice is
-changed by this setup. No commit/push or live notification is performed.
+Run `node .agents/scripts/validate-setup.cjs` to check coverage, metadata, concrete links and helper syntax. This validates setup integrity, not application behavior or live providers.

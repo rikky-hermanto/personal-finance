@@ -1,0 +1,122 @@
+{
+  "schema_version": "1.0",
+  "claude_version": "2.1.207",
+  "started_at": "2026-09-12T02:42:47.422Z",
+  "duration_seconds": 169,
+  "cost_usd": 0.49946760000000007,
+  "partial": false,
+  "plugins": [
+    {
+      "name": ".agents",
+      "path": "C:\\workspaces\\personal-finance\\.agents"
+    }
+  ],
+  "cases": [
+    {
+      "name": "01-materi-id-structure",
+      "dir": "evals\\01-materi-id-structure",
+      "source": "case_yaml",
+      "score": 0.36363636363636365,
+      "pass_rate": 0,
+      "runs": [
+        {
+          "score": 0.36363636363636365,
+          "turns": 5,
+          "cost_usd": 0.49946760000000007,
+          "judge_cost_usd": 0,
+          "graders": [
+            {
+              "name": "eight-headings-in-exact-order",
+              "passed": false,
+              "weight": 3,
+              "explanation": "pattern not found in last_message"
+            },
+            {
+              "name": "no-stage-numbered-headings",
+              "passed": true,
+              "weight": 2,
+              "explanation": "pattern absent as expected"
+            },
+            {
+              "name": "no-numbered-subsections",
+              "passed": true,
+              "weight": 1,
+              "explanation": "pattern absent as expected"
+            },
+            {
+              "name": "no-pedagogy-vocabulary-leak",
+              "passed": true,
+              "weight": 1,
+              "explanation": "pattern absent as expected"
+            },
+            {
+              "name": "natural-indonesian-register",
+              "passed": false,
+              "weight": 2,
+              "explanation": "grader threw: judge call failed: Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access"
+            },
+            {
+              "name": "opens-with-real-project-failure",
+              "passed": false,
+              "weight": 2,
+              "explanation": "grader threw: judge call failed: Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access"
+            }
+          ],
+          "trace_path": "C:\\Users\\rikky\\AppData\\Local\\Temp\\claude-eval-wZneAA\\out\\trace.jsonl",
+          "error": null
+        }
+      ],
+      "pass_rate_without": 0,
+      "runs_without": [
+        {
+          "score": 0.36363636363636365,
+          "turns": 1,
+          "cost_usd": 0,
+          "judge_cost_usd": 0,
+          "graders": [
+            {
+              "name": "eight-headings-in-exact-order",
+              "passed": false,
+              "weight": 3,
+              "explanation": "pattern not found in last_message"
+            },
+            {
+              "name": "no-stage-numbered-headings",
+              "passed": true,
+              "weight": 2,
+              "explanation": "pattern absent as expected"
+            },
+            {
+              "name": "no-numbered-subsections",
+              "passed": true,
+              "weight": 1,
+              "explanation": "pattern absent as expected"
+            },
+            {
+              "name": "no-pedagogy-vocabulary-leak",
+              "passed": true,
+              "weight": 1,
+              "explanation": "pattern absent as expected"
+            },
+            {
+              "name": "natural-indonesian-register",
+              "passed": false,
+              "weight": 2,
+              "explanation": "grader threw: judge call failed: Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access"
+            },
+            {
+              "name": "opens-with-real-project-failure",
+              "passed": false,
+              "weight": 2,
+              "explanation": "grader threw: judge call failed: Your organization has disabled Claude subscription access for Claude Code · Use an Anthropic API key instead, or ask your admin to enable access"
+            }
+          ],
+          "trace_path": "C:\\Users\\rikky\\AppData\\Local\\Temp\\claude-eval-NBWFsi\\out\\trace.jsonl",
+          "error": "exit 1: (no stderr)"
+        }
+      ],
+      "score_without": 0.36363636363636365,
+      "delta": 0
+    }
+  ]
+}

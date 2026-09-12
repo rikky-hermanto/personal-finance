@@ -3,9 +3,9 @@
 ## Scope and isolation
 
 - This file and the nested `AGENTS.md` files are the Codex instruction layer.
-- Preserve `CLAUDE.md`, all nested `CLAUDE.md` files, `.claude/`, and Claude GitHub workflows. Do not edit, move, synchronize, or auto-update them unless the user explicitly requests it.
+- Preserve Claude configuration: all `CLAUDE.md` files, `.claude/settings*`, `.claude/skills/`, `.claude/rules/`, `.claude/agents/`, `.claude/hooks/`, other non-plan Claude files, and Claude GitHub workflows. `.claude/plans/` is the explicitly authorized shared task workspace: Codex may create, edit, archive plans, maintain learning material, and update its board as part of active task management.
 - Do not execute or import Claude settings, permissions, hooks, agent definitions, or model routing. Independently adapted Codex settings live in `.codex/config.toml`. Do not add `CLAUDE.md` as an instruction fallback. These Codex instructions are self-contained.
-- Preserve existing mentor content, `.agents/.claude-plugin/plugin.json`, and `.agents/evals/` unless the task specifically concerns them. The Claude plugin manifest is not the Codex configuration file.
+- Preserve the mentor curriculum and learning preferences, `.agents/.claude-plugin/plugin.json`, and `.agents/evals/` unless the task specifically concerns them. The Claude plugin manifest is not the Codex configuration file.
 - Before editing a service, read its `AGENTS.md`, including when working from the repository root: `apps/api/AGENTS.md`, `apps/frontend/AGENTS.md`, and `services/ai-service/AGENTS.md`.
 
 ## Product and architecture
@@ -47,14 +47,19 @@ From the repository root, frontend checks are `npm run lint` and `npm run build`
 
 `npm start` launches Supabase, monitoring containers, API, frontend, and AI service; use it when the task needs the full stack, not for instruction-only edits. Playwright starts the frontend itself; relevant backend services must still be available.
 
-Existing `.claude/plans/` and its board may be read for task context, but Codex must not mutate them under the isolation policy. Keep routine plans in the conversation. If a persistent Codex plan is requested, use `docs/codex/plans/` and a descriptive filename; do not hardcode the next PF ticket number or create a duplicate task board.
+Use `.claude/plans/` and `BOARD.md` as the shared plan workspace for both agents. Edit the original plan directly; do not create a second Codex plan tree or board. Re-read before writing, preserve concurrent edits, and keep plan/board status consistent. Read the board's source-of-truth declaration for GitHub-linked tasks; local plan management does not itself authorize remote issue mutations. See `.agents/WORKFLOWS.md`.
 
 ## Codex workflows
 
-Selected independent skills live in `.agents/skills/`: `data-oriented-zenmode` for
-frontend UX, `test-all` for a test sweep, `ci-check` for build/type/test readiness,
-and `add-endpoint` for REST implementation. Read the applicable skill when using
-that workflow. Existing `mentor` remains available with its own scope.
+All 32 Claude skill names have Codex counterparts in `.agents/skills/`. Read the
+applicable skill and `.agents/WORKFLOWS.md` when using a workflow. Discovery and
+capability mapping are documented in `docs/codex/skills-and-rules.md`.
+
+Read `.agents/rules/governance.md` for cross-cutting implementation/review work and
+`.agents/rules/finance-domain.md` for financial logic, specifications, and displays.
+Read backend/frontend/ai-service rules for their corresponding service; read Docker
+rules for Dockerfiles, compose, Supabase local startup, and monitoring changes.
+Rule files are loaded through these explicit instructions, not Claude glob metadata.
 
 For the migration inventory, settings rationale, and agent/hook review, see
 `docs/codex/configuration.md`. No Claude hook or subagent configuration is enabled
