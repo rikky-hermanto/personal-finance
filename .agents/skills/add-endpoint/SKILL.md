@@ -5,6 +5,8 @@ description: Add or extend a Personal Finance REST endpoint using the current .N
 
 # Add an endpoint
 
+Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+
 Read `apps/api/AGENTS.md` and the nearest existing controller, handler, validator,
 service, DTO, and tests matching the requested behavior. Infer entity, operation,
 fields, and acceptance criteria from the task; ask only for essential missing details.
@@ -43,4 +45,5 @@ Add meaningful tests for success, invalid input, missing records, and relevant f
 or authorization boundaries. Use xUnit/Moq or pure logic, not EF InMemoryDatabase.
 Run focused tests, then the appropriate build and broader checks for the changed
 surfaces. Report route/method, observable behavior, tests, and unapplied migrations.
-Do not update Claude plans or create a commit merely because an endpoint was added.
+Update the shared plan/board when implementing a tracked task. Do not create a
+commit merely because an endpoint was added.

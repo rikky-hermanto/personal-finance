@@ -10,6 +10,8 @@ description: >
 
 # Data-oriented Zen UX
 
+Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+
 This is the independent Codex adaptation of the project's Zen design guidance.
 It includes the required base-theme principles; no Claude skill or configuration
 is required at runtime. Do not synchronize changes back to `.claude/`.

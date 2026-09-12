@@ -5,6 +5,8 @@ description: Run Personal Finance's local backend, AI service, and frontend unit
 
 # Test all
 
+Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+
 Read root and relevant service `AGENTS.md` files. Check installed tools and environments
 before running; report unavailable checks without presenting them as passes.
 
@@ -34,5 +36,6 @@ allows. A test-only request is not authorization for unrelated code rewrites;
 fix failures when the surrounding task includes fixing them. Never weaken assertions
 or resurrect EF Core fixtures to get a green result.
 
-Do not modify Claude plans, hooks, or configuration. End with a concise per-suite
+Record relevant task verification in the shared plan. Preserve non-plan Claude
+configuration and hooks. End with a concise per-suite
 result and any missing coverage.

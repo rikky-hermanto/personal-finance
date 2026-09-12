@@ -2,6 +2,8 @@
 
 Applies to `apps/frontend/`, including configuration and `src/`; also follow the root `AGENTS.md`.
 
+Read `../../.agents/rules/frontend.md` for implementation and reviews. For paginated/filterable data tables, also read `../../.agents/skills/datatable/SKILL.md`.
+
 ## Implementation
 
 - React 18 functional components, TypeScript, Vite. Use `@/` for source imports (maps to `src/`), and package names for dependency imports.

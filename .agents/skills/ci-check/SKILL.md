@@ -5,6 +5,8 @@ description: Check Personal Finance's local build, test, lint, and TypeScript re
 
 # Local readiness checks
 
+Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+
 Read root and service `AGENTS.md` files and inspect the current diff. These are local
 readiness checks, not a claim that GitHub workflows enforce them. Inspect actual
 workflow files before describing remote CI. Running this skill alone does not

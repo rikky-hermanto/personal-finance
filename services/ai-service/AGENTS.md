@@ -2,6 +2,8 @@
 
 Applies to `services/ai-service/`; also follow the root `AGENTS.md`.
 
+Read `../../.agents/rules/ai-service.md` and `../../.agents/rules/governance.md` for implementation and reviews.
+
 ## Implementation and providers
 
 - Use `pyproject.toml` as the dependency/runtime source of truth (currently Python >=3.11.9), and preserve intentional dependency upper bounds.
