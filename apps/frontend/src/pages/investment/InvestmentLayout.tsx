@@ -8,6 +8,7 @@ const TABS = [
   { value: 'snapshots',     label: 'Snapshots',     path: '/investment/snapshots' },
   { value: 'ai-review',     label: 'AI Review',     path: '/investment/ai-review' },
   { value: 'trading-desk',  label: 'Trading Desk',  path: '/desk' },
+  { value: 'lab',           label: 'Lab',           path: '/lab' },
 ];
 
 const InvestmentLayout = () => {

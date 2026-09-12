@@ -131,6 +131,9 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IDeskService, DeskService>();
             builder.Services.AddScoped<IDeskMandateService, DeskMandateService>();
 
+            // Macro Scenario Lab (PF-140)
+            builder.Services.AddScoped<IMacroScenarioService, MacroScenarioService>();
+
             // Journey module
             builder.Services.AddScoped<IInsightService, InsightService>();
             builder.Services.AddScoped<IJourneyScoringService, JourneyScoringService>();

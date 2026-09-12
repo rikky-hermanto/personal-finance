@@ -2,7 +2,7 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-08-09
+> **Last synced:** 2026-09-02
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -80,6 +80,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
 | PF-128 | _(no issue)_ | Superbank PDF Parser: bank-specific LLM prompt + dispatch map |
 | PF-S10 | [#73](https://github.com/rikky-hermanto/personal-finance/issues/73) | Supabase Storage — bank-statements bucket + StorageService + upload endpoint |
+| PF-140 | _(no issue)_ | Macro Scenario Lab — ported macro-economy solver from throwaway reference artifact as a pure domain module (`src/lib/macroScenario/`), personalized against real portfolio/spending/liability data instead of generic weights, backend-persisted saved scenarios, comparison mode. Full "Big Bang" scope per user direction. plan: [`.claude/plans/PF-140-macro-scenario-lab-todo.md`](.claude/plans/PF-140-macro-scenario-lab-todo.md) |
 
 ---
 
@@ -184,6 +185,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Absorbed into PF-S06 (supabase-csharp handler rewrite — AI results written back directly) |
 | PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | Completed — `providers/{factory,anthropic,gemini}.py` exist; provider abstraction is live |
 | PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Superseded by PF-S08/PF-S09 (Supabase GoTrue replaces Auth0) |
+| PF-140 | _(no issue)_ | Macro Scenario Lab |
 
 ---
 
@@ -200,5 +202,5 @@ Monitoring: ████████████████████ 100% (3
 Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
 ```
 
-> Next task ID: **PF-140** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI013)
+> Next task ID: **PF-141** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI013)
 > PF-134 is reserved for Trading Desk Phase 2 (Pre-Trade + Journal + gated trade-plan persistence), PF-135 for the deferred gate rules (correlation groups, FX staleness, sector concentration, liquidity).
