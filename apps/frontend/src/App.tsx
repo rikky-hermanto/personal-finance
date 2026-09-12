@@ -43,6 +43,7 @@ import CommandTab from '@/pages/desk/CommandTab';
 import PortfolioTab from '@/pages/desk/PortfolioTab';
 import MandateTab from '@/pages/desk/MandateTab';
 import ReconcileTab from '@/pages/desk/ReconcileTab';
+import MacroLabPage from '@/pages/lab/MacroLabPage';
 
 const queryClient = new QueryClient();
 
@@ -106,6 +107,8 @@ const App = () => (
               <Route path="mandate" element={<MandateTab />} />
               <Route path="reconcile" element={<ReconcileTab />} />
             </Route>
+            {/* Macro Scenario Lab — separate top-level module (PF-140), tabbed alongside Investment */}
+            <Route path="/lab" element={<MacroLabPage />} />
           </Route>
           <Route path="/status" element={<StatusPage />} />
           <Route path="*" element={<NotFound />} />
