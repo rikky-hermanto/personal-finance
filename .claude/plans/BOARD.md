@@ -12,6 +12,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-AI008 | _(no issue)_ | LangGraph Financial Health Advisor — completed 2026-09-15 by user acceptance. Gemini-default factory and bounded execution; AdvisorService and Langfuse ACTs accepted. 41 advisor tests passed; full suite 193 passed/1 prior failure. Live turn 2, scenario suite and visual dashboard check deferred; dependency issues retained. [Plan](learning/PF-AI008-langgraph-financial-advisor.md). |
 | PF-AI003b | _(no issue)_ | Embedding Provider Toggle (OpenAI ⇄ Gemini) |
 | PF-AI004 | _(no issue)_ | RAG Phase 2 — Chunking, Re-ranking, Generation |
 | PF-AI005 | _(no issue)_ | Streaming + Production UX (SSE) — completed 2026-07-06; follow-up in PF-AI005-PART2 |
@@ -122,7 +123,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI008 | LangGraph — Stateful Financial Health Advisor | Local plan update 2026-09-15 (no GitHub sync): original Anthropic-only graph implemented; Gemini-default/provider-agnostic revision R1–R5 planned for a separate implementation chat. Mocked checks and opt-in live Gemini gates pending; no Anthropic purchase required. Plan: [PF-AI008](learning/PF-AI008-langgraph-financial-advisor.md). |
 | PF-AI005-PART2 | Answer Accuracy — Query Routing, SQL Aggregation, Grounded Streaming | Fixes 2026-07-08 UI-test hallucinations (fabricated Feb PLN total, denied April food data — SQL shows 43 rows / Rp 2,309,954). **Code + unit tests complete (2026-07-09):** `query_planner.py`, `aggregator.py`, routed `/ask` + `/ask/stream` (buffer-while-forward marker guard), per-message frontend sources + unverified badge; 25 tests green, frontend build+lint clean. **Live-verified 2026-07-14** (Supabase up): 2 explicit-month chat queries matched source data exactly. **Blocked on Gemini's 20 req/day free-tier quota** (not infra) for the formal numeric eval (`eval_numeric_accuracy.py`) + STEP 8 metrics — deferred until a paid-tier subscription (Gemini paid or funded Anthropic). plan: [`.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md`](.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md) |
 
 ## To Do — AI Learning Track
