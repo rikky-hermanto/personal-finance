@@ -1,12 +1,14 @@
 # PF-AI008 — LangGraph: Stateful Financial Health Advisor
 
 > **Learning Phase:** Phase 2 · Chapter 8 of 12 · Day ~45 of 90
-> **Status:** In Progress — code + unit tests complete (10/10 green); live smoke test (Step 8) and eval scenarios (Step 10) blocked on missing `ANTHROPIC_API_KEY`
+> **Status:** In Progress — original Anthropic-only graph implemented; provider-agnostic revision planned, implementation deferred to a separate chat. Historical advisor tests: 10/10 green; revised behavior and live scenarios remain unverified.
+> **Revision:** 2026-09-15 — Gemini-default, configurable LLM provider; learning-first cost constraints. Execute R1–R5 below before resuming the outstanding original steps. No Anthropic purchase is a prerequisite.
 > **Planned from branch:** main
 > **Pivot goal:** Build a multi-step conversational agent with LangGraph — state, conditional routing, tool use, conversation memory, and error handling. After this chapter, you have the dominant agent framework in current AI Eng JDs checked off with a real, demo-able artifact grounded in your own financial data.
 
 # 📑 Table of Contents
 
+- [Provider-agnostic revision — execution handoff](#provider-agnostic-revision--execution-handoff)
 - [📖 Introduction](#-introduction)
   - [High level — what is this?](#high-level--what-is-this)
   - [StateGraph vs. a hand-rolled loop](#stategraph-vs-a-hand-rolled-loop)
@@ -34,10 +36,102 @@
     - [STEP 9 — Unit tests for graph routing (`tests/test_advisor_agent.py`)](#--step-9--unit-tests-for-graph-routing-teststest_advisor_agentpy)
     - [STEP 10 — Write 5 evaluation scenarios (`evals/advisor_scenarios.json`)](#--step-10--write-5-evaluation-scenarios-evalsadvisor_scenariosjson)
     - [STEP 11 — Update `docs/performances/ai-observability-metrics.md`](#--step-11--update-docsperformancesai-observability-metricsmd)
-    - [STEP 12 — Full test pass + commit](#--step-12--full-test-pass--commit)
+    - [STEP 12 — Full test pass and review](#--step-12--full-test-pass-and-review)
     - [STEP 13 — Log progress](#--step-13--log-progress)
   - [📌 Notes](#-notes)
   - [📝 Knowledge Check](#-knowledge-check)
+
+## Provider-agnostic revision — execution handoff
+
+**User context (2026-09-15):** Personal Finance is the vehicle for learning AI Engineering and validating a possible product. Prefer free or inexpensive tools while learning; consider premium services when measured quality/capacity needs justify the expense. The user has no Anthropic API key. Missing that key must not prevent learning LangGraph.
+
+**Status boundary:** This revision changes the plan only. The current `financial_advisor.py` still hardcodes `ChatAnthropic(model="claude-sonnet-4-6")`. Earlier checked steps and verification notes record the original implementation; they do not certify this revision. Preserve that history, and use the unchecked revision criteria below as the current execution contract.
+
+### Decision and learning ladder
+
+1. **Direct vendor construction:** easy to start, but the current graph requires a second vendor account despite the service defaulting to Gemini.
+2. **Small chat-model factory (selected):** read `AI_PROVIDER` + `AI_MODEL`, construct the corresponding LangChain chat adapter, then bind the same `TOOLS`. The graph consumes standard messages and `AIMessage.tool_calls`.
+3. **Universal gateway or broad provider registry:** defer until there is a concrete third-provider need. Do not add a gateway service or dependency just for this chapter.
+
+Scores: 1 = poor, 5 = strong. These are design judgments, not benchmarks.
+
+| Approach | Cost fit now | Integration fit | Testability | Simplicity | Total |
+|---|---:|---:|---:|---:|---:|
+| Hardcoded Anthropic | 1 | 2 | 3 | 5 | 11 |
+| Small LangChain chat factory | 5 | 5 | 5 | 4 | 19 |
+| Universal gateway/registry | 3 | 3 | 4 | 2 | 12 |
+
+**Decisive tradeoff:** the small factory removes the credential blocker while retaining the graph, tools, and learning objectives. Provider-agnostic means the graph can use supported adapters; it does not mean every model supports tools or produces equally good answers.
+
+**C# analogy:** constructing `ChatAnthropic` inside the graph is like constructing a vendor-specific HTTP client inside a handler. A factory returning LangChain's `BaseChatModel` is analogous to resolving a common client interface through DI. Bind tools after construction; `.bind_tools()` returns a runnable, so the bound result should not be annotated as `ChatAnthropic` or an unbound `BaseChatModel`.
+
+**References checked 2026-09-15:** [LangChain Gemini integration and tool calling](https://docs.langchain.com/oss/python/integrations/chat/google_generative_ai), [Gemini rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), [Gemini pricing and data use](https://ai.google.dev/gemini-api/docs/pricing). Current web examples can target newer libraries than this repository: preserve its compatibility bounds and inspect the installed API. Historical quota observations in the progress log are not a guarantee of today's limits.
+
+### Configuration and scope
+
+- Reuse `AI_PROVIDER` and `AI_MODEL`; current code defaults are `gemini` and `gemini-2.5-flash`. Verify model availability for the account before any live test. Do not silently replace a configured model.
+- `gemini` selects `ChatGoogleGenerativeAI` with `settings.gemini_api_key`; `anthropic` selects `ChatAnthropic` with `settings.anthropic_api_key`. Require only the selected key. Pass the Gemini key explicitly using the installed adapter's supported argument.
+- Switching provider requires a matching `AI_MODEL`; fail clearly for a missing key, unsupported provider, or obvious provider/model mismatch. Do not hardcode an exhaustive model catalog or silently route elsewhere.
+- No separate `ADVISOR_PROVIDER`/`ADVISOR_MODEL` for now. Changing shared configuration also affects existing consumers; document this. Independent workload overrides can be added when there is a real need.
+- Add `app/agents/chat_model_factory.py` returning an unbound `BaseChatModel`. Keep `_build_llm()` as the small factory-plus-`bind_tools(TOOLS)` boundary for easy mocking.
+- Keep extraction `app/providers/factory.py` and `LlmProvider` unchanged: their structured extraction/streaming contract is different from chat messages and tool calls.
+- Preserve financial formulas, HTTP contracts, tools, graph routing, and memory behavior. No UI, database, embedding-provider, gateway, or third-provider work.
+
+### Revision acceptance criteria
+
+- [ ] `AI_PROVIDER=gemini` constructs and binds the Gemini adapter when the Anthropic key is empty; no Anthropic client is instantiated.
+- [ ] Explicit Anthropic selection constructs its adapter with the configured model and only its key. No live Anthropic call is required for acceptance.
+- [ ] Selected-provider configuration errors enter the existing controlled failure path; client responses do not include credentials or raw provider exceptions. Factory construction is inside the error boundary.
+- [ ] Gemini adapter is a runtime dependency, with `langchain-google-genai>=2.0,<3.0`; preserve `langgraph>=0.2,<1.0`, `langchain-anthropic>=0.3,<1.0`, and existing eval compatibility bounds. No duplicate dev declaration.
+- [ ] Common graph behavior is covered using mocked model responses: tool-call dispatch, tool results followed by synthesis, and follow-up messages retained under the same session. Normalize textual content blocks if needed to preserve the `AdvisorResponse.answer` string contract.
+- [ ] Cost controls are explicit and tested: bounded model calls per request, bounded output, bounded retries/timeouts, and no automatic paid-provider fallback. Daily quota exhaustion ends the experiment; do not repeatedly retry it.
+- [ ] Relevant tests and `pip check` pass, or failures are reported with evidence. No test invokes an external LLM or paid judge.
+- [ ] Original Step 8 two-turn Gemini smoke test and Step 10 scenarios remain separate live gates. Record actual provider/model, request counts, observed results, and pending cases. Mock success cannot close live acceptance.
+
+### [ ] STEP R1 — Add the chat factory and runtime dependency
+
+Read current service instructions and manifests. Implement `app/agents/chat_model_factory.py`, move the bounded Gemini adapter dependency to runtime, and document provider/key/model selection in `services/ai-service/.env.example` using placeholders only. Keep existing defaults unless current account/model evidence requires an explicitly documented change.
+
+Use constructor mocks to verify selected adapter/model/key, ignored inactive key, and invalid configuration. Do not perform network-based model discovery at import or startup. No credential or client initialization should be required just to import the graph.
+
+### [ ] STEP R2 — Integrate the factory and preserve the graph contract
+
+Replace the hardcoded constructor in `_build_llm()`. Move factory construction and tool binding inside `call_agent`'s `try` block. Prefer async invocation in the async graph path and preserve Langfuse callback propagation. Catch constructor and invocation failures; log diagnostics without private payloads and return a generic fallback message. Adjust the existing fallback test that currently expects raw `503` text in the user response.
+
+Inspect `AdvisorService.ask()` for provider-neutral answer extraction: `AIMessage.content` can be a string or content blocks. Extract supported text blocks without stringifying tool/thinking metadata. Preserve the response schema and the same graph/checkpointer. Test with fresh graph instances so session history cannot leak between tests.
+
+### [ ] STEP R3 — Bound learning costs and test without an LLM
+
+For this chapter, start with at most **4 model invocations per request**, **2048 output tokens per invocation**, **at most 1 SDK retry**, and a **30-second per-invocation timeout**. These are learning experiment limits, not financial thresholds or a monetary guarantee. Map settings through each adapter's supported parameters; reasoning-token behavior is model-specific. Verify a low output budget is sufficient in the optional live experiment before claiming quality.
+
+Enforce the model-call count per request (reset on each new user turn even with a saved session). Retain a graph recursion guard as a secondary bound; recursion steps count tools too and are not equivalent to model calls. Reaching a bound must yield a controlled outcome, without another synthesis call, uncaught recursion exception, or automatic provider switch. Do not add a billing system.
+
+Test factory selection for both providers, constructor errors, failed invocations/429, call-limit termination and reset, common tool-call round trips, answer normalization, callback forwarding, and two-turn memory using mocked LLMs and HTTP. These tests establish orchestration behavior, not actual model quality or zero-refetch performance.
+
+From `C:\workspaces\personal-finance\services\ai-service`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m pytest tests/test_chat_model_factory.py tests/test_advisor_agent.py tests/test_advisor_tools.py
+.\.venv\Scripts\python.exe -m pytest
+```
+
+The new test filename is a planned deliverable. Use the existing venv; inspect resolver changes and do not unpin the eval stack to make installation pass. Do not run `evals/` scripts as ordinary unit tests.
+
+### [ ] STEP R4 — Run an explicitly enabled, small Gemini experiment
+
+Live calls are opt-in in the implementation chat. First inspect the configured model and account quota without printing keys; use synthetic/sanitized financial data and the selected Gemini free-tier setup. A free tier may have different data-use terms from paid services. Never enable billing or switch to Anthropic to complete a learning checkbox.
+
+Start with one two-turn conversation from Step 8, within R3 limits; each turn may require multiple API requests and SDK retries add attempts. Stop on quota exhaustion. If live execution is not enabled, services/data are unavailable, or quota is insufficient, mark the live gates pending and finish all independent implementation work. Run the remaining five scenarios only within an explicitly chosen quota budget. Traces must show the real provider/model, usage, latency, and outcome. Memory persistence does not itself guarantee the model avoids redundant tool calls: measure that claim.
+
+### [ ] STEP R5 — Reconcile evidence and hand off
+
+Update this original plan and the local board, preserving prior verification history. Record revised test results separately from original counts. Update stale Anthropic-only operational notes in `docs/mentor/progress.md` and `docs/performances/ai-observability-metrics.md` with dated follow-ups when implementation occurs; do not rewrite past observations. Report local checks, skipped live work, actual measured results, and remaining issues. Do not commit, push, or mutate GitHub from this revision without a separate user instruction.
+
+**Rollout:** install compatible dependencies, use the configured Gemini model, run mocked checks, then the opt-in live experiment. **Rollback:** revert only task-scoped changes after reviewing the diff; reverting restores the old Anthropic credential requirement and is not a workaround for Gemini quota exhaustion. Leave the live gate pending instead of spending on a fallback.
+
+**Knowledge check:** Why can the same graph work with two vendors while the extraction factory cannot simply replace a chat adapter? Why does one advisor turn consume more than one LLM request? Which tests prove graph correctness, and which observations are still needed to claim Gemini answer quality?
 
 # 📖 Introduction
 
@@ -295,19 +389,22 @@ contract, not theory.
 
 ## ✅ Acceptance Criteria
 
+Original implementation checklist; checked entries are historical. The revision acceptance criteria in R1–R5 must also pass before claiming the configurable advisor is implemented.
+
 - [x] `app/agents/state.py` — `AdvisorState` TypedDict with at least 6 fields; annotated `messages` using `add_messages` reducer
 - [x] `app/agents/tools.py` — 4 `@tool`-decorated async functions (pyramid scores, cashflow summary, spending by category, investment summary) that call the **real** .NET API routes (`/api/journey/state`, `/api/transactions/aggregated`, `/api/networth/current` + `/api/networth/allocation` — see Step 4); unit-tested with mocked httpx
   > Verification note: built as `app/agents/advisor_tools.py`, not `tools.py` — `app/agents/tools/` already exists as a package (Chapter 7's smolagents tools) and a sibling `tools.py` module would silently shadow it on import. All 4 functions, signatures, and tests otherwise match exactly; 4/4 `test_advisor_tools.py` pass.
 - [x] `app/agents/financial_advisor.py` — `StateGraph` compiled with: agent node, ToolNode, conditional edge (`should_continue`), fallback node, MemorySaver checkpointer
 - [ ] `AdvisorService.ask(query, session_id)` returns `AdvisorResponse` with multi-step answer; same session_id replays state correctly (conversation memory works); the final answer is the agent's own synthesis, not a raw tool result
-  > Not met: mechanism is implemented correctly (verified by code review — `isinstance(m, AIMessage)` check, `thread_id` mapping to the checkpointer) but the behavioral claim (memory actually replays across turns) requires a live 2-turn call, blocked on missing `ANTHROPIC_API_KEY`.
+  > Pending: the original code review confirmed message selection and `thread_id` wiring, but live behavior was blocked by the old Anthropic-only implementation. Complete R1–R3, then verify with Gemini under R4; do not infer model behavior from wiring alone.
 - [x] `POST /advisor` wired in FastAPI — accepts `{query, session_id?, date_from?, date_to?}`, returns `{answer, session_id, steps_taken}`
   > Verification note: endpoint + Pydantic models confirmed structurally correct by reading the code; not exercised with a live request.
-- [x] LLM failures in tool execution route to a fallback node, not a 500 crash
+- [ ] Controlled failure behavior verified for the revision, including model construction/invocation and tool errors
+  > Original routing tests passed, but did not establish all constructor/tool failure paths. R2–R3 must test behavior; `ToolNode` errors do not automatically set `AdvisorState.error`.
 - [x] 5 written test scenarios (`evals/advisor_scenarios.json`) with expected behavior notes
 - [x] `pytest` green — `tests/test_advisor_tools.py`, `tests/test_advisor_agent.py` (all mocked — no real API or LLM calls)
 - [ ] Langfuse traces visible for each `/advisor` call — steps, token counts, latency per node
-  > Not met: `CallbackHandler()` wired into the `ainvoke` config per the plan's own Notes section (the Step 6 code block omitted it), which is Langfuse's documented LangChain integration — but actual trace visibility in the dashboard requires a live call, blocked on missing `ANTHROPIC_API_KEY`.
+  > Pending: `CallbackHandler()` wiring exists; actual dashboard visibility was blocked by the old Anthropic-only implementation. R4 must verify traces with the configured Gemini model.
 - [x] `pyproject.toml` updated: `langgraph>=0.2`, `langchain-anthropic>=0.3` in dependencies; `langchain-google-genai>=2.0` in optional/dev
   > Verification note: all three present with additional upper-bounds (`<1.0`, `<1.0`, `<3.0`) — unbounded floors resolved to versions requiring `langchain-core>=1.4`+, which broke the pinned ragas/langchain-openai/langchain-community eval stack; pinned below that line instead, documented inline in pyproject.toml.
 
@@ -315,7 +412,7 @@ contract, not theory.
 
 **LangGraph over raw loops — for Chapter 8.** The smolagents agent (Chapter 7) hides its loop inside `.run()`. LangGraph is the same loop made explicit as a graph: nodes are functions, edges are routing decisions, state flows between them. Once you've seen the library-managed version (Chapter 7), the graph abstraction makes sense rather than feeling magic.
 
-**`langchain-anthropic` as the agent's LLM wrapper.** LangGraph integrates natively with LangChain-wrapped models. The existing `ProviderFactory` (raw Anthropic/Gemini SDKs) stays for extraction — that surface is frozen (THINK-05). The agent uses `ChatAnthropic` from `langchain-anthropic`, which wraps the same Claude API. Adding a LangChain model here doesn't pollute the extraction pipeline; they live in separate modules. **Gotcha:** this makes `/advisor` require `ANTHROPIC_API_KEY` regardless of the service's `AI_PROVIDER` setting — the advisor always talks to Claude, independent of which provider extraction is using. If your local `.env` only has `GEMINI_API_KEY` set (the project default), add `ANTHROPIC_API_KEY` before testing this chapter.
+**Configurable LangChain chat adapter (revised 2026-09-15).** Follow `AI_PROVIDER` and `AI_MODEL` through a small chat factory: Gemini uses `ChatGoogleGenerativeAI`, Anthropic uses `ChatAnthropic`. Bind the same tools after construction. Only the selected provider's key is needed; Gemini is the project default. The existing extraction `ProviderFactory` stays unchanged because its contract is structured extraction rather than chat/tool messages. See R1–R5 for the authoritative pending work and budget controls. The earlier Anthropic-only implementation is historical behavior, not a LangGraph requirement.
 
 **Tools call the .NET API, not the database directly — and reuse what already exists.** The agent's tools use httpx to call real, existing routes: `GET /api/journey/state`, `GET /api/transactions/aggregated`, `GET /api/networth/current`, `GET /api/networth/allocation`. There is no dedicated `/api/investments/summary` or `/api/transactions/cashflow-summary` endpoint — rather than inventing new .NET surface out of scope for an AI-service chapter, the tools compose the closest existing data (see Step 4 and the Notes section). This keeps the data layer in .NET and makes the tools composable — the same tools become MCP tools in Chapter 9 with minimal change.
 
@@ -328,6 +425,20 @@ contract, not theory.
 Out of scope: streaming the advisor over SSE (Chapter 5 builds that), multi-agent collaboration (Chapter 8 is a single-agent graph), MCP wiring (Chapter 9), replacing the existing quest-card endpoint. Don't touch `app/services/journey_advisor.py`.
 
 ## 📂 Affected Files
+
+The original implementation inventory follows. Revision-specific changes are:
+
+| File (relative to `services/ai-service/` unless stated) | Revision change |
+|---|---|
+| `app/agents/chat_model_factory.py` | New — select and validate the configured chat adapter |
+| `app/agents/financial_advisor.py` | Replace vendor constructor; controlled async failures and per-request call bound |
+| `app/agents/state.py` | Add call-budget state if needed; reset per request |
+| `app/services/advisor.py` | Reset request budget, preserve callbacks/session, normalize answer text, recursion guard |
+| `pyproject.toml`, `.env.example` | Runtime Gemini adapter; matching model/key documentation |
+| `tests/test_chat_model_factory.py`, `tests/test_advisor_agent.py` | Factory selection and mocked graph/provider contract coverage |
+| `tests/test_advisor_tools.py` | Existing HTTP tool regression checks |
+| This plan, repository `.claude/plans/BOARD.md` | Revision acceptance and local status |
+| Repository `docs/mentor/progress.md`, `docs/performances/ai-observability-metrics.md` | Dated implementation follow-up; measured or pending results |
 
 | File | Change |
 |------|--------|
@@ -395,17 +506,19 @@ Per THINK-03 — list every state field, its type, an example value, and *why it
 
 ### [x] STEP 3 — Add deps; create `app/agents/state.py`
 
-> **Verification note:** dependency versions upper-bounded beyond the plan's literal text (`langgraph>=0.2,<1.0`, `langchain-anthropic>=0.3,<1.0`) — see the STEP 4 note for why.
+> **Historical completion:** original dependencies/state were added. R1 remains open: move the bounded Gemini adapter from dev to runtime. The revised target below preserves the compatibility bounds explained in Step 4.
 
 Add to `pyproject.toml` dependencies:
 ```toml
-    "langgraph>=0.2",
-    "langchain-anthropic>=0.3",
+    "langgraph>=0.2,<1.0",
+    "langchain-anthropic>=0.3,<1.0",
+    "langchain-google-genai>=2.0,<3.0",
     "httpx>=0.27",
 ```
 
-```bash
-cd services/ai-service && pip install langgraph langchain-anthropic httpx
+```powershell
+Set-Location C:\workspaces\personal-finance\services\ai-service
+.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
 ```
 
 Create [\_\_init\_\_.py](../../../services/ai-service/app/agents/__init__.py) (empty).
@@ -686,8 +799,9 @@ async def test_get_investment_summary_combines_two_endpoints(mock_httpx_client):
     assert result["allocation_by_class"]["Investment"] == 50_000_000
 ```
 
-```bash
-PYTHONPATH=. pytest tests/test_advisor_tools.py -v
+```powershell
+# From services/ai-service
+.\.venv\Scripts\python.exe -m pytest tests/test_advisor_tools.py -v
 ```
 
 **C# equivalent** (pytest async tests + `patch()` module-level mocking → xUnit `[Fact]` + a mocked `HttpMessageHandler` wired into a real `HttpClient`, since C# has no module-level-attribute-patching equivalent — the handler is the seam instead):
@@ -729,7 +843,9 @@ public class AdvisorToolsTests
 
 ### [x] STEP 5 — Build `app/agents/financial_advisor.py` (the graph)
 
-Create [financial_advisor.py](../../../services/ai-service/app/agents/financial_advisor.py):
+> **Historical completion:** graph topology was built. R1–R3 are still pending. The excerpt below updates the factory boundary and error handling; it is a teaching excerpt, not the complete revision patch (R2 async/callback tests and R3 call-budget enforcement are also required).
+
+Update [financial_advisor.py](../../../services/ai-service/app/agents/financial_advisor.py):
 
 ```python
 """Financial Health Advisor — LangGraph StateGraph definition.
@@ -744,14 +860,16 @@ from __future__ import annotations
 
 import logging
 
-from langchain_anthropic import ChatAnthropic
+from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.runnables import Runnable
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from app.agents.state import AdvisorState
-from app.agents.tools import TOOLS
+from app.agents.advisor_tools import TOOLS
+from app.agents.chat_model_factory import create_chat_model
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -770,30 +888,26 @@ next action. Be specific: name the category, amount, or ratio, not vague advice.
 Answer in the same language as the user's question (Indonesian or English)."""
 
 
-def _build_llm() -> ChatAnthropic:
-    return ChatAnthropic(
-        model="claude-sonnet-4-6",
-        api_key=settings.anthropic_api_key,
-        temperature=0.0,
-        max_tokens=2048,
-    ).bind_tools(TOOLS)
+def _build_llm() -> Runnable[LanguageModelInput, AIMessage]:
+    # Planned R1 factory returns an unbound BaseChatModel.
+    return create_chat_model(settings).bind_tools(TOOLS)
 
 
 # ── Nodes ──────────────────────────────────────────────────────────────────────
 
 def call_agent(state: AdvisorState) -> dict:
     """The central agent node: call the LLM with current state.messages."""
-    llm = _build_llm()
     # Prepend system message if starting a new conversation.
     messages = state["messages"]
     if not any(isinstance(m, SystemMessage) for m in messages):
         messages = [SystemMessage(content=SYSTEM_PROMPT)] + messages
     try:
+        llm = _build_llm()  # construction and binding failures use the same fallback
         response: AIMessage = llm.invoke(messages)
         return {"messages": [response], "error": None}
     except Exception as exc:
         logger.exception("agent node failed")
-        return {"error": str(exc)}
+        return {"error": "advisor_provider_error"}
 
 
 def call_fallback(state: AdvisorState) -> dict:
@@ -805,7 +919,6 @@ def call_fallback(state: AdvisorState) -> dict:
         "messages": [_AI(content=(
             "Maaf, saya tidak dapat mengambil data keuangan Anda saat ini. "
             "Silakan coba lagi dalam beberapa saat. "
-            f"(Technical detail: {error})"
         ))],
         "error": None,
     }
@@ -855,7 +968,7 @@ def build_graph() -> StateGraph:
 advisor_graph = build_graph()
 ```
 
-> **Why `_build_llm()` called inside the node instead of module-level?** Module-level `ChatAnthropic(...)` instantiates at import time. In tests, that fires before you've patched `settings`. Inside the node, it instantiates at call time — patches apply correctly, and you can mock it per test. The performance cost (~microseconds) is irrelevant for a network-bound agent.
+> **Why `_build_llm()` inside the node's `try` block?** Importing the graph must not require credentials or construct a vendor client. Runtime construction makes selection mockable, and the error boundary covers missing-key/constructor failures as well as invocation failures.
 
 > **Why does `tools` always loop back to `agent`?** The ReAct pattern: Reason → Act → Observe → Reason. After ToolNode executes the tool calls and appends `ToolMessage` results, the agent needs to *reason again* over those results. The `agent → tools → agent` cycle IS the ReAct loop made explicit as a graph edge. A one-way `agent → tools → END` would give you an action with no synthesis.
 
@@ -1091,7 +1204,7 @@ public record AdvisorResponse(
 
 ### [!] STEP 8 — Wire `POST /advisor` in `app/main.py`
 
-> **Failure:** endpoint wiring itself is done and structurally correct (imports, `_advisor = AdvisorService()`, route registered). The smoke test could not run — `ANTHROPIC_API_KEY` is not set in `.env` or the shell (checked both directly), and the advisor always requires it regardless of `AI_PROVIDER`. Turn-1/turn-2 behavior and the zero-re-fetch memory claim are unverified.
+> **Historical failure:** the original smoke test could not run because the Anthropic-only implementation required an unavailable key. **Revised next action:** finish R1–R3, then use the opt-in Gemini experiment in R4. Turn-1/turn-2 behavior and the zero-refetch claim remain unverified; purchasing Anthropic access is not required.
 
 In the lifespan, no additional setup is needed (advisor_graph is a module-level singleton compiled at import time). Just add the endpoint:
 
@@ -1134,20 +1247,15 @@ public class AdvisorController(AdvisorService advisorService, ILogger<AdvisorCon
 }
 ```
 
-Smoke test (service running, .NET API running):
+Smoke test (opt-in per R4, Gemini configured, sanitized data, AI service and .NET API running):
 
-```bash
-# Turn 1 — new session
-curl -X POST http://localhost:8000/advisor \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Kondisi keuangan saya sekarang bagaimana?"}'
-# Note the session_id in the response.
-
-# Turn 2 — continue session (replace SESSION_ID)
-curl -X POST http://localhost:8000/advisor \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Apa yang harus saya lakukan dulu untuk mencapai L3?", "session_id": "SESSION_ID"}'
-# Verify: the agent remembers the L1/L2 context from turn 1 without re-fetching.
+```powershell
+$advisorTurnOneBody = @{ query = 'Kondisi keuangan saya sekarang bagaimana?' } | ConvertTo-Json
+$advisorTurnOne = Invoke-RestMethod -Method Post -Uri 'http://localhost:8000/advisor' -ContentType 'application/json' -Body $advisorTurnOneBody
+# Inspect turn 1 and quota before running turn 2. Stop on a controlled failure.
+$advisorTurnTwoBody = @{ query = 'Apa yang harus saya lakukan dulu untuk mencapai L3?'; session_id = $advisorTurnOne.session_id } | ConvertTo-Json
+$advisorTurnTwo = Invoke-RestMethod -Method Post -Uri 'http://localhost:8000/advisor' -ContentType 'application/json' -Body $advisorTurnTwoBody
+# Inspect answers and traces for retained context and duplicate tool calls.
 ```
 
 Verify:
@@ -1204,7 +1312,7 @@ def test_call_fallback_clears_error():
     from app.agents.financial_advisor import call_fallback
     result = call_fallback(_state([], error="503 Service Unavailable"))
     assert result["error"] is None
-    assert "503" in result["messages"][0].content
+    assert "503" not in result["messages"][0].content  # revised: diagnostics stay out of user responses
 
 
 def test_advisor_state_fields():
@@ -1215,8 +1323,9 @@ def test_advisor_state_fields():
     assert "session_id" in state
 ```
 
-```bash
-PYTHONPATH=. pytest tests/test_advisor_agent.py -v
+```powershell
+# From services/ai-service
+.\.venv\Scripts\python.exe -m pytest tests/test_advisor_agent.py -v
 ```
 
 **C# equivalent** (pytest functions → xUnit `[Fact]` with `Method_Condition_ExpectedResult` naming; a state-building helper replaces the pytest fixture-by-function pattern):
@@ -1254,7 +1363,7 @@ public class AdvisorRoutingTests
 
 ### [!] STEP 10 — Write 5 evaluation scenarios (`evals/advisor_scenarios.json`)
 
-> **Failure:** the scenarios file itself is written exactly as specified. Running them live against the service and recording pass/fail — the step's other half — is blocked by the same missing `ANTHROPIC_API_KEY`, same as STEP 8.
+> **Historical failure:** the scenario definitions were written, but live execution was blocked by the old Anthropic-only implementation. Resume with the configured Gemini adapter after R1–R3, within R4's opt-in quota budget. Record pending cases without substituting mock results for live evidence.
 
 Create [advisor_scenarios.json](../../../services/ai-service/evals/advisor_scenarios.json):
 
@@ -1332,33 +1441,29 @@ Append:
 | Session memory verified (S4 turn 2 = 0 re-fetches) | ✅ / ❌ |
 | Agent p50 response time (tool fetch + reasoning) | ~XXs |
 | /advisor p95 response time | ~XXs |
-| Langfuse traces: cost per advisor turn (Sonnet 4.6) | ~$0.00X |
+| Provider + model used for this measurement | _record actual configuration_ |
+| LLM requests per advisor turn (including retry attempts) | _pending measurement_ |
+| Langfuse traces: token usage and estimated cost per advisor turn | _pending; distinguish free-tier billing from token price estimates_ |
 ```
 
 > **The Sunday metric answer for this chapter:** *"I built a stateful conversational agent with LangGraph — StateGraph with conditional routing, ToolNode dispatching 4 live data-fetch tools against my .NET API, MemorySaver checkpointer for session persistence. I can show 5 scenario traces in Langfuse, including one that proves the agent uses cached state in turn 2 instead of re-calling the tool."*
 
 ---
 
-### [!] STEP 12 — Full test pass + commit
+### [!] STEP 12 — Full test pass and review
 
 > **Failure:** `pytest -v` run: 162 passed, 1 pre-existing failure unrelated to this chapter (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py` — confirmed via `git status` that neither that test file nor its source were touched this session). All 10 new advisor tests pass. The `git commit` portion of this step was intentionally not performed — the executing skill's policy is to leave all changes uncommitted for the user's own review, which overrides this step's literal instruction.
 
-```bash
-cd services/ai-service && PYTHONPATH=. pytest -v          # all suites including new files
-cd c:\workspaces\personal-finance
-git add services/ai-service/app/agents/
-git add services/ai-service/app/services/advisor.py
-git add services/ai-service/app/models.py
-git add services/ai-service/app/main.py
-git add services/ai-service/app/config.py
-git add services/ai-service/pyproject.toml
-git add services/ai-service/tests/test_advisor_tools.py
-git add services/ai-service/tests/test_advisor_agent.py
-git add services/ai-service/evals/advisor_scenarios.json
-git add docs/performances/ai-observability-metrics.md
-git status    # verify NO .env, NO credentials
-git commit -m "PF-AI008: LangGraph Financial Health Advisor — stateful agent, tool routing, session memory"
+```powershell
+Set-Location C:\workspaces\personal-finance\services\ai-service
+.\.venv\Scripts\python.exe -m pytest -v
+.\.venv\Scripts\python.exe -m pip check
+Set-Location C:\workspaces\personal-finance
+git diff --check
+git status --short
 ```
+
+Leave changes uncommitted for review. The current handoff does not authorize staging, commit, push, or remote issue updates. The historical counts above must be replaced by dated new results only after running the revised checks.
 
 ---
 
@@ -1372,12 +1477,12 @@ git commit -m "PF-AI008: LangGraph Financial Health Advisor — stateful agent, 
 
 ## 📌 Notes
 
-- **`_build_llm()` per node call is correct for testability**, not a performance concern. In a high-throughput service, cache the `ChatAnthropic` instance at module level; for personal-use volumes, the per-call pattern is fine and test-safe.
+- **`_build_llm()` is the mockable chat boundary.** Construct the selected adapter inside the node's error boundary; avoid import-time credential requirements. Revisit client reuse only if measured overhead warrants it.
 - **`MemorySaver` is process-scoped.** Service restart = all sessions lost. For development, that's acceptable. Document the production upgrade path: `langgraph-checkpoint-postgres` → `PostgresSaver` with `psycopg`; it's a one-class swap.
 - **Langfuse + LangChain integration.** Add `langfuse` `CallbackHandler` to the `config` dict passed to `ainvoke`: `config = {"configurable": {...}, "callbacks": [langfuse_handler]}`. This adds per-node tracing to the existing Langfuse dashboard from PF-AI001, zero new infra.
 - **`/journey/advise` is untouched.** It generates quest cards from a snapshot — a different UX pattern (batch, triggered by the journey page load). The new `/advisor` is a conversational agent triggered by the user. Both coexist; neither replaces the other.
 - **No `/api/investments/summary` endpoint exists.** `InvestmentsController` only exposes per-setup CRUD (`setups`, `setups/{id}/holdings`, `setups/{id}/review`) — there's no aggregate "total portfolio value + return %" route. `get_investment_summary` composes `GET /api/networth/current` + `GET /api/networth/allocation` instead, which gives net worth and asset-class allocation but not investment-specific return %. If a real portfolio-return figure becomes worth showing in the advisor, that's a new .NET aggregation endpoint — flagged here, not built this chapter.
-- **`ANTHROPIC_API_KEY` is required independent of `AI_PROVIDER`.** The advisor always uses `ChatAnthropic`, regardless of whether the AI service's extraction pipeline is configured for Gemini or Anthropic. Set it in `.env` before running Step 8's smoke test.
+- **Only the selected provider's key is required after R1–R3.** `AI_PROVIDER=gemini` uses `GEMINI_API_KEY`; Anthropic is an explicit alternative. The implementation still needs this revision. Missing Anthropic access is not a learning prerequisite, and quota exhaustion must not trigger a paid-provider fallback.
 - **THINK-05 new contract surface.** `AdvisorRequest`/`AdvisorResponse` are new fields. When `.NET` grows a `/advisor` proxy for the chat UI, those field names freeze. Add a note in [ai-service.md](../../rules/ai-service.md) at that point.
 - **Chapter 5 upgrade path.** When Chapter 5 adds SSE streaming, `AdvisorService.ask()` switches from `ainvoke` to `astream_events`, yielding token deltas as they arrive. The node/graph structure is unchanged; only the transport layer changes. That's the value of the service wrapper abstraction.
 - **Deferred:** multi-agent collaboration (supervisor + specialist agents), streaming SSE (Chapter 5), MCP tool wiring (Chapter 9 — these tools become MCP tools with minimal change), persistent checkpointer with Postgres, a real per-holding investment-return endpoint.
@@ -1476,7 +1581,7 @@ git commit -m "PF-AI008: LangGraph Financial Health Advisor — stateful agent, 
 
 - **A.** The LLM uses the tool's docstring as its description to decide *when* to call it. A vague docstring — `"""Get investments."""` — gives the model no signal about what data the tool returns or when it's relevant. A specific docstring that mentions return fields and use-case triggers correct tool selection.
 - **B.** `@tool` decorated functions must have `async def` signatures to work with LangGraph
-- **C.** The tool is not in the `TOOLS` list passed to `ChatAnthropic.bind_tools()`
+- **C.** The tool is not in the `TOOLS` list passed to the selected chat model's `.bind_tools()`
 - **D.** Investment tools require a `portfolio_id` parameter; without it, LangGraph silently skips the tool
 
 <details>
