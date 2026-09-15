@@ -5,9 +5,11 @@ import logging
 import uuid
 
 from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.errors import GraphRecursionError
 from langfuse.langchain import CallbackHandler
 
-from app.agents.financial_advisor import advisor_graph
+from app.agents.chat_model_factory import GRAPH_RECURSION_LIMIT
+from app.agents.financial_advisor import advisor_graph, call_fallback
 from app.models import AdvisorRequest, AdvisorResponse
 
 logger = logging.getLogger(__name__)
@@ -24,6 +26,7 @@ class AdvisorService:
         config = {
             "configurable": {"thread_id": session_id},
             "callbacks": [CallbackHandler()],
+            "recursion_limit": GRAPH_RECURSION_LIMIT,
         }
 
         initial_state = {
@@ -34,19 +37,28 @@ class AdvisorService:
             "investment_summary": None,
             "error": None,
             "session_id": session_id,
+            "model_calls": 0,
         }
 
-        logger.info("advisor.ask session=%s query=%s", session_id, request.query[:80])
+        logger.info("advisor.ask session=%s", session_id)
 
         # LangGraph ainvoke runs the graph to completion and returns final state.
-        final_state = await advisor_graph.ainvoke(initial_state, config=config)
+        try:
+            final_state = await advisor_graph.ainvoke(initial_state, config=config)
+        except GraphRecursionError:
+            logger.warning("advisor recursion limit reached")
+            snapshot = await advisor_graph.aget_state(config)
+            fallback = call_fallback(snapshot.values)
+            # Finish the saved turn so a subsequent request can resume cleanly.
+            await advisor_graph.aupdate_state(config, fallback, as_node="fallback")
+            final_state = {**snapshot.values, "messages": snapshot.values.get("messages", []) + fallback["messages"]}
 
         # The last AIMessage IS the agent's final answer — should_continue only
         # reaches END once the latest AIMessage carries no pending tool_calls, so
         # the last AIMessage in the list is always the synthesized reply.
         messages = final_state.get("messages", [])
         last_ai = next((m for m in reversed(messages) if isinstance(m, AIMessage)), None)
-        answer = last_ai.content if last_ai else "No response generated."
+        answer = self._answer_text(last_ai.content) if last_ai else "No response generated."
 
         # Count how many turns actually issued tool calls (steps taken = tool hops).
         steps_taken = sum(
@@ -59,6 +71,18 @@ class AdvisorService:
             session_id=session_id,
             steps_taken=steps_taken,
         )
+
+    @staticmethod
+    def _answer_text(content: str | list) -> str:
+        if isinstance(content, str):
+            return content or "No response generated."
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type") == "text" and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+        return "\n".join(parts) or "No response generated."
 
     @staticmethod
     def _build_query(request: AdvisorRequest) -> str:

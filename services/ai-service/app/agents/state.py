@@ -19,3 +19,5 @@ class AdvisorState(TypedDict):
     error: str | None
     # Passed through from the request, mapped to thread_id in the checkpointer.
     session_id: str
+    # Replaced (not reduced); AdvisorService resets this for each user request.
+    model_calls: int

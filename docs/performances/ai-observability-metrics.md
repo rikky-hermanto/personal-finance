@@ -322,3 +322,57 @@ ToolNode dispatching 4 live data-fetch tools against my .NET API, MemorySaver ch
 session persistence. Routing logic (`should_continue`, error → fallback) is unit-tested in
 isolation with zero LLM calls. The live 5-scenario run — including the turn-2 zero-re-fetch proof —
 is queued behind adding `ANTHROPIC_API_KEY` to this environment."*
+
+### Provider-agnostic follow-up — 2026-09-15
+
+The 2026-08-21 notes/table above are historical observations. The implementation now follows shared `AI_PROVIDER` / `AI_MODEL` with Gemini defaults; Anthropic credentials are needed only when explicitly selecting Anthropic. Purchasing Anthropic access is no longer a prerequisite. The current remaining gate is an explicitly enabled live experiment, which the user prohibited in this revision chat.
+
+| Current verification / measurement | Actual result |
+|---|---|
+| Advisor factory/graph/tool local tests | **41 passed**, mocked LLM/SDK/HTTP and in-process ASGI |
+| Full local unit suite | **193 passed, 1 pre-existing PII test failure**; no skipped tests |
+| Dependency verification | Bounds retained; `pip check` reports four existing conflicts. Full dev install failed on litellm metadata/Rust-Cargo; editable `--no-deps` install succeeded. Details in the original plan. |
+| Enforced experiment limits | 4 model invocations/request, 2048 output tokens/invocation, 30s/invocation, 0 retries; no provider fallback |
+| Provider/model default (configuration, not measurement) | Gemini / `gemini-2.5-flash` |
+| Live provider/model actually measured | _none — R4 explicitly disabled_ |
+| Live LLM requests in this revision | **0 Gemini, 0 Anthropic** |
+| Step 8 two-turn smoke / Step 10 scenario pass rate | _pending / pending (all five)_ |
+| Actual model decision to avoid refetch on follow-up | _pending; mocked history retention is not model-quality evidence_ |
+| Actual requests per live turn, token usage, cost, latency | _pending; no estimates presented as measurements_ |
+| Langfuse trace visibility | _pending; callback propagation tested locally only_ |
+
+Factory and transport mocks verify selected credentials, limits, quota handling, and absence of automatic retries. Graph tests verify tool dispatch→results→synthesis, session history, text normalization, timeout cancellation and controlled termination. These establish orchestration behavior, not factual grounding or quality of either vendor's answers. Output-token/reasoning-budget sufficiency remains part of live acceptance. See [revision evidence](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md#execution-evidence--2026-09-15-r1r3-r5).
+
+### Later user-authorized live probe — 2026-09-15
+
+Supersedes the earlier no-live-call status for this later test only. Real Gemini and AdvisorService/graph; all financial HTTP payloads synthetic, no full-stack .NET validation. [Evidence JSON](../../.claude/plans/learning/evidence/PF-AI008-gemini-smoke.json).
+
+| Observed metric | Result |
+|---|---|
+| Provider / model | Gemini / gemini-2.5-flash; metadata lookup HTTP 200 |
+| Generation attempts | 3 total: turn 1 = 2, turn 2 = 1; no retries or Anthropic calls |
+| Turn 1 | 11.125s; pyramid tool result followed by model synthesis, returned as answer; fixture scores matched |
+| Turn 2 | 2.224s; ServiceUnavailable, generic fallback; successful follow-up pending |
+| Returned token usage, successful calls only | Input 1058, output 1160, total 2218; reasoning 974 included in output |
+| Failed-call usage / billed cost | Unavailable / not measured; no zero-cost claim |
+| Memory | Both user messages and first tool result retained under the same session |
+| Follow-up zero-refetch / scenario suite / Langfuse dashboard | Pending; failed turn does not prove no-refetch quality; local trace only |
+
+One successful first turn and one failed follow-up are insufficient for p50/p95 or a scenario pass rate. First-turn answer grounded its level/scores, but did not fetch cashflow or provide a specific IDR action. No model-quality or full two-turn acceptance claim beyond this observed evidence.
+
+### Live Langfuse verification — 2026-09-15
+
+Real POST `/advisor` via in-process ASGI, synthetic financial HTTP responses, real unchanged Langfuse CallbackHandler and Gemini 2.5 Flash. One request, two model calls, zero retries, HTTP 200. [Trace](https://cloud.langfuse.com/project/cmps0uij102r2ad0ekbh49nbo/traces/4ab6bf4c5c7e6bfd1cafe56fa363e4d2) and [API evidence](../../.claude/plans/learning/evidence/PF-AI008-langfuse-live.json).
+
+| Measurement from stored Langfuse observations | Result |
+|---|---|
+| Trace retrieval | HTTP 200, 14 completed observations; both generations and HTTP root verified after ingestion settled |
+| Steps | POST /advisor → LangGraph → agent → tools/get_pyramid_scores → agent, plus routing spans |
+| Tokens | Input 1052; output 1414 (including reasoning 1344); total 2466 |
+| Generation durations | 2.452s and 8.095s |
+| Agent node durations | 2.490s and 8.110s |
+| Tool / tools node | 0.001s / 0.003s (synthetic data, not .NET performance) |
+| HTTP root duration | 10.621s |
+| Dashboard UI | Still Loading in Chrome after reload; visual confirmation pending, server-side trace/data verified |
+
+Langfuse tracing works end-to-end for this request. The separate local OTEL metrics exporter could not reach localhost:4317; this did not block Langfuse trace persistence. No p50/p95, billing, multi-turn quality, or universal reliability claim is inferred from this one request. Probe script now waits for the expected number of generation observations plus a completed HTTP root rather than accepting a partially ingested trace.
