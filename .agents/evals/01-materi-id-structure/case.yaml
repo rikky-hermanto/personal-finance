@@ -1,0 +1,90 @@
+schema_version: "1.1"
+name: 01-materi-id-structure
+description: >-
+  Core materi-id case. A "tulis ulang jadi versi belajar" request must produce the
+  eight progressive-learning headings in the exact prescribed order, with no stage
+  numbering, no numbered sub-sections, and natural Bahasa Indonesia register.
+tags: [mentor, materi-id, structure]
+
+context:
+  add_dirs:
+    - "fixtures"
+
+execution:
+  max_turns: 12
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill]
+  prompt: |
+    Baca file rencana belajar ini (cari dengan Glob kalau path relatifnya meleset):
+
+      fixtures/PF-AI001-ai-observability.md
+
+    Tulis ulang jadi versi belajar (materi belajar bahasa Indonesia) untuk chapter itu.
+
+    PENTING untuk evaluasi ini: jangan menulis atau membuat file apa pun.
+    Keluarkan SELURUH isi materi lengkap langsung di dalam response terakhir kamu,
+    sebagai markdown mentah. Jangan diringkas dan jangan hanya menjelaskan rencananya.
+
+runs: 3
+
+graders:
+  - type: regex
+    name: eight-headings-in-exact-order
+    target: last_message
+    weight: 3
+    match: contains
+    pattern: '##\s*Apa Masalah yang Ingin Diselesaikan\?[\s\S]*##\s*Konsep Sederhananya[\s\S]*##\s*Cara Kerjanya[\s\S]*##\s*Implementasi[\s\S]*##\s*Optimisasi[\s\S]*##\s*Best Practice[\s\S]*##\s*Kesalahan Umum[\s\S]*##\s*Summary'
+
+  - type: regex
+    name: no-stage-numbered-headings
+    target: last_message
+    weight: 2
+    match: not_contains
+    flags: 'im'
+    pattern: '^#{2,4}\s*(Level|Stage|Tahap|Bagian)\s*\d'
+
+  - type: regex
+    name: no-numbered-subsections
+    target: last_message
+    weight: 1
+    match: not_contains
+    flags: 'm'
+    pattern: '^#{3,4}\s*\d+\.\d'
+
+  - type: regex
+    name: no-pedagogy-vocabulary-leak
+    target: last_message
+    weight: 1
+    match: not_contains
+    flags: 'i'
+    pattern: '\b(the ladder|tangga pembelajaran|rung|progressive[- ]learning stage|Stage \d)\b'
+
+  - type: llm
+    name: natural-indonesian-register
+    focus: last_message
+    weight: 2
+    criteria: |
+      The material is written in natural, conversational-but-precise Bahasa Indonesia —
+      the register a senior engineer would use explaining something to a colleague.
+      Casual connectives such as "bikin", "nggak nyambung", "ketipu", "ternyata" are
+      welcome. Technical terms (embedding, tracing, span, latency, token, provider)
+      stay in English rather than being translated into stiff Indonesian equivalents.
+
+      FAIL if the prose reads like a literal machine translation of English, uses
+      stilted formal constructions ("Adapun hal tersebut dikarenakan..."), or invents
+      awkward Indonesian words for established technical terms (e.g. "penyematan"
+      for embedding, "penelusuran" for tracing).
+
+  - type: llm
+    name: opens-with-real-project-failure
+    focus: last_message
+    weight: 2
+    criteria: |
+      The "Apa Masalah yang Ingin Diselesaikan?" section opens by describing a concrete,
+      specific problem grounded in this actual project — for example not being able to
+      see what an LLM call cost, or having no way to tell which provider call was slow,
+      referencing real specifics from the source plan (Langfuse, Gemini/Anthropic
+      providers, token counts, cost per call).
+
+      FAIL if the section opens with a textbook definition of observability, or with a
+      generic abstract statement that could apply to any software project.

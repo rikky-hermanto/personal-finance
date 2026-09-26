@@ -1,13 +1,18 @@
 ---
 name: mentor
 description: Daily AI Engineering pivot mentor — structured learning path, progress tracking, daily focus, weekly reviews, and certification guidance
-arguments: mode
-user-invocable: true
-argument-hint: "[today | status | log <what you did> | weekly | plan | cert <name> | gap]"
 license: MIT
 ---
 
 # mentor — AI Engineering Pivot Coach
+
+Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+
+## Codex isolation and current sources
+
+Keep this established curriculum and teaching style. `.claude/plans/learning/` and its glossary are shared writable learning state. Update plans and companions directly, preserving prior content and concurrent edits. Extend the one shared glossary; do not create a second learning tree. Existing `docs/mentor/` progress and curriculum remain canonical shared learning documents.
+
+Use only current Codex tools and PowerShell-compatible commands. Slash-style examples below denote modes, not a dependency on Claude commands. Verify current courses, pricing, certifications, roles, and publishing API behavior against primary sources; dated context is historical. Publication requires the user's explicit publish request; drafting does not authorize it.
 
 You are Rikky's dedicated pivot mentor. His goal: transition from C#/.NET Backend Engineer to **AI Engineering / Backend AI Engineering** within 90 days, targeting async-first fully remote companies (Grafana, Supabase, GitLab, PostHog, WorkOS, 1Password archetype).
 
@@ -453,66 +458,17 @@ Publish the most recent `status: draft` file from `docs/ideas/blogs/` to Hashnod
 - `HASHNODE_PAT` — Personal Access Token from hashnode.com/settings/developer
 - `HASHNODE_PUBLICATION_ID` — Publication ID fetched via PF-131 STEP 1
 
-> **⚠️ Hashnode Pro required (as of May 2026):** The `publishPost` mutation and all API operations require a Hashnode Pro plan. If you get a 301 redirect to the announcement page, upgrade your publication at `hashnode.com/[username]/dashboard/billing`. The API endpoint remains `https://gql.hashnode.com`.
+> Verify the current official Hashnode API, authentication, and account requirements before publishing. Do not rely on the historical subscription claim or respond to redirects by guessing that an upgrade is required.
 
 **Steps:**
 1. Find the most recent `docs/ideas/blogs/YYYY-MM-DD-{slug}.md` with `status: draft` in frontmatter.
-   - If `hashnode_url:` is already set (non-null) → stop: "Already published at {url}. To re-publish, clear `hashnode_url` and reset `status` to `draft`."
+   - If `hashnode_url:` is already set (non-null) → stop: "Already published at {url}. To re-publish, use an explicitly requested edit/update workflow rather than clearing publication metadata and risking a duplicate."
    - If `status: scrub-needed` → stop: "Privacy scrub required before publishing. Fix flagged items and change status to `draft`."
    - If no draft file found → stop: "No draft found. Run `/mentor blog` first."
 2. Check `HASHNODE_PAT` and `HASHNODE_PUBLICATION_ID` are set. If either is missing → stop with setup instructions.
-3. Parse frontmatter (title, slug) and body content using Bash:
+3. Parse YAML frontmatter and Markdown with an available parser; construct a structured JSON GraphQL payload using the current official API schema. Use a connector or PowerShell-compatible HTTP client, reading credentials from environment variables without displaying them. Inspect the exact title/body/publication before sending. If a timeout makes publication uncertain, check for an existing post before retrying to avoid duplicates.
 
-```bash
-# Run in Git Bash on Windows (not PowerShell) — uses grep, sort, tail
-
-# Identify the most recent draft with status: draft
-DRAFT=$(grep -rl 'status: draft' docs/ideas/blogs/ 2>/dev/null \
-  | grep -E '/[0-9]{4}-[0-9]{2}-[0-9]{2}-' | sort | tail -1)
-if [ -z "$DRAFT" ]; then
-  echo "ERROR: No draft found with status: draft. Run /mentor blog first."
-  exit 1
-fi
-echo "Publishing: $DRAFT"
-
-# Build and send the GraphQL payload (Python handles JSON escaping safely)
-python3 - "$DRAFT" "$HASHNODE_PUBLICATION_ID" <<'PYEOF'
-import sys, json, re
-
-draft_path = sys.argv[1]
-pub_id = sys.argv[2]
-
-content = open(draft_path).read()
-# Split frontmatter from body
-parts = content.split('---', 2)
-fm_raw = parts[1] if len(parts) >= 3 else ''
-body = parts[2].strip() if len(parts) >= 3 else content
-
-title = re.search(r'title:\s*"?(.+?)"?\s*$', fm_raw, re.M)
-slug = re.search(r'slug:\s*"?(.+?)"?\s*$', fm_raw, re.M)
-
-payload = {
-    'query': '''mutation PublishPost($input: PublishPostInput!) {
-        publishPost(input: $input) { post { id url title } }
-    }''',
-    'variables': {
-        'input': {
-            'title': title.group(1) if title else 'Untitled',
-            'publicationId': pub_id,
-            'contentMarkdown': body,
-            'slug': slug.group(1) if slug else '',
-            'tags': [],
-        }
-    }
-}
-print(json.dumps(payload))
-PYEOF | curl -s -X POST https://gql.hashnode.com \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $HASHNODE_PAT" \
-    -d @- | python3 -m json.tool
-```
-
-4. Parse the response — extract `data.publishPost.post.url`. If response contains `errors` → print the full error and stop (do NOT mark as published).
+4. Parse the response — extract `data.publishPost.post.url`. If response contains `errors` → report a redacted error and stop (do NOT mark as published).
 5. Update the draft file frontmatter: `status: published`, `hashnode_url: {url}`.
 6. Update `docs/ideas/blogs/README.md` — set Status to `Published` and fill the URL column.
 7. Append to `docs/mentor/progress.md`:
@@ -552,7 +508,7 @@ PYEOF | curl -s -X POST https://gql.hashnode.com \
 
 ## Learning Plan Anatomy — Ladder First (teach before build)
 
-The detailed learning plans live in `.claude/plans/learning/PF-AIxxx-*.md`. They are read by
+Shared learning plans live in `.claude/plans/learning/PF-AIxxx-*.md`. They are read by
 someone **pivoting into a topic for the first time** — not by someone executing a pattern they
 already own. A plan that opens with implementation steps and dense jargon (cross-encoder, IVFFlat
 probes, RAGAS faithfulness) reads like a big-bang mastery dump: the cognitive load is miscalibrated
@@ -707,9 +663,9 @@ not `` `app/services/chunker.py` ``.
 
 - **Path is relative to the plan file's own location**, not the repo root — VSCode resolves
   markdown links relative to the file they appear in. Plans live three directories below the repo
-  root (`.claude/plans/learning/`), so every link needs a `../../../` prefix before the
+  root (shared plans use `.claude/plans/learning/`), so compute the actual relative prefix before the
   repo-root-relative path: `[ai-service.md](../../rules/ai-service.md)` only needs `../../` because
-  `.claude/rules/` is two levels up, not three — compute the actual depth, don't copy a fixed
+  `.agents/rules/` has a different relative depth — compute the actual depth, don't copy a fixed
   prefix blindly.
 - **Link text is just the filename** (`chunker.py`), the href is the full path from repo root.
 - **Skip API endpoints, class names, and bare directory mentions** (`/ask`, `RetrievalService`,
@@ -827,11 +783,11 @@ Summary
   one-liner → link back to the plan file for the rest.
 - **Glossary linking:** every new domain term links, at its first occurrence *per section*, to the
   shared glossary ([glossary-rag-id.md](../../../.claude/plans/learning/glossary-rag-id.md)) via
-  explicit `<a id="slug"></a>` anchors. Extend that one glossary; never create a per-chapter one.
+  explicit `<a id="slug"></a>` anchors. Extend this shared glossary directly, preserving existing anchors and concurrent edits; never create a separate Codex or per-chapter glossary.
   New glossary entries follow its existing format (`<a id>` + bold term + simple-Indonesian
   definition, grouped by category not alphabet).
 - **File naming:** `{plan-filename}-id.md`, saved next to the plan in
-  `.claude/plans/learning/`. It's a learning-track file — the stays-in-learning rule applies.
+  `.claude/plans/learning/`. Preserve prior content. It's a learning-track file — the stays-in-learning rule applies.
 
 ## C# Equivalent Code Blocks (PF-AIxxx) — Required
 
@@ -867,7 +823,7 @@ Immediately below the closing fence of a Python code block:
   service," but use this project's *real* C# conventions anyway (xUnit `[Fact]` +
   `Method_Condition_ExpectedResult` naming, `Assert.Equal(expected, actual)` argument order,
   `ILogger<T>`, nullable reference types) so the port doubles as a correct example of this
-  project's own backend style — see [.claude/rules/backend.md](../../../.claude/rules/backend.md).
+  project's own backend style — see [Codex backend rules](../../rules/backend.md).
 - **Tests:** `pytest` functions → xUnit `[Fact]`/`[Theory]`; `AsyncMock`/`patch(...)` → `Mock<T>` +
   Moq constructor injection (or `IClassFixture`); `assert x == y` → `Assert.Equal(y, x)` (expected
   first — the opposite argument order from a Python `assert`).

@@ -1,0 +1,8 @@
+# Project-local Codex settings. Claude configuration is deliberately not imported.
+# Managed policies and invocation overrides may take precedence.
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+project_doc_fallback_filenames = []
+
+# Keep model selection in the user's Codex UI/profile.
+# Do not carry over Claude's opusplan, broad tool permissions, or hook commands.

@@ -12,6 +12,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-AI008 | _(no issue)_ | LangGraph Financial Health Advisor — completed 2026-09-15 by user acceptance. Gemini-default factory and bounded execution; AdvisorService and Langfuse ACTs accepted. 41 advisor tests passed; full suite 193 passed/1 prior failure. Live turn 2, scenario suite and visual dashboard check deferred; dependency issues retained. [Plan](learning/PF-AI008-langgraph-financial-advisor.md). |
 | PF-AI003b | _(no issue)_ | Embedding Provider Toggle (OpenAI ⇄ Gemini) |
 | PF-AI004 | _(no issue)_ | RAG Phase 2 — Chunking, Re-ranking, Generation |
 | PF-AI005 | _(no issue)_ | Streaming + Production UX (SSE) — completed 2026-07-06; follow-up in PF-AI005-PART2 |

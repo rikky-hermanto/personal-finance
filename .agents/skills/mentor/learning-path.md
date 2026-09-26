@@ -5,8 +5,8 @@
 **Primary proof point:** Personal Finance Platform (`C:\workspaces\personal-finance`)
 
 **Companion docs (read together):**
-- [`docs/mentor/ai-engineer-learning-path.md`](../../../../docs/mentor/ai-engineer-learning-path.md) — Curriculum reference (phases, platforms, courses, cadence)
-- [`docs/ai-engineer-learning-tips.md`](../../../../docs/ai-engineer-learning-tips.md) — Daily loop, retrieval/interleaving protocol, anti-patterns
+- [`docs/mentor/ai-engineer-learning-path.md`](../../../docs/mentor/ai-engineer-learning-path.md) — Curriculum reference (phases, platforms, courses, cadence)
+- [`docs/mentor/ai-engineer-learning-tips.md`](../../../docs/mentor/ai-engineer-learning-tips.md) — Daily loop, retrieval/interleaving protocol, anti-patterns
 
 **This file = task-level breakdown.** It's *what to ship today*. The curriculum doc is *what am I learning and why*. The tips doc is *how to study without wasting time*.
 
