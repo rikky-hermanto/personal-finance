@@ -64,3 +64,28 @@ Rule files are loaded through these explicit instructions, not Claude glob metad
 For the migration inventory, settings rationale, and agent/hook review, see
 `docs/codex/configuration.md`. No Claude hook or subagent configuration is enabled
 by this adaptation.
+
+## Jev decision support (shadow mode)
+
+Before substantial browser research, repeating a failed approach, loading several
+tools or skills, spawning agents, choosing between materially different execution
+routes, or proposing a consequential action, consider whether a small bounded Jev
+decision would change the next step. If yes, build a compact state without secrets
+or personal financial records, call the installed router, interpret its action,
+and continue the original task. Skip Jev for simple answers, deterministic
+calculations, routine file edits, and situations where it adds no useful decision.
+Respect `bypass jev` and `no jev`: do not invoke or log the router for that request.
+Keep irreversible actions behind human confirmation; Jev does not grant permission
+or authorize subagents. Existing task authorization and agent restrictions apply.
+
+From the project root, pipe sanitized JSON to:
+`rtk proxy tools/jev-router/.venv/Scripts/python.exe scripts/jev_route.py`.
+Use `goal`, `kind`, `cached_artifact` (boolean), `cached_note`, `prior_error`,
+`same_error_count`, `sources_found`, and `constraints`; include only relevant fields.
+The wrapper uses the installed upstream router, records evidence in
+`tools/jev-router/logs/agent-runs.jsonl`, and falls back on missing credentials or
+API failure. Never interpret fallback as a Jev decision. Shadow recommendations
+are advisory: retain normal judgment and record the actual action/outcome with
+the wrapper's `--outcome` option. Do not switch to active mode automatically.
+See `docs/codex/jev-setup.md` for invocation, private key setup, tests and limitations.
+For API design/audits, read `.agents/skills/typesafe-ai/SKILL.md`.
