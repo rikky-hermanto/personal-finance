@@ -53,6 +53,7 @@ async def call_agent(state: AdvisorState, config: RunnableConfig) -> dict:
     calls = state.get("model_calls", 0)
     if calls >= MAX_MODEL_CALLS:
         return {"error": "advisor_call_limit"}
+    
     # ToolNode marks failed tool results; do not ask the model to reinterpret them.
     if state["messages"] and isinstance(state["messages"][-1], ToolMessage):
         for message in reversed(state["messages"]):
@@ -60,6 +61,7 @@ async def call_agent(state: AdvisorState, config: RunnableConfig) -> dict:
                 break
             if message.status == "error":
                 return {"error": "advisor_tool_error"}
+            
     # Prepend system message if starting a new conversation.
     messages = state["messages"]
     if not any(isinstance(m, SystemMessage) for m in messages):
