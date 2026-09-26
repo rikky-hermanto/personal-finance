@@ -1,0 +1,161 @@
+{
+  "started_utc": "2026-09-15T08:04:04.822510+00:00",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "data": "synthetic HTTP fixtures; real model, service and compiled graph",
+  "quota_preflight": "Account remaining quota/tier unavailable through model metadata; stop on first provider failure.",
+  "limits": {
+    "turns": 2,
+    "model_calls_per_turn": 4,
+    "output_tokens": 2048,
+    "timeout_seconds": 30,
+    "retries": 0,
+    "total_rpc_ceiling": 8
+  },
+  "rpc_attempts": 3,
+  "turns": [
+    {
+      "turn": 1,
+      "query": "Kondisi keuangan saya sekarang bagaimana? Apa yang harus saya prioritaskan? Jawab ringkas dalam maksimal 150 kata.",
+      "rpc_attempts": 2,
+      "http_paths": [
+        "/api/journey/state"
+      ],
+      "model_outputs": [
+        {
+          "content": "",
+          "tool_calls": [
+            {
+              "name": "get_pyramid_scores",
+              "args": {},
+              "id": "84f40652-278c-41c0-ac29-1fb731001960",
+              "type": "tool_call"
+            }
+          ],
+          "usage": {
+            "input_tokens": 498,
+            "output_tokens": 329,
+            "total_tokens": 827,
+            "input_token_details": {
+              "cache_read": 0
+            },
+            "output_token_details": {
+              "reasoning": 316
+            }
+          },
+          "response_metadata": {
+            "prompt_feedback": {
+              "block_reason": 0,
+              "safety_ratings": []
+            },
+            "finish_reason": "STOP",
+            "model_name": "gemini-2.5-flash",
+            "safety_ratings": []
+          }
+        },
+        {
+          "content": "Berdasarkan data Anda, saat ini Anda berada di Level 2 (Defense) dari Piramida Keuangan, dengan skor 45%. Ini berarti Anda telah membangun fondasi yang kuat (L1: 90%), namun belum sepenuhnya mencapai keamanan finansial di L2.\n\nPrioritas utama Anda adalah menyelesaikan Level 2. Untuk itu, fokuslah pada dua hal:\n1.  **Dana Darurat**: Pastikan Anda memiliki dana darurat yang cukup untuk menutupi setidaknya 3 bulan pengeluaran Anda.\n2.  **Rasio Utang terhadap Pendapatan**: Usahakan agar rasio utang Anda di bawah 20% dari pendapatan bulanan Anda.\n\nDengan menyelesaikan Level 2, Anda akan memiliki jaring pengaman finansial yang kuat sebelum melangkah ke Level 3 (Growth).",
+          "tool_calls": [],
+          "usage": {
+            "input_tokens": 560,
+            "output_tokens": 831,
+            "total_tokens": 1391,
+            "input_token_details": {
+              "cache_read": 0
+            },
+            "output_token_details": {
+              "reasoning": 658
+            }
+          },
+          "response_metadata": {
+            "prompt_feedback": {
+              "block_reason": 0,
+              "safety_ratings": []
+            },
+            "finish_reason": "STOP",
+            "model_name": "gemini-2.5-flash",
+            "safety_ratings": []
+          }
+        }
+      ],
+      "elapsed_seconds": 11.125,
+      "response": {
+        "answer": "Berdasarkan data Anda, saat ini Anda berada di Level 2 (Defense) dari Piramida Keuangan, dengan skor 45%. Ini berarti Anda telah membangun fondasi yang kuat (L1: 90%), namun belum sepenuhnya mencapai keamanan finansial di L2.\n\nPrioritas utama Anda adalah menyelesaikan Level 2. Untuk itu, fokuslah pada dua hal:\n1.  **Dana Darurat**: Pastikan Anda memiliki dana darurat yang cukup untuk menutupi setidaknya 3 bulan pengeluaran Anda.\n2.  **Rasio Utang terhadap Pendapatan**: Usahakan agar rasio utang Anda di bawah 20% dari pendapatan bulanan Anda.\n\nDengan menyelesaikan Level 2, Anda akan memiliki jaring pengaman finansial yang kuat sebelum melangkah ke Level 3 (Growth).",
+        "session_id": "82aa0317-3f3f-4735-bf20-29845c8e2ab5",
+        "steps_taken": 1
+      },
+      "saved_human_messages": [
+        "Kondisi keuangan saya sekarang bagaimana? Apa yang harus saya prioritaskan? Jawab ringkas dalam maksimal 150 kata."
+      ],
+      "saved_tool_results": [
+        "{\"current_level\": 2, \"level_scores\": {\"L1\": 90, \"L2\": 45, \"L3\": 20}}"
+      ],
+      "answer_matches_final_model_output": true,
+      "model_calls_state": 2
+    },
+    {
+      "turn": 2,
+      "query": "Apa yang harus saya lakukan dulu untuk mencapai L3 dari kondisi tadi? Sebutkan surplus bulanan yang tadi dan tindakan konkretnya. Jawab maksimal 150 kata.",
+      "rpc_attempts": 1,
+      "http_paths": [],
+      "model_outputs": [],
+      "error_type": "ServiceUnavailable",
+      "elapsed_seconds": 2.224,
+      "response": {
+        "answer": "Maaf, saya tidak dapat mengambil data keuangan Anda saat ini. Silakan coba lagi dalam beberapa saat. ",
+        "session_id": "82aa0317-3f3f-4735-bf20-29845c8e2ab5",
+        "steps_taken": 1
+      },
+      "saved_human_messages": [
+        "Kondisi keuangan saya sekarang bagaimana? Apa yang harus saya prioritaskan? Jawab ringkas dalam maksimal 150 kata.",
+        "Apa yang harus saya lakukan dulu untuk mencapai L3 dari kondisi tadi? Sebutkan surplus bulanan yang tadi dan tindakan konkretnya. Jawab maksimal 150 kata."
+      ],
+      "saved_tool_results": [
+        "{\"current_level\": 2, \"level_scores\": {\"L1\": 90, \"L2\": 45, \"L3\": 20}}"
+      ],
+      "answer_matches_final_model_output": false,
+      "model_calls_state": 1
+    }
+  ],
+  "langfuse_dashboard": "not tested; local trace only",
+  "model_metadata_http_status": 200,
+  "supports_generate_content": true,
+  "fixtures": {
+    "/api/journey/state": {
+      "currentLevel": 2,
+      "levelScores": {
+        "L1": 90,
+        "L2": 45,
+        "L3": 20
+      }
+    },
+    "/api/transactions/aggregated": {
+      "summary": {
+        "totalIncome": 12000000,
+        "totalExpenses": 9000000
+      },
+      "currentMonth": {
+        "month": "2026-09",
+        "net": 3000000
+      },
+      "topCategories": [
+        {
+          "category": "Food & Dining",
+          "amount": 3500000
+        },
+        {
+          "category": "Housing",
+          "amount": 3000000
+        }
+      ]
+    },
+    "/api/networth/current": {
+      "netWorthIdr": 25000000
+    },
+    "/api/networth/allocation": {
+      "Savings": 15000000,
+      "Investment": 10000000
+    }
+  },
+  "outcome": "stopped after unsuccessful turn; no retries"
+}

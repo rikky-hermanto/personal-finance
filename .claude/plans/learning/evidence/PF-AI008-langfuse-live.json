@@ -1,0 +1,318 @@
+{
+  "started_utc": "2026-09-15T09:34:51.927090+00:00",
+  "provider": "gemini",
+  "model": "gemini-2.5-flash",
+  "rpc_attempts": 2,
+  "tool_http_paths": [
+    "/api/journey/state"
+  ],
+  "scope": "real POST /advisor via ASGI, synthetic tool HTTP, real Gemini and Langfuse",
+  "limits": {
+    "requests": 1,
+    "model_calls": 4,
+    "output_tokens": 2048,
+    "timeout_seconds": 30,
+    "retries": 0
+  },
+  "auth_status": 200,
+  "elapsed_seconds": 10.622,
+  "http_status": 200,
+  "response": {
+    "answer": "Anda berada di level 2 (Pertahanan) dengan skor 45%. Prioritas utama Anda adalah menyelesaikan level ini. Fokus pada pembangunan dana darurat 3 bulan penuh dan pastikan rasio utang terhadap pendapatan Anda di bawah 20% untuk mencapai L2 sepenuhnya.",
+    "session_id": "d07d1f75-c57d-4598-a995-1597a4c4bd33",
+    "steps_taken": 1
+  },
+  "trace_id": "4ab6bf4c5c7e6bfd1cafe56fa363e4d2",
+  "trace_url": "https://cloud.langfuse.com/project/cmps0uij102r2ad0ekbh49nbo/traces/4ab6bf4c5c7e6bfd1cafe56fa363e4d2",
+  "trace_fetch_status": 200,
+  "observations": [
+    {
+      "id": "ca7106e963c59301",
+      "parentObservationId": "bf357d5edc793a15",
+      "name": "agent",
+      "type": "AGENT",
+      "startTime": "2026-09-15T09:34:56.031Z",
+      "endTime": "2026-09-15T09:35:04.141Z",
+      "latency": 8.11,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "40663050abe71cfc",
+      "parentObservationId": "ca7106e963c59301",
+      "name": "should_continue",
+      "type": "CHAIN",
+      "startTime": "2026-09-15T09:35:04.139Z",
+      "endTime": "2026-09-15T09:35:04.140Z",
+      "latency": 0.001,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "bf357d5edc793a15",
+      "parentObservationId": "e7cf424ffb913b6c",
+      "name": "LangGraph",
+      "type": "CHAIN",
+      "startTime": "2026-09-15T09:34:53.532Z",
+      "endTime": "2026-09-15T09:35:04.144Z",
+      "latency": 10.612,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "41dae9e4c38d1b32",
+      "parentObservationId": "ca7106e963c59301",
+      "name": "_BoundedChatGoogleGenerativeAI",
+      "type": "GENERATION",
+      "startTime": "2026-09-15T09:34:56.043Z",
+      "endTime": "2026-09-15T09:35:04.138Z",
+      "latency": 8.095,
+      "model": "gemini-2.5-flash",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 557,
+        "output": 1170,
+        "total": 1727
+      },
+      "usageDetails": {
+        "input": 557,
+        "output": 57,
+        "total": 1727,
+        "input_cache_read": 0,
+        "output_reasoning": 1113
+      },
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "b643d257fc0ba1ed",
+      "parentObservationId": "40663050abe71cfc",
+      "name": "POST /advisor http send",
+      "type": "SPAN",
+      "startTime": "2026-09-15T09:35:04.145Z",
+      "endTime": "2026-09-15T09:35:04.145Z",
+      "latency": 0,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "c2668c6af807f084",
+      "parentObservationId": "40663050abe71cfc",
+      "name": "POST /advisor http send",
+      "type": "SPAN",
+      "startTime": "2026-09-15T09:35:04.145Z",
+      "endTime": "2026-09-15T09:35:04.145Z",
+      "latency": 0,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "e7cf424ffb913b6c",
+      "parentObservationId": null,
+      "name": "POST /advisor",
+      "type": "SPAN",
+      "startTime": "2026-09-15T09:34:53.525Z",
+      "endTime": "2026-09-15T09:35:04.146Z",
+      "latency": 10.621,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "0d6554df9bfd5fc9",
+      "parentObservationId": "bf357d5edc793a15",
+      "name": "agent",
+      "type": "AGENT",
+      "startTime": "2026-09-15T09:34:53.536Z",
+      "endTime": "2026-09-15T09:34:56.026Z",
+      "latency": 2.49,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "6c943ca41af1d217",
+      "parentObservationId": "0d6554df9bfd5fc9",
+      "name": "should_continue",
+      "type": "CHAIN",
+      "startTime": "2026-09-15T09:34:56.023Z",
+      "endTime": "2026-09-15T09:34:56.024Z",
+      "latency": 0.001,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "92462f49565fd2ea",
+      "parentObservationId": "bf357d5edc793a15",
+      "name": "tools",
+      "type": "CHAIN",
+      "startTime": "2026-09-15T09:34:56.027Z",
+      "endTime": "2026-09-15T09:34:56.030Z",
+      "latency": 0.003,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "d6d256d2846e45b3",
+      "parentObservationId": "0d6554df9bfd5fc9",
+      "name": "_BoundedChatGoogleGenerativeAI",
+      "type": "GENERATION",
+      "startTime": "2026-09-15T09:34:53.570Z",
+      "endTime": "2026-09-15T09:34:56.022Z",
+      "latency": 2.452,
+      "model": "gemini-2.5-flash",
+      "usage": {
+        "unit": "TOKENS",
+        "input": 495,
+        "output": 244,
+        "total": 739
+      },
+      "usageDetails": {
+        "input": 495,
+        "output": 13,
+        "total": 739,
+        "input_cache_read": 0,
+        "output_reasoning": 231
+      },
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "0c7b3f24631d0834",
+      "parentObservationId": "e7cf424ffb913b6c",
+      "name": "POST /advisor http receive",
+      "type": "SPAN",
+      "startTime": "2026-09-15T09:34:53.527Z",
+      "endTime": "2026-09-15T09:34:53.527Z",
+      "latency": 0,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "c7c737516b0c4995",
+      "parentObservationId": "e7cf424ffb913b6c",
+      "name": "POST /advisor http receive",
+      "type": "SPAN",
+      "startTime": "2026-09-15T09:34:53.528Z",
+      "endTime": "2026-09-15T09:34:53.528Z",
+      "latency": 0,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    },
+    {
+      "id": "f8713cd260662dc6",
+      "parentObservationId": "92462f49565fd2ea",
+      "name": "get_pyramid_scores",
+      "type": "TOOL",
+      "startTime": "2026-09-15T09:34:56.028Z",
+      "endTime": "2026-09-15T09:34:56.029Z",
+      "latency": 0.001,
+      "model": null,
+      "usage": {
+        "unit": "TOKENS",
+        "input": 0,
+        "output": 0,
+        "total": 0
+      },
+      "usageDetails": {},
+      "level": "DEFAULT",
+      "statusMessage": null
+    }
+  ],
+  "checks": {
+    "trace_persisted": true,
+    "agent_and_tools_steps": true,
+    "generation_tokens_present": true,
+    "node_timing_present": true,
+    "real_gemini_model_recorded": true,
+    "all_generation_calls_persisted": true,
+    "root_span_completed": true
+  },
+  "dashboard_ui": "Chrome remained on Loading after reload; visual confirmation not obtained"
+}

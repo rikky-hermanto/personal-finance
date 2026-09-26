@@ -97,12 +97,15 @@
 - [ ] Log every tool call and decision to Langfuse — traces become demo material
 - [ ] Stretch: complete DeepLearning.AI Functions, Tools and Agents with LangChain (~3h)
 
-### Chapter 8: LangGraph — State, Routing, Multi-Step
+### Chapter 8: LangGraph — State, Routing, Multi-Step ✅ COMPLETED (2026-09-15, accepted scope)
 - [x] Design "Financial Health Advisor" agent (state, tools, routing) — `AdvisorState` (2026-08-21)
 - [x] Implement tools: `get_cashflow_summary`, `get_pyramid_scores`, `get_spending_by_category` — plus a 4th, `get_investment_summary` (2026-08-21)
 - [x] Build LangGraph graph: `agent` ⇄ `tools` ReAct loop + `fallback` node, conditional routing via `should_continue` (2026-08-21)
 - [x] Add conversation memory (session-scoped) — `MemorySaver` + `thread_id` (2026-08-21)
-- [ ] Test 5 financial scenarios with expected agent behavior ← blocked, see Day 87 entry
+- [ ] Test 5 financial scenarios with expected agent behavior — deferred follow-up by chapter closure decision (2026-09-15); definitions written, full live suite not run
+- [x] Provider-agnostic advisor with Gemini defaults and bounded calls/tokens/timeouts/retries
+- [x] AdvisorService ACT accepted with live second-turn verification deferred
+- [x] Langfuse ACT accepted: persisted live trace includes steps, token usage and node latency; browser visual check deferred
 
 ## Phase 3 Task Checklist (Days 61–90)
 
@@ -854,3 +857,54 @@
 **Streak: 1 day** (gap 2026-08-18 → 2026-08-20 unlogged)
 
 **Streak: 1 day** (reset — gap 2026-08-13 → 2026-08-16)
+
+### 2026-09-15 — PF-AI008 provider-agnostic revision
+
+**Current follow-up to Day 87:** the Anthropic-only credential blocker described above is resolved in code. Advisor now follows shared `AI_PROVIDER` / `AI_MODEL`, defaults to Gemini / `gemini-2.5-flash`, and needs only the selected provider key. Adding/purchasing Anthropic access is no longer the next step. Changing these shared settings also affects existing AI consumers; extraction implementations remain unchanged.
+
+- R1–R3 and R5 implemented: small `BaseChatModel` factory, Gemini/Anthropic adapters, async model invocation with callback propagation, safe fallback and text-block normalization. Graph topology, tools, MemorySaver, financial formulas and API schema preserved.
+- Learning limits: 4 model calls per user request, 2048 output tokens/call, 30-second deadline/call, 0 automatic retries. Gemini 2.x has a narrow adapter guard for nested Google SDK retries and blocking quota `retry_after` sleep. No automatic paid-provider fallback.
+- Local advisor checks: **41 passed**. Full unit suite: **193 passed, 1 failed** (`test_is_pii_keyword[REK123456-True]`, the previously recorded unchanged merchant-suggester case). Tests use synthetic keys, mocked LLM/SDK/HTTP or in-process ASGI, with tracing exports disabled.
+- Full dev install failed while preparing litellm source metadata (Rust/Cargo PATH); editable installation with `--no-deps` succeeded and runtime Gemini metadata is correct. Versions/bounds retained. `pip check` still reports four existing conflicts involving instructor/jiter, langchain-classic/core/text-splitters, and langchain-openai/openai. Full evidence and versions: [original plan](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md#execution-evidence--2026-09-15-r1r3-r5).
+- **R4 and live acceptance pending by explicit user instruction:** 0 Gemini calls, 0 Anthropic calls, no paid judges/eval scripts. Step 8 two-turn smoke, all five Step 10 scenarios, actual token usage/cost/latency, and Langfuse dashboard visibility remain unmeasured. Chapter 7's prior smoke gate is unchanged.
+- No commit, push or GitHub mutation. Original plan and local board updated; unrelated working-tree changes preserved.
+
+**Konsep yang dipelajari:** factory memilih implementasi model di satu tempat, lalu graph menggunakan interface pesan dan tool-call yang sama. Ini mirip DI interface di C#. Graph correctness berarti routing, batas panggilan, memory dan penanganan error berjalan sesuai kontrak. Mock membuktikan bagian itu; mock tidak membuktikan Gemini memilih tool yang tepat, memberi saran berkualitas, atau menghindari refetch. Bukti kualitas tersebut tetap membutuhkan eksperimen model asli yang diizinkan, dengan data sintetis/sanitized dan kuota terbatas.
+
+#### Later the same session — user-authorized live Gemini probe
+
+The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemini.py --live-gemini`: real service/graph/Gemini 2.5 Flash with synthetic tool HTTP data, local callback evidence, maximum two turns/eight generation attempts, zero retries. Model metadata lookup succeeded; remaining account quota/tier could not be read from it. No billing/provider settings changed.
+
+- Turn 1 succeeded in 11.125s (2 requests): tool `get_pyramid_scores` → model synthesis → response string. L2 score 45% and L1 score 90% matched fixtures. It did not fetch cashflow or supply a concrete IDR action; not a full S1 quality pass.
+- Turn 2 failed with `ServiceUnavailable` in 2.224s (1 request); controlled fallback returned. Both questions and the previous tool result remain in the same saved session, but successful follow-up/no-refetch behavior is still pending. Stopped without retry.
+- Total: 3 Gemini generation attempts, 0 Anthropic. Successful-call usage: 1058 input / 1160 output tokens (974 reasoning tokens included). Failed-call usage and billed cost unavailable. Langfuse dashboard and full .NET HTTP integration untested.
+- [Local evidence](../../.claude/plans/learning/evidence/PF-AI008-gemini-smoke.json) recorded; combined two-turn checkbox and R4 remain open. No production implementation change, commit, push, or GitHub mutation.
+
+#### Follow-up — Langfuse live tracing verification, 2026-09-15
+
+- After accepting the AdvisorService ACT with live-turn-2 verification deferred, the user requested testing Langfuse. One real `/advisor` request via ASGI with synthetic tool data succeeded: 2 Gemini calls, no retries; production callback/export path unchanged.
+- Langfuse API readback confirmed 14 completed observations, including HTTP root, graph, two agent nodes, tools/get_pyramid_scores and two Gemini generations. Input 1052/output 1414 tokens; generation latency 2.452s/8.095s; HTTP root 10.621s. [Stored evidence](../../.claude/plans/learning/evidence/PF-AI008-langfuse-live.json).
+- Trace export and persistence **verified**. Chrome trace page remained on Loading after reload; only visual dashboard confirmation remains pending for the tracing ACT. Local OTEL metrics collector localhost:4317 was unavailable, independently of successful Langfuse trace storage.
+- No production code changes or further LLM calls for API polling; opt-in verification script and actual evidence added. R4 follow-up answer/scenario gates remain separate.
+
+### 2026-09-15 — PF-AI008 completion and learning handoff
+
+**Session:** User accepted the AdvisorService and Langfuse ACTs and explicitly requested closing PF-AI008, committing all current changes, and pushing the current branch.
+
+- Completed the accepted Chapter 8 scope: provider-agnostic Gemini/Anthropic chat factory, unchanged extraction contract, LangGraph tools/routing/memory, controlled errors, four-call limit, 2048 output tokens, 30-second timeout, zero retries and no paid-provider fallback.
+- Evidence: 41 passing advisor tests; full suite 193 passed with the prior PII failure. Two live probes used 5 Gemini generation attempts total; first-turn synthesis and persisted Langfuse steps/token/latency verified. No new live call for closure.
+
+**Chapter 8 checklist progress:**
+- [x] AdvisorService ACT accepted with live second-turn verification deferred.
+- [x] Langfuse tracing ACT accepted from stored API evidence.
+- [x] PF-AI008 marked completed in its original learning plan and moved to local board Done.
+- [ ] Deferred follow-ups: successful live second turn, all five scenarios, dashboard visual confirmation, full .NET data integration and broader measurements. These are not represented as passed.
+
+**Retros (blockers & surprises):**
+- Gemini turn 2 returned ServiceUnavailable; stopped without retry. Memory retention and successful first-turn synthesis remained verified.
+- Langfuse ingestion was eventual; waited for both generation observations and the completed request root. Dashboard stayed on Loading, but API verified all 14 observations.
+- Existing PII test and four venv dependency conflicts remain; the full dev install failed on litellm/Cargo. Preserved eval bounds. Local OTEL metrics collector was unavailable independently of Langfuse tracing.
+
+**Remaining for next session:** Start Chapter 9's MCP server/tool integration learning milestone. Keep the above evaluation and environment debt visible for a separately scoped follow-up. Chapter 7's prior smoke gate is not silently marked passed.
+
+**Streak:** 1 logged day; earlier gaps remain historical. This closure records accepted delivery, not completion of every optional/deferred evaluation.

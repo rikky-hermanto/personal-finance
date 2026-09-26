@@ -43,19 +43,24 @@
   }
   header{
     position:sticky;top:0;z-index:20;background:var(--header);color:var(--header-text);
-    padding:14px 22px;display:flex;align-items:center;justify-content:space-between;
+    padding:14px 22px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
     box-shadow:0 1px 0 rgba(0,0,0,.25);
   }
   header h1{font-size:15px;margin:0;font-weight:600;letter-spacing:.2px}
   header .sub{font-size:12px;color:#c9c9ce;margin-top:2px;font-weight:400}
-  .legend{display:flex;gap:14px;align-items:center;font-size:11.5px;color:#c9c9ce}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:11.5px;color:#c9c9ce}
   .legend span{display:inline-flex;align-items:center;gap:6px}
   .dot{width:9px;height:9px;border-radius:3px;display:inline-block}
-  #theme-toggle, #observer-toggle{
+  #theme-toggle, #observer-toggle, #fallback-toggle{
     background:transparent;border:1px solid #35363d;color:var(--header-text);
     border-radius:8px;padding:6px 10px;cursor:pointer;font-size:13px;
   }
   #observer-toggle[aria-pressed="true"]{background:var(--accent-obs);border-color:var(--accent-obs);color:#0b0b0d;font-weight:600}
+  #fallback-toggle[aria-pressed="true"]{background:var(--loop-border);border-color:var(--loop-border);color:#141414;font-weight:600}
+  button:focus-visible, select:focus-visible{outline:2px solid var(--accent-obs);outline-offset:3px}
+  #fallback-controls{margin:0 0 20px;padding:12px 16px;border:1px solid var(--loop-border);border-radius:8px;background:var(--note-bg);color:var(--text);font-size:12.5px;line-height:1.6}
+  #fallback-controls select{margin:0 8px;padding:6px;border:1px solid var(--card-border);border-radius:6px;background:var(--lane-bg);color:var(--text);font:inherit;max-width:100%}
+  #fallback-controls p{margin:8px 0 0;color:var(--muted)}
   #observer-layer{opacity:0;pointer-events:none;transition:opacity .15s ease}
   #app[data-observer="on"] #observer-layer{opacity:1;pointer-events:auto}
   .obs-line{stroke:var(--accent-obs);stroke-width:1.3;stroke-dasharray:1.5 3.5}
@@ -87,7 +92,7 @@
 <header>
   <div>
     <h1>PF-AI008 — Financial Health Advisor: request/response sequence</h1>
-    <div class="sub">One fulfilled turn of <code style="color:#e8e8ec">POST /advisor</code> — from user question to grounded answer</div>
+    <div class="sub" id="flow-summary" aria-live="polite">One fulfilled turn of POST /advisor — from user question to grounded answer</div>
   </div>
   <div class="legend">
     <span><span class="dot" style="background:var(--accent-u)"></span>User</span>
@@ -99,23 +104,42 @@
     <span><span class="dot" style="background:var(--accent-db)"></span>Supabase/PG</span>
     <span><span class="dot" style="background:var(--accent-obs)"></span>Observer</span>
     <button id="observer-toggle" aria-pressed="false">🔭 Observer</button>
+    <button id="fallback-toggle" aria-pressed="false" aria-controls="fallback-controls stage">↪ Fallback</button>
     <button id="theme-toggle">🌙</button>
   </div>
 </header>
 <div id="wrap">
-  <svg id="stage"></svg>
+  <svg id="stage" role="img" aria-label="Advisor success sequence"></svg>
 </div>
 <footer>
+<div id="fallback-controls" hidden>
+  <label for="failure-point"><strong>Claude invocation fails:</strong></label>
+  <select id="failure-point">
+    <option value="0">On the first call</option>
+    <option value="1">After pyramid data</option>
+    <option value="2">After cashflow data</option>
+  </select>
+  <span>Alternative to success · fresh session · Observer can be enabled independently.</span>
+  <p>Only an exception caught around <code>llm.invoke()</code> takes this path. Tool/API failures do not
+  explicitly set <code>state.error</code> in the current ToolNode wiring. Exceptions escaping the graph
+  reach the route's <code>502 advisor_error</code> handler instead.</p>
+</div>
   <p><strong>Use case:</strong> user asks "Gimana kondisi keuangan saya bulan ini?" in the advisor chat.
   The agent doesn't have the answer up front — it decides which of its 4 tools to call, fetches real
   pyramid + cashflow data from the .NET API (backed by Supabase Postgres), reasons over the results, and
   only then answers. The <span style="color:var(--loop-label)">amber box</span> is the ReAct loop
   (<code>agent → tools → agent</code>) from <a href="#" style="color:inherit">financial_advisor.py</a> —
   it runs once per tool the model decides it needs, twice in this example.</p>
-  <p><strong>What closes the loop:</strong> <code>should_continue</code> checks the last message for
+  <p><strong>What closes the loop:</strong> <code>should_continue</code> checks <code>state.error</code> first
+  and routes to <code>fallback → END</code> when set. Otherwise, it checks the last message for
   <code>tool_calls</code>; once Claude replies with no further tool calls, the graph exits to <code>END</code>,
   <code>MemorySaver</code> checkpoints the full state under <code>thread_id = session_id</code>, and
   <code>AdvisorService</code> returns <code>{answer, session_id, steps_taken}</code> to the caller.</p>
+  <p><strong>Explore failures:</strong> enable <strong>↪ Fallback</strong> and choose which Claude call fails.
+  The sequence keeps the completed steps and replaces the remaining success path with
+  <code>call_agent → should_continue → call_fallback → END</code>. The fallback appends a fixed apology
+  (currently including technical error detail), clears the error, and returns it as the answer in an
+  HTTP 200 response. It does not invoke another model. Disable the toggle to restore the success flow.</p>
   <div class="warn">⚠️ Source: <code>.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md</code> (Steps 4–6).
   Live 2-turn memory replay and Langfuse trace visibility are still blocked on a missing
   <code>ANTHROPIC_API_KEY</code> per that plan's acceptance criteria — this diagram shows the designed/coded
@@ -147,21 +171,21 @@
 
     {t:'loopstart', label:'ReAct loop — agent ⇄ tools (runs per tool call, 2× here)'},
 
-    {t:'msg', from:'lg', to:'llm', label:'invoke(SYSTEM_PROMPT + messages, tools=TOOLS)'},
+    {t:'msg', from:'lg', to:'llm', invocation:0, label:'invoke(SYSTEM_PROMPT + messages, tools=TOOLS)'},
     {t:'ret', from:'llm', to:'lg', label:'AIMessage(tool_calls=[get_pyramid_scores])'},
     {t:'msg', from:'lg', to:'api', label:'GET /api/journey/state'},
     {t:'msg', from:'api', to:'db', label:'SELECT journey scores (PostgREST)'},
     {t:'ret', from:'db', to:'api', label:'rows → current_level, level_scores'},
     {t:'ret', from:'api', to:'lg', label:'200 JourneyStateDto {currentLevel:2, levelScores:{L1:85, L2:42.5, L3:10}}'},
 
-    {t:'msg', from:'lg', to:'llm', label:'invoke(messages + ToolMessage(pyramid))  — re-reason'},
+    {t:'msg', from:'lg', to:'llm', invocation:1, label:'invoke(messages + ToolMessage(pyramid))  — re-reason'},
     {t:'ret', from:'llm', to:'lg', label:'AIMessage(tool_calls=[get_cashflow_summary])'},
     {t:'msg', from:'lg', to:'api', label:'GET /api/transactions/aggregated'},
     {t:'msg', from:'api', to:'db', label:'SELECT aggregated transactions (current month)'},
     {t:'ret', from:'db', to:'api', label:'rows → summary, currentMonth, topCategories'},
     {t:'ret', from:'api', to:'lg', label:'200 DashboardDto {totalIncome, totalExpenses, net:3.0M, month:"2026-07"}'},
 
-    {t:'msg', from:'lg', to:'llm', label:'invoke(messages + ToolMessage(cashflow))  — re-reason'},
+    {t:'msg', from:'lg', to:'llm', invocation:2, label:'invoke(messages + ToolMessage(cashflow))  — re-reason'},
     {t:'ret', from:'llm', to:'lg', label:'AIMessage(final answer, no tool_calls)'},
 
     {t:'loopend'},
@@ -172,6 +196,27 @@
     {t:'ret', from:'ai', to:'fe', label:'200 AdvisorResponse {answer, session_id, steps_taken:2}'},
     {t:'ret', from:'fe', to:'u', label:'render answer bubble: "Anda di L2 Defense — dana darurat 42.5%..."'}
   ];
+
+  function scenarioSteps(failurePoint){
+    if (failurePoint === null) return STEPS;
+    var cut = STEPS.findIndex(function(s){ return s.invocation === failurePoint; });
+    var prefix = STEPS.slice(0, cut + 1).map(function(s){
+      return s.t === 'loopstart'
+        ? {t:'loopstart', label:'ReAct loop — interrupted at Claude call ' + (failurePoint + 1)} : s;
+    });
+    return prefix.concat([
+      {t:'ret', from:'llm', to:'lg', label:'llm.invoke() raises an exception (e.g. timeout)'},
+      {t:'loopend'},
+      {t:'note', label:'call_agent catches exception → returns {error: str(exc)}'},
+      {t:'note', label:'should_continue: error is set → route to fallback'},
+      {t:'note', label:'call_fallback: append fixed apology AIMessage; clear error'},
+      {t:'obs', from:'lg', to:'obs', label:'Langfuse: fallback node via graph callback'},
+      {t:'note', label:'fallback → END · MemorySaver checkpoints session state'},
+      {t:'ret', from:'lg', to:'ai', label:'AdvisorState {messages: […, apology], error: null}'},
+      {t:'ret', from:'ai', to:'fe', label:'200 AdvisorResponse {answer: apology, session_id, steps_taken:' + failurePoint + '}'},
+      {t:'ret', from:'fe', to:'u', label:'render apology: "Maaf, saya tidak dapat mengambil data…"'}
+    ]);
+  }
 
   var svgNS = 'http://www.w3.org/2000/svg';
   function el(name, attrs){
@@ -185,12 +230,18 @@
   var actorX = {};
   ACTORS.forEach(function(a, i){ actorX[a.id] = MARGIN_X + i * LANE_W; });
 
+  function render(failurePoint){
+  // Rebuild the selected sequence; observer visibility remains independent.
+  var svg = document.getElementById('stage');
+  svg.replaceChildren();
+  svg.setAttribute('aria-label', failurePoint === null ? 'Advisor success sequence' :
+    'Advisor fallback sequence: Claude call ' + (failurePoint + 1) + ' fails');
   // First pass: compute total height and loop box vertical spans
   var y = LANE_TOP + LANE_H + 30;
   var rows = []; // {y, step}
   var loopStack = [];
   var loopBoxes = []; // {y0, y1}
-  STEPS.forEach(function(s){
+  scenarioSteps(failurePoint).forEach(function(s){
     if (s.t === 'loopstart'){
       loopStack.push({y0: y - 14, label: s.label});
       rows.push({y: y, step: s});
@@ -210,7 +261,6 @@
   var totalH = y + 30;
   var totalW = MARGIN_X * 2 + (ACTORS.length - 1) * LANE_W + 40;
 
-  var svg = document.getElementById('stage');
   svg.setAttribute('width', totalW);
   svg.setAttribute('height', totalH);
   svg.setAttribute('viewBox', '0 0 ' + totalW + ' ' + totalH);
@@ -265,7 +315,8 @@
     return el('polygon', {points: pts.map(function(p){return p.join(',');}).join(' '), fill: 'currentColor'});
   }
 
-  rows.forEach(function(r, idx){
+  var messageIndex = 0;
+  rows.forEach(function(r){
     var s = r.step, yy = r.y;
     if (s.t === 'loopstart') return;
     if (s.t === 'obs'){
@@ -308,15 +359,17 @@
     svg.appendChild(label);
 
     var num = el('text', {x: Math.min(x1,x2) - 18, y: yy+4, class:'msg-index', 'text-anchor':'end'});
-    num.textContent = (idx+1) + '.';
+    num.textContent = (++messageIndex) + '.';
     svg.appendChild(num);
   });
+  }
 
   // theme toggle
   var appEl = document.getElementById('app');
   var btn = document.getElementById('theme-toggle');
   function applyTheme(t){
     appEl.setAttribute('data-theme', t);
+    document.documentElement.setAttribute('data-theme', t);
     btn.textContent = t === 'dark' ? '☀️' : '🌙';
   }
   applyTheme('light');
@@ -335,8 +388,23 @@
   obsBtn.addEventListener('click', function(){
     applyObserver(appEl.getAttribute('data-observer') !== 'on');
   });
+
+  var fallbackBtn = document.getElementById('fallback-toggle');
+  var failureSelect = document.getElementById('failure-point');
+  function applyFallback(on){
+    fallbackBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    document.getElementById('fallback-controls').hidden = !on;
+    document.getElementById('flow-summary').textContent = on
+      ? 'Fallback turn of POST /advisor — Claude call ' + (Number(failureSelect.value) + 1) + ' fails; graph returns an apology'
+      : 'One fulfilled turn of POST /advisor — from user question to grounded answer';
+    render(on ? Number(failureSelect.value) : null);
+  }
+  fallbackBtn.addEventListener('click', function(){
+    applyFallback(fallbackBtn.getAttribute('aria-pressed') !== 'true');
+  });
+  failureSelect.addEventListener('change', function(){ applyFallback(true); });
+  applyFallback(false);
 })();
 </script>
-</div>
 </body>
 </html>
