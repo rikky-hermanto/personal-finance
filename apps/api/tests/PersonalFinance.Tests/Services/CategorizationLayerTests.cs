@@ -381,7 +381,7 @@ public class CategorizationLayerTests
     [Fact]
     public async Task ProcessAsync_LlmFallback_CategorizedWhenHighConfidence()
     {
-        // Arrange: mock ILlmCategorizationClient returns ("Food", 0.95)
+        // Arrange: legacy categorizer explicitly permits rule seeding.
         // mock ICategoryRuleService.GetAllAsync returns [Food, Bill, Groceries]
         // Transaction: Description="Novel Restaurant", Category="Uncategorized"
         // Expected: tx.Category = "Food"
@@ -390,7 +390,7 @@ public class CategorizationLayerTests
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(("Food", 0.95));
+            .ReturnsAsync(new LlmCategorizationResult("Food", 0.95, true));
 
         var mockRules = new Mock<ICategoryRuleService>();
         mockRules.Setup(x => x.GetAllAsync())
@@ -444,7 +444,7 @@ public class CategorizationLayerTests
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
                 It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(),
                 It.IsAny<CancellationToken>()))
-            .ReturnsAsync(("Groceries", 0.50));
+            .ReturnsAsync(new LlmCategorizationResult("Groceries", 0.50, true));
 
         var mockRules = new Mock<ICategoryRuleService>();
         mockRules.Setup(x => x.GetAllAsync())
@@ -471,6 +471,118 @@ public class CategorizationLayerTests
         var result = await svc.ProcessAsync([tx]);
 
         Assert.Equal("Groceries", result[0].Category);
+        mockRules.Verify(x => x.AddAsync(It.IsAny<CategoryRuleDto>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_RuleSeedDisallowed_DoesNotSeedEvenAtFullConfidence()
+    {
+        var mockLlm = new Mock<ILlmCategorizationClient>();
+        mockLlm.Setup(x => x.CategorizeAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LlmCategorizationResult("Groceries", 1.0, false));
+
+        var mockRules = new Mock<ICategoryRuleService>();
+        mockRules.Setup(x => x.GetAllAsync())
+            .ReturnsAsync([new CategoryRuleDto { Category = "Groceries" }]);
+
+        var mockTxService = new Mock<ITransactionService>();
+        mockTxService.Setup(x => x.FilterOutDuplicatesAsync(It.IsAny<IEnumerable<TransactionDto>>()))
+            .ReturnsAsync((IEnumerable<TransactionDto> transactions) => transactions.ToList());
+
+        var mockSuggestionClient = new Mock<ILlmSuggestionClient>();
+        mockSuggestionClient.Setup(x => x.SuggestBatchAsync(
+                It.IsAny<List<string>>(), It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+
+        var service = new TransactionPipelineService(
+            mockTxService.Object, mockLlm.Object, mockRules.Object, mockSuggestionClient.Object,
+            NullLogger<TransactionPipelineService>.Instance);
+        var transaction = new TransactionDto
+        {
+            Date = DateTime.UtcNow,
+            Description = "Merchant Baru",
+            Flow = "DB",
+            Type = "Expense",
+            Category = "Uncategorized",
+            AmountIdr = 25000,
+            Currency = "IDR",
+        };
+
+        var result = await service.ProcessAsync([transaction]);
+
+        Assert.Equal("Groceries", result[0].Category);
+        mockRules.Verify(x => x.AddAsync(It.IsAny<CategoryRuleDto>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ProcessAsync_MixedResidualOutcomes_PreservesSemanticsAndCreatesNoJevRules()
+    {
+        var mockLlm = new Mock<ILlmCategorizationClient>();
+        mockLlm.SetupSequence(x => x.CategorizeAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+                It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new LlmCategorizationResult("Groceries", 1.0, false))
+            .ReturnsAsync(new LlmCategorizationResult("Uncategorized", 0.0, false))
+            .ReturnsAsync(new LlmCategorizationResult("Uncategorized", 0.0, false));
+
+        var mockRules = new Mock<ICategoryRuleService>();
+        mockRules.Setup(x => x.GetAllAsync())
+            .ReturnsAsync([new CategoryRuleDto { Category = "Groceries" }]);
+        var mockSuggestionClient = new Mock<ILlmSuggestionClient>();
+        mockSuggestionClient.Setup(x => x.SuggestBatchAsync(
+                It.IsAny<List<string>>(), It.IsAny<List<string>>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync([]);
+        var mockTxService = new Mock<ITransactionService>();
+        mockTxService.Setup(x => x.FilterOutDuplicatesAsync(It.IsAny<IEnumerable<TransactionDto>>()))
+            .ReturnsAsync((IEnumerable<TransactionDto> transactions) => transactions.ToList());
+        var service = new TransactionPipelineService(
+            mockTxService.Object, mockLlm.Object, mockRules.Object, mockSuggestionClient.Object,
+            NullLogger<TransactionPipelineService>.Instance);
+
+        var date = new DateTime(2026, 9, 27, 0, 0, 0, DateTimeKind.Utc);
+        var transactions = new List<TransactionDto>
+        {
+            new()
+            {
+                Date = date, Description = "RULE MATCH", Flow = "DB", Type = "Expense",
+                Category = "Utilities", AmountIdr = 100000, Currency = "IDR",
+            },
+            new()
+            {
+                Date = date, Description = "JEV ACCEPT", Flow = "DB", Type = "Expense",
+                Category = "Uncategorized", AmountIdr = 200000, Currency = "IDR",
+            },
+            new()
+            {
+                Date = date, Description = "JEV ABSTAIN", Flow = "CR", Type = "Income",
+                Category = "Uncategorized", AmountIdr = 300000, Currency = "IDR",
+            },
+            new()
+            {
+                Date = date, Description = "JEV ERROR", Flow = "DB", Type = "Expense",
+                Category = "Uncategorized", AmountIdr = 400000, Currency = "IDR",
+            },
+        };
+
+        var result = await service.ProcessAsync(transactions);
+
+        Assert.Equal(["Utilities", "Groceries", "Uncategorized", "Uncategorized"],
+            result.Select(transaction => transaction.Category));
+        Assert.Equal(["DB", "DB", "CR", "DB"], result.Select(transaction => transaction.Flow));
+        Assert.Equal(["Expense", "Expense", "Income", "Expense"],
+            result.Select(transaction => transaction.Type));
+        Assert.Equal([100000m, 200000m, 300000m, 400000m],
+            result.Select(transaction => transaction.AmountIdr));
+        Assert.All(result, transaction => Assert.Equal(date, transaction.Date));
+        Assert.All(result, transaction => Assert.Equal("IDR", transaction.Currency));
+        mockLlm.Verify(x => x.CategorizeAsync(
+            It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<decimal>(), It.IsAny<string>(), It.IsAny<IReadOnlyList<string>>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(3));
         mockRules.Verify(x => x.AddAsync(It.IsAny<CategoryRuleDto>()), Times.Never);
     }
 }

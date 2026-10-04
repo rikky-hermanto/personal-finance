@@ -2,6 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
+using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 
 namespace PersonalFinance.Infrastructure.External;
@@ -23,7 +24,7 @@ public class LlmCategorizationClient : ILlmCategorizationClient
         _logger = logger;
     }
 
-    public async Task<(string Category, double Confidence)> CategorizeAsync(
+    public async Task<LlmCategorizationResult> CategorizeAsync(
         string description, string remarks, string flow, decimal amountIdr, string accountName,
         IReadOnlyList<string> availableCategories,
         CancellationToken ct = default)
@@ -38,26 +39,37 @@ public class LlmCategorizationClient : ILlmCategorizationClient
 
             if (!response.IsSuccessStatusCode)
             {
-                var body = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogWarning("LLM categorize returned {Status}: {Body}", (int)response.StatusCode, body);
-                return ("Uncategorized", 0.0);
+                _logger.LogWarning("Categorization service returned HTTP {Status}; preserving Uncategorized.",
+                    (int)response.StatusCode);
+                return new LlmCategorizationResult("Uncategorized", 0.0, false);
             }
 
             var result = await response.Content.ReadFromJsonAsync<CategorizeResponse>(JsonOptions, ct);
-            if (result is null || !availableCategories.Contains(result.Category, StringComparer.OrdinalIgnoreCase))
+            var canonicalCategory = result is null
+                ? null
+                : availableCategories.FirstOrDefault(category =>
+                    category.Equals(result.Category, StringComparison.OrdinalIgnoreCase));
+
+            if (result is null || canonicalCategory is null ||
+                !double.IsFinite(result.Confidence) || result.Confidence is < 0.0 or > 1.0)
             {
-                _logger.LogWarning("LLM returned unknown category '{Cat}' — discarding.", result?.Category);
-                return ("Uncategorized", 0.0);
+                _logger.LogWarning("Categorization service returned an invalid bounded decision; preserving Uncategorized.");
+                return new LlmCategorizationResult("Uncategorized", 0.0, false);
             }
 
-            _logger.LogInformation("Layer 3 LLM: '{Desc}' → '{Cat}' (confidence={Conf:P0})",
-                description, result.Category, result.Confidence);
-            return (result.Category, result.Confidence);
+            var decision = new LlmCategorizationResult(
+                canonicalCategory,
+                result.Confidence,
+                result.RuleSeedAllowed is true);
+            _logger.LogInformation(
+                "Layer 3 categorization accepted category={Category} confidence={Confidence:P0} rule_seed_allowed={RuleSeedAllowed}",
+                decision.Category, decision.Confidence, decision.RuleSeedAllowed);
+            return decision;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "LLM categorize call failed — falling back to Uncategorized.");
-            return ("Uncategorized", 0.0);
+            _logger.LogError(ex, "Categorization service call failed; preserving Uncategorized.");
+            return new LlmCategorizationResult("Uncategorized", 0.0, false);
         }
     }
 
@@ -73,5 +85,6 @@ public class LlmCategorizationClient : ILlmCategorizationClient
     {
         public string Category    { get; set; } = "Uncategorized";
         public double Confidence  { get; set; } = 0.0;
+        public bool? RuleSeedAllowed { get; set; }
     }
 }

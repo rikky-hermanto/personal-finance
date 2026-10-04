@@ -163,29 +163,30 @@ public class TransactionPipelineService : ITransactionPipelineService
 
         foreach (var tx in stillUncategorized)
         {
-            var (category, confidence) = await _llmCategorizer.CategorizeAsync(
+            var categorization = await _llmCategorizer.CategorizeAsync(
                 tx.Description, tx.Remarks, tx.Flow, tx.AmountIdr, tx.AccountName,
                 availableCategories);
 
-            if (category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
+            if (categorization.Category.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            tx.Category = category;
+            tx.Category = categorization.Category;
 
             // Auto-seed rule when confidence is high — prevents the same transaction
-            // from hitting LLM next month.
-            if (confidence >= LlmAutoAcceptThreshold)
+            // from hitting LLM next month. The producer must explicitly opt in;
+            // missing metadata and Jev decisions are conservative by default.
+            if (categorization.RuleSeedAllowed && categorization.Confidence >= LlmAutoAcceptThreshold)
             {
                 _logger.LogInformation(
-                    "Auto-seeding rule: keyword='{Desc}', type='{Type}', flow='{Flow}', category='{Cat}' (confidence={Conf:P0})",
-                    tx.Description, tx.Type, tx.Flow, category, confidence);
+                    "Auto-seeding categorization rule: type='{Type}', flow='{Flow}', category='{Cat}' (confidence={Conf:P0})",
+                    tx.Type, tx.Flow, categorization.Category, categorization.Confidence);
 
                 await _categoryRuleService.AddAsync(new CategoryRuleDto
                 {
                     Keyword  = tx.Description.Trim(),
                     Type     = tx.Type,
                     Flow     = tx.Flow,
-                    Category = category
+                    Category = categorization.Category
                 });
             }
         }

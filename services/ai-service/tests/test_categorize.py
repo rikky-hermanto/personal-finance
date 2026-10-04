@@ -31,6 +31,7 @@ async def test_categorize_happy_path():
     data = response.json()
     assert data["category"] == "Food"
     assert data["confidence"] == pytest.approx(0.95)
+    assert data["rule_seed_allowed"] is False
 
 
 @pytest.mark.anyio
@@ -63,8 +64,7 @@ async def test_categorize_low_confidence_still_returns_response():
 
 @pytest.mark.anyio
 async def test_categorize_malformed_llm_response():
-    """Categorizer returns fallback (first category, confidence=0.0) when LLM response
-    is missing the required 'category' key — exercises the except branch in categorize()."""
+    """Malformed legacy output abstains instead of fabricating the first category."""
     from app.providers.base import LlmProvider
 
     mock_provider = AsyncMock(spec=LlmProvider)
@@ -81,4 +81,52 @@ async def test_categorize_malformed_llm_response():
     )
 
     assert result.confidence == pytest.approx(0.0)
-    assert result.category == "Food"  # first item in available_categories per fallback logic
+    assert result.category == "Uncategorized"
+    assert result.rule_seed_allowed is False
+
+
+@pytest.mark.anyio
+async def test_categorize_valid_legacy_result_explicitly_allows_rule_seed():
+    from app.providers.base import LlmProvider
+
+    mock_provider = AsyncMock(spec=LlmProvider)
+    mock_provider.generate_json = AsyncMock(
+        return_value={"category": "food", "confidence": 0.95}
+    )
+    categorizer = Categorizer(provider=mock_provider)
+
+    result = await categorizer.categorize(
+        CategorizeRequest(
+            description="Restaurant",
+            flow="DB",
+            amount_idr=Decimal("50000"),
+            available_categories=["Food", "Bill"],
+        )
+    )
+
+    assert result.category == "Food"
+    assert result.confidence == pytest.approx(0.95)
+    assert result.rule_seed_allowed is True
+
+
+@pytest.mark.anyio
+async def test_categorize_legacy_out_of_vocabulary_result_abstains():
+    from app.providers.base import LlmProvider
+
+    mock_provider = AsyncMock(spec=LlmProvider)
+    mock_provider.generate_json = AsyncMock(
+        return_value={"category": "Invented", "confidence": 1.0}
+    )
+    categorizer = Categorizer(provider=mock_provider)
+
+    result = await categorizer.categorize(
+        CategorizeRequest(
+            description="Mystery",
+            flow="DB",
+            amount_idr=Decimal("50000"),
+            available_categories=["Food", "Bill"],
+        )
+    )
+
+    assert result.category == "Uncategorized"
+    assert result.rule_seed_allowed is False

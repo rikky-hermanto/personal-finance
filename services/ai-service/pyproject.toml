@@ -28,6 +28,9 @@ dependencies = [
     "sse-starlette>=2.1",
     "smolagents[litellm]>=1.9",
     "litellm>=1.50",
+    # Jev categorization is an opt-in backend. Keep the pre-1.0 SDK bounded so
+    # response-model or retry-default changes require an explicit review.
+    "typesafe-sdk>=0.7.2,<0.8",
     # Upper-bounded below 1.0: unbounded ">=0.2" resolves to langgraph 1.x, which
     # requires langchain-core>=1.4.7 — that upgrade cascades and breaks the pinned
     # ragas/langchain-openai/langchain-community stack below (same class of issue

@@ -157,9 +157,9 @@ extraction harness: extraction asks "did you find the right set of rows", catego
 
 | Level | What | Tool |
 |-------|------|------|
-| Unit Tests | Mock LLM — prove `/categorize` plumbing and error fallback | `tests/test_categorize.py` |
-| Scorer Tests | Pure math — accuracy, OOV, calibration | `tests/test_scoring_categorize.py` |
-| Eval Harness | Real API calls — prove the model categorizes correctly | `eval_categorize.py` |
+| Unit Tests | Mock providers — prove legacy/Jev policy, timeout, privacy, and rule safety | `tests/test_categorize.py`, `tests/test_jev_categorizer.py` |
+| Scorer Tests | Pure math — accepted precision, coverage, abstention, OOV, failure, latency, and cost | `tests/test_scoring_categorize.py` |
+| Eval Harness | Budget-gated real calls on identical versioned cases | `eval_categorize.py` |
 
 ## Listing the cases
 
@@ -168,24 +168,26 @@ cd services/ai-service
 PYTHONPATH=. python evals/eval_categorize.py --list
 ```
 
-Prints every case id, description, flow, and expected category, plus the default category
-vocabulary. Makes **no API calls** — safe to run any time.
+Prints dataset version/hash, tuning and holdout counts, every case id/family/flow/expected
+outcome, and the default vocabulary. Makes **no API calls** — safe to run any time.
 
 ## Adding or updating a case
 
-Edit `evals/categorize_cases.json`. Append an object to `cases`:
+Edit `evals/categorize_cases.json`. Cases are grouped by `merchant_family`; keep an entire
+family in either `tuning` or `holdout` so near-duplicates cannot leak across calibration and
+evaluation. Add an example under the appropriate `case_groups[].examples` entry:
 
 ```json
 {
-  "id": "grab_fee",
-  "description": "Grab Fee",
-  "remarks": "",
-  "flow": "DB",
-  "amount_idr": 15000,
-  "account_name": "NeoBank",
-  "expected": "Transportation"
+  "id": "ride_06",
+  "description": "BUS TRANS METRO",
+  "remarks": "TAP",
+  "amount_idr": 4500
 }
 ```
+
+The group supplies `merchant_family`, `split`, and may supply shared `flow`, `expected`,
+`expected_any`, or `expected_abstain`. Example-level values override group values.
 
 | Key | Required | Meaning |
 |-----|----------|---------|
@@ -197,6 +199,7 @@ Edit `evals/categorize_cases.json`. Append an object to `cases`:
 | `account_name` | no | Bank name, default `""` |
 | `expected` | one of | The single correct category |
 | `expected_any` | one of | List of categories, any of which passes — use for genuinely ambiguous merchants |
+| `expected_abstain` | one of | `true` when the correct behavior is to preserve `Uncategorized` |
 | `available_categories` | no | Override the offered vocabulary for this case only |
 
 **Rules for good cases:**
@@ -223,18 +226,24 @@ psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
 ```bash
 cd services/ai-service
 
-# Single provider (uses AI_PROVIDER from config if --provider omitted)
-PYTHONPATH=. python evals/eval_categorize.py --provider gemini
-PYTHONPATH=. python evals/eval_categorize.py --provider anthropic --model claude-sonnet-4-6
+# Every live run requires an explicit authorization flag and both budgets.
+.venv\Scripts\python.exe evals\eval_categorize.py --provider gemini `
+  --confirm-live --max-requests 10 --max-spend-usd 0.01
+.venv\Scripts\python.exe evals\eval_categorize.py --provider jev --jev-threshold 0.80 `
+  --confirm-live --max-requests 10 --max-spend-usd 0.01
 
-# Side-by-side comparison (both providers in one result file)
-PYTHONPATH=. python evals/eval_categorize.py --compare
+# Targeted configured-baseline versus Jev comparison on the same held-out cases.
+.venv\Scripts\python.exe evals\eval_categorize.py --compare-jev --jev-threshold 0.80 `
+  --confirm-live --max-requests 100 --max-spend-usd 0.10
 
-# Iterate on one case without burning quota
-PYTHONPATH=. python evals/eval_categorize.py --provider gemini --filter grab_fee
+# Historical Gemini/Anthropic comparison is retained but not required for Jev promotion.
+.venv\Scripts\python.exe evals\eval_categorize.py --compare `
+  --confirm-live --max-requests 10 --max-spend-usd 0.10
 
-# Print only — skip writing to results/
-PYTHONPATH=. python evals/eval_categorize.py --provider gemini --no-save
+# Resume a partial single-provider run; the provider/model/dataset/split must match.
+.venv\Scripts\python.exe evals\eval_categorize.py --provider jev --jev-threshold 0.80 `
+  --resume evals\results\categorize\<run>.json `
+  --confirm-live --max-requests 20 --max-spend-usd 0.02
 ```
 
 > **Quota note:** Gemini's free tier allows 20 requests/day and each case is one request.
@@ -247,19 +256,25 @@ PYTHONPATH=. python evals/eval_categorize.py --provider gemini --no-save
 
 ## Metrics
 
-- **Accuracy** — fraction of cases where the predicted label was acceptable.
+- **Accepted precision** — correct labels divided by accepted in-vocabulary labels;
+  abstentions do not inflate it.
+- **Coverage** — accepted in-vocabulary labels divided by all cases. This prevents an
+  all-abstain system from appearing successful.
+- **Abstention correctness** — fraction of abstentions that occurred on cases explicitly
+  labeled `expected_abstain`.
 - **Out-of-vocab (OOV) rate** — fraction where the model returned a category *not in the offered
-  list*. The system prompt says "Never invent categories outside the provided list"; this is the
-  only thing that verifies it. A non-zero OOV rate is a prompt bug, not a knowledge gap.
-- **Calibration gap** — mean confidence when correct minus mean confidence when wrong. The
-  4-layer categorization engine (PF-103) gates on confidence, so a model with high accuracy and a
-  near-zero gap is a *worse* production dependency than a less accurate, well-calibrated one:
-  downstream code can't tell its good answers from its bad ones.
+  list*. `Uncategorized` is an abstention sentinel, not OOV.
+- **Failure rate** — provider/timeout/invalid-response outcomes, separate from deliberate
+  no-match or low-confidence abstention.
+- **p50/p95 latency and cost per correct accepted result** — total measured request cost includes
+  abstentions and failures. Missing token usage remains unknown, never measured zero.
+- **Confidence diagnostics** keep Jev distribution concentration separate from winner probability
+  and legacy self-reported confidence.
 
 ## Results Convention
 
-Every run auto-saves to `evals/results/YYYYMMDD-categorize-eval.md`. After each run:
-1. Open the generated file
-2. Fill in **Failure Modes** — which cases failed and whether the cause was the model, the
-   prompt, or a wrong expectation in the case list
-3. Commit the results file alongside any change that prompted the re-run
+Every run writes unique JSON and Markdown artifacts under `evals/results/categorize/`.
+Artifacts include dataset and prompt hashes, requested and returned model ids, token usage,
+latency, raw winner probability, confidence, outcome/reason, budgets, and resumable per-case
+results. Live artifacts are promotion evidence only after manual error review; mocked tests and
+the development-agent router are not application evidence.

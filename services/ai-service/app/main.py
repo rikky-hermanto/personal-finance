@@ -25,7 +25,7 @@ from app.providers.factory import ProviderFactory
 from app.providers.embedding_factory import create_embedding_provider
 from app.services.llm_parser import LlmParser, LlmParseError
 from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
-from app.services.categorizer import Categorizer
+from app.services.categorization_factory import create_categorizer
 from app.services.merchant_suggester import MerchantSuggester
 from app.services.portfolio_reviewer import PortfolioReviewer
 from app.services.journey_advisor import JourneyAdvisor
@@ -102,7 +102,7 @@ async def lifespan(app: FastAPI):
     provider = ProviderFactory.create(settings)
     app.state.parser = LlmParser(provider=provider)
     app.state.pdf_extractor = PdfExtractor()
-    app.state.categorizer = Categorizer(provider=provider)
+    app.state.categorizer, jev_client = create_categorizer(settings, provider)
     app.state.suggester = MerchantSuggester(provider=provider)
     app.state.portfolio_reviewer = PortfolioReviewer(provider=provider)
     app.state.journey_advisor = JourneyAdvisor(provider=provider)
@@ -143,13 +143,20 @@ async def lifespan(app: FastAPI):
         "Loaded %d category vocabulary entries for the planner", len(app.state.categories),
     )
     logger.info(
-        "AI service starting up | provider=%s | model=%s | embedding_provider=%s | embedding_model=%s",
+        "AI service starting up | provider=%s | model=%s | categorization_backend=%s | "
+        "categorization_model=%s | embedding_provider=%s | embedding_model=%s",
         settings.ai_provider, settings.ai_model,
+        settings.categorization_backend,
+        settings.jev_model if settings.categorization_backend == "jev" else settings.ai_model,
         settings.embedding_provider, embed_provider.model,
     )
-    yield
-    logger.info("AI service shutting down")
-    langfuse.flush()   # drain buffered traces before process exits
+    try:
+        yield
+    finally:
+        logger.info("AI service shutting down")
+        if jev_client is not None:
+            await jev_client.aclose()
+        langfuse.flush()   # drain buffered traces before process exits
 
 
 # OpenTelemetry Initialization
