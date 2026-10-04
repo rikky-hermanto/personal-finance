@@ -85,6 +85,12 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 ---
 
+## Local proposals — not synced to GitHub
+
+| ID | Status | Title |
+|----|--------|-------|
+| PF-141 | Implementation complete; live eval/promotion pending | Jev residual transaction categorizer — 100-case held-out evaluator, opt-in backend, abstention and no Jev rule auto-seeding. Runtime remains `llm`; no paid evaluation or deployment performed. [Plan](PF-141-jev-categorizer-todo.md). No GitHub issue created. |
+
 ## Ready
 
 | ID | Issue | Title |

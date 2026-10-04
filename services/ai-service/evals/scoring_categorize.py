@@ -1,40 +1,69 @@
-"""Score categorization predictions against expected labels.
-
-Three axes, deliberately kept separate:
-  - Accuracy          : did the model pick an acceptable category?
-  - OOV rate          : did it invent a category outside available_categories?
-  - Calibration gap   : mean confidence when right minus mean confidence when wrong.
-
-A model can be 80% accurate and still be useless if its confidence is flat —
-the 4-layer categorization engine (PF-103) uses confidence to decide whether to
-accept the LLM's answer, so a model that is equally confident when wrong is a
-worse production dependency than a less accurate but well-calibrated one.
-"""
+"""Score accepted labels, abstentions, OOV output, and operational failures separately."""
 from __future__ import annotations
-from dataclasses import dataclass, field
+
+from dataclasses import asdict, dataclass, field
+from decimal import Decimal
+from typing import Literal
+
+ABSTENTION_LABEL = "Uncategorized"
+Outcome = Literal["accepted", "abstained", "oov", "error"]
+_ERROR_REASONS = {"provider_error", "timeout", "invalid_response"}
 
 
 def accepted_labels(case: dict) -> list[str]:
-    """The set of categories that count as correct for this case."""
+    if case.get("expected_abstain"):
+        return []
     if "expected_any" in case:
         return list(case["expected_any"])
     return [case["expected"]]
 
 
 def case_categories(case: dict, defaults: list[str]) -> list[str]:
-    """The category list offered to the model for this case."""
     return list(case.get("available_categories") or defaults)
 
 
 @dataclass
 class CaseResult:
     id: str
+    split: str
+    merchant_family: str
     predicted: str
     confidence: float
     correct: bool
-    out_of_vocab: bool
+    outcome: Outcome
+    reason: str
+    expected_abstain: bool
+    winner_probability: float | None = None
     latency_ms: float = 0.0
-    cost_usd: float = 0.0
+    input_tokens: int | None = None
+    output_tokens: int | None = None
+    cost_usd: Decimal | None = None
+    model: str | None = None
+    prompt_version: str | None = None
+
+    @property
+    def out_of_vocab(self) -> bool:
+        return self.outcome == "oov"
+
+    def to_dict(self) -> dict:
+        data = asdict(self)
+        data["cost_usd"] = str(self.cost_usd) if self.cost_usd is not None else None
+        return data
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "CaseResult":
+        values = dict(data)
+        if values.get("cost_usd") is not None:
+            values["cost_usd"] = Decimal(values["cost_usd"])
+        return cls(**values)
+
+
+def _percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+    ordered = sorted(values)
+    index = max(0, min(len(ordered) - 1, int((len(ordered) - 1) * percentile + 0.5)))
+    return ordered[index]
 
 
 @dataclass
@@ -47,42 +76,123 @@ class CategorizeScore:
 
     @property
     def accuracy(self) -> float:
-        return sum(r.correct for r in self.results) / self.total if self.total else 0.0
+        return sum(result.correct for result in self.results) / self.total if self.total else 0.0
+
+    @property
+    def accepted(self) -> list[CaseResult]:
+        return [result for result in self.results if result.outcome == "accepted"]
+
+    @property
+    def accepted_precision(self) -> float:
+        return (
+            sum(result.correct for result in self.accepted) / len(self.accepted)
+            if self.accepted
+            else 0.0
+        )
+
+    @property
+    def coverage(self) -> float:
+        return len(self.accepted) / self.total if self.total else 0.0
+
+    @property
+    def abstention_rate(self) -> float:
+        abstained = sum(result.outcome == "abstained" for result in self.results)
+        return abstained / self.total if self.total else 0.0
+
+    @property
+    def abstention_correctness(self) -> float:
+        abstained = [result for result in self.results if result.outcome == "abstained"]
+        return (
+            sum(result.correct for result in abstained) / len(abstained)
+            if abstained
+            else 0.0
+        )
 
     @property
     def oov_rate(self) -> float:
-        """Fraction of predictions that were not in the offered category list."""
-        return sum(r.out_of_vocab for r in self.results) / self.total if self.total else 0.0
+        return sum(result.outcome == "oov" for result in self.results) / self.total if self.total else 0.0
+
+    @property
+    def failure_rate(self) -> float:
+        return sum(result.outcome == "error" for result in self.results) / self.total if self.total else 0.0
 
     @property
     def mean_confidence_correct(self) -> float:
-        vals = [r.confidence for r in self.results if r.correct]
-        return sum(vals) / len(vals) if vals else 0.0
+        values = [result.confidence for result in self.accepted if result.correct]
+        return sum(values) / len(values) if values else 0.0
 
     @property
     def mean_confidence_wrong(self) -> float:
-        vals = [r.confidence for r in self.results if not r.correct]
-        return sum(vals) / len(vals) if vals else 0.0
+        values = [result.confidence for result in self.accepted if not result.correct]
+        return sum(values) / len(values) if values else 0.0
 
     @property
     def calibration_gap(self) -> float:
-        """Positive = model is more confident when right. Near zero = confidence is noise."""
         return self.mean_confidence_correct - self.mean_confidence_wrong
 
     @property
+    def p50_latency_ms(self) -> float:
+        return _percentile([result.latency_ms for result in self.results], 0.50)
+
+    @property
+    def p95_latency_ms(self) -> float:
+        return _percentile([result.latency_ms for result in self.results], 0.95)
+
+    @property
+    def total_cost_usd(self) -> Decimal | None:
+        if not self.results or any(result.cost_usd is None for result in self.results):
+            return None
+        return sum((result.cost_usd for result in self.results), Decimal("0"))
+
+    @property
+    def cost_per_correct_accepted_usd(self) -> Decimal | None:
+        correct_accepted = sum(result.correct for result in self.accepted)
+        total_cost = self.total_cost_usd
+        if total_cost is None or correct_accepted == 0:
+            return None
+        return total_cost / Decimal(correct_accepted)
+
+    @property
     def failures(self) -> list[CaseResult]:
-        return [r for r in self.results if not r.correct]
+        return [result for result in self.results if not result.correct]
 
 
-def score_case(case: dict, predicted: str, confidence: float,
-               offered: list[str]) -> CaseResult:
-    norm = predicted.strip().casefold()
-    accepted = {a.strip().casefold() for a in accepted_labels(case)}
-    offered_norm = {c.strip().casefold() for c in offered}
+def score_case(
+    case: dict,
+    predicted: str,
+    confidence: float,
+    offered: list[str],
+    *,
+    reason: str = "accepted",
+    winner_probability: float | None = None,
+) -> CaseResult:
+    normalized = predicted.strip().casefold()
+    accepted = {label.strip().casefold() for label in accepted_labels(case)}
+    offered_normalized = {category.strip().casefold() for category in offered}
+    expected_abstain = bool(case.get("expected_abstain"))
+
+    if reason in _ERROR_REASONS:
+        outcome: Outcome = "error"
+        correct = False
+    elif normalized == ABSTENTION_LABEL.casefold():
+        outcome = "abstained"
+        correct = expected_abstain
+    elif normalized not in offered_normalized:
+        outcome = "oov"
+        correct = False
+    else:
+        outcome = "accepted"
+        correct = normalized in accepted and not expected_abstain
+
     return CaseResult(
         id=case["id"],
+        split=case.get("split", "unspecified"),
+        merchant_family=case.get("merchant_family", case["id"]),
         predicted=predicted,
         confidence=confidence,
-        correct=norm in accepted,
-        out_of_vocab=norm not in offered_norm,
+        correct=correct,
+        outcome=outcome,
+        reason=reason,
+        expected_abstain=expected_abstain,
+        winner_probability=winner_probability,
     )

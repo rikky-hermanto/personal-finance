@@ -59,7 +59,10 @@ class CategorizeRequest(BaseModel):
 
 class CategorizeResponse(BaseModel):
     category: str
-    confidence: float  # 0.0 – 1.0
+    confidence: float = Field(ge=0.0, le=1.0)
+    # Consumers must opt in before persisting a reusable rule. Missing metadata
+    # therefore remains conservative across mixed-version deployments.
+    rule_seed_allowed: bool = False
 
 class SuggestCategoriesRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
