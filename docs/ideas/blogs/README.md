@@ -35,11 +35,11 @@ Source of truth: **README.md** (repo root). Use this exact language:
 | # | Working Title | Archetype | Source | Notes |
 |---|---------------|-----------|--------|-------|
 | ~~1~~ | ~~*I'm a C# engineer becoming an AI engineer in 90 days. Here's the method.*~~ | Short Take → Deep | `docs/mentor/ai-engineer-learning-tips.md` | ✏️ Drafting → `2026-06-24-csharp-to-ai-intro.md` |
-| 2 | *What "monitor your LLM in production" actually means* | Build Log | `.claude/plans/learning/PF-AI001-ai-observability.md` | Langfuse, OTel-vs-Langfuse boundary, real cost/latency numbers. |
-| 3 | *My RAG eval read 0.00 and I almost blamed the wrong thing* | Build Log | `.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md` | Best narrative in the log — eval ground truth saga, MRR@5=0.476 baseline. |
-| 4 | *Embeddings for people who own the database* | Concept Ladder | `.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md` | Terse bank codes → enrich text → pgvector → ivfflat. C# parallels throughout. |
-| 5 | *Re-ranking: when your retriever is confidently wrong* | Concept Ladder | `.claude/plans/learning/PF-AI004-rag-reranking-generation.md` | Bi-encoder vs cross-encoder; FlashRank; English-bias on Bahasa queries finding. |
-| 6 | *Citation guards: stopping the LLM from citing rows it never saw* | Build Log | `.claude/plans/learning/PF-AI004-rag-reranking-generation.md` | Grounded generation + hallucination guard. |
+| 2 | *What "monitor your LLM in production" actually means* | Build Log | `plans/done/learning/PF-AI001-ai-observability.md` | Langfuse, OTel-vs-Langfuse boundary, real cost/latency numbers. |
+| 3 | *My RAG eval read 0.00 and I almost blamed the wrong thing* | Build Log | `plans/done/learning/PF-AI003-rag-embeddings-retrieval.md` | Best narrative in the log — eval ground truth saga, MRR@5=0.476 baseline. |
+| 4 | *Embeddings for people who own the database* | Concept Ladder | `plans/done/learning/PF-AI003-rag-embeddings-retrieval.md` | Terse bank codes → enrich text → pgvector → ivfflat. C# parallels throughout. |
+| 5 | *Re-ranking: when your retriever is confidently wrong* | Concept Ladder | `plans/done/learning/PF-AI004-rag-reranking-generation.md` | Bi-encoder vs cross-encoder; FlashRank; English-bias on Bahasa queries finding. |
+| 6 | *Citation guards: stopping the LLM from citing rows it never saw* | Build Log | `plans/done/learning/PF-AI004-rag-reranking-generation.md` | Grounded generation + hallucination guard. |
 | 7 | *The gate, not the loop, is the design* | Short Take → Deep | `docs/architecture/closed-loop-ai-engineering.md` | Flagship #2. Eval-gated self-correcting loops. Systems-level seniority signal. |
 | 8+ | Live journey posts | any | PF-AI005 streaming, PF-AI007/008 agents, PF-AI009 MCP | Document as shipped — keeps series current through Phases 2–3. |
 

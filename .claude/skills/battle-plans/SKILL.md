@@ -13,7 +13,7 @@ You take one of two roles depending on the `as architect` flag:
 ## Arguments
 
 `$ARGUMENTS` — plan prefix, optional explicit file paths, and optional lens flag. Examples:
-- `/battle-plans PF-115` → PO lens, auto-discovers `PF-115*teamA*` and `PF-115*teamB*` in `.claude/plans/`
+- `/battle-plans PF-115` → PO lens, searches status folders for `PF-115*teamA*` and `PF-115*teamB*`
 - `/battle-plans PF-115 as architect` → Architect lens, same auto-discovery
 - `/battle-plans PF-115-feature-teamA PF-115-feature-teamB` → PO lens, explicit files
 - `/battle-plans PF-115-feature-teamA PF-115-feature-teamB as architect` → Architect lens, explicit files
@@ -25,8 +25,8 @@ You take one of two roles depending on the `as architect` flag:
 - Remaining tokens are the plan identifier — resolve files as described above
 
 ### Step 2 — Locate the files
-- Single prefix → glob `.claude/plans/` for `*{prefix}*teamA*` and `*{prefix}*teamB*`
-- Two filenames → read from `.claude/plans/{name}` (or as-is if absolute)
+- Single prefix → search all plan status folders for `*{prefix}*teamA*` and `*{prefix}*teamB*`
+- Two filenames → search the status folders for each name (or use the supplied path)
 - Read both files completely before forming any opinion
 
 ### Step 3 — Understand the context
@@ -114,4 +114,4 @@ Use this exact structure regardless of lens:
 ---
 
 ### Step 6 — Save the verdict (optional, ask first)
-Ask the user if they want to persist the decision. If yes, write `.claude/plans/{prefix}-verdict.md` using the output above as content.
+Ask the user if they want to persist the decision. If yes, write `plans/resources/reviews/{prefix}-verdict.md` using the output above as content.

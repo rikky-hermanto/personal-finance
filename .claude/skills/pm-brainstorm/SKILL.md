@@ -312,7 +312,7 @@ After delivering any analysis, enter discussion mode. Respond to follow-up quest
 
 After delivering a **Go / No-Go / Go with scope cut** verdict in `analyze` or `compete` mode, record it autonomously — write the files, don't ask for permission:
 
-1. **Save the full analysis** to `.claude/plans/pm-{slug}-analysis.md` (slug = kebab-case feature name).
+1. **Save the full analysis** to `plans/resources/reviews/pm-{slug}-analysis.md` (slug = kebab-case feature name).
 2. **Append a decision record** — 1–2 lines: idea, verdict, MVP scope (if Go/scope-cut) or revisit-condition (if No-Go), and today's date — to a `## Product Decisions` section in `docs/STATUS.md` (create the section if it doesn't exist). STATUS.md is the default location; only use a different file if the user explicitly asks for one.
 
 Example decision record line:

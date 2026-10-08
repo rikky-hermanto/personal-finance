@@ -4,7 +4,7 @@
 > list: *prompt engineering — iteration, testing, versioning*. It covers what the topic actually
 > contains, in the order the ideas depend on each other, with the state of this project used as the
 > worked example throughout. It does not assign build steps — if a chapter ticket comes out of this,
-> it lives in `.claude/plans/learning/`.
+> it lives in `plans/backlog/learning/` until work starts.
 >
 > **Read order matters.** Iteration → Testing → Versioning is not alphabetical; each part exists
 > because the previous one hits a wall. Skipping to Versioning gives you a registry with nothing

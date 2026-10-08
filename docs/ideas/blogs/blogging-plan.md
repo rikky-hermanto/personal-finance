@@ -41,7 +41,7 @@ So each week is fast (fill a template, don't invent structure):
 | Archetype | Shape | Length | Source |
 |-----------|-------|--------|--------|
 | **Build Log / Deep-Dive** | Milestone shipped → the wall I hit → the fix → the metric | 1200–1800w | a [progress.md](docs/mentor/progress.md) session + its PF-AI plan |
-| **Concept Ladder** | Teach one concept "earn the jargon" style (naive → wall → fix), with the C# parallel | 1000–1500w | a ladder from a `.claude/plans/learning/` plan |
+| **Concept Ladder** | Teach one concept "earn the jargon" style (naive → wall → fix), with the C# parallel | 1000–1500w | a ladder from a `plans/<status>/learning/` plan |
 | **Short Take** | One sharp, quotable insight | 500–800w | a retro / "interview-ready answer" block |
 
 A reusable template with these three skeletons lives at `docs/ideas/blogs/_template.md` (to be created).
@@ -54,13 +54,13 @@ Posts 0–6 are mined from **already-shipped** work (real runway, low risk); 7+ 
 
 | # | Working title | Archetype | Source | Why it lands |
 |---|---------------|-----------|--------|--------------|
-| **0 — Flagship** | *The bug my unit tests couldn't catch — so I built an LLM eval harness* | Build Log | [PF-AI002](.claude/plans/learning/PF-AI002-llm-evaluation-framework.md) | Strongest concrete hook (almost shipped corrupted financial data; a real eval caught the `FlowType.DB` serialization bug mocks missed). Demonstrates senior rigor. Fully done = low risk. Intro frames the series; outro converts readers to it. |
+| **0 — Flagship** | *The bug my unit tests couldn't catch — so I built an LLM eval harness* | Build Log | [PF-AI002](../../../plans/done/learning/PF-AI002-llm-evaluation-framework.md) | Strongest concrete hook (almost shipped corrupted financial data; a real eval caught the `FlowType.DB` serialization bug mocks missed). Demonstrates senior rigor. Fully done = low risk. Intro frames the series; outro converts readers to it. |
 | 1 | *I'm a C# engineer becoming an AI engineer in 90 days. Here's the method.* | Short Take→Deep | [ai-engineer-learning-tips.md](docs/mentor/ai-engineer-learning-tips.md) | The origin/manifesto. Establishes the brand, the ladder method, the C# lens. The post every future post links back to. |
-| 2 | *What "monitor your LLM in production" actually means* | Build Log | [PF-AI001](.claude/plans/learning/PF-AI001-ai-observability.md) | Langfuse, OTel-vs-Langfuse boundary, real cost/latency numbers. The first question every AI eng interview asks. |
-| 3 | *My RAG eval read 0.00 and I almost blamed the wrong thing* | Build Log | [PF-AI003](.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) | The best narrative in the whole log — an eval is only as good as its ground truth; the set-based-relevance redesign; honest MRR@5=0.476 baseline. |
-| 4 | *Embeddings for people who own the database* | Concept Ladder | [PF-AI003](.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) | The embeddings ladder (terse bank codes carry no signal → enrich text → pgvector brute-force → ivfflat), C# parallels throughout. |
-| 5 | *Re-ranking: when your retriever is confidently wrong* | Concept Ladder | [PF-AI004](.claude/plans/learning/PF-AI004-rag-reranking-generation.md) | Bi-encoder vs cross-encoder; FlashRank; the real finding that English-bias ranked "cattle feed" above "food delivery" on a Bahasa query. |
-| 6 | *Citation guards: stopping the LLM from citing rows it never saw* | Build Log | [PF-AI004](.claude/plans/learning/PF-AI004-rag-reranking-generation.md) | Grounded generation + the hallucination guard that drops cited IDs not in context. Practical, defensible. |
+| 2 | *What "monitor your LLM in production" actually means* | Build Log | [PF-AI001](../../../plans/done/learning/PF-AI001-ai-observability.md) | Langfuse, OTel-vs-Langfuse boundary, real cost/latency numbers. The first question every AI eng interview asks. |
+| 3 | *My RAG eval read 0.00 and I almost blamed the wrong thing* | Build Log | [PF-AI003](../../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md) | The best narrative in the whole log — an eval is only as good as its ground truth; the set-based-relevance redesign; honest MRR@5=0.476 baseline. |
+| 4 | *Embeddings for people who own the database* | Concept Ladder | [PF-AI003](../../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md) | The embeddings ladder (terse bank codes carry no signal → enrich text → pgvector brute-force → ivfflat), C# parallels throughout. |
+| 5 | *Re-ranking: when your retriever is confidently wrong* | Concept Ladder | [PF-AI004](../../../plans/done/learning/PF-AI004-rag-reranking-generation.md) | Bi-encoder vs cross-encoder; FlashRank; the real finding that English-bias ranked "cattle feed" above "food delivery" on a Bahasa query. |
+| 6 | *Citation guards: stopping the LLM from citing rows it never saw* | Build Log | [PF-AI004](../../../plans/done/learning/PF-AI004-rag-reranking-generation.md) | Grounded generation + the hallucination guard that drops cited IDs not in context. Practical, defensible. |
 | **7 — Flagship #2** | *The gate, not the loop, is the design* | Short Take→Deep | [closed-loop-ai-engineering.md](docs/architecture/closed-loop-ai-engineering.md) | Your most ownable thought-leadership idea — eval-gated self-correcting loops, the extraction⇄balance-reconciliation example. Signals systems-level seniority. |
 | 8+ | Live journey | any | PF-AI005 streaming, PF-AI007/008 agents, PF-AI009 MCP | Document as you ship — keeps the series current through Phases 2–3. |
 

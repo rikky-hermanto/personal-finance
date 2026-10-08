@@ -139,4 +139,4 @@ Allow follow-up:
 
 ### Step 4 — Save (optional)
 
-Ask the user if they want to save the full Council output. If yes, write to `.claude/plans/council-{slug}-{YYYY-MM-DD}.md`.
+Ask the user if they want to save the full Council output. If yes, write to `plans/resources/reviews/council-{slug}-{YYYY-MM-DD}.md`.

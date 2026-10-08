@@ -48,6 +48,6 @@ All 32 source skill names have Codex counterparts.
 
 ## Adaptation decisions
 
-Root and scoped AGENTS.md route rules explicitly. Plans, BOARD.md, learning material and glossary remain shared in .claude/plans. Legacy flat skill files duplicate directory workflows and are not registered as extra skills. Claude tool names, model routing and mandatory delegation were adapted to available Codex capabilities. Historical model-routing artwork is not copied as current guidance. Design references, mentor curriculum and Indonesian writing conventions are retained or adapted.
+Root and scoped AGENTS.md route rules explicitly. Plans, BOARD.md, learning material and glossary remain shared in plans. Legacy flat skill files duplicate directory workflows and are not registered as extra skills. Claude tool names, model routing and mandatory delegation were adapted to available Codex capabilities. Historical model-routing artwork is not copied as current guidance. Design references, mentor curriculum and Indonesian writing conventions are retained or adapted.
 
 The diagram helper is a heuristic for its documented HTML format. Browser review remains necessary for visual and interaction correctness. Existing examples are references, not certified passing fixtures; other HTML formats may be rejected. No hook, automatic publishing action or external integration is enabled.

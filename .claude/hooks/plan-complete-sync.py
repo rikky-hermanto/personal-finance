@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-PostToolUse hook: when a .claude/plans/*.md file reaches completion,
-auto-appends the ticket to .claude/plans/BOARD.md Done section.
+PostToolUse hook: when a completed plan under plans/done/ is edited,
+auto-appends a missing ticket to plans/BOARD.md Done section.
+Moving the plan and reconciling an existing board row remain explicit task steps.
 
 Completion signals (either is sufficient):
   - Header contains:  > **Status:** Completed
@@ -28,7 +29,7 @@ def is_plan_complete(content: str) -> bool:
 
 
 def extract_ticket_id(filename: str) -> str | None:
-    m = re.search(r'(PF-S?\d+)', filename, re.IGNORECASE)
+    m = re.search(r'(PF-(?:AI\d+[a-z]?(?:-PART\d+)?|S?\d+))', filename, re.IGNORECASE)
     return m.group(1).upper() if m else None
 
 
@@ -36,7 +37,7 @@ def extract_title(content: str) -> str:
     for line in content.split('\n')[:5]:
         m = re.match(r'^#\s+(.+)', line)
         if m:
-            return re.sub(r'^PF-S?\d+\s*[—\-]+\s*', '', m.group(1)).strip()
+            return re.sub(r'^PF-(?:AI\d+[a-z]?(?:-PART\d+)?|S?\d+)\s*[—\-]+\s*', '', m.group(1)).strip()
     return 'Unknown'
 
 
@@ -76,13 +77,14 @@ def main():
         if not file_path:
             return
 
-        fp    = Path(file_path)
-        parts = fp.parts
+        fp = Path(file_path).resolve()
+        # Script lives in .claude/hooks; the shared plan tree is at the repo root.
+        project_root = Path(__file__).resolve().parents[2]
+        plans_root = project_root / 'plans'
+        done_root = plans_root / 'done'
 
-        # Only act on .claude/plans/*.md
-        if fp.suffix != '.md':
-            return
-        if not (any(p == '.claude' for p in parts) and 'plans' in parts):
+        # Only sync plans already placed in the Done status folder.
+        if fp.suffix != '.md' or not fp.is_relative_to(done_root):
             return
         if not fp.exists():
             return
@@ -97,9 +99,7 @@ def main():
 
         title = extract_title(content)
 
-        # Resolve BOARD.md: script lives at .claude/hooks/ → project root is ../../
-        project_root = Path(__file__).parent.parent.parent
-        board_path   = project_root / '.claude' / 'plans' / 'BOARD.md'
+        board_path = plans_root / 'BOARD.md'
 
         if not board_path.exists():
             print(f'✅ {ticket_id} plan complete — BOARD.md not found, update manually.')

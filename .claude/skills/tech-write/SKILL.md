@@ -91,7 +91,7 @@ Use after finishing a sprint, closing a batch of tickets, or landing a significa
 | `docs/sprint-plan.md` and similar progress-tracking docs | Sprint/task counters and progress fractions, if the doc carries them | **Only if** the doc exists and contains counters that drifted |
 
 **Do NOT touch in this mode:**
-- `.claude/plans/BOARD.md` — use `/kanban-sync` for that; it has its own skill
+- `plans/BOARD.md` — use `/kanban-sync` for that; it has its own skill
 - `CLAUDE.md` stable sections (Tech Stack, Key Patterns, Architecture, Project Layout) — these only change during actual architectural work, not sprint syncs
 - `docs/architecture/` — architecture docs are updated alongside the features they describe, not in bulk syncs
 - `docs/mentor/progress.md` — AI learning log is updated day-by-day during learning sessions, not during syncs
@@ -899,7 +899,7 @@ Materi belajar Indonesia **ditulis langsung dalam alur pikir pengajar Indonesia*
 ### Persiapan
 
 1. Baca `.claude/skills/mentor/SKILL.md` (spec gaya versi-ID) jika ada — mode ini melengkapi, tidak menggantikan.
-2. Struktur dokumen: tahapan progressive-learning sebagai heading biasa, TANPA label "Level X": **Apa Masalahnya → Konsep Sederhananya → Cara Kerja → Implementasi → Optimisasi → Best Practice → Kesalahan Umum → Summary.** Exemplar: `.claude/plans/learning/PF-AI004-*-id.md`.
+2. Struktur dokumen: tahapan progressive-learning sebagai heading biasa, TANPA label "Level X": **Apa Masalahnya → Konsep Sederhananya → Cara Kerja → Implementasi → Optimisasi → Best Practice → Kesalahan Umum → Summary.** Exemplar: `plans/done/learning/PF-AI004-*-id.md`.
 
 ### Kaidah struktural (semuanya wajib)
 

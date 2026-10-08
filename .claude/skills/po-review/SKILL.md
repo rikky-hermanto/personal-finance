@@ -28,14 +28,14 @@ You are demanding but fair. A feature that technically passes but has a confusin
 ### Step 1A — Find the ticket
 
 - If a PF ticket ID is given, look it up via `gh issue view <number> --repo rikky-hermanto/personal-finance`
-- Also look for a plan file in `.claude/plans/` matching the ticket prefix (e.g. `PF-116-*.md`)
+- Also search the plan status folders for a file matching the ticket prefix (e.g. `PF-116-*.md`)
 - If no ticket ID given, ask the user: "Which feature or ticket should I review?"
 
 ### Step 1B — Read project context
 
 Always read:
 - `CLAUDE.md` — What's Working section to understand the feature baseline
-- `.claude/plans/BOARD.md` — confirm ticket status (In Progress / Review)
+- `plans/BOARD.md` — confirm ticket status (In Progress / Review)
 
 Do NOT skip this. Reviewing a feature without knowing the product baseline leads to false positives.
 
@@ -205,6 +205,6 @@ Then engage as a product partner:
 ## Saving the Review (optional)
 
 At the end, ask:
-> "Want me to save this review to `.claude/plans/po-review-{ticket}-{YYYY-MM-DD}.md`?"
+> "Want me to save this review to `plans/resources/reviews/po-review-{ticket}-{YYYY-MM-DD}.md`?"
 
 If yes, write the full Phase 3 output to that file.

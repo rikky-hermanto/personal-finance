@@ -120,6 +120,6 @@ forfeits the guarantee entirely, which is the opposite of what a user seeking sa
 
 **Consequences:** an unstated or stale FX rate silently misstates net worth for any user with
 foreign holdings. The Trading Desk's FX-staleness gate rule exists for exactly this reason — see
-the Gate Rule Registry in [PF-133](../../../.claude/plans/PF-133-trading-desk-foundation-todo.md).
+the Gate Rule Registry in [PF-133](../../../plans/done/PF-133-trading-desk-foundation-todo.md).
 Every stored FX rate needs an `as_of` timestamp, and a rate older than the staleness threshold is
 a blocking condition, not a warning to ignore.

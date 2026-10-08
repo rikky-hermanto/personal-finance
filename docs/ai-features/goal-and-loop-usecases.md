@@ -8,7 +8,7 @@
 
 1. **CI/test babysitting** — `/loop 5m ci-check` while iterating on a PF ticket: re-run `dotnet build`, `dotnet test`, `npm run lint`, `tsc --noEmit` on an interval and only interrupt when something fails.
 2. **AI eval monitoring** — poll `services/ai-service/evals/results/` after kicking off a long `eval_extraction.py --compare` run; report F1 drift as it lands (relevant to active PF-AI002/PF-AI003 work).
-3. **Board hygiene** — periodic loop running `kanban-sync` to catch drift between `.claude/plans/BOARD.md` and actual plan file statuses.
+3. **Board hygiene** — periodic loop running `kanban-sync` to catch drift between `plans/BOARD.md` and actual plan file statuses.
 4. **Docker/service health watch** — loop `docker-up` / status checks while doing unrelated work, alert if `api`, `ai-service`, or the Supabase local stack goes unhealthy.
 5. **Long-running Supabase migration work** (PF-S08 Auth is next) — self-paced loop that keeps applying/verifying migration steps and re-checking RLS policies without manual polling.
 6. **Langfuse cost/latency watch** — loop-check trace exports during a bulk categorization/backfill job to catch cost spikes early.
@@ -46,15 +46,15 @@ Goal, not loop — it's a finite sweep with a clear done state, not something to
 
 ### 3. Ticket-counter drift reconciliation — `/goal`
 
-`CLAUDE.md` states "current highest: PF-130" and the memory index says PF-128, while `.claude/plans/` actually contains PF-131 and PF-132. Next-ID guidance is wrong in two places at once, which risks a duplicate ticket number.
+`CLAUDE.md` states "current highest: PF-130" and the memory index says PF-128, while `plans/` actually contains PF-131 and PF-132. Next-ID guidance is wrong in two places at once, which risks a duplicate ticket number.
 
 A goal-run recomputes the true highest ID per prefix (PF / PF-S / PF-AI) from filenames plus BOARD.md, then updates every place the counter is asserted. Worth re-running as a `/loop` on a slow cadence (weekly) if the drift keeps recurring — the underlying cause is that the counter is duplicated rather than derived.
 
 ### 4. Completed-plan archival sweep — `/loop`
 
-`.claude/plans/completed/` holds 47 archived plans, but plans finished mid-sprint don't always get moved. A slow loop compares Done rows in BOARD.md against files still sitting in `.claude/plans/`, and reports which ones are due for archival.
+At the time of this proposal, 47 plans were archived. A slow loop can now compare Done rows in BOARD.md against files in `plans/backlog/` and `plans/in-progress/`, reporting any status mismatch.
 
-Two rules the loop must respect: the plan-complete hook already appends Done rows automatically (don't double-append), and learning-track plans (`PF-AIxxx`) **never** move to `completed/` — they stay in `.claude/plans/learning/` marked Done in place.
+Two rules the loop must respect: the plan-complete hook only appends a missing Done row for files already in `plans/done/`, and learning-track plans (`PF-AIxxx`) move to `plans/done/learning/` with their companions when accepted. Shared learning assets remain in `plans/resources/learning/`.
 
 ### 5. Tech-debt register refresh — `/goal`
 
@@ -76,4 +76,4 @@ Pre-open-source hardening (PF-126, PF-127) purged PII and credentials from git h
 
 ## Recommendation
 
-Since this project already uses `.claude/plans/` + `BOARD.md` as the task system, `/goal` is most useful as an autonomous driver *through* an existing plan file rather than a replacement for planning. `/loop` is best for anything that needs interval-based polling (tests, health checks, evals) rather than pure task completion.
+Since this project already uses `plans/` + `BOARD.md` as the task system, `/goal` is most useful as an autonomous driver *through* an existing plan file rather than a replacement for planning. `/loop` is best for anything that needs interval-based polling (tests, health checks, evals) rather than pure task completion.

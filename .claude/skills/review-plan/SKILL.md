@@ -19,7 +19,7 @@ If no path is given, ask the user which plan to review.
 ## Instructions
 
 ### Step 1 — Locate and read the plan
-- If the argument is a filename, look in `.claude/plans/{filename}` first, then try the path as-is
+- If the argument is a filename, search the plan status folders, then try the path as-is
 - Read the plan completely before forming any opinion
 - Also read `CLAUDE.md` (current phase, what's working, what's not built) for project context
 
@@ -40,7 +40,7 @@ Structure your output exactly like this:
 ## Plan Review: [Plan Name / Ticket]
 
 **Lens:** Senior Software Architect / Senior Product Owner
-**Plan file:** `.claude/plans/{filename}`
+**Plan file:** the resolved path under `plans/<status>/`
 **Verdict:** ✅ Good to go / ⚠️ Needs revision / 🚫 Needs rework
 
 ---
@@ -95,4 +95,4 @@ If revisions needed: list the 1–3 changes required before execution starts.
 
 ### Step 4 — Offer to update the plan
 After the review, ask: "Want me to apply these revisions to the plan file directly?"
-If yes, edit `.claude/plans/{filename}` in place.
+If yes, edit the resolved plan in place.

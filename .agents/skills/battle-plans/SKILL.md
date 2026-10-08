@@ -7,7 +7,7 @@ description: "Compare two concrete proposals through product-owner or architect 
 
 Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
 
-Resolve explicit files or matching teamA/teamB proposals in `.claude/plans/`.
+Resolve explicit files or matching teamA/teamB proposals across the plan status folders.
 Read both fully and inspect relevant implementation.
 Default lens is Product Owner; use architect when requested.
 
@@ -21,4 +21,4 @@ For each proposal state score, strengths, and blind spots. Give a concrete A/B/H
 verdict, decisive evidence, what the other proposal gets right, assumptions that could
 change the decision, and first implementable step. Do not fabricate precision or
 force a winner when essential evidence is absent. Save a requested verdict to
-.claude/plans/<subject>-verdict.md. Do not edit either source proposal by default.
+plans/resources/reviews/<subject>-verdict.md. Do not edit either source proposal by default.

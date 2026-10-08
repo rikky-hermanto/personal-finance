@@ -48,4 +48,4 @@ Both verdicts are legitimate; the product needs both to agree before building.
 Where the product's own methodology is defined, that document is the source of truth and the
 reference files defer to it: [docs/ideas/scoring-rubric.md](../../docs/ideas/scoring-rubric.md)
 (pyramid indicators, adopted from the Financial Health Network framework) and the Gate Rule
-Registry in [PF-133](../plans/PF-133-trading-desk-foundation-todo.md) (Trading Desk risk rules).
+Registry in [PF-133](../../plans/done/PF-133-trading-desk-foundation-todo.md) (Trading Desk risk rules).

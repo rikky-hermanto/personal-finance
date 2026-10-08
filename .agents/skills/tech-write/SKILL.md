@@ -42,5 +42,5 @@ Modes:
   for text use the project's Unicode box style, labeled edges, and readable width.
 
 Save requested docs to the appropriate existing docs location; Codex-specific reviews/
-ADRs go under docs/codex; tracked plans use `.claude/plans/`. Preserve non-plan Claude configuration and memory. Update a relevant
+ADRs go under docs/codex; tracked plans use `plans/`. Preserve non-plan Claude configuration and memory. Update a relevant
 docs index when needed, without unrelated rewrites. Do not publish or commit by default.

@@ -141,7 +141,7 @@
   <code>call_agent → should_continue → call_fallback → END</code>. The fallback appends a fixed apology
   (currently including technical error detail), clears the error, and returns it as the answer in an
   HTTP 200 response. It does not invoke another model. Disable the toggle to restore the success flow.</p>
-  <div class="warn">⚠️ Source: <code>.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md</code> (Steps 4–6).
+  <div class="warn">⚠️ Source: <code>plans/done/learning/PF-AI008-langgraph-financial-advisor.md</code> (Steps 4–6).
   Live 2-turn memory replay and Langfuse trace visibility are still blocked on a missing
   <code>ANTHROPIC_API_KEY</code> per that plan's acceptance criteria — this diagram shows the designed/coded
   single-turn flow, not a verified live trace. Regenerate via <code>/create-diagram</code> if the graph

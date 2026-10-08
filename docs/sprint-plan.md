@@ -44,4 +44,4 @@ OTel/LGTM, Langfuse, extraction/retrieval/categorization evaluators and provider
 | Macro Scenario Lab PF-140 | Implemented: personalized scenarios, comparison and database saves |
 | Jev categorizer PF-141 | Opt-in backend/evaluator implemented; live evaluation and promotion pending; default remains llm |
 
-Use [STATUS.md](STATUS.md) for current limitations and [Supabase migration](architecture/supabase-migration.md) for Auth/Storage/webhook/realtime boundaries. Historical plans and the local [board](../.claude/plans/BOARD.md) retain verification history; GitHub-linked task closure requires separate reconciliation.
+Use [STATUS.md](STATUS.md) for current limitations and [Supabase migration](architecture/supabase-migration.md) for Auth/Storage/webhook/realtime boundaries. Historical plans and the local [board](../plans/BOARD.md) retain verification history; GitHub-linked task closure requires separate reconciliation.

@@ -1,17 +1,17 @@
 ---
 name: kanban-sync
-description: Sync .claude/plans/BOARD.md against GitHub Issues — moves closed issues to Done, reports open issues missing from the board. Eliminates the manual BOARD.md update step after every task closure.
+description: Reconcile plans/BOARD.md with GitHub Issues and the local status folders; report conflicts before claiming closure.
 ---
 
 # Skill: kanban-sync
 
-Sync `.claude/plans/BOARD.md` with the live state of GitHub Issues. Run this after closing a ticket, or anytime the board feels stale.
+Sync `plans/BOARD.md` with the live state of GitHub Issues and the local folders described in `plans/README.md`. Run this after closing a ticket or changing a local plan status.
 
 ## What it does
 
-1. Fetches all **closed** issues from GitHub → finds which ones are missing from the Done section → adds them
+1. Fetches all **closed** issues from GitHub → finds which ones are missing from the Done section → reconciles their local plan folders before adding them
 2. Fetches all **open** issues → reports any whose PF-ID doesn't appear anywhere on the board (new tickets that haven't been triaged into a backlog section yet)
-3. Updates the `Last synced` date header
+3. Reports folder/board mismatches for local-only plans and updates the remote-sync date only after a GitHub read
 
 It does **not** reorder rows, reformat sections, or delete anything. Additive-only patch.
 
@@ -35,7 +35,8 @@ Build a list of closed tickets: `{ pf_id, issue_number, clean_title }` where `cl
 
 ## Step 2 — Read BOARD.md
 
-Read `.claude/plans/BOARD.md`. Extract the full text of the `## Done (closed)` section.
+Read `plans/BOARD.md`. Extract the full text of the `## Done (closed)` section.
+Read `plans/backlog/`, `plans/in-progress/`, `plans/done/`, and `plans/cancelled/`; ignore `plans/resources/` when deriving task status.
 
 Build a set of ticket IDs already present in Done — scan for `| PF-` row patterns and the `~~PF-` strikethrough pattern used in backlog sections for completed items.
 
@@ -45,7 +46,7 @@ Build a set of ticket IDs already present in Done — scan for `| PF-` row patte
 
 Find closed tickets (from Step 1) whose PF-ID is **not** in the Done set (from Step 2).
 
-These are the rows to add.
+These are candidate rows to add. A closed issue whose plan remains outside `plans/done/` is a local-status conflict to inspect; do not silently treat unfinished acceptance checks as passed.
 
 If the diff is empty, print `✅ BOARD.md already up to date — nothing to add.` and stop.
 

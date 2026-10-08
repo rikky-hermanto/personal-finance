@@ -19,16 +19,16 @@ Explain the decisive tradeoff; avoid manufactured alternatives for a one-line fi
 Honor an architect lens when requested. Use financial/risk/compliance review where
 the substance requires it, without pretending those reviews ran.
 
-Save a requested plan automatically to .claude/plans/<ticket-or-slug>-todo.md.
+Save a requested plan automatically to plans/backlog/<ticket-or-slug>-todo.md.
 Include objective, source/context, status/date, acceptance checkboxes, approach,
 affected files, ordered STEP headings, purpose, exact relevant commands/paths,
 verification expectations, dependencies, rollout/rollback where relevant, and notes.
 Use PowerShell-compatible commands and distinguish placeholders from executable values.
 
-Learning plans go in learning/ and follow mentor's ladder-first anatomy, .NET
+Learning plans go in plans/backlog/learning/ and follow mentor's ladder-first anatomy, .NET
 analogies, study references, experiments, C# equivalents, and knowledge checks.
 Plan artifact creation does not execute its steps or authorize a commit.
 
-Update the shared `.claude/plans/BOARD.md` for the new/revised task without claiming
+Update the shared `plans/BOARD.md` for the new/revised task without claiming
 unperformed GitHub synchronization. Never hardcode the next ticket number. End with the
 saved file and material open questions; use execute only when implementation is requested.

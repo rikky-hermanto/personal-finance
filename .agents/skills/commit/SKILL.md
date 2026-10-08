@@ -14,7 +14,7 @@ nothing; ignore reviews and updates appropriate ignore patterns without staging.
 Inspect status, staged/unstaged diffs, recent messages, branch, remote, and configured
 author/committer. Preserve unrelated staged changes; do not accidentally include them
 or reset the user's index. Stage exact task files, never git add . as a shortcut.
-Include shared `.claude/plans/` changes when part of the task. Leave non-plan Claude
+Include shared `plans/` changes when part of the task. Leave non-plan Claude
 configuration, CLAUDE.md files, the plugin manifest, and unrelated evals out unless
 the user specifically authorized those files.
 

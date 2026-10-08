@@ -6,8 +6,8 @@
 > postings that guide surveys ask an AI Engineer to build. It covers what the term actually means,
 > where it sits relative to plain LLM calls and RAG, and uses this project's own two agents —
 > already shipped — as the worked example throughout. It does not assign build steps; those live in
-> [PF-AI007](../../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) and
-> [PF-AI008](../../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md).
+> [PF-AI007](../../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) and
+> [PF-AI008](../../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md).
 
 ---
 
@@ -283,8 +283,8 @@ Two follow-ups worth having an answer ready for:
 - LangGraph — Persistence / checkpointing → https://langchain-ai.github.io/langgraph/concepts/persistence/ — the mechanism behind `AdvisorState` surviving across HTTP requests
 
 **Project-local**
-- [PF-AI007-tool-calling-agents-smolagents-todo.md](../../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) — the full build plan, including the ReAct walkthrough table with a data-source column per tool
-- [PF-AI008-langgraph-financial-advisor.md](../../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md) — the full build plan, including the "bulan itu" motivating bug
+- [PF-AI007-tool-calling-agents-smolagents-todo.md](../../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) — the full build plan, including the ReAct walkthrough table with a data-source column per tool
+- [PF-AI008-langgraph-financial-advisor.md](../../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md) — the full build plan, including the "bulan itu" motivating bug
 - [app/agents/](../../../services/ai-service/app/agents/) — both agents' real code
 
 ---

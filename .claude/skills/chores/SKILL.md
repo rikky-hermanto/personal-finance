@@ -21,15 +21,15 @@ Project housekeeping. Run between sprints or when the codebase feels cluttered. 
 
 ## Category 1 — Plan Audit
 
-Scan `.claude/plans/` for `*-todo.md` files that can be archived.
+Scan `plans/backlog/` and `plans/in-progress/` for plan files whose status may need to change.
 
 ### Step 0 — Path check
 
-Verify `.claude/plans/` exists before scanning. If it doesn't, report `Plans: skipped — path not found` and move to the next category. Same rule applies to `.claude/plans/learning/` in Step 5.
+Verify `plans/` and its status folders exist before scanning. If a folder is absent, report the missing path and continue. Shared assets in `plans/resources/` are not status candidates.
 
 ### Step 1 — Collect candidates
 
-For each `*-todo.md` in `.claude/plans/` (not already in `completed/`):
+For each plan in `plans/backlog/` or `plans/in-progress/`, including their `learning/` subfolders:
 
 1. Count unchecked steps: lines matching `- \[ \]` or `### \[ \]`
 2. Count unchecked ACs: lines matching `- \[ \]` in the **Acceptance Criteria** section
@@ -74,10 +74,10 @@ If issue is `CLOSED` → confirms completion. If `OPEN` → flag for manual revi
 For each VERIFIED COMPLETE plan (and POSSIBLY COMPLETE where issue is CLOSED):
 
 ```bash
-Move-Item ".claude/plans/<file>.md" ".claude/plans/completed/<file>.md"
+Move-Item "plans/in-progress/<file>.md" "plans/done/<file>.md"
 ```
 
-After moving, run `/kanban-sync` to keep BOARD.md in sync.
+After moving, update the local `plans/BOARD.md` status and links in the same task. Use `/kanban-sync` when GitHub-linked status also needs reconciliation; the board's source-of-truth rules still apply.
 
 ### Step 4 — Report stale plans
 
@@ -86,18 +86,18 @@ Flag plans that are NOT STARTED and older than 30 days. How to determine age:
 1. Read the plan's `> **Started:**` header line and extract the date (e.g., `> **Started:** 2026-01-15`).
 2. If no `Started:` header exists, fall back to file modification time:
    ```powershell
-   (Get-Item ".claude/plans/<file>.md").LastWriteTime.ToString("yyyy-MM-dd")
+   (Get-Item "plans/backlog/<file>.md").LastWriteTime.ToString("yyyy-MM-dd")
    ```
 3. Compare that date against today's date **yourself** (you know today's date from context) — do not script fragile shell date arithmetic. If the gap is more than 30 days, flag the plan as stale: `⏸ NOT STARTED: PF-XXX (started 2026-01-15 — 45 days stale)`.
 
 Stale plans may be superseded. Do not delete — report them for human decision.
 
-### Step 5 — Learning plans (`.claude/plans/learning/`)
+### Step 5 — Learning plans (`plans/<status>/learning/`)
 
-Scan `.claude/plans/learning/` too (skip with `skipped — path not found` if absent), but apply **different rules** — learning plans (PF-AIxxx) track the 90-day AI learning path and live longer than feature plans:
+Scan learning subfolders under every status. Learning plans (PF-AIxxx) track the 90-day AI learning path and live longer than feature plans:
 
-- **Never move learning plans to `completed/`** — they stay in `.claude/plans/learning/` permanently. Archiving does not apply to this folder.
-- When all checkboxes are done, update the plan's `Status:` header to `Done` in place — that is the only action needed.
+- When accepted or closed, move the canonical learning plan and its companions to `plans/done/learning/`; keep shared diagrams, glossary, and evidence in `plans/resources/learning/`.
+- Update the plan's current `Status:` header and board row with the move. Preserve historical incomplete checks as recorded rather than claiming they passed.
 - Flag any learning plan untouched for more than 90 days (same age logic as Step 4 — `Started:` header or file mtime, compared by you) as "review for relevance" — report only, never move.
 
 ---
@@ -128,10 +128,10 @@ Report each hit with file:line. Do not auto-delete — output a triage list.
 
 ### Orphaned plan files
 
-Files in `.claude/plans/` that are not `*-todo.md` and not in `completed/`:
+Files in a status folder that are not plans or known companions (shared artifacts belong in `plans/resources/`):
 
 ```bash
-ls .claude/plans/ | grep -v "todo\.md$" | grep -v "completed" | grep -v "supabase-implementation"
+Get-ChildItem plans/backlog,plans/in-progress,plans/done,plans/cancelled -Recurse -File
 ```
 
 Brainstorming files (e.g., `PF-114-journey-gamification-brainstroming.md`) are expected — flag them as "review for archival" rather than auto-removing.
@@ -205,7 +205,7 @@ grep -rn "^public interface" apps/api/src/PersonalFinance.Infrastructure/ --incl
 
 - `Infrastructure/Parsers/IBankSignature.cs` — deliberately lives in Infrastructure as part of the PF-124 Chain of Responsibility registry (`BankIdentifier`). It is an internal detail of the parser subsystem, not a cross-layer contract; the cross-layer contracts (`IBankStatementParser`, `IBankIdentifier`) correctly live in `Application/Interfaces/`.
 
-**Rule:** flagged hits require manual review before reporting as violations — check git history (`git log --follow <file>`) and CLAUDE.md / `.claude/plans/BOARD.md` for an intentional-placement rationale (e.g., a PF ticket) before listing a hit as an ARCH-02 violation. Report confirmed-intentional hits separately as "excluded (intentional)".
+**Rule:** flagged hits require manual review before reporting as violations — check git history (`git log --follow <file>`) and CLAUDE.md / `plans/BOARD.md` for an intentional-placement rationale (e.g., a PF ticket) before listing a hit as an ARCH-02 violation. Report confirmed-intentional hits separately as "excluded (intentional)".
 
 ### ARCH-03: Namespace vs physical path mismatch
 
@@ -278,15 +278,15 @@ FILE NOT FOUND: <item> — referenced file gone, flag for review
 [summary of outdated packages]
 ```
 
-**Then ask:** "Proceed with archiving N plans? (yes/no)" before moving any files.
+Move plans when the user's task already authorizes the cleanup; otherwise report candidates for a later decision.
 
 ---
 
 ## Rules
 
-- **Never delete plan files** — only move to `completed/`. Deletion requires explicit user instruction.
+- **Never delete plan files** — move closed work to `done/` and explicitly cancelled work to `cancelled/`. Deletion requires explicit user instruction.
 - **Never auto-fix tech debt** — report only. Tech debt fixes belong in their own PF ticket.
 - **Never touch `src/components/ui/`** — shadcn/ui managed files.
 - **Never commit** — leave all changes (moves, edits) uncommitted for user review.
 - **One plan move at a time is fine** — no need to batch into a single git operation.
-- After archiving plans, recommend updates to `docs/STATUS.md`'s `## Known Tech Debt` section (and `CLAUDE.md`'s `## Known Gotchas`) if any items were resolved — apply only after user confirmation — and run `/kanban-sync`.
+- After archiving plans, update local `plans/BOARD.md` status and links in the same task. Recommend updates to `docs/STATUS.md`'s `## Known Tech Debt` section (and `CLAUDE.md`'s `## Known Gotchas`) if any items were resolved — apply only after user confirmation. Use `/kanban-sync` when GitHub-linked status needs reconciliation.

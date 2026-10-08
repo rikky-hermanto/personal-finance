@@ -28,7 +28,7 @@
       "Bash(dotnet ef database drop*)"
     ],
     "additionalDirectories": [
-      "c:\\workspaces\\personal-finance\\.claude\\plans",
+      "c:\\workspaces\\personal-finance\\plans",
       "c:\\workspaces\\personal-finance\\.claude\\skills"
     ]
   },

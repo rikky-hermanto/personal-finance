@@ -405,20 +405,20 @@ cd apps/frontend && npm run dev
 
 ## Task Management
 
-Tasks are managed in **local files** (GitHub Issues/Projects no longer used):
+Plans are managed in shared local files. GitHub Project #4 remains the source of truth for GitHub-linked issue status; local-only tasks use the plan folder and board:
 
-- **Plans:** `.claude/plans/` — one `PF-{number}-{short-kebab-slug}-todo.md` per ticket (learning track: `.claude/plans/learning/`, archived: `.claude/plans/completed/`)
-- **Status board:** `.claude/plans/BOARD.md` — kanban snapshot, updated after every task operation
+- **Plans:** `plans/backlog/`, `plans/in-progress/`, `plans/done/`, and `plans/cancelled/` — one canonical plan per task; learning plans use each status folder's `learning/` subfolder. See `plans/README.md`.
+- **Status board:** `plans/BOARD.md` — kanban snapshot, updated after every task operation
 
 ### Creating a new task
-Create a plan file in `.claude/plans/` (use `/plan`), then add a row to the appropriate column in `.claude/plans/BOARD.md`.
+Create a plan file in `plans/backlog/` (or `plans/backlog/learning/` for PF-AI) using `/plan`, then add or update its row in `plans/BOARD.md`.
 
 ### Moving / closing a task
-- Move the row between column tables in `.claude/plans/BOARD.md`
-- When Done: archive the plan to `.claude/plans/completed/` (the plan-complete hook appends Done rows automatically)
+- Move the plan to its status folder and update its header, links, and board row together. `Ready` and `Blocked` are flags, not folders.
+- When Done: move the plan and companions to `plans/done/` (or `plans/done/learning/`). Preserve historical notes and deferred follow-ups.
 
 ### Next task ID
-Check the highest `PF-XXX` in `.claude/plans/BOARD.md` and plan filenames, then increment. Current highest: **PF-130** → next is **PF-131**. Supabase-specific tasks use the prefix **PF-S** (PF-S01 through PF-S13); next Supabase task is **PF-S14**. AI learning track tasks use prefix **PF-AI** (PF-AI001 complete, PF-AI002 complete, PF-AI003 in progress, PF-AI004 planned).
+Check `plans/BOARD.md`, all status folders, and any linked GitHub issues before allocating an ID. Use the existing PF-, PF-S, and PF-AI series; do not rely on a hardcoded next number.
 
 ---
 

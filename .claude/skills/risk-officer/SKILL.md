@@ -36,7 +36,7 @@ Read in parallel:
 
 1. [.claude/rules/finance-domain.md](../../rules/finance-domain.md) — the invariants, especially FIN-04
 2. [docs/reference/finance-domain/formulas.md](../../../docs/reference/finance-domain/formulas.md) — §4 risk measurement and §5 position sizing
-3. [PF-133](../../plans/PF-133-trading-desk-foundation-todo.md) — the **Gate Rule Registry**: the 18 shipped rules, which are real, and which are deferred. This is the contract you are extending.
+3. [PF-133](../../../plans/done/PF-133-trading-desk-foundation-todo.md) — the **Gate Rule Registry**: the 18 shipped rules, which are real, and which are deferred. This is the contract you are extending.
 
 Then read the code you are about to opine on. For desk work that means
 `apps/api/src/PersonalFinance.Application/Services/Desk/` (the authoritative `DeskCalculator`),

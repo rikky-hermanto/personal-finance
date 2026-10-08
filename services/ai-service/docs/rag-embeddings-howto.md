@@ -254,5 +254,5 @@ Returns ranked `SearchResult[]` with `transaction_id`, `description`, `wallet`, 
 - [LLM-endpoint-test.md](LLM-endpoint-test.md) — extraction endpoint testing
 - [langfuse-integration.md](langfuse-integration.md) — AI cost/latency tracing
 - [evals/README.md](../evals/README.md) — embedding mental model + eval harness notes
-- [.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md](../../../.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) — PF-AI003 build plan
-- [.claude/plans/learning/PF-AI003b-embedding-provider-toggle.md](../../../.claude/plans/learning/PF-AI003b-embedding-provider-toggle.md) — PF-AI003b provider toggle plan
+- [plans/done/learning/PF-AI003-rag-embeddings-retrieval.md](../../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md) — PF-AI003 build plan
+- [plans/done/learning/PF-AI003b-embedding-provider-toggle.md](../../../plans/done/learning/PF-AI003b-embedding-provider-toggle.md) — PF-AI003b provider toggle plan

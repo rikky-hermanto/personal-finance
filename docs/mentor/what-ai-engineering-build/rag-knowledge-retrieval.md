@@ -7,9 +7,9 @@
 > build. It covers what RAG actually is, why a plain LLM call can't do this job alone, and uses this
 > project's own retrieval pipeline — already shipped and measured — as the worked example
 > throughout. It does not assign build steps; those live in
-> [PF-AI003](../../../.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md),
-> [PF-AI004](../../../.claude/plans/learning/PF-AI004-rag-reranking-generation.md), and
-> [PF-AI006](../../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md).
+> [PF-AI003](../../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md),
+> [PF-AI004](../../../plans/done/learning/PF-AI004-rag-reranking-generation.md), and
+> [PF-AI006](../../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md).
 
 ---
 
@@ -215,7 +215,7 @@ trusted.
 Both hybrid search and cross-encoder re-ranking are standard "best practice" advice in nearly every
 RAG tutorial — and both underperformed pure vector search on this project's real corpus and real
 query set. The fix wasn't picking a side in advance; it was building
-[`evals/eval_retrieval.py`](../../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md)
+[`evals/eval_retrieval.py`](../../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md)
 and running every variant against the same 15 queries (10 realistic + 5 deliberately keyword-heavy
 adversarial ones) before choosing a production default. **The general lesson: never ship a
 retrieval technique because a blog post recommends it — ship the technique the eval actually
@@ -262,7 +262,7 @@ call and LLM generation is traced through Langfuse
 ([`embedder.py`](../../../services/ai-service/app/services/embedder.py) wraps
 `embed_and_store` in a `langfuse.start_observation(as_type="generation", ...)` span with real
 token counts and cost). The eval harness
-([`eval_retrieval.py`](../../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md))
+([`eval_retrieval.py`](../../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md))
 is the other half of this: a number (MRR@5, P@5) that can be re-run after *any* change to the
 pipeline — chunking, embedding model, search mode — to catch a regression before it reaches a user.
 **The general rule: build the eval harness in the same chapter as the first retrieval endpoint, not
@@ -282,7 +282,7 @@ can diff.**
 | `AggregationService` | Deterministic SQL SUM/COUNT for aggregate questions — the LLM never does the arithmetic | [aggregator.py](../../../services/ai-service/app/services/aggregator.py) |
 | `AnswerService` | Routes intent → aggregate/lookup, synthesizes grounded answer with validated citations | [answerer.py](../../../services/ai-service/app/services/answerer.py) |
 | `POST /search`, `POST /ask`, `POST /ask/stream` | Public endpoints — raw retrieval, routed grounded Q&A, and SSE-streamed grounded Q&A | [main.py](../../../services/ai-service/app/main.py) |
-| Retrieval eval harness | MRR@5 / P@5 across search modes, on real data | [PF-AI006 evals/eval_retrieval.py](../../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) |
+| Retrieval eval harness | MRR@5 / P@5 across search modes, on real data | [PF-AI006 evals/eval_retrieval.py](../../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) |
 
 **Natural next targets for this pattern**, not yet built: extending semantic search into the
 Investment module (retrieving relevant portfolio commentary or instrument facts before the AI
@@ -346,9 +346,9 @@ Two follow-ups worth having an answer ready for:
 - Eugene Yan — Patterns for LLM Systems → https://eugeneyan.com/writing/llm-patterns/ — ties MRR/NDCG retrieval metrics to the recall-vs-precision framing used in this doc's eval numbers
 
 **Project-local**
-- [PF-AI003-rag-embeddings-retrieval.md](../../../.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) — the full build plan for embeddings + vector retrieval
-- [PF-AI004-rag-reranking-generation.md](../../../.claude/plans/learning/PF-AI004-rag-reranking-generation.md) — reranking + grounded generation with citations
-- [PF-AI006-advanced-rag-patterns-todo.md](../../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) — hybrid search, the full MRR@5/P@5 comparison table, and the adversarial-query eval design
+- [PF-AI003-rag-embeddings-retrieval.md](../../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md) — the full build plan for embeddings + vector retrieval
+- [PF-AI004-rag-reranking-generation.md](../../../plans/done/learning/PF-AI004-rag-reranking-generation.md) — reranking + grounded generation with citations
+- [PF-AI006-advanced-rag-patterns-todo.md](../../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) — hybrid search, the full MRR@5/P@5 comparison table, and the adversarial-query eval design
 - [app/services/](../../../services/ai-service/app/services/) — the real retriever, reranker, planner, aggregator, and answerer code
 
 ---
