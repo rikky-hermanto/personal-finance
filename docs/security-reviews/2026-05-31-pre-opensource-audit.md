@@ -215,7 +215,7 @@ The following files from the current `git status` are clean and safe to push:
 | `apps/api/src/.../TransactionDto.cs` | Safe — DTO schema only |
 | `.kanban/BOARD.md` | Safe |
 | `mentor/progress.md` | Safe |
-| `.claude/plans/*.md` | Safe — planning docs, no secrets |
+| `plans/**/*.md` | Planning docs — inspect content before publication |
 
 ---
 

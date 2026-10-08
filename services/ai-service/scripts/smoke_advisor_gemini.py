@@ -41,7 +41,7 @@ async def main():
                    "timeout_seconds": 30, "retries": 0, "total_rpc_ceiling": 8},
         "rpc_attempts": 0, "turns": [], "langfuse_dashboard": "not tested; local trace only",
     }
-    output = Path(__file__).resolve().parents[3] / ".claude/plans/learning/evidence/PF-AI008-gemini-smoke.json"
+    output = Path(__file__).resolve().parents[3] / "plans/resources/learning/evidence/PF-AI008-gemini-smoke.json"
     output.parent.mkdir(parents=True, exist_ok=True)
 
     def save():

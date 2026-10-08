@@ -82,4 +82,4 @@ Development uses Supabase CLI (Postgres 17, API 54321, DB 54322, Studio 54323). 
 
 - [Architecture](architecture/architecture-diagram.md), [REST/AI routes](architecture/API-endpoints.md), [backend](architecture/API-backend.md), [frontend](architecture/Front-End.md)
 - [Migration scope](architecture/supabase-migration.md), [sprint implementation map](sprint-plan.md), [documentation audit](codex/documentation-status-audit.md)
-- [Task board](../.claude/plans/BOARD.md), [learning progress](mentor/progress.md), [PF-141 plan](../.claude/plans/PF-141-jev-categorizer-todo.md)
+- [Task board](../plans/BOARD.md), [learning progress](mentor/progress.md), [PF-141 plan](../plans/in-progress/PF-141-jev-categorizer-todo.md)

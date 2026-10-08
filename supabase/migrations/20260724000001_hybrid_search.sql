@@ -4,7 +4,7 @@
 -- on exact tokens outperforms stemming-based approaches.
 --
 -- Note: statement_chunks (sentence-window + auto-merging) deferred to
--- PF-AI006-PART2 — see .claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md
+-- PF-AI006-PART2 — see plans/backlog/learning/PF-AI006-PART2-sentence-window-automerging-todo.md
 ALTER TABLE transactions
     ADD COLUMN IF NOT EXISTS description_tsv tsvector
         GENERATED ALWAYS AS (to_tsvector('simple', COALESCE(description, ''))) STORED;

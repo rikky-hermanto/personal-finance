@@ -10,7 +10,7 @@ Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this s
 
 ## Codex isolation and current sources
 
-Keep this established curriculum and teaching style. `.claude/plans/learning/` and its glossary are shared writable learning state. Update plans and companions directly, preserving prior content and concurrent edits. Extend the one shared glossary; do not create a second learning tree. Existing `docs/mentor/` progress and curriculum remain canonical shared learning documents.
+Keep this established curriculum and teaching style. Learning plans live in `plans/<status>/learning/`; the shared glossary and evidence live in `plans/resources/learning/`. Update plans and companions directly, preserving prior content and concurrent edits. Extend the one shared glossary; do not create a second learning tree. Existing `docs/mentor/` progress and curriculum remain canonical shared learning documents.
 
 Use only current Codex tools and PowerShell-compatible commands. Slash-style examples below denote modes, not a dependency on Claude commands. Verify current courses, pricing, certifications, roles, and publishing API behavior against primary sources; dated context is historical. Publication requires the user's explicit publish request; drafting does not authorize it.
 
@@ -392,7 +392,7 @@ Optional: `/mentor blog 3` drafts post #3 specifically.
 **Steps:**
 1. Read [docs/ideas/blogs/README.md](docs/ideas/blogs/README.md) — find the next Backlog row (or the numbered row if specified). Note the archetype and source plan.
 2. Read [docs/mentor/progress.md](docs/mentor/progress.md) — extract session entries for the source plan's dates.
-3. Read the source learning plan (e.g. `.claude/plans/learning/PF-AI002-llm-evaluation-framework.md`) — extract: the narrative arc, real metrics (accuracy %, cost, latency), code snippets, the key insight.
+3. Read the source learning plan (e.g. `plans/done/learning/PF-AI002-llm-evaluation-framework.md`) — extract: the narrative arc, real metrics (accuracy %, cost, latency), code snippets, the key insight.
 4. Read [docs/ideas/blogs/_template.md](docs/ideas/blogs/_template.md) — pick the archetype skeleton matching the post's planned archetype.
 5. Fill the skeleton with content from steps 2–3. Extract only the selected archetype block — strip all `---` inter-archetype separator lines that appear in `_template.md` between archetype sections (they are template structural dividers, not content). The saved draft must contain exactly two `---` lines: the opening and closing frontmatter delimiters. Verify: `grep -c '^---$' docs/ideas/blogs/{draft-file}.md` must return `2`. Apply all editorial quality rules below before saving.
 6. Apply the privacy scrub — **blocking gate, do not skip**:
@@ -508,7 +508,7 @@ Publish the most recent `status: draft` file from `docs/ideas/blogs/` to Hashnod
 
 ## Learning Plan Anatomy — Ladder First (teach before build)
 
-Shared learning plans live in `.claude/plans/learning/PF-AIxxx-*.md`. They are read by
+Shared learning plans live in `plans/<status>/learning/PF-AIxxx-*.md`. They are read by
 someone **pivoting into a topic for the first time** — not by someone executing a pattern they
 already own. A plan that opens with implementation steps and dense jargon (cross-encoder, IVFFlat
 probes, RAGAS faithfulness) reads like a big-bang mastery dump: the cognitive load is miscalibrated
@@ -551,7 +551,7 @@ A learning plan runs 1,000+ lines across a dozen sections and a dozen-plus build
 needs a jump-map before the ladder starts. **Every plan carries a Table of Contents immediately
 after the title + metadata blockquote and immediately before `# 📖 Introduction`** — required on
 new plans and added when revising any plan that lacks one. Canonical exemplar:
-[PF-AI005-streaming-sse-todo.md](../../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md).
+[PF-AI005-streaming-sse-todo.md](../../../plans/done/learning/PF-AI005-streaming-sse-todo.md).
 
 - **Heading:** `# 📑 Table of Contents` — its own H1 with the 📑 icon (used by no other section).
   The TOC never lists itself, and there is no `---` divider around it.
@@ -663,7 +663,7 @@ not `` `app/services/chunker.py` ``.
 
 - **Path is relative to the plan file's own location**, not the repo root — VSCode resolves
   markdown links relative to the file they appear in. Plans live three directories below the repo
-  root (shared plans use `.claude/plans/learning/`), so compute the actual relative prefix before the
+  root (shared plans use `plans/<status>/learning/`), so compute the actual relative prefix before the
   repo-root-relative path: `[ai-service.md](../../rules/ai-service.md)` only needs `../../` because
   `.agents/rules/` has a different relative depth — compute the actual depth, don't copy a fixed
   prefix blindly.
@@ -719,7 +719,7 @@ stage becomes what the next wall pushes against.}
 
 > Confirmed 2026-07-02. Rikky asked for PF-AI004 rewritten as learning material and approved the
 > result as the standing standard. Canonical exemplar:
-> [PF-AI004-rag-reranking-generation-id.md](../../../.claude/plans/learning/PF-AI004-rag-reranking-generation-id.md).
+> [PF-AI004-rag-reranking-generation-id.md](../../../plans/done/learning/PF-AI004-rag-reranking-generation-id.md).
 > Match its register and structure on every future "tulis ulang jadi materi" / "versi belajar" request.
 
 When asked to turn a learning plan (PF-AIxxx) into study material — a companion doc for
@@ -782,12 +782,12 @@ Summary
 - **"Summary"** = masalah → yang dibangun → real-numbers table → pelajaran terpenting → interview
   one-liner → link back to the plan file for the rest.
 - **Glossary linking:** every new domain term links, at its first occurrence *per section*, to the
-  shared glossary ([glossary-rag-id.md](../../../.claude/plans/learning/glossary-rag-id.md)) via
+  shared glossary ([glossary-rag-id.md](../../../plans/resources/learning/glossary-rag-id.md)) via
   explicit `<a id="slug"></a>` anchors. Extend this shared glossary directly, preserving existing anchors and concurrent edits; never create a separate Codex or per-chapter glossary.
   New glossary entries follow its existing format (`<a id>` + bold term + simple-Indonesian
   definition, grouped by category not alphabet).
 - **File naming:** `{plan-filename}-id.md`, saved next to the plan in
-  `.claude/plans/learning/`. Preserve prior content. It's a learning-track file — the stays-in-learning rule applies.
+  `plans/resources/learning/` for shared material. Preserve prior content and move a learning plan with its status.
 
 ## C# Equivalent Code Blocks (PF-AIxxx) — Required
 
@@ -795,8 +795,8 @@ Rikky is a 10+ year C#/.NET engineer pivoting into Python/AI Engineering — his
 fluency is mapping every new Python idiom onto the C# pattern he already owns, not learning Python
 in a vacuum. **Every Python code block introduced in a learning plan's `# 🔧 Implementation` TODO
 steps must be followed immediately by a C# port.** Confirmed pattern, established in
-[PF-AI002](../../../.claude/plans/learning/PF-AI002-llm-evaluation-framework.md) and
-[PF-AI003](../../../.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) — extend it to
+[PF-AI002](../../../plans/done/learning/PF-AI002-llm-evaluation-framework.md) and
+[PF-AI003](../../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md) — extend it to
 every future chapter, don't reintroduce it ad hoc per plan.
 
 ### Format

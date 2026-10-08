@@ -2,7 +2,7 @@
 
 Read the mentor skill's current learning-plan and versi-ID sections; preserve its
 established curriculum and writing preferences. Shared plans, companions, and glossary
-extensions belong in `.claude/plans/learning/`; update them directly when requested.
+extensions belong beside the relevant plan in `plans/<status>/learning/`; update them directly when requested.
 
 Use these exact section headings in order, without Level X labels:
 

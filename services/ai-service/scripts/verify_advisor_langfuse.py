@@ -26,7 +26,7 @@ async def main():
 
     logging.getLogger("httpx").setLevel(logging.WARNING)
     root = Path(__file__).resolve().parents[3]
-    evidence_dir = root / ".claude/plans/learning/evidence"
+    evidence_dir = root / "plans/resources/learning/evidence"
     fixtures = json.loads((evidence_dir / "PF-AI008-gemini-smoke.json").read_text(encoding="utf-8"))["fixtures"]
     report = {"started_utc": datetime.now(timezone.utc).isoformat(), "provider": settings.ai_provider,
               "model": settings.ai_model, "rpc_attempts": 0, "tool_http_paths": [],

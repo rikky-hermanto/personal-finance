@@ -171,7 +171,7 @@
 
 **Session: Chapter 2 planned — extraction eval harness walkthrough compiled**
 
-- Compiled `.claude/plans/learning/PF-AI002-llm-evaluation-framework.md` — a 13-step build walkthrough modeled on PF-AI001, grounded in the real interfaces (`LlmParser.parse`, `ProviderFactory`, `TransactionResult`, `EXTRACT_SCHEMA`)
+- Compiled `plans/done/learning/PF-AI002-llm-evaluation-framework.md` — a 13-step build walkthrough modeled on PF-AI001, grounded in the real interfaces (`LlmParser.parse`, `ProviderFactory`, `TransactionResult`, `EXTRACT_SCHEMA`)
 - Designed the scorer: two-axis metrics — row-level precision/recall/F1 (alignment on `date+amount`, mirroring the .NET dedup key) + field-level accuracy, with critical fields (`date`, `amount_idr`, `flow`) scored separately from cosmetic ones
 - Curated a by-concept resource list (Hamel, Eugene Yan, Zheng et al. LLM-as-judge, Langfuse datasets, Promptfoo) + a learning-strategy section mapped to the daily-loop tips
 - Scoped 20 fixtures (with deliberate edge cases: refund, FX, multi-currency) — fixtures will be reused as the Chapter-3 RAG retrieval test set
@@ -194,7 +194,7 @@
 **Session: Learning infrastructure — Indonesian translations + tooling**
 
 - Translated `ai-engineer-learning-tips.md` to Indonesian → `docs/mentor/ai-engineer-learning-tips-id.md` — studying in primary language for better retention
-- Translated `PF-AI002-llm-evaluation-framework.md` to Indonesian → `.claude/plans/learning/PF-AI002-llm-evaluation-framework-id.md`
+- Translated `PF-AI002-llm-evaluation-framework.md` to Indonesian → `plans/done/learning/PF-AI002-llm-evaluation-framework-id.md`
 - Created `/braindump` skill for quick idea capture
 - Reorganized feature ideas into `docs/ideas/` (`journey-quest-ideas.md`, `money-tracing.md`)
 
@@ -215,7 +215,7 @@
 - Partial Gemini run completed (15/20 fixtures; superbank batch hit free-tier daily quota — 20 RPD). Row F1=1.00 on all fixtures; critical-field accuracy confirmed 1.00 after enum fix.
 - `docs/eval-results.md` written with findings, failure mode, and interview-ready numbers
 
-**Chapter 2 checklist:** ✅ all 5 items done — plan archived to `.claude/plans/completed/`
+**Chapter 2 checklist:** ✅ all 5 items done — plan archived to `plans/done/learning/`
 
 **Interview-ready answer (new):** "I built a 20-fixture extraction eval harness; Gemini 2.5 Flash hit 100% row F1 on BCA/NeoBank/screenshot fixtures. The eval caught a Python enum serialization bug that mocked unit tests never would — `flow` was always serializing as `FlowType.DB` instead of `DB` until `model_dump(mode='json')` was applied."
 
@@ -523,7 +523,7 @@
 - Queried the Langfuse public API directly (`GET /api/public/traces`, `GET /api/public/observations`) and confirmed `POST /ask` traces land with a nested `gemini-generate-json` GENERATION observation carrying `cost_usd`, token usage, and per-call latency — `AnswerService` → `provider.generate_json()` tracing works end-to-end with zero new code, exactly as designed
 - Found the metrics doc had gone stale: the Day-27 rerank delta (P@5 0.657→0.600) was measured live but never transcribed out of "not measured" placeholders. Corrected `docs/performances/ai-observability-metrics.md` with the real numbers, the /ask retrieval_ms/generation_ms p50 (~887ms / ~2683ms, median of the 5 live calls above), and folded the Day-27 and Day-35 findings into the doc's narrative notes
 - Updated the plan file (`PF-AI004-rag-reranking-generation.md`) — all 14 TODO steps and all 9 acceptance criteria now `[x]`, status header marked Done
-- Moved `PF-AI004` from "In Progress" to "Done" on `.claude/plans/BOARD.md`
+- Moved `PF-AI004` from "In Progress" to "Done" on `plans/BOARD.md`
 
 **Chapter 4 checklist:** ✅ all 6 items done — RAG Phase 2 complete (chunker, FlashRank reranker, metadata filtering, grounded `/ask`, rerank delta measured, RAGAS faithfulness measured)
 
@@ -567,7 +567,7 @@
 
 - Live-tested the shipped chat (`/ask`) with two explicit-month questions — "hitung total pengeluaran makanan pada maret 2025" and "berapa gaji yg saya terima bulan maret 2025" — both returned figures matching the source spreadsheet exactly (Rp 3,711,560 / 45 txns and Rp 124,588,816 / 2 txns). This is the first live confirmation that PF-AI005 PART 2's SQL-routed aggregation works correctly outside of unit tests.
 - **Real gap found in the same session:** a same-conversation follow-up — "berapa gaji yg saya terima bulan itu" ("that month") — silently summed *all-time* salary (Rp 1,524,580,890 / 32 txns) instead of resolving "bulan itu" back to Maret 2025. Root cause: `/ask` is stateless per call; the planner has no prior-turn context to resolve the pronoun against, so the date filter was silently dropped rather than erroring.
-- Logged this as a concrete "real example" section in [PF-AI008-langgraph-financial-advisor.md](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md) (Chapter 8) — the exact transcript, root cause, and why it's specifically a Chapter 8 (conversation memory / `AdvisorState` + `MemorySaver`) problem and not a PART 2 patch.
+- Logged this as a concrete "real example" section in [PF-AI008-langgraph-financial-advisor.md](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md) (Chapter 8) — the exact transcript, root cause, and why it's specifically a Chapter 8 (conversation memory / `AdvisorState` + `MemorySaver`) problem and not a PART 2 patch.
 - Attempted to close PART 2's remaining pending item (live numeric-accuracy eval, ≥9/10 target) — found and fixed a real bug in the harness itself: `eval_numeric_accuracy.py` crashed with `UnicodeEncodeError` on Windows (cp1252 console can't render the `✓`/`✗` markers) — fixed with `sys.stdout.reconfigure(encoding="utf-8")`.
 - Re-ran and hit Gemini free-tier limits twice: first the 5 req/min cap (added a 60s inter-question throttle), then the **20 req/day** cap — already exhausted from live chat testing + the failed attempts. This is a genuine daily quota wall, not a bug; the eval could not be completed with Gemini today.
 - Tried falling back to Anthropic (`AI_PROVIDER=anthropic`) — caught before spending anything: `ANTHROPIC_API_KEY` was commented out in `.env` (never actually set), so there was no credit to fall back on. Stopped the background run at the very first sleep, before any API call fired.
@@ -600,7 +600,7 @@
 
 **Session: Chapter 8 sequencing correction; PART 2 eval retry confirmed the quota wall; deferred, moving to Chapter 6**
 
-- Caught a sequencing error before it cost a session: this morning's "start Chapter 8 next" note skipped over [PF-AI008](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md)'s own STEP 0 — an explicit prerequisite gate on Chapter 7 (smolagents) being complete. Chapter 7 hasn't been started (every box in its checklist above is still unchecked). Verified [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) (Chapter 6) is genuinely unblocked instead — its own gate only needs Chapter 4's numbers committed, which they have been since Day 37.
+- Caught a sequencing error before it cost a session: this morning's "start Chapter 8 next" note skipped over [PF-AI008](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md)'s own STEP 0 — an explicit prerequisite gate on Chapter 7 (smolagents) being complete. Chapter 7 hasn't been started (every box in its checklist above is still unchecked). Verified [PF-AI006](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) (Chapter 6) is genuinely unblocked instead — its own gate only needs Chapter 4's numbers committed, which they have been since Day 37.
 - Started Docker Desktop + local Supabase (both were down) and retried `eval_numeric_accuracy.py` live against Gemini. Failed again on question 1 (the narration call, after the query-planner call already succeeded) with `429 RESOURCE_EXHAUSTED` — `GenerateRequestsPerDayPerProjectPerModel-FreeTier`, 20/day on `gemini-2.5-flash`. Confirmed this is a fixed daily reset, not rolling from last use — a same-day retry was never going to work. Stopped after one failure instead of spending more of tomorrow's budget chasing it.
 - **Decision:** deferring the formal numeric-accuracy eval and the rest of STEP 8 (Langfuse trace confirmation, faithfulness re-run, metrics doc fill-in) until subscribing to a paid tier (Gemini paid, or a funded `ANTHROPIC_API_KEY`). Noted on the plan file and BOARD.md so it doesn't read as an infra blocker anymore. Moving on to Chapter 6 in the meantime instead of waiting on it.
 - Local Supabase + Docker left running — useful for Chapter 6 STEP 2's migration.
@@ -631,7 +631,7 @@
   - A computed layered layout (longest-path column assignment + single-pass barycenter row placement) for diagrams whose node set grows over time (roadmaps, curricula) — replaces hand-tuned fixed coordinates, verified via a Node.js simulation for zero node overlaps and zero backward edges.
   - Dragged node positions now persist across a reload via `localStorage`.
   - Fixed a real light/dark theme bug in the diagram template: `color` was declared only on `html, body`, so any descendant without its own explicit `color` inherited the dark-theme value even after switching to light. Fixed by re-declaring `color: var(--text)` on `#app` itself.
-- Added `.claude/plans/learning/diagram-pf-ai007-agent-loop.html` (the agent tool-calling loop for Chapter 7) and relocated `diagram-pf-ai006-rag-patterns.html` from `docs/architecture/` into the learning-plans folder — it documents a learning chapter, not shipped architecture.
+- Added `plans/resources/learning/diagram-pf-ai007-agent-loop.html` (the agent tool-calling loop for Chapter 7) and relocated `diagram-pf-ai006-rag-patterns.html` from `docs/architecture/` into the learning-plans folder — it documents a learning chapter, not shipped architecture.
 - Unrelated same-day work happened on the Trading Desk feature (PF-136, mandate presets) — out of scope for this log, noted only so the working tree's other uncommitted files aren't mistaken for pivot work.
 
 **Chapter 7 (PF-AI007) checklist progress:**
@@ -661,7 +661,7 @@
 - **The chapter's assumption was falsified: hybrid (BM25 + RRF) underperforms pure vector on this corpus.** Diagnosed the mechanism from the per-query breakdown: the stored embedding text is `description | remarks | category | wallet`, so the `Electricity`/`Listrik` category tag already gives the embedding the exact-keyword signal BM25 was supposed to add — `tagihan listrik PLN` already scores P@5=1.00 on vector alone. RRF then *displaces* correct vector hits with BM25's noisier candidates on queries where BM25 has nothing real to contribute (`makan siang di kantor` dropped MRR 0.25 → 0.00; no keyword overlap with `WARUNG`/`RESTO`).
 - **Reverted the earlier assumption-based wiring rather than shipping it:** `SearchRequest.search_mode` default returned to `"vector"`, and the `/ask` lookup path (`answerer.py`, `main.py::/ask/stream`) no longer forces `search_mode="hybrid"`. `bm25`/`hybrid` stay implemented and selectable — they're the right tool for a corpus where descriptions are the only signal, i.e. PART2's `statement_chunks`.
 - **Real bug found only by the live run:** the first benchmark scored `bm25` at a flat 0.000 on every query. Cause was `plainto_tsquery`, which ANDs every query word — a 5-word natural-language question can never match a 2–4 word bank description in full. Fixed with `_to_or_tsquery()` in `retriever.py` (OR-join tokens, then `to_tsquery`); `ts_rank` still weights rows with more matched terms higher, which approximates real BM25 instead of a boolean AND filter. 3 new unit tests for the tokenizer.
-- Wrote up the finding in [advanced-rag-notes.md](../../docs/mentor/advanced-rag-notes.md) and filled the real numbers into [ai-observability-metrics.md](../../docs/performances/ai-observability-metrics.md) (replacing the "pending" table). Updated [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) — STEP 2, 6, 7, 9 flipped from `[!]` to `[x]` with live verification notes; status header now Done (hybrid-search scope).
+- Wrote up the finding in [advanced-rag-notes.md](../../docs/mentor/advanced-rag-notes.md) and filled the real numbers into [ai-observability-metrics.md](../../docs/performances/ai-observability-metrics.md) (replacing the "pending" table). Updated [PF-AI006](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) — STEP 2, 6, 7, 9 flipped from `[!]` to `[x]` with live verification notes; status header now Done (hybrid-search scope).
 - Full suite: **127 passed, 1 pre-existing unrelated failure** (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py`, untouched by this ticket). Changes left uncommitted for review.
 
 **Chapter 6 checklist progress:**
@@ -754,8 +754,8 @@
 
 - Answered a question about the PF-AI007 walkthrough table (Step / Observe / Reason / Act / Result): for each of the 3 agent tools, does it actually hit a live DB, an LLM, or something else? Traced it in the real code instead of guessing.
 - Confirmed `search_category_rules` (Step 1) and `list_all_categories` (Step 3) both read **in-memory snapshots** — `_CATEGORY_RULES` and `_CATEGORIES`, populated once from Postgres (`SELECT keyword, category FROM category_rules`, and the categories vocabulary) during FastAPI's `lifespan()` startup, never re-queried per request. `find_similar_transactions` (Step 2) is the one live call — it hits `app.state.retriever`, the same pgvector-backed retriever `/search` uses, so newly-ingested transactions are searchable immediately, unlike the other two which only refresh on service restart.
-- Added a **Data source** column to the walkthrough table in [PF-AI007-tool-calling-agents-smolagents-todo.md](../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md), documenting this snapshot-vs-live distinction per step with file/line links — the tradeoff (a new category rule needs a service restart to take effect; similarity search doesn't) is now explicit instead of implicit.
-- Noted in passing, not fixed: `docs/architecture/diagram-pf-ai007-agent-loop.html` and `.claude/plans/learning/diagram-pf-ai007-agent-loop.html` are both currently tracked in git with the same content — the `docs/architecture/` copy was deleted from the working tree but never staged, so it still shows as a pending deletion. Flagged for cleanup, not touched this session.
+- Added a **Data source** column to the walkthrough table in [PF-AI007-tool-calling-agents-smolagents-todo.md](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md), documenting this snapshot-vs-live distinction per step with file/line links — the tradeoff (a new category rule needs a service restart to take effect; similarity search doesn't) is now explicit instead of implicit.
+- Noted in passing, not fixed: `docs/architecture/diagram-pf-ai007-agent-loop.html` and `plans/resources/learning/diagram-pf-ai007-agent-loop.html` are both currently tracked in git with the same content — the `docs/architecture/` copy was deleted from the working tree but never staged, so it still shows as a pending deletion. Flagged for cleanup, not touched this session.
 
 **Chapter 7 (PF-AI007) checklist progress:**
 - [x] Plan file's example walkthrough table now documents each tool's actual data source (snapshot vs. live), closing a documentation gap the original table left implicit
@@ -775,7 +775,7 @@
 
 - Extracted `create-diagram` as its own skill, delegated from `tech-write` (commit `5afd6fc3`) — formalizes the diagram-engine upgrades built ad hoc during Chapter 7 (Day 65: computed layered layout, drag-position persistence, the light/dark `color`-inheritance fix) into a reusable, named tool instead of leaving them buried inside `tech-write`.
 - Wired Status page rows to open the real service URL (Supabase Studio, FastAPI docs, Grafana) when known, and gave the chat's empty state 3 random example questions instead of a blank slate (commit `e84b734a`).
-- Authored the PF-139 plan ([PF-139-contextual-chat-followup-suggestions-todo.md](../../.claude/plans/PF-139-contextual-chat-followup-suggestions-todo.md)) and logged it on `BOARD.md` in the same commit. Acceptance criteria drafted; no build steps executed yet.
+- Authored the PF-139 plan ([PF-139-contextual-chat-followup-suggestions-todo.md](../../plans/in-progress/PF-139-contextual-chat-followup-suggestions-todo.md)) and logged it on `BOARD.md` in the same commit. Acceptance criteria drafted; no build steps executed yet.
 
 **Chapter 7 (PF-AI007) checklist progress:** unchanged — the Day-75 outstanding item (re-run `scripts/test_agent.py` for all 5 transactions with the prose-scan fix) was not touched this session.
 
@@ -795,7 +795,7 @@
 
 - Shipped PF-139 (contextual chat follow-up suggestions) fully: `FollowUpSuggester` service (Gemini, temperature 0) generating 3 self-contained follow-up chips after each answer streams; `POST /ask/followups` endpoint; frontend fires the call after SSE `done`, aborts stale requests when a new question is in flight, falls back to static example chips on any provider failure/timeout/unconfident answer. Live-verified against the running service (a real Gemini call), not just unit-mocked. Deviation logged: `MAX_OUTPUT_TOKENS` raised 200→2048 after live testing showed `gemini-2.5-flash`'s thinking pass exhausted the smaller cap before producing visible JSON — matches `journey_advisor.py`'s existing cap for the same model. 8 new unit tests pass. Committed `8d207b05`, pushed.
 - Researched and authored two certification learning-path docs — [cert-path-databricks-genai.md](cert-path-databricks-genai.md) and [cert-path-gcp-pmle.md](cert-path-gcp-pmle.md) — with real exam domain weights, a gap analysis mapped against shipped PF-AI tickets (PF-009/PF-011 structured output, PF-AI001–010 RAG/agents/eval work), and phased study plans. This is genuinely **Chapter 10 scope** ("Study + pass Databricks GenAI Engineer Associate OR Azure AI-102") done ahead of sequence — Chapters 8 and 9 haven't started yet. Committed `353a6356`, pushed.
-- Drafted two new learning plans extending the curriculum past Chapter 12: [PF-AI011-ai-security-governance-todo.md](../../.claude/plans/learning/PF-AI011-ai-security-governance-todo.md) (prompt injection, PII, secrets, guardrails) and [PF-AI012-deployment-llmops-todo.md](../../.claude/plans/learning/PF-AI012-deployment-llmops-todo.md) (public URL, CI/CD ship stage, caching, cost story) — both `Status: To Do`, no implementation started. Neither is currently represented in `learning-path.md`'s Chapter 1–12 structure. Committed `159f7196` alongside the PF-AI008 (LangGraph advisor) diagram, pushed.
+- Drafted two new learning plans extending the curriculum past Chapter 12: [PF-AI011-ai-security-governance-todo.md](../../plans/backlog/learning/PF-AI011-ai-security-governance-todo.md) (prompt injection, PII, secrets, guardrails) and [PF-AI012-deployment-llmops-todo.md](../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (public URL, CI/CD ship stage, caching, cost story) — both `Status: To Do`, no implementation started. Neither is currently represented in `learning-path.md`'s Chapter 1–12 structure. Committed `159f7196` alongside the PF-AI008 (LangGraph advisor) diagram, pushed.
 
 **Chapter 7 (PF-AI007) checklist progress:** unchanged from Day 75 — `[!] STEP 7` (5-transaction smoke test with the prose-scan fix) is still not re-run. **This is the actual gate on Chapter 7 closing and Chapter 8 starting**, and none of today's three commits touch it.
 
@@ -867,7 +867,7 @@
 - R1–R3 and R5 implemented: small `BaseChatModel` factory, Gemini/Anthropic adapters, async model invocation with callback propagation, safe fallback and text-block normalization. Graph topology, tools, MemorySaver, financial formulas and API schema preserved.
 - Learning limits: 4 model calls per user request, 2048 output tokens/call, 30-second deadline/call, 0 automatic retries. Gemini 2.x has a narrow adapter guard for nested Google SDK retries and blocking quota `retry_after` sleep. No automatic paid-provider fallback.
 - Local advisor checks: **41 passed**. Full unit suite: **193 passed, 1 failed** (`test_is_pii_keyword[REK123456-True]`, the previously recorded unchanged merchant-suggester case). Tests use synthetic keys, mocked LLM/SDK/HTTP or in-process ASGI, with tracing exports disabled.
-- Full dev install failed while preparing litellm source metadata (Rust/Cargo PATH); editable installation with `--no-deps` succeeded and runtime Gemini metadata is correct. Versions/bounds retained. `pip check` still reports four existing conflicts involving instructor/jiter, langchain-classic/core/text-splitters, and langchain-openai/openai. Full evidence and versions: [original plan](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md#execution-evidence--2026-09-15-r1r3-r5).
+- Full dev install failed while preparing litellm source metadata (Rust/Cargo PATH); editable installation with `--no-deps` succeeded and runtime Gemini metadata is correct. Versions/bounds retained. `pip check` still reports four existing conflicts involving instructor/jiter, langchain-classic/core/text-splitters, and langchain-openai/openai. Full evidence and versions: [original plan](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md#execution-evidence--2026-09-15-r1r3-r5).
 - **R4 and live acceptance pending by explicit user instruction:** 0 Gemini calls, 0 Anthropic calls, no paid judges/eval scripts. Step 8 two-turn smoke, all five Step 10 scenarios, actual token usage/cost/latency, and Langfuse dashboard visibility remain unmeasured. Chapter 7's prior smoke gate is unchanged.
 - No commit, push or GitHub mutation. Original plan and local board updated; unrelated working-tree changes preserved.
 
@@ -880,12 +880,12 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - Turn 1 succeeded in 11.125s (2 requests): tool `get_pyramid_scores` → model synthesis → response string. L2 score 45% and L1 score 90% matched fixtures. It did not fetch cashflow or supply a concrete IDR action; not a full S1 quality pass.
 - Turn 2 failed with `ServiceUnavailable` in 2.224s (1 request); controlled fallback returned. Both questions and the previous tool result remain in the same saved session, but successful follow-up/no-refetch behavior is still pending. Stopped without retry.
 - Total: 3 Gemini generation attempts, 0 Anthropic. Successful-call usage: 1058 input / 1160 output tokens (974 reasoning tokens included). Failed-call usage and billed cost unavailable. Langfuse dashboard and full .NET HTTP integration untested.
-- [Local evidence](../../.claude/plans/learning/evidence/PF-AI008-gemini-smoke.json) recorded; combined two-turn checkbox and R4 remain open. No production implementation change, commit, push, or GitHub mutation.
+- [Local evidence](../../plans/resources/learning/evidence/PF-AI008-gemini-smoke.json) recorded; combined two-turn checkbox and R4 remain open. No production implementation change, commit, push, or GitHub mutation.
 
 #### Follow-up — Langfuse live tracing verification, 2026-09-15
 
 - After accepting the AdvisorService ACT with live-turn-2 verification deferred, the user requested testing Langfuse. One real `/advisor` request via ASGI with synthetic tool data succeeded: 2 Gemini calls, no retries; production callback/export path unchanged.
-- Langfuse API readback confirmed 14 completed observations, including HTTP root, graph, two agent nodes, tools/get_pyramid_scores and two Gemini generations. Input 1052/output 1414 tokens; generation latency 2.452s/8.095s; HTTP root 10.621s. [Stored evidence](../../.claude/plans/learning/evidence/PF-AI008-langfuse-live.json).
+- Langfuse API readback confirmed 14 completed observations, including HTTP root, graph, two agent nodes, tools/get_pyramid_scores and two Gemini generations. Input 1052/output 1414 tokens; generation latency 2.452s/8.095s; HTTP root 10.621s. [Stored evidence](../../plans/resources/learning/evidence/PF-AI008-langfuse-live.json).
 - Trace export and persistence **verified**. Chrome trace page remained on Loading after reload; only visual dashboard confirmation remains pending for the tracing ACT. Local OTEL metrics collector localhost:4317 was unavailable, independently of successful Langfuse trace storage.
 - No production code changes or further LLM calls for API polling; opt-in verification script and actual evidence added. R4 follow-up answer/scenario gates remain separate.
 

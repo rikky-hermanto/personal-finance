@@ -1,6 +1,6 @@
 # Codex adaptation inventory
 
-Codex has independent instructions, 32 adapted skills and six rules. Claude configuration remains unchanged. Both agents actively share `.claude/plans/`.
+Codex has independent instructions, 32 adapted skills and six rules. Claude configuration remains separate; its shared-plan directory setting now points to root `plans/`. Both agents actively share that directory.
 
 | Source | Codex destination |
 |---|---|
@@ -8,7 +8,7 @@ Codex has independent instructions, 32 adapted skills and six rules. Claude conf
 | .claude/rules | .agents/rules, routed by AGENTS.md |
 | .claude/skills | .agents/skills; [inventory](skills-and-rules.md) |
 | Claude settings | Selected native settings in .codex/config.toml |
-| Plans, learning material and board | Shared .claude/plans; edit originals directly |
+| Plans, learning material and board | Shared `plans/` status folders and resources; edit originals directly ([layout](../../plans/README.md)) |
 
 ## Shared task state
 

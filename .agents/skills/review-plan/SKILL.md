@@ -7,7 +7,7 @@ description: "Review an implementation plan through architect or product-owner c
 
 Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
 
-Read the specified plan fully. Resolve the given path or the shared `.claude/plans/`
+Read the specified plan fully. Resolve the given path or the shared `plans/`
 tree. Default is architect; use PO when requested. Inspect relevant
 implementation and rules so review findings are grounded in current architecture.
 

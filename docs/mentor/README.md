@@ -87,8 +87,10 @@ docs/mentor/
   SKILL.md          ← redirect (makes /mentor work in Claude Code)
   README.md         ← short pointer to this file
 
-.claude/plans/learning/
+plans/<status>/learning/
   PF-AI00x-*.md     ← detailed per-chapter learning plans (with Knowledge Check quizzes)
+plans/resources/learning/
+  glossary, diagrams and evidence
 ```
 
 ---

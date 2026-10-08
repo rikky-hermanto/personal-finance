@@ -153,15 +153,15 @@ The PF-AI series is the delivery vehicle for this map (one ticket per chapter). 
 
 | Ticket | Feature | UC | Status |
 |--------|---------|----|--------|
-| [PF-AI001](../../.claude/plans/learning/PF-AI001-ai-observability.md) | Langfuse observability | UC-2.1 | ✅ Done 2026-06-01 |
-| [PF-AI002](../../.claude/plans/learning/PF-AI002-llm-evaluation-framework.md) | Extraction eval harness | UC-2.3 | ✅ Done 2026-06-05 |
-| [PF-AI003](../../.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) (+003b) | Embeddings + `/search` retrieval | UC-2.6, UC-2.8 | ✅ Done 2026-06-15 |
-| [PF-AI004](../../.claude/plans/learning/PF-AI004-rag-reranking-generation.md) | Chunking + rerank + `/ask` | UC-2.9, UC-2.10, UC-2.16 (RAG half) | ✅ Done 2026-07-03 |
-| [PF-AI005](../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md) | SSE streaming + production UX | UC-2.11, UC-2.13 | Done 2026-07-06; PART2 numeric eval pending |
-| [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) | Advanced RAG patterns | UC-2.14 | Done hybrid scope; window/merge deferred |
-| [PF-AI007](../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) | smolagents Categorizer Agent | UC-3.1, UC-2.16 (agent half) | In Progress; implemented, live smoke partial |
-| [PF-AI008](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md) | LangGraph Financial Health Advisor | UC-3.3 | Accepted 2026-09-15; deferred checks retained |
-| [PF-AI009](../../.claude/plans/learning/PF-AI009-mcp-personal-finance-server-todo.md) | MCP server | UC-3.6 | To Do |
+| [PF-AI001](../../plans/done/learning/PF-AI001-ai-observability.md) | Langfuse observability | UC-2.1 | ✅ Done 2026-06-01 |
+| [PF-AI002](../../plans/done/learning/PF-AI002-llm-evaluation-framework.md) | Extraction eval harness | UC-2.3 | ✅ Done 2026-06-05 |
+| [PF-AI003](../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md) (+003b) | Embeddings + `/search` retrieval | UC-2.6, UC-2.8 | ✅ Done 2026-06-15 |
+| [PF-AI004](../../plans/done/learning/PF-AI004-rag-reranking-generation.md) | Chunking + rerank + `/ask` | UC-2.9, UC-2.10, UC-2.16 (RAG half) | ✅ Done 2026-07-03 |
+| [PF-AI005](../../plans/done/learning/PF-AI005-streaming-sse-todo.md) | SSE streaming + production UX | UC-2.11, UC-2.13 | Done 2026-07-06; PART2 numeric eval pending |
+| [PF-AI006](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) | Advanced RAG patterns | UC-2.14 | Done hybrid scope; window/merge deferred |
+| [PF-AI007](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) | smolagents Categorizer Agent | UC-3.1, UC-2.16 (agent half) | In Progress; implemented, live smoke partial |
+| [PF-AI008](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md) | LangGraph Financial Health Advisor | UC-3.3 | Accepted 2026-09-15; deferred checks retained |
+| [PF-AI009](../../plans/backlog/learning/PF-AI009-mcp-personal-finance-server-todo.md) | MCP server | UC-3.6 | To Do |
 | PF-118 | Semantic categorization fallback | UC-2.7 | Ready ⚠️ board also lists it Obsolete — reconcile |
 | PF-119 | Upload Processing Agent | UC-3.2 | ⚠️ board shows Done but no agent code exists — verify |
 | PF-120 | Monthly Financial Review Agent | UC-3.5 | Blocked on PF-S08 (auth) ⚠️ board double-lists — reconcile |
@@ -396,7 +396,7 @@ The PF-AI series is the delivery vehicle for this map (one ticket per chapter). 
 
 **Builds on:** `main.py` `/ask` (live, non-streaming); `apps/frontend/src/pages/` new `Chat.tsx`; `apps/frontend/src/App.tsx` new route.
 
-**Next (PF-AI005):** Chapter 5 core, ~3–4 hours. Plan ready: [PF-AI005-streaming-sse-todo.md](../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md).
+**Next (PF-AI005):** Chapter 5 core, ~3–4 hours. Plan ready: [PF-AI005-streaming-sse-todo.md](../../plans/done/learning/PF-AI005-streaming-sse-todo.md).
 
 ---
 

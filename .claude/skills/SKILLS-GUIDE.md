@@ -47,7 +47,7 @@ Acts as a Senior Product Manager. Analyzes feature ideas, scans competitors, gen
 
 After analysis, enters discussion mode — push back, ask follow-ups, explore alternatives. Can hand off to `/battle-plans` or `/review-plan` when ready to execute.
 
-Optionally saves output to `.claude/plans/pm-{feature}-analysis.md`.
+Optionally saves output to `plans/resources/reviews/pm-{feature}-analysis.md`.
 
 ---
 
@@ -214,7 +214,7 @@ Reads the entire live codebase (not CLAUDE.md summaries — actual source files)
 
 After the report, Claude enters discussion mode — ask it to go deeper on any finding, evaluate a new idea, or propose what to build next. It can generate `todo.md` or battle plan files directly from the discussion.
 
-Optionally saves the report to `.claude/plans/arch-review-{YYYY-MM-DD}.md`.
+Optionally saves the report to `plans/resources/reviews/arch-review-{YYYY-MM-DD}.md`.
 
 ---
 
@@ -225,7 +225,7 @@ The full pipeline: takes a raw problem, bug, feature, or refactor request; reads
 
 | Argument | Behavior |
 |----------|----------|
-| `[ticket]` | Look up ticket in `.claude/plans/BOARD.md`, plan from description |
+| `[ticket]` | Look up ticket in `plans/BOARD.md`, plan from description |
 | `[free-text description]` | Plan from the description directly |
 | `[ticket or text] as architect` | Skip PO scoring; go straight to technical approach scoring |
 
@@ -243,7 +243,7 @@ The full pipeline: takes a raw problem, bug, feature, or refactor request; reads
 3. Scoring grid (adapts to bug / feature / refactor)
 4. Verdict: winner + why not the others
 5. Full implementation plan (Objective → Acceptance Criteria → Approach → Affected Files → TODO steps with `> **Why:**` rationale on each)
-6. Offers to save to `.claude/plans/{ticket}-todo.md`
+6. Offers to save to `plans/backlog/{ticket}-todo.md`
 7. Suggests natural next steps: `/review-plan`, `/battle-plans`, `/pm-brainstorm`
 
 **When to use `/plan` vs others:**
@@ -278,7 +278,7 @@ Acts as a **Lead UX Designer** grounded in user psychology (Fitts's Law, Hick's 
 
 **Output:** User's goal + emotional context · Visual Hierarchy & Attention Flow · Cognitive Load · Interaction Feedback & Trust · Minimalism Audit · Typography & Density · Empty/Loading/Error state coverage · Psychology Notes · **SHIP IT / REFINE / RETHINK verdict**
 
-After the report, enters discussion mode — push back on findings, request a layout alternative in words, or ask it to implement a fix directly. Optionally saves to `.claude/plans/ux-review-{target}-{YYYY-MM-DD}.md`.
+After the report, enters discussion mode — push back on findings, request a layout alternative in words, or ask it to implement a fix directly. Optionally saves to `plans/resources/reviews/ux-review-{target}-{YYYY-MM-DD}.md`.
 
 ---
 
@@ -303,7 +303,7 @@ Acts as a **Lead Product Owner** reviewing built code against the original spec.
 
 **Output:** AC Scorecard (Pass/Fail/Partial per criterion) · What Works Well · Blocking Issues · Non-Blocking Issues · UX Observations · Regression Check · **SHIP IT / SEND BACK verdict**
 
-After the report, enters discussion mode — push back on findings, confirm a fix is in, or get direction on how to fix a blocking issue. Optionally saves to `.claude/plans/po-review-{ticket}-{date}.md`.
+After the report, enters discussion mode — push back on findings, confirm a fix is in, or get direction on how to fix a blocking issue. Optionally saves to `plans/resources/reviews/po-review-{ticket}-{date}.md`.
 
 ---
 
@@ -339,7 +339,7 @@ Acts as a **Senior Staff Technical Writer** (FAANG-equivalent). Reads the live c
 /tech-write explain "hybrid parser routing"             # conceptual explanation
 ```
 
-**`sync-status` touches:** `docs/STATUS.md` (always) · `CLAUDE.md` next-ticket-ID line · `README.md` features section (if present) · `docs/INDEX.md` (new docs only) · `MEMORY.md` project state section. Never touches `.claude/plans/BOARD.md` — use `/kanban-sync` for that.
+**`sync-status` touches:** `docs/STATUS.md` (always) · `CLAUDE.md` next-ticket-ID line · `README.md` features section (if present) · `docs/INDEX.md` (new docs only) · `MEMORY.md` project state section. Never touches `plans/BOARD.md` — use `/kanban-sync` for that.
 
 **Doc audit output:** Diátaxis classification · Grade (A–F) · Issue table (🔴 blocking / 🟡 reduces usefulness / 🟢 polish) · Missing content · **PUBLISH / REVISE / REWRITE verdict**
 
@@ -368,7 +368,7 @@ Instead of asking Claude one question and getting a yes, run it through five adv
 
 **Verdict options:** YES · NO · NOT YET · REFRAME
 
-After the verdict, enters discussion mode — push back on any voice, run again with a new framing, or ask the Chairman to reconsider under new constraints. Optionally saves to `.claude/plans/council-{slug}-{date}.md`.
+After the verdict, enters discussion mode — push back on any voice, run again with a new framing, or ask the Chairman to reconsider under new constraints. Optionally saves to `plans/resources/reviews/council-{slug}-{date}.md`.
 
 ---
 
@@ -387,7 +387,7 @@ Pick a winner between Team A and Team B proposals.
 /battle-plans PF-115-feature-teamA PF-115-feature-teamB as architect
 ```
 
-Files are resolved from `.claude/plans/`. Optionally saves a `*-verdict.md` at the end.
+Files are resolved from `plans/`. Optionally saves a `*-verdict.md` at the end.
 
 ---
 
@@ -407,7 +407,7 @@ Stress-test a plan file and get a Go / No-Go verdict with gap table.
 /review-plan PF-115-feature-todo.md as po quick             # abbreviated PO lens
 ```
 
-Files are resolved from `.claude/plans/`. Offers to apply revisions to the file directly.
+Files are resolved from `plans/`. Offers to apply revisions to the file directly.
 
 ---
 
@@ -667,9 +667,14 @@ Tracks and drives Rikky's pivot from .NET Backend Engineer to **AI Engineering /
 ## Naming Convention for Plan Files
 
 ```
-.claude/plans/
-  PF-{n}-{feature}-teamA          # Proposal A (no extension = markdown)
-  PF-{n}-{feature}-teamB          # Proposal B
-  PF-{n}-{feature}-verdict.md     # Battle plans output
-  PF-{n}-{feature}-todo.md        # Execution plan (review-plan input)
+plans/
+  backlog/
+    PF-{n}-{feature}-teamA        # Proposal A (no extension = markdown)
+    PF-{n}-{feature}-teamB        # Proposal B
+    PF-{n}-{feature}-todo.md      # Execution plan (review-plan input)
+  in-progress/                   # Active plans
+  done/                          # Accepted or closed plans
+  cancelled/                     # Explicitly cancelled plans
+  resources/reviews/
+    PF-{n}-{feature}-verdict.md   # Battle plans output
 ```

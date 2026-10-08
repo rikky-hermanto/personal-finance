@@ -9,13 +9,14 @@ Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this s
 
 Default to an audit; a named category narrows scope. Check paths before scanning.
 
-Plan audit: inspect shared `.claude/plans/` and BOARD.md. Classify complete,
+Plan audit: inspect shared `plans/` and BOARD.md. Classify complete,
 possibly complete, in progress, not started, or malformed using status, acceptance
 criteria, checked steps, and actual implementation evidence. Empty checklists do not
 prove completion. Report stale feature plans (~30 days) and learning plans (~90 days)
 as review candidates, not permission to delete. Archive authorized completed feature
-plans to `.claude/plans/completed/`; keep learning plans in learning/ and update
-their status in place. Reconcile the shared board; preserve non-plan configuration.
+plans to `plans/done/`, including learning plans with their companions. Keep
+shared learning assets in `plans/resources/learning/`. Reconcile the shared board;
+preserve non-plan configuration.
 
 Cleanliness: inspect tracked/untracked artifacts, TODO/FIXME/HACK, production debug
 output, skipped tests, abandoned experiments, and unused code with caller evidence.

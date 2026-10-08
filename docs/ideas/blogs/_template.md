@@ -98,7 +98,7 @@ before they reach production — including bugs that mocked unit tests will neve
 ## Archetype 2 — Concept Ladder
 
 *Use when: you want to teach one concept "earn the jargon" style. Target: 1000–1500 words.*
-*Source: a mini-ladder from a `.claude/plans/learning/` plan.*
+*Source: a mini-ladder from a `plans/<status>/learning/` plan.*
 *Rule: never introduce a term before the reader feels the problem it solves.*
 
 ```

@@ -53,6 +53,6 @@ POST /categorize-agent runs smolagents using search_category_rules, find_similar
 - [Preview command](../../apps/api/src/PersonalFinance.Application/Commands/CategorizePreviewCommand.cs)
 - [Residual client](../../apps/api/src/PersonalFinance.Infrastructure/External/LlmCategorizationClient.cs)
 - [Categorization factory](../../services/ai-service/app/services/categorization_factory.py), [Jev backend](../../services/ai-service/app/services/jev_categorizer.py)
-- [PF-141 plan](../../.claude/plans/PF-141-jev-categorizer-todo.md), [service README](../../services/ai-service/README.md), [current status](../STATUS.md)
+- [PF-141 plan](../../plans/in-progress/PF-141-jev-categorizer-todo.md), [service README](../../services/ai-service/README.md), [current status](../STATUS.md)
 
 Mock/pure tests exist for deterministic layers, suggestion/residual clients and Jev boundaries. Historical integration skips and live-evaluation gaps remain; no new runtime test was performed by this documentation sync.

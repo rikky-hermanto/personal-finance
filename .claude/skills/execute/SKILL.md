@@ -16,8 +16,8 @@ You are a **Senior Engineer executing a pre-approved implementation plan**. The 
 ## Arguments
 
 `$ARGUMENTS` — the plan file to execute. Examples:
-- `/execute PF-115` → resolves to `.claude/plans/PF-115-*-todo.md` (fuzzy match on prefix)
-- `/execute PF-115-transaction-running-balance-view.md` → exact file in `.claude/plans/`
+- `/execute PF-115` → searches status folders for `PF-115-*-todo.md` (fuzzy match on prefix)
+- `/execute PF-115-transaction-running-balance-view.md` → exact filename in the matching status folder
 - `/execute path/to/plan.md` → explicit path
 
 If no argument given, ask which plan to execute.

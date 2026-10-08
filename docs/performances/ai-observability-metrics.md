@@ -226,7 +226,7 @@ includes the one extra small planner call.
 
 **Re-scope note (2026-07-23):** this chapter was cut down to hybrid search only. Sentence-window
 retrieval and auto-merging (the other two techniques originally planned) are deferred to
-[PF-AI006-PART2](../../.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) —
+[PF-AI006-PART2](../../plans/backlog/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) —
 they need a new data source (statement PDF narrative text) that isn't yet a product requirement.
 
 **What shipped:** `RetrievalService.search()` gained `bm25` (PostgreSQL `tsvector` + `ts_rank`,
@@ -343,11 +343,11 @@ The 2026-08-21 notes/table above are historical observations. The implementation
 | Actual requests per live turn, token usage, cost, latency | _pending; no estimates presented as measurements_ |
 | Langfuse trace visibility | _pending; callback propagation tested locally only_ |
 
-Factory and transport mocks verify selected credentials, limits, quota handling, and absence of automatic retries. Graph tests verify tool dispatch→results→synthesis, session history, text normalization, timeout cancellation and controlled termination. These establish orchestration behavior, not factual grounding or quality of either vendor's answers. Output-token/reasoning-budget sufficiency remains part of live acceptance. See [revision evidence](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md#execution-evidence--2026-09-15-r1r3-r5).
+Factory and transport mocks verify selected credentials, limits, quota handling, and absence of automatic retries. Graph tests verify tool dispatch→results→synthesis, session history, text normalization, timeout cancellation and controlled termination. These establish orchestration behavior, not factual grounding or quality of either vendor's answers. Output-token/reasoning-budget sufficiency remains part of live acceptance. See [revision evidence](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md#execution-evidence--2026-09-15-r1r3-r5).
 
 ### Later user-authorized live probe — 2026-09-15
 
-Supersedes the earlier no-live-call status for this later test only. Real Gemini and AdvisorService/graph; all financial HTTP payloads synthetic, no full-stack .NET validation. [Evidence JSON](../../.claude/plans/learning/evidence/PF-AI008-gemini-smoke.json).
+Supersedes the earlier no-live-call status for this later test only. Real Gemini and AdvisorService/graph; all financial HTTP payloads synthetic, no full-stack .NET validation. [Evidence JSON](../../plans/resources/learning/evidence/PF-AI008-gemini-smoke.json).
 
 | Observed metric | Result |
 |---|---|
@@ -364,7 +364,7 @@ One successful first turn and one failed follow-up are insufficient for p50/p95 
 
 ### Live Langfuse verification — 2026-09-15
 
-Real POST `/advisor` via in-process ASGI, synthetic financial HTTP responses, real unchanged Langfuse CallbackHandler and Gemini 2.5 Flash. One request, two model calls, zero retries, HTTP 200. [Trace](https://cloud.langfuse.com/project/cmps0uij102r2ad0ekbh49nbo/traces/4ab6bf4c5c7e6bfd1cafe56fa363e4d2) and [API evidence](../../.claude/plans/learning/evidence/PF-AI008-langfuse-live.json).
+Real POST `/advisor` via in-process ASGI, synthetic financial HTTP responses, real unchanged Langfuse CallbackHandler and Gemini 2.5 Flash. One request, two model calls, zero retries, HTTP 200. [Trace](https://cloud.langfuse.com/project/cmps0uij102r2ad0ekbh49nbo/traces/4ab6bf4c5c7e6bfd1cafe56fa363e4d2) and [API evidence](../../plans/resources/learning/evidence/PF-AI008-langfuse-live.json).
 
 | Measurement from stored Langfuse observations | Result |
 |---|---|

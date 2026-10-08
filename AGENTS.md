@@ -3,7 +3,7 @@
 ## Scope and isolation
 
 - This file and the nested `AGENTS.md` files are the Codex instruction layer.
-- Preserve Claude configuration: all `CLAUDE.md` files, `.claude/settings*`, `.claude/skills/`, `.claude/rules/`, `.claude/agents/`, `.claude/hooks/`, other non-plan Claude files, and Claude GitHub workflows. `.claude/plans/` is the explicitly authorized shared task workspace: Codex may create, edit, archive plans, maintain learning material, and update its board as part of active task management.
+- Preserve Claude configuration: all `CLAUDE.md` files, `.claude/settings*`, `.claude/skills/`, `.claude/rules/`, `.claude/agents/`, `.claude/hooks/`, other non-plan Claude files, and Claude GitHub workflows. `plans/` is the explicitly authorized shared task workspace: Codex may create, edit, archive plans, maintain learning material, and update its board as part of active task management.
 - Do not execute or import Claude settings, permissions, hooks, agent definitions, or model routing. Independently adapted Codex settings live in `.codex/config.toml`. Do not add `CLAUDE.md` as an instruction fallback. These Codex instructions are self-contained.
 - Preserve the mentor curriculum and learning preferences, `.agents/.claude-plugin/plugin.json`, and `.agents/evals/` unless the task specifically concerns them. The Claude plugin manifest is not the Codex configuration file.
 - Before editing a service, read its `AGENTS.md`, including when working from the repository root: `apps/api/AGENTS.md`, `apps/frontend/AGENTS.md`, and `services/ai-service/AGENTS.md`.
@@ -47,7 +47,7 @@ From the repository root, frontend checks are `npm run lint` and `npm run build`
 
 `npm start` launches Supabase, monitoring containers, API, frontend, and AI service; use it when the task needs the full stack, not for instruction-only edits. Playwright starts the frontend itself; relevant backend services must still be available.
 
-Use `.claude/plans/` and `BOARD.md` as the shared plan workspace for both agents. Edit the original plan directly; do not create a second Codex plan tree or board. Re-read before writing, preserve concurrent edits, and keep plan/board status consistent. Read the board's source-of-truth declaration for GitHub-linked tasks; local plan management does not itself authorize remote issue mutations. See `.agents/WORKFLOWS.md`.
+Use `plans/` and `BOARD.md` as the shared plan workspace for both agents. Plans live under `backlog/`, `in-progress/`, `done/`, or `cancelled/`; see `plans/README.md` for status rules and learning resources. Edit the original plan directly; do not create a second Codex plan tree or board. Re-read before writing, preserve concurrent edits, and keep plan/board status consistent. Read the board's source-of-truth declaration for GitHub-linked tasks; local plan management does not itself authorize remote issue mutations. See `.agents/WORKFLOWS.md`.
 
 ## Codex workflows
 

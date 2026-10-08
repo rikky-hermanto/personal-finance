@@ -67,4 +67,4 @@ API startup does not apply migrations. Database reset removes data; remote push 
 | RAG | Compatible model vectors/backfill, retrieval evaluation and independent numeric checks |
 | Deployment | API Supabase settings, reachable AI DB/API URLs, frontend build settings and provider configuration |
 
-For historical evaluations and pending feature checks, use [STATUS.md](../STATUS.md) and the original [learning plans](../../.claude/plans/learning/). Architecture context is [current diagram](architecture-diagram.md).
+For historical evaluations and pending feature checks, use [STATUS.md](../STATUS.md) and the [plan workspace](../../plans/README.md), which locates learning plans by status. Architecture context is [current diagram](architecture-diagram.md).

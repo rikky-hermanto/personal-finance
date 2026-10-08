@@ -309,7 +309,7 @@ The user wants to document an architectural decision. Produce a proper ADR — n
 
 ### ADR numbering (do this BEFORE writing the document):
 
-1. Glob `.claude/plans/**/ADR-*.md` and `docs/**/ADR-*.md` for existing ADRs.
+1. Glob `plans/**/ADR-*.md` and `docs/**/ADR-*.md` for existing ADRs.
 2. Extract the highest existing number; the new ADR is **highest + 1** (start at `ADR-001` if none exist).
 3. If saving to file, use filename `ADR-{NNN}-{slug}.md` (zero-padded, kebab-case slug). The date goes **inside the document**, not in the filename.
 
@@ -477,4 +477,4 @@ These govern every output. Never violate them:
 
 At the end of any consultation, offer:
 
-> "Want me to save this as an ADR or plan file? I can write it to `.claude/plans/ADR-{NNN}-{slug}.md` (numbered per the ADR numbering steps above, date inside the document) or `.claude/plans/{ticket}-architecture-notes.md`."
+> "Want me to save this as an ADR or plan file? I can write it to `plans/resources/reviews/ADR-{NNN}-{slug}.md` (numbered per the ADR numbering steps above, date inside the document) or `plans/resources/reviews/{ticket}-architecture-notes.md`."

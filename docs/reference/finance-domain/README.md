@@ -120,7 +120,7 @@ termasuk **blast radius**: siapa yang terdampak kalau angkanya dikoreksi.
 ```
 
 Yang akan terjadi: CRO membaca Gate Rule Registry di
-[PF-133](../../../.claude/plans/PF-133-trading-desk-foundation-todo.md), lalu menghasilkan spec
+[PF-133](../../../plans/done/PF-133-trading-desk-foundation-todo.md), lalu menghasilkan spec
 lengkap: definisi cluster (sektor? faktor? manual?), input yang dibutuhkan beserta **perilaku saat
 data tidak ada** (`unresolved`, bukan `pass`), aritmetika, threshold berikut alasan setiap angkanya,
 breach action, interaksi dengan rule lain supaya tidak double-count, fixture uji termasuk kasus

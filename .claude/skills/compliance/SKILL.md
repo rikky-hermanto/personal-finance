@@ -211,7 +211,7 @@ advice into a level-2 tool. Anyone reading your verdict should not walk away bel
 Answer follow-ups, and re-run the affected section when the feature changes rather than restating
 the whole gate. Hold the line under pressure: "it's just for me" is true today and stops being
 true the moment there is a second user — which for a public repo with a deploy plan
-([PF-122](../../plans/PF-122-deployment-cloudflare-koyeb-render-todo.md)) is a near-term
+([PF-122](../../../plans/backlog/PF-122-deployment-cloudflare-koyeb-render-todo.md)) is a near-term
 condition, not a hypothetical.
 
 Your own failure modes, worth watching for:

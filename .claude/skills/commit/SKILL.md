@@ -30,7 +30,7 @@ git log --oneline -8
 
 Determine:
 - Which files are modified/untracked (candidate staged files)
-- Whether any ticket (PF-XXX or PF-SXXX) is inferable from branch name, recent commits, or open plan files in `.claude/plans/`
+- Whether any ticket (PF-XXX or PF-SXXX) is inferable from branch name, recent commits, or open plan files in `plans/`
 - The message style used in recent commits (ticket-prefix vs `chore:` / `feat:` / `fix:` convention)
 
 ---
@@ -99,7 +99,7 @@ Print a compact table before staging anything:
 📦 Safe to stage (5 files):
   M  apps/frontend/src/components/Dashboard.tsx
   M  apps/api/src/PersonalFinance.Application/Services/DashboardService.cs
-  M  .claude/plans/BOARD.md
+  M  plans/BOARD.md
   ?  apps/frontend/src/components/NewWidget.tsx
   M  .claude/skills/commit/SKILL.md
 
@@ -129,7 +129,7 @@ Stage each file individually by name — never use `git add .` or `git add -A`.
 Check in order:
 1. Branch name: `git rev-parse --abbrev-ref HEAD` — extract `PF-\d+` or `PF-S\d+` pattern
 2. Most recent commit message — does it reference a PF ticket?
-3. Open plan files: `ls .claude/plans/PF-*-todo.md` — find the one with unchecked steps
+3. Open plan files: search `plans/backlog/` and `plans/in-progress/` for matching `PF-*-todo.md` files and unchecked steps
 4. If none found, fall back to a conventional commit prefix
 
 ### 3b. Analyse the changed files
@@ -147,7 +147,7 @@ Group staged files by area:
 | `services/ai-service/` | Python AI service |
 | `supabase/migrations/` | Database schema change |
 | `.claude/` | Developer tooling / skills / rules |
-| `.claude/plans/`, `.github/` | Project housekeeping |
+| `plans/`, `.github/` | Project housekeeping |
 | `docs/` | Documentation |
 | `docker-compose.yml`, `Dockerfile` | Infrastructure / container |
 

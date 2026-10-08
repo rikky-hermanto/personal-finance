@@ -1,7 +1,7 @@
 # Advanced RAG Patterns — What I Learned (Chapter 6, PF-AI006)
 
 > **Re-scope note:** this chapter was cut down to hybrid search only. Sentence-window retrieval
-> and auto-merging were deferred to [PF-AI006-PART2](../../.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md)
+> and auto-merging were deferred to [PF-AI006-PART2](../../plans/backlog/learning/PF-AI006-PART2-sentence-window-automerging-todo.md)
 > — they need statement-PDF narrative text as a data source, which isn't a product need yet. The
 > stubs for those two techniques stay below for when PART2 ships; only the Hybrid Search section
 > reflects work actually done in this ticket.

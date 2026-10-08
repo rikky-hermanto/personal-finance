@@ -33,7 +33,7 @@ You are demanding but precise. "This feels off" is not a finding. "The primary C
 ### Step 1A — Find the target
 
 - If a PF ticket ID is given: `gh issue view <number> --repo rikky-hermanto/personal-finance`
-- Also check `.claude/plans/` for a matching plan file (e.g. `PF-116-*.md`)
+- Also search the plan status folders for a matching plan file (e.g. `PF-116-*.md`)
 - If a component name is given, locate it in `apps/frontend/src/components/` or `apps/frontend/src/pages/`
 - If nothing is given, ask: "Which component, page, or flow should I review?"
 
@@ -258,6 +258,6 @@ Then engage as a design partner:
 ## Saving the Review (optional)
 
 At the end, ask:
-> "Want me to save this review to `.claude/plans/ux-review-{target}-{YYYY-MM-DD}.md`?"
+> "Want me to save this review to `plans/resources/reviews/ux-review-{target}-{YYYY-MM-DD}.md`?"
 
 If yes, write the full Phase 3 output to that file.

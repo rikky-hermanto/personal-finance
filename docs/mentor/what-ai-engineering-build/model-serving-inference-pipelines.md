@@ -5,7 +5,7 @@
 > *"Model serving and inference pipelines."* It covers what the topic actually contains, with the
 > state of this project used as the worked example throughout — including the honest gap between
 > what this project does and what the topic describes. It does not assign build steps — if a
-> chapter ticket comes out of this, it lives in `.claude/plans/learning/`.
+> chapter ticket comes out of this, it lives in `plans/backlog/learning/` until work starts.
 
 ---
 
