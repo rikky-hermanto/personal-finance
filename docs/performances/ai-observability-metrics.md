@@ -1,5 +1,7 @@
 # AI Observability Metrics — Personal Finance Platform
 
+> **Historical measurement record.** Implementation status was reviewed on 2026-10-08; measurements below retain their original run dates. No new benchmarks were run. RAG/SSE/SQL routing are coded, numeric evaluation remains deferred after the recorded July 14 quota failure, and PF-AI008 acceptance retained deferred checks. See [STATUS.md](../STATUS.md).
+
 **Captured:** 2026-05-31  
 **Tool:** Langfuse Cloud (https://cloud.langfuse.com)  
 **Provider:** Gemini 2.5 Flash (primary) / Claude Sonnet 4.6 (alternate)

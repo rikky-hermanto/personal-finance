@@ -660,7 +660,7 @@
         "unknown PDF → /parse-pdf",
         "image → /parse-image"
       ],
-      "detail": "When no signature claims the file, a PDF is routed to LlmPdfParser and on to the AI service. Superbank is a special case: it is identified, but its statement layout is variable enough that it gets a bank-specific LLM prompt rather than a direct parser.",
+      "detail": "When no signature claims the file, a PDF is routed to LlmPdfParser and on to the AI service. Superbank is a special case: it is identified, but its statement layout is variable enough that it uses LlmPdfParser rather than a direct parser. The .NET path passes no bank hint, so it currently uses the generic prompt; direct Python callers can select the specialized prompt.",
       "files": [
         "apps/api/src/PersonalFinance.Infrastructure/Parsers/LlmPdfParser.cs"
       ],

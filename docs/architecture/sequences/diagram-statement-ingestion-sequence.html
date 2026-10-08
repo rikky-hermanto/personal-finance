@@ -94,6 +94,7 @@
 </style>
 </head>
 <body>
+<p class="code-status-note" style="font-size:12px;line-height:1.5;padding:8px 12px;margin:0;border-bottom:1px solid currentColor">Code review 2026-10-08: Standard upload is synchronous; full normalization/residual categorization is limited to the experimental CSV path. Superbank detection selects LlmPdfParser, which sends no bank hint. Background embedding and transaction INSERT realtime are implemented; upload-status workers are absent. Diagram “live” labels mean implemented source, not verified runtime. <a href="../../STATUS.md">Current status</a>.</p>
 <div id="app">
 <header>
   <div>
@@ -114,7 +115,7 @@
 <footer>
   <p><strong>The use case:</strong> the user drops <code>superbank-2026-07.pdf</code> into the Cashflow upload wizard.
   It is a PDF with no deterministic layout, so it takes the LLM branch — the most complete path through the
-  pipeline. A BCA or Wise CSV would follow the identical shape with steps 10–15 replaced by a single in-process
+  pipeline. A BCA or standard CSV would follow the identical shape with steps 10–15 replaced by a single in-process
   <code>BcaCsvParser.ParseAsync()</code> call and no AI-service hop at all.</p>
 
   <p><strong>Two HTTP requests, not one.</strong> <code>POST /upload-preview</code> parses and returns rows for
@@ -175,15 +176,15 @@
     {t:'ret', from:'svc', to:'api', label:'false', detail:'a hit here would short-circuit to 409 Conflict'},
 
     {t:'msg', from:'api',   to:'parse', label:'IdentifyAsync(stream, "application/pdf")'},
-    {t:'self', at:'parse',  label:'IBankSignature chain — BCA · NeoBank · Superbank · Standard', detail:'no deterministic match on a Superbank PDF → BankKeys.LlmPdf'},
+    {t:'self', at:'parse',  label:'IBankSignature chain — BCA · NeoBank · Superbank · Standard', detail:'Superbank signature → BankKeys.Superbank → LlmPdfParser'},
     {t:'ret', from:'parse', to:'api',  label:'"LLM_PDF"'},
 
-    {t:'fragstart', kind:'alt', label:'alt — unrecognised PDF → LLM branch (a BCA/Wise CSV skips steps 10–15 entirely)'},
+    {t:'fragstart', kind:'alt', label:'alt — unrecognised PDF → LLM branch (a BCA/standard CSV skips steps 10–15 entirely)'},
     {t:'msg', from:'api',   to:'parse', label:'StatementImportService.ImportAsync(stream, "LLM_PDF")'},
     {t:'msg', from:'parse', to:'ai',    label:'POST /parse-pdf', detail:'multipart file + password'},
     {t:'obs', from:'ai', to:'obs', label:'OTel: FastAPI span POST /parse-pdf (auto-instrumented)'},
     {t:'self', at:'ai',     label:'PyMuPDF extracts the text layer', detail:'pre-processing cuts LLM tokens 40–60%'},
-    {t:'msg', from:'ai',    to:'llm',   label:'extract_structured(superbank_v1 prompt, text)', detail:'temperature 0.0 · forced JSON schema'},
+    {t:'msg', from:'ai',    to:'llm',   label:'extract_structured(generic prompt, text; bank_hint=null)', detail:'temperature 0.0 · forced JSON schema'},
     {t:'ret', from:'llm',   to:'ai',    label:'{ transactions: [ 45 rows ] }', detail:'date · description · flow · amount_idr · currency'},
     {t:'obs', from:'ai', to:'obs', label:'Langfuse: gemini-extract-structured span (tokens, cost)'},
     {t:'ret', from:'ai',    to:'parse', label:'200 PdfParseResponse', detail:'+ pages_processed'},

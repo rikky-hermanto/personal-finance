@@ -2,7 +2,8 @@
 
 > **Source of truth:** [GitHub Project #4](https://github.com/users/rikky-hermanto/projects/4)
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
-> **Last synced:** 2026-09-02
+> **Last remote sync recorded:** 2026-09-02
+> **Local implementation reconciliation:** 2026-10-08 — source and local plans only; no GitHub issue/project status verified or changed.
 
 This file is a Claude-readable snapshot. It is NOT the source of truth — always use GitHub Issues/Projects for task management. Update this file after each task operation.
 
@@ -13,6 +14,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | ID | Issue | Title |
 |----|-------|-------|
 | PF-AI008 | _(no issue)_ | LangGraph Financial Health Advisor — completed 2026-09-15 by user acceptance. Gemini-default factory and bounded execution; AdvisorService and Langfuse ACTs accepted. 41 advisor tests passed; full suite 193 passed/1 prior failure. Live turn 2, scenario suite and visual dashboard check deferred; dependency issues retained. [Plan](learning/PF-AI008-langgraph-financial-advisor.md). |
+| PF-AI010 | _(no issue)_ | Categorization Eval Harness — implemented; plan marked Done, August 5 baseline recorded in services/ai-service/evals/results/20260805-categorize-eval.md. Local reconciliation 2026-10-08. |
 | PF-AI003b | _(no issue)_ | Embedding Provider Toggle (OpenAI ⇄ Gemini) |
 | PF-AI004 | _(no issue)_ | RAG Phase 2 — Chunking, Re-ranking, Generation |
 | PF-AI005 | _(no issue)_ | Streaming + Production UX (SSE) — completed 2026-07-06; follow-up in PF-AI005-PART2 |
@@ -81,7 +83,7 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-125 | _(no issue)_ | Rename `Wallet` → `AccountName` across full stack (ubiquitous language) |
 | PF-128 | _(no issue)_ | Superbank PDF Parser: bank-specific LLM prompt + dispatch map |
 | PF-S10 | [#73](https://github.com/rikky-hermanto/personal-finance/issues/73) | Supabase Storage — bank-statements bucket + StorageService + upload endpoint |
-| PF-140 | _(no issue)_ | Macro Scenario Lab — ported macro-economy solver from throwaway reference artifact as a pure domain module (`src/lib/macroScenario/`), personalized against real portfolio/spending/liability data instead of generic weights, backend-persisted saved scenarios, comparison mode. Full "Big Bang" scope per user direction. plan: [`.claude/plans/PF-140-macro-scenario-lab-todo.md`](.claude/plans/PF-140-macro-scenario-lab-todo.md) |
+| PF-140 | _(no issue)_ | Macro Scenario Lab — ported macro-economy solver from throwaway reference artifact as a pure domain module (`src/lib/macroScenario/`), personalized against real portfolio/spending/liability data instead of generic weights, backend-persisted saved scenarios, comparison mode. Full "Big Bang" scope per user direction. plan: [`.claude/plans/PF-140-macro-scenario-lab-todo.md`](PF-140-macro-scenario-lab-todo.md) |
 
 ---
 
@@ -89,7 +91,8 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Status | Title |
 |----|--------|-------|
-| PF-141 | Implementation complete; live eval/promotion pending | Jev residual transaction categorizer — 100-case held-out evaluator, opt-in backend, abstention and no Jev rule auto-seeding. Runtime remains `llm`; no paid evaluation or deployment performed. [Plan](PF-141-jev-categorizer-todo.md). No GitHub issue created. |
+| PF-139 | Implemented in code; closure/verification not reconciled | Contextual chat follow-ups: /ask/followups, FollowUpSuggester, frontend per-answer suggestions and fallback are wired. Former Ready row was stale; no remote closure performed. [Plan](PF-139-contextual-chat-followup-suggestions-todo.md). |
+| PF-141 | Implementation complete; live eval/promotion pending | Jev residual transaction categorizer — 100-case held-out evaluator plus 20 tuning cases, opt-in backend, abstention and no Jev rule auto-seeding. Runtime remains `llm`; no paid evaluation or deployment performed. [Plan](PF-141-jev-categorizer-todo.md). No GitHub issue created. |
 
 ## Ready
 
@@ -99,7 +102,6 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-123 | _(no issue)_ | Fix ARCH-02: Move IBankIdentifier to Application/Interfaces |
 | PF-127 | _(no issue)_ | PII Redaction: Tracked Files + Untracked Plan Files (Pre-Open-Source) |
 | PF-131 | _(no issue)_ | Mentor Auto-Blogging: `/mentor blog` draft + `/mentor blog post` → Hashnode |
-| PF-139 | _(no issue)_ | Contextual AI follow-up suggestions in chat — LLM-generated chips from the answer just streamed; also fixes stateless-antecedent bug in the static chips. plan: [`.claude/plans/PF-139-contextual-chat-followup-suggestions-todo.md`](.claude/plans/PF-139-contextual-chat-followup-suggestions-todo.md) |
 
 ---
 
@@ -129,17 +131,16 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI005-PART2 | Answer Accuracy — Query Routing, SQL Aggregation, Grounded Streaming | Fixes 2026-07-08 UI-test hallucinations (fabricated Feb PLN total, denied April food data — SQL shows 43 rows / Rp 2,309,954). **Code + unit tests complete (2026-07-09):** `query_planner.py`, `aggregator.py`, routed `/ask` + `/ask/stream` (buffer-while-forward marker guard), per-message frontend sources + unverified badge; 25 tests green, frontend build+lint clean. **Live-verified 2026-07-14** (Supabase up): 2 explicit-month chat queries matched source data exactly. **Blocked on Gemini's 20 req/day free-tier quota** (not infra) for the formal numeric eval (`eval_numeric_accuracy.py`) + STEP 8 metrics — deferred until a paid-tier subscription (Gemini paid or funded Anthropic). plan: [`.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md`](.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md) |
+| PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Endpoint/tools implemented; original plan is In Progress with partial live smoke validation and quota-related deferral. Does not replace the upload pipeline. Local reconciliation 2026-10-08. [Plan](learning/PF-AI007-tool-calling-agents-smolagents-todo.md). |
+| PF-AI005-PART2 | Answer Accuracy — Query Routing, SQL Aggregation, Grounded Streaming | Fixes 2026-07-08 UI-test hallucinations (fabricated Feb PLN total, denied April food data — SQL shows 43 rows / Rp 2,309,954). **Code + unit tests complete (2026-07-09):** `query_planner.py`, `aggregator.py`, routed `/ask` + `/ask/stream` (buffer-while-forward marker guard), per-message frontend sources + unverified badge; 25 tests green, frontend build+lint clean. **Live-verified 2026-07-14** (Supabase up): 2 explicit-month chat queries matched source data exactly. **Blocked on Gemini's 20 req/day free-tier quota** (not infra) for the formal numeric eval (`eval_numeric_accuracy.py`) + STEP 8 metrics — deferred until a paid-tier subscription (Gemini paid or funded Anthropic). plan: [`.claude/plans/learning/PF-AI005-PART2-answer-accuracy-todo.md`](learning/PF-AI005-PART2-answer-accuracy-todo.md) |
 
 ## To Do — AI Learning Track
 
 | ID | Title | Notes |
 |----|-------|-------|
-| PF-AI006-PART2 | Sentence-Window + Auto-Merging (deferred) | Split dari PF-AI006; jalan setelah hybrid search selesai DAN ada keputusan produk soal statement-level Q&A. plan: [`.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md`](.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) |
-| PF-AI007 | First Agent — smolagents (Transaction Categorizer) | Depends on PF-AI003+PF-AI001; plan: [`.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md`](.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) |
-| PF-AI010 | Categorization Eval Harness (real-LLM input → expected accuracy) | Ready. JSON case list + `eval_categorize.py`; measures label accuracy, out-of-vocab rate, confidence calibration. Gives PF-AI007's agent a baseline to beat. plan: [`.claude/plans/learning/PF-AI010-categorization-eval-harness-todo.md`](.claude/plans/learning/PF-AI010-categorization-eval-harness-todo.md) |
-| PF-AI011 | AI Security & Governance (Ch 9.5 — prompt injection, PII masking, secrets, guardrails) | Ready. Closes roadmap Stage 6 (zero coverage). Red-team `/ask` + agent → spotlighting + `InjectionScanner` + `PiiMasker` + output guard + `eval_injection.py` (block rate / FP rate) + threat-model doc; .NET dev keys → user-secrets. **Must merge before PF-AI012.** plan: [`.claude/plans/learning/PF-AI011-ai-security-governance-todo.md`](.claude/plans/learning/PF-AI011-ai-security-governance-todo.md) |
-| PF-AI012 | Deployment & LLMOps (Ch 9.75 — public URL, CD ship stage, response cache, cost story) | Ready. Closes roadmap Stage 7 gap. Azure Container Apps (scale-to-zero) + ACR + GH Actions OIDC deploy (tag = SHA) + Supabase Cloud w/ anonymized fixtures + API key/rate limit/budget alert + TTL response cache (attacks the Gemini 20 req/day wall). **Depends on PF-AI011.** plan: [`.claude/plans/learning/PF-AI012-deployment-llmops-todo.md`](.claude/plans/learning/PF-AI012-deployment-llmops-todo.md) |
+| PF-AI006-PART2 | Sentence-Window + Auto-Merging (deferred) | Split dari PF-AI006; jalan setelah hybrid search selesai DAN ada keputusan produk soal statement-level Q&A. plan: [`.claude/plans/learning/PF-AI006-PART2-sentence-window-automerging-todo.md`](learning/PF-AI006-PART2-sentence-window-automerging-todo.md) |
+| PF-AI011 | AI Security & Governance (Ch 9.5 — prompt injection, PII masking, secrets, guardrails) | Ready. Closes roadmap Stage 6 (zero coverage). Red-team `/ask` + agent → spotlighting + `InjectionScanner` + `PiiMasker` + output guard + `eval_injection.py` (block rate / FP rate) + threat-model doc; .NET dev keys → user-secrets. **Must merge before PF-AI012.** plan: [`.claude/plans/learning/PF-AI011-ai-security-governance-todo.md`](learning/PF-AI011-ai-security-governance-todo.md) |
+| PF-AI012 | Deployment & LLMOps (Ch 9.75 — public URL, CD ship stage, response cache, cost story) | Ready. Closes roadmap Stage 7 gap. Azure Container Apps (scale-to-zero) + ACR + GH Actions OIDC deploy (tag = SHA) + Supabase Cloud w/ anonymized fixtures + API key/rate limit/budget alert + TTL response cache (attacks the Gemini 20 req/day wall). **Depends on PF-AI011.** plan: [`.claude/plans/learning/PF-AI012-deployment-llmops-todo.md`](learning/PF-AI012-deployment-llmops-todo.md) |
 
 ---
 
@@ -192,22 +193,17 @@ This file is a Claude-readable snapshot. It is NOT the source of truth — alway
 | PF-014 | [#22](https://github.com/rikky-hermanto/personal-finance/issues/22) | Absorbed into PF-S06 (supabase-csharp handler rewrite — AI results written back directly) |
 | PF-015 | [#23](https://github.com/rikky-hermanto/personal-finance/issues/23) | Completed — `providers/{factory,anthropic,gemini}.py` exist; provider abstraction is live |
 | PF-026 | [#34](https://github.com/rikky-hermanto/personal-finance/issues/34) | Superseded by PF-S08/PF-S09 (Supabase GoTrue replaces Auth0) |
-| PF-140 | _(no issue)_ | Macro Scenario Lab |
 
 ---
 
 ## Progress
 
-```
-Setup:      ████████████████████ 100% (8/8)
-Cleanup:    ███████░░░░░░░░░░░░░  33% (6/18)
-Ramp-Up:    ████████████████████ 100% (5/5)
-Sprint 1:   █████░░░░░░░░░░░░░░░  33% (3/9)
-Supabase:   ███████░░░░░░░░░░░░░  54% (7/13)
-Monitoring: ████████████████████ 100% (3/3)
-──────────────────────────────────
-Overall:    ██████░░░░░░░░░░░░░░  ~45% (33 done / 56 active)
-```
+The former ~45% overall counter and sprint ratios were stale and are retired. Use [docs/STATUS.md](../../docs/STATUS.md) and [sprint implementation map](../../docs/sprint-plan.md) for capability status. Local implementation is not equivalent to GitHub issue closure.
 
-> Next task ID: **PF-141** (PF-S series: PF-S14 if more Supabase tasks needed; AI learning track: PF-AI013)
-> PF-134 is reserved for Trading Desk Phase 2 (Pre-Trade + Journal + gated trade-plan persistence), PF-135 for the deferred gate rules (correlation groups, FX staleness, sector concentration, liquidity).
+- Setup/schema and EF removal are implemented; Auth remains pending.
+- RAG/reranking/SSE/SQL routing, transaction INSERT realtime, categorization evaluation, Buckets and Macro Lab are implemented.
+- PF-AI007 still needs live smoke completion; PF-AI005-PART2 still needs formal evaluation; PF-AI008 is accepted with deferred checks.
+- PF-141 remains opt-in/default-disabled pending live evaluation and promotion.
+- PF-134 is reserved for Trading Desk Pre-Trade/Journal; PF-135 for deferred risk rules.
+
+Before allocating another ID, inspect current plans/issues; PF-141 is already allocated. Remote GitHub reconciliation remains separate.

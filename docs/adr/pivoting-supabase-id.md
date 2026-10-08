@@ -1,5 +1,7 @@
 Sebenarnya saya menargetkan Job Description ini, bisa dibaca? https://jobs.ashbyhq.com/supabase/6a0e111d-6246-43b8-80c3-037303ff9fb2
 
+> **Historical decision/review snapshot.** Original findings and proposals are retained; they are not current implementation status. As of the 2026-10-08 source review, .NET 10/Supabase persistence, RAG/SSE, agents and frontend desk/macro tests are implemented; Auth/webhook extraction remain pending. See [current project status](../STATUS.md).
+
 Alih-alih mencoba membangun aplikasi Supabase yang generik, kamu sebaiknya menggunakan aplikasi Personal Finance sebagai *test bench* untuk mengkritisi, menguji keandalan (break), dan meningkatkan C# SDK yang ada saat ini.
 
 Berikut adalah rencananya:

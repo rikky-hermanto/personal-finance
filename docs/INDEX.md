@@ -1,5 +1,6 @@
 # Docs Index — Personal Finance
 
+> **Status links reviewed:** 2026-10-08. Current implementation is recorded in [STATUS.md](STATUS.md); designs, ADRs, historical evaluations and teaching diagrams retain their original scope.
 > Topic-oriented map of all docs. Use this when you need to find where something is documented.
 > Organized by "what question are you trying to answer?" not by folder structure.
 
@@ -9,16 +10,16 @@
 
 | Topic | File | What it covers |
 |-------|------|----------------|
-| Architecture overview + event flow | [architecture/architecture-diagram.md](architecture/architecture-diagram.md) | Full system diagram, upload→AI→DB event pipeline |
+| Architecture overview + event flow | [architecture/architecture-diagram.md](architecture/architecture-diagram.md) | Current service relationships, synchronous upload, chat/agent paths and planned webhook boundaries |
 | C4 Container diagram | [architecture/c4-container-diagram.md](architecture/c4-container-diagram.md) | Component relationships at container level |
-| AI system — target architecture (interactive) | [architecture/diagram-ai-system-target.html](architecture/diagram-ai-system-target.html) | Node-graph of the AI Learning Track (PF-AI001–PF-AI009): live vs. in-progress vs. planned, open in a browser |
-| PF-AI006 — advanced RAG patterns (interactive) | [architecture/diagram-pf-ai006-rag-patterns.html](architecture/diagram-pf-ai006-rag-patterns.html) | Two-tier node-graph of the retrieval pipeline: hybrid search (BM25+RRF) = this ticket, sentence-window + auto-merging = PART2 (deferred); click a group to drill in, open in a browser |
-| Query pipeline — one question end-to-end (interactive) | [architecture/diagram-query-pipeline-listrik.html](architecture/diagram-query-pipeline-listrik.html) | Worked trace of “berapa tagihan listrikku di bulan April 2025?” through /ask: plan → route (aggregate vs lookup) → SQL SUM or hybrid retrieve+rerank → narrate → answer; click a stage to drill in, open in a browser |
-| AI feature — statement ingestion (interactive) | [architecture/diagram-ai-statement-ingestion.html](architecture/diagram-ai-statement-ingestion.html) | Bank statement file → transactions: upload wizard → bank identifier → direct parsers vs LLM extraction → validation pipeline → Supabase; click a stage to drill in, open in a browser |
-| AI feature — transaction categorization (interactive) | [architecture/diagram-ai-categorization.html](architecture/diagram-ai-categorization.html) | The four layers (history cache → rules → presets → LLM fallback) plus the experimental ReAct agent (PF-AI007); click a stage to drill in, open in a browser |
-| AI feature — portfolio review (interactive) | [architecture/diagram-ai-portfolio-review.html](architecture/diagram-ai-portfolio-review.html) | Investment holdings → CQRS command → typed client → 7-section forced-schema review → persisted snapshot; click a stage to drill in, open in a browser |
-| AI feature — journey advisor (interactive) | [architecture/diagram-ai-journey-advisor.html](architecture/diagram-ai-journey-advisor.html) | Pyramid scores → weakest indicators → three generated quests, with the deterministic fallback when the LLM fails; click a stage to drill in, open in a browser |
-| AI feature — chat / grounded Q&A (interactive) | [architecture/diagram-ai-chat-rag.html](architecture/diagram-ai-chat-rag.html) | Two lanes over one database: top = indexing (submit → chunk unit → embed → pgvector), bottom = query (plan → SQL aggregation or retrieve+rerank → grounded SSE answer → PF-139 follow-up chips); click a stage to drill in, open in a browser |
+| AI system — target architecture (interactive) | [ai-features/diagram-ai-system-target.html](ai-features/diagram-ai-system-target.html) | Node-graph of the AI Learning Track (PF-AI001–PF-AI009): live vs. in-progress vs. planned, open in a browser |
+| PF-AI006 — advanced RAG patterns | [mentor/advanced-rag-notes.md](mentor/advanced-rag-notes.md) | Measured hybrid comparison; sentence-window/auto-merging deferred |
+| Query pipeline — one question end-to-end (interactive) | [ai-features/diagram-query-pipeline-listrik.html](ai-features/diagram-query-pipeline-listrik.html) | Worked trace of “berapa tagihan listrikku di bulan April 2025?” through /ask: plan → route (aggregate vs lookup) → SQL SUM or vector retrieve+rerank (vector is the coded default) → narrate → answer; click a stage to drill in, open in a browser |
+| AI feature — statement ingestion (interactive) | [ai-features/diagram-ai-statement-ingestion.html](ai-features/diagram-ai-statement-ingestion.html) | Bank statement file → transactions: upload wizard → bank identifier → direct parsers vs LLM extraction → validation pipeline → Supabase; click a stage to drill in, open in a browser |
+| AI feature — transaction categorization (interactive) | [ai-features/diagram-ai-categorization.html](ai-features/diagram-ai-categorization.html) | The four layers (history cache → rules → presets → LLM fallback) plus the experimental ReAct agent (PF-AI007); click a stage to drill in, open in a browser |
+| AI feature — portfolio review (interactive) | [ai-features/diagram-ai-portfolio-review.html](ai-features/diagram-ai-portfolio-review.html) | Investment holdings → CQRS command → typed client → 7-section forced-schema review → persisted snapshot; click a stage to drill in, open in a browser |
+| AI feature — journey advisor (interactive) | [ai-features/diagram-ai-journey-advisor.html](ai-features/diagram-ai-journey-advisor.html) | Pyramid scores → weakest indicators → three generated quests, with the deterministic fallback when the LLM fails; click a stage to drill in, open in a browser |
+| AI feature — chat / grounded Q&A (interactive) | [ai-features/diagram-ai-chat-rag.html](ai-features/diagram-ai-chat-rag.html) | Two lanes over one database: top = indexing (submit → chunk unit → embed → pgvector), bottom = query (plan → SQL aggregation or retrieve+rerank → grounded SSE answer → PF-139 follow-up chips); click a stage to drill in, open in a browser |
 | API endpoints reference | [architecture/API-endpoints.md](architecture/API-endpoints.md) | All REST endpoints with curl examples |
 | Backend architecture | [architecture/API-backend.md](architecture/API-backend.md) | .NET Clean Architecture layer details |
 | Frontend architecture | [architecture/Front-End.md](architecture/Front-End.md) | React component structure, routing, state |
@@ -30,11 +31,11 @@
 
 | Topic | File | What it covers |
 |-------|------|----------------|
-| Bank profile YAML reference | [design/bank-profiles-reference.md](design/bank-profiles-reference.md) | YAML schema for each bank, parser routing |
-| Validation pipeline + master schema | [design/validation-pipeline.md](design/validation-pipeline.md) | 5-stage pipeline, TransactionDto field spec |
-| Cold start categorization problem | [design/cold-start-problem.md](design/cold-start-problem.md) | Why preset seed exists, 4-layer fallback design |
-| Categorization pipeline detail | [design/categorization-pipeline.md](design/categorization-pipeline.md) | Rule-match → presets → history cache → LLM |
-| LLM endpoint testing notes | [design/LLM-endpoint-test.md](design/LLM-endpoint-test.md) | Ad hoc test results for LLM extraction endpoints |
+| Bank profile YAML reference | [features/cashflow-ingestion.md#bank-profiles](features/cashflow-ingestion.md#bank-profiles) | Actual registered bank signatures/parsers; YAML profiles remain planned |
+| Validation pipeline + master schema | [features/cashflow-ingestion.md#validation-pipeline](features/cashflow-ingestion.md#validation-pipeline) | Pipeline implementation, actual upload call sites and TransactionDto contract |
+| Cold start categorization problem | [ideas/cold-start-problem.md](ideas/cold-start-problem.md) | Why preset seed exists, 4-layer fallback design |
+| Categorization pipeline detail | [architecture/categorization-pipeline.md](architecture/categorization-pipeline.md) | History → rules → presets; separate batch/residual path and Jev guard |
+| LLM endpoint testing notes | [../services/ai-service/docs/LLM-endpoint-test.md](../services/ai-service/docs/LLM-endpoint-test.md) | Ad hoc test results for LLM extraction endpoints |
 
 ---
 
@@ -53,6 +54,8 @@
 | Topic | File | What it covers |
 |-------|------|----------------|
 | Current phase + active tasks | [STATUS.md](STATUS.md) | What's working, what's next, known tech debt — updated each sprint |
+| Sprint implementation map | [sprint-plan.md](sprint-plan.md) | Original sprint scope mapped to current code and pending checks |
+| Documentation audit | [codex/documentation-status-audit.md](codex/documentation-status-audit.md) | Evidence, corrected drift and verification limits |
 | Sprint progress log | [mentor/progress.md](mentor/progress.md) | Day-by-day AI learning path progress |
 
 ---
@@ -95,10 +98,10 @@ Domain judgment routes to `/cio` (is the finance sound), `/risk-officer` (limits
 | Learning path overview | [mentor/README.md](mentor/README.md) | 90-day backend → AI Engineering roadmap |
 | Progress log | [mentor/progress.md](mentor/progress.md) | Day-by-day entries, chapter completions |
 | AI engineering use case map | [mentor/ai-engineering-usecase-map.md](mentor/ai-engineering-usecase-map.md) | What to build, when, why |
-| Prompt engineering (topic) | [mentor/prompt-engineering.md](mentor/prompt-engineering.md) | Iteration, testing, versioning — error analysis loop, golden sets + two-tier testing, prompt registries and the templating trap |
+| Prompt engineering (topic) | [mentor/what-ai-engineering-build/prompt-engineering.md](mentor/what-ai-engineering-build/prompt-engineering.md) | Iteration, testing, versioning — error analysis loop, golden sets + two-tier testing, prompt registries and the templating trap |
 | RAG + agents roadmap | [ideas/rag-and-agents-roadmap.md](ideas/rag-and-agents-roadmap.md) | PF-AI003/004 design thinking |
 | Loop engineering (interactive) | [mentor/diagram-loop-engineering.html](mentor/diagram-loop-engineering.html) | Node-graph of Addy Osmani's "Loop Engineering": the five primitives + memory, the reference loop, and the three risks; click a group to drill in, open in a browser |
-| PF-AI008 — LangGraph financial advisor (interactive) | [mentor/PF-AI008-langgraph-advisor-diagram.html](mentor/PF-AI008-langgraph-advisor-diagram.html) | Node-graph of Chapter 8's stateful `POST /advisor` agent: API surface → AdvisorState → StateGraph (agent · ToolNode · fallback) → 4 tools → existing .NET routes, plus MemorySaver session memory and what's deferred to Ch5/Ch9; click a group to drill in, open in a browser |
+| PF-AI008 — LangGraph advisor sequence | [architecture/sequences/diagram-journey-advisor-sequence.html](architecture/sequences/diagram-journey-advisor-sequence.html) | Implemented graph/tool flow; user acceptance and deferred checks documented separately |
 
 ---
 
@@ -108,10 +111,13 @@ Domain judgment routes to `/cio` (is the finance sound), `/risk-officer` (limits
 |---------|------|--------|
 | Cashflow ingestion — parser, bank profiles, validation pipeline, master schema | [features/cashflow-ingestion.md](features/cashflow-ingestion.md) | Reference doc |
 | Cashflow Statement tab | [features/cashflow-statement-tab.md](features/cashflow-statement-tab.md) | Design spec |
-| Spending Analysis (PF-108) | [design/PF-108-spending-analysis-verdict.md](design/PF-108-spending-analysis-verdict.md) | Verdict — implemented |
-| Investment Portfolio (PF-113) | [design/PF-113-INVESTMENT-Portfolio-builder-thin-MVP.md](design/PF-113-INVESTMENT-Portfolio-builder-thin-MVP.md) | Thin MVP spec |
+| Spending Analysis (PF-108) | [battle-plans/PF-108-spending-analysis-verdict.md](battle-plans/PF-108-spending-analysis-verdict.md) | Verdict — implemented |
+| Investment Portfolio (PF-113) | [battle-plans/PF-113-INVESTMENT-Portfolio-builder-thin-MVP.md](battle-plans/PF-113-INVESTMENT-Portfolio-builder-thin-MVP.md) | Thin MVP spec |
+| Buckets budgeting | [features/budgeting/README.md](features/budgeting/README.md) | Implemented module plus historical prototype/spec boundaries |
+| Jev residual categorization | [../services/ai-service/README.md#residual-transaction-categorization](../services/ai-service/README.md#residual-transaction-categorization) | Opt-in implementation; live evaluation/promotion pending |
+| Trading Desk / Macro Lab | [STATUS.md#implemented-product-surface](STATUS.md#implemented-product-surface) | Coded scope and deferred screens/verification |
 | Journey quest ideas | [ideas/journey-quest-ideas.md](ideas/journey-quest-ideas.md) | Brainstorm backlog |
-| Hybrid AI BYOK plan | [design/hybrid-ai-byok-plan.md](design/hybrid-ai-byok-plan.md) | Cost strategy design |
+| Hybrid AI BYOK plan | [ideas/hybrid-ai-byok-plan.md](ideas/hybrid-ai-byok-plan.md) | Cost strategy design |
 
 ---
 

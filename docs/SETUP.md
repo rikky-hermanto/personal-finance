@@ -1,218 +1,147 @@
 # Personal Finance — Setup Guide
 
+> Reviewed against package scripts, Dockerfiles, Compose and Supabase configuration on 2026-10-08. Commands below describe the configured development path; startup was not run during this documentation sync.
+
 ## Prerequisites
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- Windows PowerShell, Docker Desktop running, Node.js 20+ and npm.
+- .NET 10 SDK for the API.
+- Python >=3.11.9 (the AI Dockerfile uses 3.12).
+- Supabase CLI provided by the root npm dependency; use `npx supabase` from the repository root.
+- A configured Gemini or Anthropic key for generative AI; embedding configuration is independent.
 
-That's it. No need to install .NET, Node.js, or PostgreSQL locally.
+## Install and configure
 
----
+From the repository root:
 
-## Quick Start (Docker)
-
-### 1. Clone the repository
-
-```bash
-git clone <your-repo-url>
-cd personal-finance
+```powershell
+rtk npm install
+rtk npm --prefix apps/frontend install
+rtk proxy py -m venv services/ai-service/.venv
+rtk proxy services/ai-service/.venv/Scripts/python.exe -m pip install -e './services/ai-service[dev]'
 ```
 
-### 2. Start the entire stack
+Use an existing virtual environment when available. The AI package deliberately bounds parts of the LangGraph/LangChain/evaluation dependency stack; do not remove those bounds to resolve installation failures without checking compatibility.
 
-```bash
-docker compose up --build
+Copy example files only when the destination does not already exist; preserve your local settings:
+
+```powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+if (-not (Test-Path apps/frontend/.env)) { Copy-Item apps/frontend/.env.example apps/frontend/.env }
+if (-not (Test-Path services/ai-service/.env)) { Copy-Item services/ai-service/.env.example services/ai-service/.env }
+if (-not (Test-Path apps/api/src/PersonalFinance.Api/appsettings.Development.json)) {
+    Copy-Item apps/api/src/PersonalFinance.Api/appsettings.Development.example.json apps/api/src/PersonalFinance.Api/appsettings.Development.json
+}
 ```
 
-This single command will:
+Configure the following locally without copying credentials into documentation or tracked files:
 
-- Start a **PostgreSQL 16** database on port `5432`
-- Build and start the **.NET 9 API** on port `7208`
-- Build and start the **React frontend** on port `8080`
-- Automatically run all database migrations and seed data
+| Consumer | Settings |
+|---|---|
+| .NET API | `Supabase:Url`, `Supabase:AnonKey`, `Supabase:ServiceRoleKey`; `AiService:BaseUrl`; `ConnectionStrings:Default` for the health probe |
+| Frontend | `VITE_API_URL`, `VITE_AI_SERVICE_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
+| AI generation | `AI_PROVIDER=gemini|anthropic`, matching API key, matching `AI_MODEL` |
+| AI embeddings | `EMBEDDING_PROVIDER=gemini|openai` (default Gemini), matching key, optional `EMBEDDING_MODEL`, `DATABASE_URL` |
+| LangGraph tools | `NET_API_BASE_URL` (default `http://localhost:7208`) |
+| Tracing | OTEL endpoint/service name; optional Langfuse host/public/secret keys |
+| Residual categorization | `CATEGORIZATION_BACKEND=llm` by default; Jev requires separate key, pinned model and calibrated threshold after evaluation |
 
-### 3. Open the app
+Obtain local Supabase keys from `rtk proxy npx supabase status` after startup; keep service-role/secret keys server-side. The frontend Supabase module throws when its URL or anon key is missing. The frontend example currently uses HTTPS 7209 for the API; use the protocol/port of your selected API launch profile (HTTP 7208 is used below).
 
-| Service    | URL                          |
-| ---------- | ---------------------------- |
-| Frontend   | http://localhost:8080        |
-| API        | http://localhost:7208        |
-| API Health | http://localhost:7208/health |
-| Swagger    | http://localhost:7208/openapi/v1.json |
+## Start local development
 
----
+The root script starts Supabase, Compose database/monitoring containers, and host API/UI/AI processes:
 
-## Stopping the App
-
-```bash
-# Stop all containers (data is preserved)
-docker compose down
-
-# Stop all containers AND delete database data
-docker compose down -v
+```powershell
+rtk npm start
 ```
 
----
+Its `prestart` hook starts Docker Desktop if necessary and stops conflicting processes on 8080, 8000 and the API port, plus leftover PersonalFinance.Api processes. To preserve independently running processes, start the components explicitly instead.
 
-## Rebuilding After Code Changes
+From the repository root, start infrastructure:
 
-```bash
-# Rebuild and restart all services
-docker compose up --build
-
-# Rebuild only the API
-docker compose up --build api
-
-# Rebuild only the frontend
-docker compose up --build frontend
+```powershell
+rtk proxy npx supabase start
+rtk docker compose up -d db alloy prometheus loki tempo grafana
 ```
 
----
+Then run each application in its own terminal:
 
-## Running in Detached Mode (Background)
-
-```bash
-# Start in background
-docker compose up --build -d
-
-# View logs
-docker compose logs -f
-
-# View logs for a specific service
-docker compose logs -f api
-docker compose logs -f frontend
-docker compose logs -f db
+```powershell
+# Repository root — .NET API
+rtk dotnet run --project apps/api/src/PersonalFinance.Api
 ```
 
----
-
-## Project Architecture
-
-```
-personal-finance/
-├── docker-compose.yml          # Orchestrates all services
-├── Dockerfile                  # Frontend build (React + Vite -> Nginx)
-├── nginx.conf                  # Nginx config for SPA routing
-├── src/                        # Frontend source code (React/TypeScript)
-├── public/                     # Frontend static assets
-├── package.json                # Frontend dependencies
-├── api/
-│   ├── Dockerfile              # API build (.NET 9 multi-stage)
-│   ├── PersonalFinance.slnx    # .NET solution file
-│   ├── src/
-│   │   ├── PersonalFinance.Api/            # Web API (controllers, middleware)
-│   │   ├── PersonalFinance.Application/    # Business logic (CQRS, services)
-│   │   ├── PersonalFinance.Domain/         # Entities & domain events
-│   │   ├── PersonalFinance.Infrastructure/ # CSV/PDF parsers
-│   │   └── PersonalFinance.Persistence/    # EF Core, migrations, DbContext
-│   └── tests/
-│       └── PersonalFinance.Tests/          # Unit tests
+```powershell
+# Repository root — frontend
+rtk npm --prefix apps/frontend run dev
 ```
 
-### Services
-
-| Service      | Technology       | Port  | Description                              |
-| ------------ | ---------------- | ----- | ---------------------------------------- |
-| `db`         | PostgreSQL 16    | 5432  | Database with persistent volume          |
-| `api`        | .NET 9           | 7208  | REST API with auto-migration on startup  |
-| `frontend`   | React + Nginx    | 8080  | Single-page app served via Nginx         |
-
----
-
-## Local Development (Without Docker)
-
-If you prefer to run services locally without Docker:
-
-### Prerequisites
-
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0)
-- [Node.js 20+](https://nodejs.org/)
-- [PostgreSQL 16+](https://www.postgresql.org/download/)
-
-### 1. Start PostgreSQL
-
-Make sure PostgreSQL is running on `localhost:5432` with:
-- Database: `personal_finance`
-- Username: `postgres`
-- Password: `postgres123`
-
-### 2. Start the API
-
-```bash
-cd api
-dotnet run --project src/PersonalFinance.Api
+```powershell
+# Repository root — AI service (config resolves its own .env)
+rtk proxy services/ai-service/.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000 --app-dir services/ai-service
 ```
 
-The API will start on `http://localhost:7208`.
+| Service | Local URL / port |
+|---|---|
+| Frontend | http://localhost:8080 |
+| API | http://localhost:7208; launch profiles also configure HTTPS 7209 |
+| API health | http://localhost:7208/health |
+| Development OpenAPI | http://localhost:7208/openapi/v1.json |
+| FastAPI health / docs | http://localhost:8000/health and http://localhost:8000/docs |
+| Supabase API / PostgREST | http://127.0.0.1:54321 |
+| Supabase database | 127.0.0.1:54322, database postgres |
+| Supabase Studio | http://127.0.0.1:54323 |
+| Grafana | http://localhost:3000 |
+| Compose standalone database | localhost:5432; separate from Supabase |
 
-### 3. Start the frontend
+The standalone `db` service remains in Compose and the root startup script. Application entities use Supabase/PostgREST; AI retrieval uses Supabase's direct Postgres URL. The .NET health probe uses its separately configured connection string, so a green standalone database probe alone does not prove application persistence works.
 
-```bash
-# From the project root
-npm install
-npm run dev
+## Database migrations
+
+Schema changes are timestamped SQL files in `supabase/migrations/`. The API does not run EF migrations or automatically apply these files.
+
+For an already-running local database, inspect pending migrations and apply them explicitly:
+
+```powershell
+rtk proxy npx supabase migration list --local
+rtk proxy npx supabase db push --local
 ```
 
-The frontend will start on `http://localhost:8080`.
+Applying migrations is a separate operation from writing a migration or running a build. Do not substitute an unqualified remote push for local setup. Seed configuration is in `supabase/config.toml` and `supabase/seed.sql`. Database reset removes local data and is not a routine upgrade step.
 
----
+Embedding storage is `vector(1536)`. Changing embedding provider/model requires compatible vectors and a backfill for the selected model; retrieval filters by model. See the [embedding guide](../services/ai-service/docs/rag-embeddings-howto.md).
 
-## Database Management
+## Docker-only boundary
 
-### Connecting to the database
+Dockerfiles exist for all three applications, but `docker compose up --build` is not a verified complete Supabase deployment. Current Compose does not inject the API Supabase settings, AI `DATABASE_URL`/`NET_API_BASE_URL`/embedding/Langfuse/Jev settings, or frontend Supabase/AI build variables. Inside a container, localhost points to that container. Frontend Vite values must be set at build time. The AI Dockerfile also installs the package before copying its app sources; verify packaged dependencies and runtime imports when preparing deployment.
 
-```bash
-# Via Docker
-docker compose exec db psql -U postgres -d personal_finance
+Use the host development path above. Container deployment hardening remains separate work; no configuration changes were made by this documentation sync.
 
-# Or with any PostgreSQL client
-Host: localhost
-Port: 5432
-Database: personal_finance
-Username: postgres
-Password: postgres123
+## Stop and verify
+
+Stop application terminals with Ctrl+C. Stop the Compose containers without removing volumes:
+
+```powershell
+rtk docker compose stop
+rtk proxy npx supabase stop
 ```
 
-### Running migrations manually
+For a smoke check, open Journey, import a sanitized supported statement through Cashflow → Upload, review and submit, then check Transactions. Transaction chat requires embeddings plus a working generative provider; FastAPI `/health` only returns liveness and does not verify those dependencies.
 
-Migrations run automatically on API startup. To run them manually:
+## Local checks
 
-```bash
-cd api
-dotnet ef database update --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api
+```powershell
+# Repository root
+rtk npm run lint
+rtk npm run build
+rtk npm --prefix apps/frontend run test:desk
+rtk npm --prefix apps/frontend run test:macro
+rtk dotnet test apps/api/PersonalFinance.slnx
+# Run from services/ai-service, with external provider calls mocked
+rtk proxy .venv/Scripts/python.exe -m pytest
 ```
 
-### Creating a new migration
+Frontend build is Vite bundling, not a standalone TypeScript check. Playwright (`rtk npm run e2e` from root) starts/reuses the frontend; backend-dependent specs still need their services. Inspect skipped integration tests and evaluation budgets before claiming functional coverage or running live LLM evaluations.
 
-```bash
-cd api
-dotnet ef migrations add <MigrationName> --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api
-```
-
----
-
-## Troubleshooting
-
-### Port already in use
-
-If ports 5432, 7208, or 8080 are already taken, stop the conflicting process or change the port mapping in `docker-compose.yml`:
-
-```yaml
-ports:
-  - "5433:5432"   # Map to a different host port
-```
-
-### Database connection refused
-
-The API waits for PostgreSQL to be healthy before starting. If you still see connection errors, check:
-
-```bash
-docker compose ps        # Verify db container is healthy
-docker compose logs db   # Check PostgreSQL logs
-```
-
-### Rebuilding from scratch
-
-```bash
-docker compose down -v       # Remove containers and volumes
-docker compose up --build    # Rebuild everything fresh
-```
+See [current status](STATUS.md), [architecture](architecture/architecture-diagram.md) and [AI service configuration](../services/ai-service/README.md).

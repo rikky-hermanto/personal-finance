@@ -1,5 +1,7 @@
 # `/goal` and `/loop` — Use Cases for This Project
 
+> **Proposal/reference boundary (2026-10-08):** Examples and suggested tickets below retain their original planning context. RAG/SSE, both agent endpoints and logging in Dashboard/Spending services are now coded; this document does not introduce or close tasks. Use [STATUS.md](../STATUS.md) for current implementation and verification gaps.
+
 > Note: only `loop` is a registered skill in this environment; `/goal` is covered generically (self-paced, multi-step objective pursuit) based on its typical meaning, since no `goal` skill is currently available here.
 
 ## `/loop` — recurring / self-paced execution

@@ -1,4 +1,6 @@
 # Architecture Health Report
+
+> **Historical decision/review snapshot.** Original findings and proposals are retained; they are not current implementation status. As of the 2026-10-08 source review, .NET 10/Supabase persistence, RAG/SSE, agents and frontend desk/macro tests are implemented; Auth/webhook extraction remain pending. See [current project status](../STATUS.md).
 **Date:** 2026-06-10
 **Focus:** Full-stack — Backend, Frontend, AI Service, Tests & CI, Developer Tooling
 **Files read:** ~35 inline + subagent reads across 3 layers + governance scan

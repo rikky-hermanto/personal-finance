@@ -1,5 +1,7 @@
 # Jev opportunity audit — 2026-09-26
 
+> **Follow-up status (2026-10-08):** The application categorizer opportunity was implemented under [PF-141](../../.claude/plans/PF-141-jev-categorizer-todo.md). It remains opt-in/default-disabled pending live evaluation and promotion; no measured savings are established. The audit below preserves its original opportunity assessment. See [current status](../STATUS.md).
+
 Prepared with the installed official TypeSafe skill before integration changes.
 Scope: visible repository call sites; no other conversations, production traces
 or private statement files were accessed. No production code was changed.

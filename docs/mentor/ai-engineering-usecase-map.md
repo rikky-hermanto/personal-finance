@@ -1,14 +1,14 @@
 # AI Engineering Use-Case Map — Personal Finance Platform
 
-> **Updated:** 2026-07-05 · **Status source of truth:** the [Master Table](#helicopter-view--master-table) below. When a UC ships, flip its row there (and only there) — detail sections carry facts and sequencing, not status.
+> **Implementation status reviewed:** 2026-10-08 · **Status source of truth:** the [Master Table](#helicopter-view--master-table) below. When a UC ships, flip its row there (and only there) — detail sections carry facts and sequencing, not status.
 >
-> **You are here:** Chapters 1–4 CLOSED (PF-AI001 → PF-AI004 all Done, 2026-07-03). Next up: **Chapter 5 — SSE streaming (UC-2.11 / [PF-AI005](../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md))**.
+> **Current implementation:** RAG/reranking, SSE, SQL routing and hybrid modes are coded; vector remains default. Categorizer agent is implemented with live smoke validation pending. LangGraph advisor was accepted September 15 with deferred checks. MCP is the next recorded learning milestone. See [STATUS.md](../STATUS.md) for evidence and runtime limitations; curriculum order/preferences are unchanged.
 >
 > **What this doc is:** The companion to [`docs/mentor/ai-engineer-learning-path.md`](../mentor/ai-engineer-learning-path.md).
 > The curriculum doc is curriculum-only — phases, platforms, cadence. This doc answers the other half:
 > *for every concept in the curriculum, what feature in the Personal Finance Platform do we build to prove it?*
 >
-> Every row here maps to a real commit in this repo. No toy scripts. Same-day implementation.
+> Rows include both implemented artifacts and proposed use cases; status and evidence must be read together. No toy scripts. Same-day implementation.
 >
 > **Progress log:** [`docs/mentor/progress.md`](../mentor/progress.md) — live activity log tracking what's been shipped.
 >
@@ -54,15 +54,15 @@ The entire 12-chapter build arc on one page (chapters are paced by progress, not
 | 2 | 4 | 2.9 | Grounded synthesis + citations | "Ask your finances" Q&A with cited answer | Jawab pertanyaan keuangan dengan data transaksi nyata + sitasi sumber | `POST /ask` | "RAGAS faithfulness 0.900; live-verified on 4,467 txns incl. adversarial canary; citation-hallucination guard in `answerer.py`" | ✅ |
 | 2 | 4 | 2.10 | Chunking strategies | Fixed-size + sentence-window in `chunker.py` | Pecah teks narasi panjang tanpa kehilangan konteks antar kalimat | `services/chunker.py` | "Named chunking strategies; chose sentence-window for advisory corpus" | 🟡 |
 | 2 | 4–5 | 2.15 | Guardrails: PII + output validation | Guardrail layer on `/ask` (PII scrub, advice disclaimer, output validation) | Cegah kebocoran PII & angka tanpa sumber pada jawaban advisor keuangan | `services/guardrails.py`, `POST /ask` | "Financial advisor can't leak PII or emit an unvalidated number — guardrails first-class, not a Phase-4 afterthought" | ⚪ (PF-122) |
-| 2 | 5 | 2.11 | SSE streaming | Token-by-token streamed chat UI | Chat AI responsif — jawaban muncul token per token, tidak menunggu selesai | `POST /ask` (streaming) + `/chat` React page | "Streaming from FastAPI → React; no buffering, correct SSE error handling" | ⚪ (PF-AI005) |
+| 2 | 5 | 2.11 | SSE streaming | Token-by-token streamed chat UI | Chat AI responsif — jawaban muncul token per token, tidak menunggu selesai | `POST /ask/stream` + `/chat` React page | "Streaming from FastAPI → React; no buffering, correct SSE error handling" | ✅ (PF-AI005; numeric eval separate) |
 | 2 | 5 | 2.12 | Real-time status (Supabase Realtime) | Replace polling upload status with Realtime | Status proses upload & AI tampil live tanpa polling berulang | Upload wizard + `/status` page | "Eliminated polling; event-driven upload status updates via Realtime" | ⚪ (PF-S12) |
 | 2 | 5 | 2.13 | Streaming as a pattern | Stream portfolio review + journey advice | Narasi AI di Investment & Journey muncul token per token | `/portfolio-review`, `/journey/advise` (streaming) | "Streaming applied consistently across advisory endpoints — a pattern, not a one-off" | ⚪ |
-| 2 | 6 | 2.14 | Advanced RAG: hybrid search | pgvector + `tsvector` full-text hybrid retrieval | Gabungkan pencarian vektor + full-text untuk akurasi retrieval lebih tinggi | `/search` hybrid mode | "Hybrid search vs dense-only — measured, not assumed" | ⚪ (PF-AI006) |
-| 2 | 6 | 2.14 | Advanced RAG: sentence-window + auto-merging | Advanced chunk-retrieval variants on advisory corpus | Eksperimen 3 teknik RAG lanjutan; pilih pemenang berdasarkan data eval | Retrieval pipeline | "Three advanced RAG variants benchmarked; winner chosen by eval data" | 🟡 |
+| 2 | 6 | 2.14 | Advanced RAG: hybrid search | pgvector + `tsvector` full-text hybrid retrieval | Gabungkan pencarian vektor + full-text untuk akurasi retrieval lebih tinggi | `/search` hybrid mode | "Hybrid search vs dense-only — measured, not assumed" | ✅ (PF-AI006; vector won recorded comparison) |
+| 2 | 6 | 2.14 | Advanced RAG: sentence-window + auto-merging | Advanced chunk-retrieval variants on advisory corpus | Eksperimen 3 teknik RAG lanjutan; pilih pemenang berdasarkan data eval | Retrieval pipeline | "Target experiment; statement-level variants not yet implemented" | ⚪ Deferred PF-AI006-PART2 |
 | 2 | 6 / 8 | 2.16 | RAG + agent faithfulness eval | RAGAS faithfulness on `/ask` + tool-call accuracy on agents | Ukur faithfulness jawaban RAG & akurasi tool-call agen, bukan cuma ekstraksi | `evals/eval_faithfulness.py`, `evals/eval_agent.py` | "Faithfulness 0.900 measured (eval caught 3 real bugs); agent tool-call eval pending first agent" | 🟡 |
-| 3 | 7 | 3.1 | Tool-calling loops (smolagents) | Transaction Categorizer Agent | Agen TAO loop yang kategorisasi transaksi dengan reasoning trace di Langfuse | `app/agents/categorizer_agent.py` | "TAO loop: 5 test txns categorized with reasoning trace in Langfuse" | ⚪ (PF-AI007) |
+| 3 | 7 | 3.1 | Tool-calling loops (smolagents) | Transaction Categorizer Agent | Agen TAO loop yang kategorisasi transaksi dengan reasoning trace di Langfuse | `app/agents/categorizer_agent.py` | "Tool-calling loop with traces; complete live sample still pending" | 🟡 (code implemented; live smoke partial) |
 | 3 | 7 | 3.2 | Agent with uncertainty handling | Self-correcting Upload Processing Agent | Pipeline upload yang eksplisit soal ketidakpastian & minta konfirmasi user | `app/agents/upload_agent.py`, `POST /agent/process-upload` | "Agent re-routes on low-confidence identification; no silent failures" | ⚪ (PF-119) |
-| 3 | 8 | 3.3 | LangGraph: state + routing + memory | Financial Health Advisor (multi-step) | Saran keuangan multi-langkah berbasis data live user dengan memori sesi | LangGraph graph, tools wired to data layer | "Multi-step agent: analyze → gaps → recommend → drilldown; checkpointer memory; tool-failure fallback" | ⚪ (PF-AI008) |
+| 3 | 8 | 3.3 | LangGraph: state + routing + memory | Financial Health Advisor (multi-step) | Saran keuangan multi-langkah berbasis data live user dengan memori sesi | LangGraph graph, tools wired to data layer | "Multi-step agent: analyze → gaps → recommend → drilldown; checkpointer memory; tool-failure fallback" | ✅ (accepted 2026-09-15; deferred checks retained) |
 | 3 | 8 | 3.4 | Agentic reasoning on core product engine | Journey Quest Agent | Buat quest keuangan yang dihitung dari data transaksi aktual, bukan aturan statis | `app/agents/quest_agent.py` | "Agent quantifies quests from live txn history, not static rules" | ⚪ (PF-121) |
 | 3 | 8 | 3.5 | Autonomous (non-reactive) agent | Monthly Financial Review Agent | Laporan keuangan bulanan otomatis: anomali + narasi + 3 action items | Scheduled run (post auth) | "Autonomous month-end report: anomaly detection + narrative + 3 action items" | ⚪ (PF-120, needs PF-S08) |
 | 3 | 9 | 3.6 | Model Context Protocol | Personal-finance MCP server | Ekspos data keuangan ke Claude Desktop atau MCP client mana pun | MCP server (Python SDK) | "Claude Desktop / any MCP client can query my finance data live" | ⚪ (PF-AI009) |
@@ -79,7 +79,7 @@ The entire 12-chapter build arc on one page (chapters are paced by progress, not
 | # | Hero feature | UCs | Why it's the hero |
 |---|--------------|-----|-------------------|
 | H1 | **Eval harness with published numbers** | UC-2.3 (+2.4) | Answers the #1 screen question: "how do you know it's correct?" The published table — Row F1 1.000, $0.00029/doc — *is* the artifact. ✅ banked |
-| H2 | **`/ask` RAG with *measured* reranking** | UC-2.6, UC-2.9, UC-2.14 | RAG is the #1 applied skill. The measured delta is banked — and it's **negative**: rerank hurt MRR@5 (1.000→0.857), you diagnosed why, and kept the simpler pipeline. That story beats any hypothetical lift. UC-2.14 hybrid remains the open depth play. |
+| H2 | **`/ask` RAG with *measured* reranking** | UC-2.6, UC-2.9, UC-2.14 | RAG is the #1 applied skill. The measured delta is banked — and it's **negative**: rerank hurt MRR@5 (1.000→0.857), you diagnosed why, and kept the simpler pipeline. That story beats any hypothetical lift. UC-2.14 hybrid is implemented; the July comparison favored vector. |
 | H3 | **MCP server + one LangGraph agent** | UC-3.6, UC-3.3 | Frontier signal. Few candidates have shipped MCP; it's named in Grafana/Datadog/Anthropic JDs. |
 
 **Must-ship floor (if everything else slips, ship at least this chain):**
@@ -157,10 +157,10 @@ The PF-AI series is the delivery vehicle for this map (one ticket per chapter). 
 | [PF-AI002](../../.claude/plans/learning/PF-AI002-llm-evaluation-framework.md) | Extraction eval harness | UC-2.3 | ✅ Done 2026-06-05 |
 | [PF-AI003](../../.claude/plans/learning/PF-AI003-rag-embeddings-retrieval.md) (+003b) | Embeddings + `/search` retrieval | UC-2.6, UC-2.8 | ✅ Done 2026-06-15 |
 | [PF-AI004](../../.claude/plans/learning/PF-AI004-rag-reranking-generation.md) | Chunking + rerank + `/ask` | UC-2.9, UC-2.10, UC-2.16 (RAG half) | ✅ Done 2026-07-03 |
-| [PF-AI005](../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md) | SSE streaming + production UX | UC-2.11, UC-2.13 | To Do — next up |
-| [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) | Advanced RAG patterns | UC-2.14 | To Do |
-| [PF-AI007](../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) | smolagents Categorizer Agent | UC-3.1, UC-2.16 (agent half) | To Do |
-| [PF-AI008](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md) | LangGraph Financial Health Advisor | UC-3.3 | To Do |
+| [PF-AI005](../../.claude/plans/learning/PF-AI005-streaming-sse-todo.md) | SSE streaming + production UX | UC-2.11, UC-2.13 | Done 2026-07-06; PART2 numeric eval pending |
+| [PF-AI006](../../.claude/plans/learning/PF-AI006-advanced-rag-patterns-todo.md) | Advanced RAG patterns | UC-2.14 | Done hybrid scope; window/merge deferred |
+| [PF-AI007](../../.claude/plans/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) | smolagents Categorizer Agent | UC-3.1, UC-2.16 (agent half) | In Progress; implemented, live smoke partial |
+| [PF-AI008](../../.claude/plans/learning/PF-AI008-langgraph-financial-advisor.md) | LangGraph Financial Health Advisor | UC-3.3 | Accepted 2026-09-15; deferred checks retained |
 | [PF-AI009](../../.claude/plans/learning/PF-AI009-mcp-personal-finance-server-todo.md) | MCP server | UC-3.6 | To Do |
 | PF-118 | Semantic categorization fallback | UC-2.7 | Ready ⚠️ board also lists it Obsolete — reconcile |
 | PF-119 | Upload Processing Agent | UC-3.2 | ⚠️ board shows Done but no agent code exists — verify |
@@ -655,7 +655,7 @@ Platform: dev.to (free, good SEO) or personal blog. Link from GitHub README.
 | Upload BCA PDF → transactions appear with categories | 0:30 | UC-1.1, upload pipeline |
 | Financial Journey → pyramid scores, Living Garden | 0:30 | existing |
 | Langfuse / Grafana trace → cost, latency, token count | 0:30 | UC-2.1 ✅ |
-| RAG chat → "how much on food in March?" → streamed answer | 0:30 | UC-2.11, UC-2.9 ✅ (streaming pending) |
+| RAG chat → "how much on food in March?" → streamed answer | 0:30 | UC-2.11, UC-2.9 ✅ (streaming implemented; numeric eval pending) |
 | Agent → "improve my financial health" → multi-step recommendation | 0:30 | UC-3.3 |
 | Claude Desktop → MCP tools invoked live | 0:30 | UC-3.6 |
 

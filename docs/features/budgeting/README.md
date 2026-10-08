@@ -1,4 +1,12 @@
-# Buckets — prototype bundle
+# Buckets — Implemented Feature and Prototype Bundle
+
+> **Code reviewed:** 2026-10-08. Buckets is implemented in the app; the files below remain reference prototypes/specs, not the runtime UI.
+
+The current component is [BucketsCard](../../../apps/frontend/src/components/buckets/BucketsCard.tsx) on Cashflow Analysis. It consumes [BucketsController](../../../apps/api/src/PersonalFinance.Api/Controllers/BucketsController.cs) and [BucketsService](../../../apps/api/src/PersonalFinance.Application/Services/Buckets/BucketsService.cs), with pure BucketCalculator logic and SQL-backed Future settings/commitment overrides. Month-close and variable-income views are coded. Safe-to-Spend now derives historical savings outflows rather than hardcoding zero.
+
+The prototype build plan is historical intent, not proof that every proposed transfer-matching/account-ringfencing behavior shipped. Runtime month-close Future transfers are inferred from investing-category expenses; Buckets does not segregate real bank funds or provide a general savings-goal destination matcher. Placeholder identity and permissive policies remain pending Auth. See [current status](../../STATUS.md).
+
+## Prototype bundle
 
 Open `Buckets Budgeting.html` in a browser (needs internet for React/Tailwind/Lucide CDNs).
 
