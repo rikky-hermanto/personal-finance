@@ -6,7 +6,7 @@ A self-hosted personal finance platform. The mission: **make managing money genu
 
 AI-powered ingestion handles the messy part — getting data out of bank CSVs, PDFs, and screenshots automatically so you spend time on decisions, not data entry.
 
-**Cashflow tracking, assets management, investment portfolio, spending analysis, and financial journey gamification are all live.** Everything else is being built out one level at a time.
+**Implemented locally:** cashflow, assets/liabilities, investment reviews, Journey, Buckets budgeting, streaming transaction Q&A, Trading Desk foundations, and Macro Scenario Lab. Auth, durable async ingestion and deployment hardening remain unfinished. See [current code status](docs/STATUS.md), reviewed 2026-10-08; implemented does not mean production-deployed.
 
 ## 🧭 Who this is for
 
@@ -26,7 +26,7 @@ The result is a financially active person who still feels stuck. Not because the
 
 That's the problem the **Financial Pyramid** is designed to fix. Financial health isn't a checklist — it's a hierarchy. Each level has prerequisites. You can't defend what you haven't yet built. You can't grow what you haven't defended. The pyramid makes the order explicit, so every decision has context: *this is the level you're on, this is what matters here, this is what unlocks next.*
 
-This platform is built around that framework end-to-end. The data infrastructure (automatic ingestion from any Indonesian bank format, unified cashflow + assets + investments in one place) exists to feed the framework — so your pyramid scores reflect reality, not estimates. The gamification layer exists to make progress feel like progress, not just another month of tracking. The whole system points at one question: **not "where did my money go?" but "how far up the pyramid am I, and what's my next move?"**
+This platform is built around that framework end-to-end. The data infrastructure (statement ingestion through supported parsers and AI fallback, unified cashflow + assets + investments in one place) exists to feed the framework — so your pyramid scores reflect reality, not estimates. The gamification layer exists to make progress feel like progress, not just another month of tracking. The whole system points at one question: **not "where did my money go?" but "how far up the pyramid am I, and what's my next move?"**
 
 Let's make finance fun!
 
@@ -61,8 +61,9 @@ Each level unlocks naturally from the one below. The app tracks your score acros
 |---|---|
 | Cashflow tracking (upload, categorize, review) | ✅ Live |
 | Spending analysis (Safe-to-Spend, variance) | ✅ Live |
-| RAG — semantic search over transactions | 🔄 In Progress |
-| Budgeting (50/30/20, zero-based, envelope) | 🔜 Soon |
+| RAG — semantic search, reranking, SQL-routed Q&A and SSE chat | ✅ Implemented; formal numeric eval pending |
+| Buckets budgeting (Committed / Future / Free) | ✅ Implemented in Cashflow Analysis |
+| Other budgeting methods (50/30/20, zero-based, envelope) | 🔜 Planned |
 | Recurring (bills, subscriptions, due dates) | 🔜 Soon |
 
 ### L2 · Defense — *Protect what you have*
@@ -98,25 +99,17 @@ Each level unlocks naturally from the one below. The app tracks your score acros
 
 ### Cashflow tracking
 
-Upload bank statements from BCA, Superbank, NeoBank, Wise, or Bank Jago — CSV, PDF, or screenshot — and get a unified transaction history across all accounts.
+Import supported BCA/standard CSVs, NeoBank PDFs, other readable PDFs through AI, or PNG/JPEG/WebP screenshots, then review and submit a unified transaction history. A dedicated Wise CSV+FX parser is still missing.
 
-- Hybrid parser: CSV files parsed directly (fast, zero AI cost); PDFs and screenshots go through Gemini / Claude for structured extraction; Superbank PDF uses bank-specific LLM prompt
+- Hybrid parsing: BCA/standard CSV and NeoBank PDF are deterministic; other readable PDFs and images use Gemini or Anthropic. Superbank-specific Python prompting exists, but the normal .NET PDF path currently passes no bank hint.
 - IBankSignature registry (Chain of Responsibility) detects the bank from file content and dispatches to the correct parser — adding a new bank = adding one class
-- 4-layer auto-categorization: rule-match (106 rules) → category presets → history cache → LLM fallback (Gemini). Cold-start safe — preset seed covers new users.
+- History/rule/preset categorization is called by BCA/standard/LLM PDF parsers. A fuller batch-plus-residual AI cascade exists in TransactionPipelineService, currently used only by the experimental CSV upload path; standard upload does not call that service.
 - Bulk AI categorization in upload preview — select uncategorized rows and hit ✦ Suggest for batch Gemini classification
 - 4-step upload wizard — drag/drop, file picker, or clipboard paste; PDF password support; inline editing before save
 - Cashflow workspace: Overview, Transactions table (server-paginated, filterable, CSV export), Cash Flow Statement (quarterly/monthly)
-- Three-tier deduplication so nothing gets imported twice
+- File hash, in-memory duplicate checks and database uniqueness guard against repeat imports
 
 → **Engineering details:** parser routing, bank detection (IBankSignature chain), validation pipeline, and master schema — [docs/features/cashflow-ingestion.md](docs/features/cashflow-ingestion.md)
-
-![alt text](image-4.png)
-
-![alt text](image-3.png)
-
-![alt text](image-2.png)
-
-![alt text](image-1.png)
 
 ### 🏦 Assets management & balance sheet
 
@@ -143,6 +136,12 @@ Understand where your money actually goes.
 - Variance explainer — highlights categories that deviated from the prior period
 - Monthly spending breakdown with category drilldown
 
+### 🪣 Buckets, Trading Desk and Macro Scenario Lab
+
+- **Buckets** on Cashflow Analysis: Committed/Future/Free spending guidance, persisted Future plans and commitment overrides, month-close and variable-income views.
+- **Trading Desk**: Command/Portfolio/Mandate/Reconcile, mandate presets/versioning, multi-portfolio exposure and tested calculation mirror. Pre-Trade/Journal and some risk checks remain deferred.
+- **Macro Scenario Lab** at /lab: deterministic scenarios personalized against available holdings, spending and liabilities, comparisons and backend-persisted saves. Scenario estimates are assumptions, not validated forecasts.
+
 ### 🗺️ Financial Journey
 
 The gamification layer that ties everything together. Progress through the five pyramid levels, earn scores, complete quests.
@@ -153,15 +152,15 @@ The gamification layer that ties everything together. Progress through the five 
 - Quest cards with actionable next steps per tier, activity streak heatmap
 - The journey page is the home screen — it always shows where you are in the pyramid and what to do next
 
-![alt text](image-7.png)
-
 ### 🤖 AI Learning & Evaluation
 
 The platform doubles as the implementation vehicle for a 90-day AI Engineering learning path.
 
 - **Langfuse AI observability** — cost/day, calls/day, p50/p95 latency, and token counts per LLM call; Gemini and Anthropic provider traces visible in Langfuse dashboard (PF-AI001)
-- **20-fixture extraction eval harness** — benchmarks Gemini 2.5 Flash vs Claude Sonnet 4.6 on real anonymized bank statement fixtures; row-level F1 + field-level accuracy; results auto-saved to `evals/results/YYYYMMDD.json` (PF-AI002 — Gemini 2.5 Flash 100% row F1 confirmed)
-- **RAG pipeline in progress** — pgvector embeddings + semantic search (`POST /embed-transactions` + `POST /search`); re-ranking + `/ask` endpoint to follow (PF-AI003/AI004)
+- **20-fixture extraction eval harness** — benchmarks Gemini 2.5 Flash vs Claude Sonnet 4.6 on real anonymized bank statement fixtures; row-level F1 + field-level accuracy; results auto-saved to `evals/results/YYYYMMDD.json` (PF-AI002; dated results are retained separately, not a current universal accuracy guarantee)
+- **RAG and streaming Q&A implemented** — pgvector embeddings, vector/full-text/hybrid retrieval, FlashRank, `/ask`, `/ask/stream`, SQL aggregates and contextual follow-ups. Vector remains default after the historical benchmark; formal numeric evaluation remains pending.
+- **Agents implemented separately** — smolagents `/categorize-agent` (partial live smoke validation) and LangGraph `/advisor` (accepted September 15 with deferred checks); the transaction chat uses `/ask/stream`, not the stateful advisor.
+- **Jev residual categorization (PF-141)** — opt-in backend and 100-case evaluator implemented; live evaluation/promotion pending. Default remains `llm`, and Jev cannot seed reusable category rules.
 
 ### 🖥️ Platform
 
@@ -173,19 +172,15 @@ The platform doubles as the implementation vehicle for a 90-day AI Engineering l
 
 ## 🚀 Getting started
 
-**Prerequisites:** Docker Desktop, Node.js 20+, .NET 10 SDK, Python 3.12+, Supabase CLI
+Install Docker Desktop, Node.js 20+, .NET 10 SDK and Python >=3.11.9; install root/frontend dependencies and the AI service virtual environment. Configure the frontend, API and AI service from their example files, including required frontend Supabase URL/anon key. Follow [SETUP.md](docs/SETUP.md) for first-run commands.
 
-```bash
-# 1. Configure environment
-cp .env.example .env
-# Add GEMINI_API_KEY (or ANTHROPIC_API_KEY) and Supabase keys
+From the configured repository root:
 
-cp services/ai-service/.env.example services/ai-service/.env
-# Add AI_PROVIDER=gemini and GEMINI_API_KEY
-
-# 2. Start everything
-npm start
+```powershell
+rtk npm start
 ```
+
+The script starts Supabase CLI, standalone Compose database/monitoring and host application processes. Its prestart hook stops conflicting application processes; component-by-component startup is documented in the setup guide. Docker-only configuration is not yet complete for current Supabase/AI/realtime requirements.
 
 | URL | What |
 |---|---|
@@ -200,47 +195,16 @@ Go to **Cashflow → Upload**, drop in a BCA CSV or any PDF, review the preview,
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     React 18 Frontend                           │
-│  ┌──────────────────┐    ┌────────────────────────────────────┐ │
-│  │ @supabase/js     │    │ REST calls via fetch()             │ │
-│  │  - Auth (login)  │    │  - CRUD, upload, dashboard, etc.  │ │
-│  │  - Realtime sub  │    │  - Bearer token from Supabase Auth │ │
-│  └────────┬─────────┘    └───────────────┬────────────────────┘ │
-└───────────┼──────────────────────────────┼──────────────────────┘
-            │ direct                       │ via .NET API
-            ▼                              ▼
-┌───────────────────────┐   ┌──────────────────────────────────────┐
-│   Supabase Platform   │   │        .NET 10 Web API (C#)          │
-│                       │   │  Controllers → MediatR (CQRS)        │
-│  Auth (GoTrue/JWT)    │   │  FluentValidation                    │
-│  Storage (buckets)  ◄─┼───┤  Infrastructure:                     │
-│  Realtime (WS)        │   │   - supabase-csharp (PostgREST)      │
-│  Database Webhooks ───┼─┐ │   - StorageService (Supabase Storage)│
-│                       │ │ │   - CSV Parsers (BCA, Wise, Default) │
-│  ┌─────────────────┐  │ │ │   - Validation Pipeline              │
-│  │ PostgreSQL 17   │  │ │ └──────────────────────────────────────┘
-│  │ + pgvector      │  │ │
-│  │ transactions    │  │ │       Webhook POST on INSERT
-│  │ category_rules  │  │ │
-│  │ statement_      │  │ │  ┌──────────────────────────────────┐
-│  │   uploads       │  │ └──►  Python AI Service (FastAPI)     │
-│  │ embeddings      │  │      │  1. Download from Storage      │
-│  │ (RLS enforced)  │◄─┼──────┤  2. PyMuPDF / Claude Vision    │
-│  └─────────────────┘  │      │  3. Claude tool_use extraction  │
-│                       │      │  4. Write results via supabase-py│
-└───────────────────────┘      └────────────────────────────────┘
-```
+The implemented paths are React → .NET REST → Supabase/PostgREST; .NET → FastAPI for AI operations; React → FastAPI directly for SSE chat/follow-ups; and React → Supabase Realtime for transaction INSERT notifications. FastAPI queries Supabase Postgres through asyncpg and uses configured generation/embedding providers. LangGraph advisor tools call back to .NET.
 
-**Coming next:** Supabase Auth (PF-S08), RAG Phase 1 embeddings + semantic search (PF-AI003), event-driven webhook pipeline replacing synchronous AI calls (PF-S11), Realtime status updates (PF-S12). Full target architecture: [docs/architecture/architecture-diagram.md](docs/architecture/architecture-diagram.md)
+Auth and extraction webhooks are planned; no statement_uploads table/worker completes asynchronous imports. Compose's standalone Postgres 16 remains separate from Supabase Postgres 17. See the [current architecture](docs/architecture/architecture-diagram.md) and [migration scope](docs/architecture/supabase-migration.md).
 
 | Layer | Technology |
 |---|---|
 | Frontend | React 18 · Vite · TypeScript · Tailwind CSS · shadcn/ui |
-| Backend API | .NET 10 / C# 13 · ASP.NET Core · CQRS via MediatR · Clean Architecture |
+| Backend API | .NET 10 · ASP.NET Core · CQRS via MediatR · Clean Architecture |
 | Persistence | Supabase (PostgreSQL 17 + pgvector) via supabase-csharp — no ORM |
-| AI Service | Python 3.12 · FastAPI · Gemini 2.5 Flash (primary) · Claude Sonnet 4.6 (alternate) |
+| AI Service | Python >=3.11.9 (Docker 3.12) · FastAPI · Gemini 2.5 Flash (primary) · Claude Sonnet 4.6 (alternate) |
 | Document parsing | PyMuPDF (pre-LLM PDF extraction) · LLM vision (images) |
 | Observability | OpenTelemetry → Alloy → Prometheus + Loki + Tempo → Grafana |
 | Containers | Docker Compose V2 |
@@ -250,17 +214,20 @@ apps/
   frontend/          # React 18 + Vite — api/, components/, pages/, types/
   api/               # .NET 10 Clean Architecture — Api, Application, Domain, Infrastructure
 services/
-  ai-service/        # Python FastAPI — providers (Gemini, Anthropic), LlmParser, PdfExtractor
+  ai-service/        # FastAPI — extraction, retrieval, streaming, agents, evaluators
 supabase/
   migrations/        # SQL migrations
 docs/                # Architecture, sprint plan, bank format reference
 ```
 
-```bash
-npm start                                                            # everything
-cd apps/frontend && npm run dev                                      # frontend only
-cd apps/api && dotnet run --project src/PersonalFinance.Api         # backend only
-cd services/ai-service && uvicorn app.main:app --reload --port 8000 # AI service only
-npm run e2e                                                          # Playwright E2E
-cd apps/api && dotnet test                                           # backend unit tests
+```powershell
+# Repository root
+rtk npm start
+rtk npm --prefix apps/frontend run dev
+rtk dotnet run --project apps/api/src/PersonalFinance.Api
+rtk proxy services/ai-service/.venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000 --app-dir services/ai-service
+rtk npm run e2e
+rtk dotnet test apps/api/PersonalFinance.slnx
+rtk npm --prefix apps/frontend run test:desk
+rtk npm --prefix apps/frontend run test:macro
 ```

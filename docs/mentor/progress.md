@@ -1,5 +1,7 @@
 # Mentor Progress Log
 
+> **Current implementation pointer (2026-10-08):** [STATUS.md](../STATUS.md) and the [use-case map](ai-engineering-usecase-map.md) reflect the current code. Entries and Day-0 baseline below are dated historical learning records, not current missing-feature claims. PF-AI008 acceptance retains deferred checks; PF-AI007 smoke validation and PF-AI005-PART2 formal numeric evaluation remain pending. Curriculum, targets and learning preferences are preserved.
+
 **Pivot goal:** Backend Engineer → AI Engineering / Backend AI Engineering
 **Started:** 2026-05-27
 **Target:** 90 days to interview-ready (by ~2026-08-25)

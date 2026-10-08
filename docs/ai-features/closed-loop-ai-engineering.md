@@ -1,5 +1,7 @@
 # AI Agent-Loop Engineering — Feasibility & Design
 
+> **Proposal/reference boundary (2026-10-08):** Examples and suggested tickets below retain their original planning context. RAG/SSE, both agent endpoints and logging in Dashboard/Spending services are now coded; this document does not introduce or close tasks. Use [STATUS.md](../STATUS.md) for current implementation and verification gaps.
+
 > **Architect consultation** · 2026-06-23 · scope: the Python AI service LLM call paths
 > **Concept:** "Agent Loop & Fleet" (Vergadia) — Goal+criteria → act → **evaluate vs criteria** →
 > fix → repeat; Open vs Closed loop; fleet orchestration with an eval gate at each layer.

@@ -1,5 +1,7 @@
 Actually im targeting this JD, can read it? https://jobs.ashbyhq.com/supabase/6a0e111d-6246-43b8-80c3-037303ff9fb2
 
+> **Historical decision/review snapshot.** Original findings and proposals are retained; they are not current implementation status. As of the 2026-10-08 source review, .NET 10/Supabase persistence, RAG/SSE, agents and frontend desk/macro tests are implemented; Auth/webhook extraction remain pending. See [current project status](../STATUS.md).
+
 Instead of trying to build a generic Supabase app, you should use your Personal Finance app as your test bench to critique, break, and improve the current C# SDK.
 
 Here is the plan:

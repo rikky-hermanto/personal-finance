@@ -1,5 +1,7 @@
 # Competitor Bad Reviews → Our Strengths
 
+> **Implementation notes reviewed:** 2026-10-08. Competitor/research claims retain their original context and were not re-researched. Current code status is [STATUS.md](../STATUS.md); feature availability is not a guarantee of arbitrary-bank support or production deployment.
+
 A PM exercise: scan the bad reviews of personal finance apps in the SEA / Indonesian market, then reverse-engineer the recurring complaints into positioning pillars for this project.
 
 Last updated: 2026-05-20
@@ -40,14 +42,14 @@ Each row = a validated pain point that becomes one of our positioning pillars.
 | # | The complaint (what users actually write in 1-star reviews) | Reverse-engineered strength for us | Our state today |
 |---|--------------------------------------------------------------|------------------------------------|-----------------|
 | 1 | **"I have to type every transaction manually"** | **Zero-typing import** — drag-drop CSV/PDF/screenshot, parsed in seconds via LLM | ✅ Shipped — BCA CSV, NeoBank PDF, LLM PDF fallback, image vision |
-| 2 | **"Bank sync doesn't work for Indonesian banks"** | **Indonesian-first parser library** with per-bank profiles | ✅ 3 banks live; Wise + Superbank + Jago in pipeline. ⚠ Bank profile YAML config (PF-045) not built |
+| 2 | **"Bank sync doesn't work for Indonesian banks"** | **Indonesian-first parser library** with per-bank profiles | ✅ BCA/standard CSV and NeoBank PDF direct parsers; readable PDF/image AI extraction implemented. Superbank prompt routing gap remains; dedicated Wise+FX and YAML profiles absent |
 | 3 | **"I get duplicate transactions every time I re-import"** | **Bulletproof three-tier deduplication** (file hash + composite UNIQUE + running balance tiebreak) | ✅ Shipped (PF-090) — worth turning into a marketing screenshot |
 | 4 | **"Same merchant categorized 3 different ways"** | **Longest-keyword-match rules + LLM categorization + learn-from-corrections** | ✅ Rules + LLM live; ❌ "learn from my corrections" feedback loop **not built — opportunity** |
 | 5 | **"App is full of ads / paywall on basic features"** | **Self-hosted, no ads, no upsell** — every feature available | ✅ Architecturally true — worth stating in README and onboarding |
 | 6 | **"PDF statements are dead weight — app can't read them"** | **PyMuPDF + LLM extraction with structured tool_use** — handles password-protected PDFs and screenshots | ✅ Live; ⚠ password-protected PDF UX could be more graceful |
 | 7 | **"Multi-currency is broken — no FX, wrong totals"** | **Wise multi-currency with daily FX → IDR canonical** | ⚠ Planned but Wise parser not built yet — **high-leverage gap** |
 | 8 | **"Investments live in a separate app from my budget"** | **One app: cashflow + assets + investments + net worth in one balance sheet** | ✅ Shipped — biggest differentiator vs Bibit/Stockbit |
-| 9 | **"No insights — just charts I have to interpret myself"** | **Safe-to-Spend + variance explainer + anomaly callouts** | ✅ Spending Analysis (PF-108) live; ❌ proactive anomaly alerts **not built** |
+| 9 | **"No insights — just charts I have to interpret myself"** | **Safe-to-Spend + variance explainer + anomaly callouts** | ✅ Safe-to-Spend, variance, deterministic InsightService/daily pulse and Buckets implemented; AI-narrated persisted anomalies and push alerts remain separate scope |
 | 10 | **"Budgeting apps feel like punishment / shame me for spending"** | **Financial Journey gamification** — 5-tier progression, Living Garden hero | ✅ Shipped (PF-114) — unique angle no competitor has |
 | 11 | **"My data is in someone else's cloud — I don't trust it"** | **Self-hosted, your-Supabase, your-data** — local Docker dev path | ✅ Architecturally true; worth documenting as an explicit privacy stance |
 | 12 | **"E-wallets (GoPay/OVO/Dana) aren't supported"** | **E-wallet statement parsers** — monthly statements via LLM | ❌ **Not built** — biggest open opportunity in the Indonesian market |

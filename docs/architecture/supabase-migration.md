@@ -1,215 +1,70 @@
-# Supabase Migration Plan
+# Supabase Migration — Current Implementation and Remaining Scope
 
-## Overview
+> **Code reviewed:** 2026-10-08. Capability status is based on source/migrations. GitHub PF-S issue/project closure and the live database's applied migration list were not checked.
 
-This document captures the architectural decision to migrate the Personal Finance app from a self-managed PostgreSQL + EF Core stack to Supabase. The migration is broken into six phases and interleaved with the existing AI learning track.
+## Decision and current topology
 
-The primary goal is hands-on exploration of the full Supabase platform — Database, Auth, Storage, Realtime, and webhooks — in the context of a real application with non-trivial requirements (multi-bank parsing, LLM extraction, async processing).
+The .NET middle tier and Python AI service remain. Supabase replaces EF Core persistence with PostgREST and supplies local Postgres 17, Storage and Realtime. AI embeddings/retrieval/aggregation use direct asyncpg queries. The Persistence project is gone; schema changes are timestamped SQL migrations.
 
----
+The standard wizard is synchronous: file → .NET parser/AI client → review → submit. Successful submit triggers optional background embeddings. Browser chat calls FastAPI directly. Browser realtime subscribes to transaction INSERT and invalidates the transaction query. Auth and webhook-based extraction remain future work.
 
-## Why Supabase
+## Phase status
 
-The app has three features that benefit directly from Supabase's architecture:
+| Phase | Tasks | Actual implementation |
+|---|---|---|
+| 1 — setup/schema | PF-S01–S03 | Implemented: CLI config, schema/seed SQL and permissive initial app RLS |
+| 2 — SDK/EF removal | PF-S04–S07 | Implemented: Supabase DI/entities/handlers/services; no Persistence project |
+| 3 — app authentication | PF-S08/S09 | Not implemented: no JWT registration, login/session forwarding or tenant-enforcing app policies |
+| 4 — Storage | PF-S10 | Bucket/client implemented; experimental endpoint uses it; normal wizard does not |
+| 5 — event-driven extraction | PF-S11 | Not implemented: no statement_uploads schema, processing webhook or result writeback |
+| 5 — realtime | PF-S12 | Transaction INSERT scope implemented by PF-AI005; original upload-status scope still missing |
+| 6 — RAG | PF-S13 | Capability implemented under PF-AI003–006, with streaming and SQL routing; issue closure unverified |
 
-1. **Async AI processing**: Bank statements (PDF/image) are processed by an LLM. This is slow. Today the API blocks on the result. Supabase Storage + Database Webhooks makes this naturally event-driven — the upload triggers AI processing in the background, and Realtime notifies the frontend when it's done. No message queue needed.
+PF-S09 is frontend Auth, not Storage. Capability overlap with the AI track should not be counted as fresh remote issue completion.
 
-2. **Real-time UI updates**: Without Supabase Realtime, the frontend polls for processing status. Realtime WebSocket subscriptions eliminate this with zero extra infrastructure.
+## Implemented paths
 
-3. **Unified platform**: Auth, Storage, and Database are integrated at the Postgres level (Row Level Security). This replaces three separate integrations (Auth0 + S3-compatible storage + raw Postgres) with one.
+- **Persistence:** AddSupabase creates a singleton SDK client using server-side ServiceRoleKey. Application services/handlers use PostgREST. Many app RLS policies remain allow-all; service-role access and placeholder user IDs do not provide tenant isolation.
+- **Storage:** migration creates private bank-statements bucket and path policies; IFileStorageService/StorageService exist. upload-preview-new uses a placeholder user path. Its CSV branch uploads/downloads and calls the full TransactionPipelineService. PDFs/images return 202 without further processing.
+- **Realtime:** migration 20260706000001_add_realtime.sql publishes public.transactions. useRealtimeTransactions subscribes to INSERT, and TransactionsTab debounces notifications and refetches. It is not statement upload status tracking.
+- **RAG:** transaction_embeddings stores vector(1536) with model metadata. Gemini/OpenAI embedding adapters and model-filtered retrieval are implemented; FlashRank, /ask, /ask/stream, query planning and deterministic aggregation exist. Full-text/RRF alternatives exist but vector stays default after the historical benchmark. Failed background embedding has no durable retry queue.
 
-**What does NOT change:** The .NET 10 API remains as the middle tier. Business logic (parsers, validation pipeline, CQRS handlers) stays in .NET. The Python FastAPI AI service stays in Python. Supabase replaces the data persistence and infrastructure layer, not the application layer.
+## Remaining target flow
 
----
+The following is planned, not current:
 
-## Target Architecture
+1. Authenticated upload stores a file and creates a statement_uploads job with tenant identity/status.
+2. A validated webhook/worker receives the job and extracts using the configured provider.
+3. Validation and transactional writeback persist results and update job completion/failure.
+4. Authenticated React subscriptions receive status and load results.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     React 18 Frontend                           │
-│  ┌──────────────────┐    ┌────────────────────────────────────┐ │
-│  │ @supabase/js     │    │ REST calls via fetch()             │ │
-│  │  - Auth (login)  │    │  - CRUD, upload, dashboard, etc.  │ │
-│  │  - Realtime sub  │    │  - Bearer token from Supabase Auth │ │
-│  └────────┬─────────┘    └───────────────┬────────────────────┘ │
-└───────────┼──────────────────────────────┼──────────────────────┘
-            │ direct                       │ via API
-            ▼                              ▼
-┌───────────────────────┐   ┌──────────────────────────────────────┐
-│   Supabase Platform   │   │        .NET 10 Web API (C#)          │
-│                       │   │  Controllers → MediatR CQRS          │
-│  Auth (GoTrue/JWT)    │   │  FluentValidation                    │
-│  Storage (buckets)  ◄─┼───┤  Infrastructure:                     │
-│  Realtime (WS)        │   │   - supabase-csharp (PostgREST)      │
-│  Database Webhooks ───┼─┐ │   - StorageService (Supabase Storage)│
-│                       │ │ │   - CSV Parsers (BCA, Wise, Default) │
-│  ┌─────────────────┐  │ │ │   - Validation Pipeline              │
-│  │ PostgreSQL 17   │  │ │ └──────────────────────────────────────┘
-│  │ + pgvector      │  │ │
-│  │                 │  │ │       Webhook POST on INSERT
-│  │ transactions    │  │ │         to statement_uploads
-│  │ category_rules  │  │ │
-│  │ statement_      │  │ │  ┌──────────────────────────────────┐
-│  │   uploads       │  │ └──►  Python AI Service (FastAPI)     │
-│  │ embeddings      │  │      │                                │
-│  │ (RLS enforced)  │◄─┼──────┤  1. Download file from Storage │
-│  └─────────────────┘  │      │  2. PyMuPDF / Claude Vision    │
-│                       │      │  3. Claude tool_use extraction  │
-└───────────────────────┘      │  4. Write results to Supabase  │
-                               │  5. Update status → "done"     │
-                               │                                │
-                               │  supabase-py + Claude API      │
-                               └────────────────────────────────┘
+No reviewed migration defines statement_uploads, and FastAPI has no /webhooks/process route. Existing transaction INSERT subscriptions cannot substitute for job-status ownership/completion. Keep the standard upload path until the job pipeline is implemented and tested.
+
+Auth work must cover JWT validation, frontend login/session forwarding, data ownership, service-role boundaries and cross-user tests. The current LangGraph MemorySaver session key is not authenticated ownership.
+
+## Local environment and schema operations
+
+Supabase config: API 54321, Postgres 17 on 54322, Studio 54323. Compose still retains Postgres 16 on 5432, and npm start starts both. The .NET health probe's connection string is separate from Supabase persistence. Compose has not been updated into a complete Supabase deployment.
+
+From repository root, for explicitly intended local startup/migration operations:
+
+```powershell
+rtk proxy npx supabase start
+rtk proxy npx supabase migration list --local
+rtk proxy npx supabase db push --local
 ```
 
-### File Upload → AI Processing → Realtime Notification
+API startup does not apply migrations. Database reset removes data; remote push is separate from local setup. No startup/migration/reset was performed by this documentation sync. See [setup](../SETUP.md).
 
-```
-User uploads PDF
-       │
-.NET API uploads to Supabase Storage (bank-statements/{user_id}/{bank}/{file})
-       │
-.NET inserts row into statement_uploads (status: "pending")
-       │
-.NET returns { processing_id } immediately — no blocking
-       │
-Supabase Database Webhook fires on INSERT
-       │
-Python AI Service receives webhook:
-  a. Downloads file from Supabase Storage
-  b. Extracts text via PyMuPDF (PDF) or sends raw image (screenshot)
-  c. Claude API extracts transactions via tool_use (structured output)
-  d. Writes transactions to Supabase DB via supabase-py
-  e. Updates statement_uploads.status → "done"
-       │
-Supabase Realtime broadcasts the status change
-       │
-React (subscribed via @supabase/supabase-js) auto-refreshes transaction list
-```
+## Verification still required
 
-### Key Design Decisions
+| Scope | Needed evidence |
+|---|---|
+| Auth | Login → forwarded JWT → identity-scoped access; cross-user denial |
+| Storage integration | Correct identity/path policies and actual file roundtrip under chosen runtime |
+| Webhook extraction | Job delivery, retries/idempotency, bounded extraction, validated writeback, failed/completed state |
+| Upload-status realtime | Scoped subscriptions, reconnect and error/completion UI |
+| RAG | Compatible model vectors/backfill, retrieval evaluation and independent numeric checks |
+| Deployment | API Supabase settings, reachable AI DB/API URLs, frontend build settings and provider configuration |
 
-| Decision | Rationale |
-|----------|-----------|
-| .NET stays as middle tier | Business logic (parsing, validation, CQRS) belongs in the application layer, not the DB layer. Supabase handles persistence, not logic. |
-| Frontend auth connects directly to Supabase | Standard pattern. The JWT is then forwarded to .NET API in the `Authorization` header. |
-| Frontend Realtime connects directly to Supabase | Proxying WebSockets through .NET adds latency and complexity with no benefit. |
-| Python AI service writes directly to Supabase | After webhook trigger, Python is autonomous. No callback to .NET needed — cleaner event-driven flow. |
-| CSV parsers stay synchronous | BCA, Wise are deterministic column-mapped formats. Zero LLM cost, 100% accuracy, instant response. No reason to make these async. |
-| PDF/image parsers become event-driven | LLM extraction takes 5–15 seconds. Making the user wait on a synchronous HTTP response is poor UX. Async via webhooks is the right pattern. |
-
----
-
-## Migration Phases
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| 1 | Supabase Setup + Schema Migration | ✅ Done (PF-S01–PF-S03) |
-| 2 | Replace EF Core with supabase-csharp | ✅ Done (PF-S04–PF-S07) |
-| 3 | Supabase Auth (JWT + RLS) | 🔜 Next (PF-S08) |
-| 4 | Supabase Storage + Validation Pipeline | 🔜 Planned (PF-S09–PF-S10) |
-| 5 | Event-Driven AI Pipeline + Realtime | 🔜 Planned (PF-S11–PF-S12) |
-| 6 | RAG + Vector Search | 🔜 Planned (PF-S13) |
-
-### Phase 1: Supabase Setup + Schema Migration ✅ Done
-
-- Initialize Supabase project (`supabase init` via CLI or cloud dashboard)
-- Export current EF Core schema: `dotnet ef migrations script`
-- Create `supabase/migrations/001_initial_schema.sql` — DDL for `transactions` and `category_rules`
-- Create `supabase/seed.sql` with 106 category rules (currently seeded in `AppDbContext.OnModelCreating`)
-- Enable `pgvector` extension
-- Set up Row Level Security policies (permissive initially, tightened in Phase 3)
-- **New:** `supabase/config.toml`, `supabase/migrations/`, `supabase/seed.sql`
-
-### Phase 2: Replace EF Core with supabase-csharp ✅ Done
-
-- Add `Supabase` NuGet package to `PersonalFinance.Infrastructure`
-- Create `SupabaseSettings`, `AddSupabase()` DI extension — replaces `AddPersistence()`
-- Annotate `Transaction` and `CategoryRule` entities with `[Table]`, `[PrimaryKey]`, `[Column]` (inherit `BaseModel`)
-- Rewrite CQRS command handlers: `DbContext.AddAsync/SaveChangesAsync` → `supabase.From<T>().Insert()`
-- Rewrite service queries: LINQ → PostgREST fluent API (`.Filter().Order().Get()`)
-- Delete `PersonalFinance.Persistence` project entirely (also resolves the ARCH-01 layer violation)
-- **Modified:** `Domain/Entities/`, `Application/Commands/`, `Application/Services/`, `Program.cs`
-- **Deleted:** entire `Persistence/` project
-
-### Phase 3: Supabase Auth 🔜 Next (PF-S08)
-
-- Replace planned Auth0 integration with Supabase Auth
-- .NET validates Supabase JWT tokens via `Microsoft.AspNetCore.Authentication.JwtBearer`
-- Add `user_id` column to `transactions` and `category_rules` — RLS enforces per-user data isolation
-- React: `@supabase/supabase-js` handles login/signup/session; access token forwarded to .NET API
-- **New:** `Api/Auth/SupabaseAuthMiddleware.cs`, `supabase/migrations/002_auth_rls.sql`, `frontend/src/lib/supabase.ts`, `frontend/src/pages/Login.tsx`
-
-### Phase 4: Supabase Storage + Validation Pipeline 🔜 Planned (PF-S09–PF-S10)
-
-- Create `bank-statements` bucket with per-user path policies (`{user_id}/{bank}/{filename}`)
-- Modify upload endpoint: files land in Storage before parsing begins
-- CSV path stays synchronous: upload → download → parse → return preview
-- PDF/image path becomes async: upload → return `processing_id` → continue in background
-- Build 5-stage validation pipeline: DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck
-- DeduplicateCheck queries via `supabase-csharp` instead of EF Core
-- **New:** `Application/Interfaces/IFileStorageService.cs`, `Infrastructure/Supabase/StorageService.cs`, `Infrastructure/Validation/*.cs`
-
-### Phase 5: Event-Driven AI Pipeline + Realtime 🔜 Planned (PF-S11–PF-S12)
-
-- Create `statement_uploads` table: `id`, `user_id`, `file_path`, `bank_id`, `status` (pending/processing/done/failed)
-- Configure Supabase Database Webhook: INSERT on `statement_uploads` → POST to Python AI service
-- Python AI service gains `/webhooks/process` endpoint — full async extraction pipeline
-- Enable Supabase Realtime on `statement_uploads`; React subscribes for live status updates
-- Wire all three LLM-based parsers (Superbank PDF, NeoBank PDF, Bank Jago screenshot) through the webhook pipeline
-- **New:** `supabase/migrations/004_statement_uploads.sql`, `ai-service/app/routers/webhooks.py`, `frontend/src/hooks/useRealtimeSubscription.ts`
-
-### Phase 6: RAG + Vector Search 🔜 Planned (PF-S13)
-
-- pgvector is available by default in Supabase — no manual extension setup needed
-- Generate embeddings for transaction descriptions via Claude/OpenAI embeddings API
-- Store in Supabase and query via `match_transactions` Postgres function (pgvector cosine similarity)
-- Natural language query: embed question → retrieve relevant transactions → Claude synthesizes answer
-- Aligns with sprint plan tasks PF-018, PF-019, PF-020
-
----
-
-## Existing Task Impact Summary
-
-| Category | Task IDs | Count |
-|----------|----------|-------|
-| Unaffected (parser / AI / frontend only) | PF-009, PF-010, PF-012, PF-015, PF-034, PF-035, PF-038, PF-042, PF-043, PF-045, PF-051, PF-052 | 12 |
-| Modified (same goal, query layer changes) | PF-011, PF-013, PF-014, PF-016, PF-017, PF-018, PF-019, PF-020, PF-026, PF-028, PF-031, PF-036, PF-037, PF-050 | 14 |
-| Absorbed into Supabase phases | PF-039, PF-040, PF-044, PF-047, PF-048 | 5 |
-| Resolved by the migration itself | PF-049, PF-053, PF-054 | 3 |
-| New (Supabase-specific) | PF-S01 through PF-S13 | 13 |
-
----
-
-## Local Development
-
-Supabase runs fully locally via the Supabase CLI:
-
-```bash
-# Initialize (run once at project root)
-supabase init
-
-# Start local stack (Postgres, Auth, Storage, Realtime, Studio UI)
-supabase start
-
-# Apply migrations and seed data
-supabase db push
-
-# Open local Studio dashboard
-open http://localhost:54323
-```
-
-The standalone `postgres:16-alpine` Docker service is replaced by the Supabase local stack. `docker-compose.yml` is updated to remove the `db` service and add the AI service container.
-
----
-
-## Verification Milestones
-
-| Phase | Passing criteria |
-|-------|-----------------|
-| 1 — Setup | `supabase db push` succeeds; tables + seed data visible in Studio |
-| 2 — SDK | All existing Playwright E2E tests pass with Supabase backend; `dotnet build` has zero EF Core references |
-| 3 — Auth | Login → JWT → .NET API accepts Bearer token → RLS blocks cross-user data access |
-| 4 — Storage | CSV upload → file in Storage → preview returned. PDF upload → `processing_id` returned immediately (no blocking). |
-| 5 — Event-driven | PDF upload → webhook fires → AI extracts → transactions in DB → React auto-refreshes without polling |
-| 6 — RAG | Natural language query returns correct transactions retrieved via pgvector similarity search |
+For historical evaluations and pending feature checks, use [STATUS.md](../STATUS.md) and the original [learning plans](../../.claude/plans/learning/). Architecture context is [current diagram](architecture-diagram.md).

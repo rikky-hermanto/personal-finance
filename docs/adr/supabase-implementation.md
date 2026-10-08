@@ -1,5 +1,7 @@
 # [EPIC] End-to-End State: Supabase Migration & Hybrid AI Parsing Pipeline
 
+> **Historical decision/review snapshot.** Original findings and proposals are retained; they are not current implementation status. As of the 2026-10-08 source review, .NET 10/Supabase persistence, RAG/SSE, agents and frontend desk/macro tests are implemented; Auth/webhook extraction remain pending. See [current project status](../STATUS.md).
+
 ## 🎯 Background & Context
 
 The Personal Finance Platform aims to automate the tedious monthly reconciliation of bank statements across multiple formats (CSV, PDF, Images). 

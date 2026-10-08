@@ -1,5 +1,7 @@
 # PROJECT_CONTEXT.md — Personal Finance Platform
 
+> **Historical product/ingestion proposal (March 2026).** This document preserves the original problem, proposed bank profiles/schema and sprint intent. It is not the current implementation reference. Reviewed 2026-10-08: EF Core has been replaced by Supabase, the API targets .NET 10, RAG/SSE/agents and additional finance modules exist, and YAML bank profiles/Semantic Kernel remain unimplemented. See [STATUS.md](STATUS.md), [current architecture](architecture/architecture-diagram.md) and [sprint implementation map](sprint-plan.md).
+
 ## Table of Contents
 
 1. [Problem Background](#1-problem-background)
@@ -428,36 +430,25 @@ JSON mode         extraction                           Chunking strategy   AI ob
 
 ## 11. Tech Stack Reference
 
-### Backend — Primary (.NET)
-- .NET 9, C# 13
-- ASP.NET Core Web API (REST)
-- MediatR (CQRS), FluentValidation, Clean Architecture
-- Entity Framework Core 9
-- PostgreSQL 16 + pgvector
-- Auth0 (deferred until core features stable)
-- xUnit, Moq (testing)
+Updated from current manifests on 2026-10-08; preceding proposed diagrams/sprints remain historical intent.
 
-### Backend — AI Services (Python)
-- Python 3.12+, FastAPI
-- Anthropic SDK (primary), OpenAI SDK (fallback)
-- LangChain (Python-side orchestration)
-- Semantic Kernel (C#-side orchestration)
-- PyMuPDF (PDF text extraction)
-- Poetry (dependency management)
+| Layer | Current implementation |
+|---|---|
+| API | .NET 10, ASP.NET Core, MediatR, FluentValidation; Supabase/PostgREST, no EF Core |
+| AI | Python >=3.11.9, FastAPI/Pydantic, Gemini/Anthropic generation, Gemini/OpenAI embedding adapters, asyncpg/pgvector, FlashRank, smolagents and LangGraph |
+| Frontend | React 18, TypeScript/Vite/Tailwind/shadcn, React Router, TanStack React Query, direct FastAPI SSE and Supabase transaction realtime |
+| Schema | Timestamped Supabase SQL migrations; permissive application policies pending Auth |
+| Development | Supabase CLI + host services; Compose still supplies separate Postgres 16 and LGTM containers |
+| Observability | ILogger/Python logging, OpenTelemetry/Alloy/Prometheus/Loki/Tempo/Grafana, Langfuse instrumentation |
+| Quality | xUnit/Moq, pytest, Vitest desk/macro, Playwright; remote workflows are Claude review workflows, not a verified full test/deploy pipeline |
 
-### Frontend
-- React 18 + TypeScript + Tailwind CSS
-- TanStack Query (server state)
-
-### Infrastructure
-- Docker Compose (local dev)
-- GitHub Actions (CI/CD)
-- Pulumi (IaC, future cloud deploy)
-- Serilog (structured logging), OpenTelemetry-ready
+Auth, webhooks, public deployment and statement-level chunk retrieval remain pending. No Semantic Kernel, Pulumi deployment or Poetry workflow is implemented in the reviewed manifests. Use [SETUP.md](SETUP.md) for commands.
 
 ---
 
-## 12. Code Conventions
+## 12. Original Code Convention Proposal
+
+> Historical conventions below are proposals, not an audit of enforcement. Current instructions are in AGENTS.md and scoped Codex rules; current schema uses SQL migrations, not EF Core.
 
 ### C# / .NET
 - Clean Architecture: Domain → Application → Infrastructure → API
@@ -491,4 +482,4 @@ JSON mode         extraction                           Chunking strategy   AI ob
 
 ---
 
-*Last updated: March 2026*
+*Original proposal: March 2026. Current-state pointer and manifest summary reviewed: 2026-10-08.*

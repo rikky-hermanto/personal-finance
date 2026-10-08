@@ -1,5 +1,7 @@
 # Harness Engineering — Use Cases for This Project
 
+> **Proposal/reference boundary (2026-10-08):** Examples and suggested tickets below retain their original planning context. RAG/SSE, both agent endpoints and logging in Dashboard/Spending services are now coded; this document does not introduce or close tasks. Use [STATUS.md](../STATUS.md) for current implementation and verification gaps.
+
 > **The harness is the scaffolding around a language model that turns it into an agent.** The model is a next-token predictor; the harness is the control loop, tool design, context management, guardrails, and orchestration that make it reliable. The same model is dramatically more or less capable depending on harness quality.
 
 This project already ships several harness elements: the eval harness (PF-AI002), Langfuse tracing (PF-AI001), the `ProviderFactory` abstraction, and the 4-layer categorization ladder (PF-103). What is largely missing is **control loops and verification** — and that is exactly where the value is, because every LLM surface here touches financial data where a small error becomes silent corruption in PostgreSQL.
