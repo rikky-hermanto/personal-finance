@@ -1,6 +1,12 @@
 # Codex skills and rules
 
-All 32 source skill names have Codex counterparts.
+Codex exposes 33 standalone skills from `.agents/skills/`. Invoke each by its actual
+name: `$plan`, `$execute`, `$review-plan`, and so on. `$mentor` is specifically for
+AI Engineering learning and progress, not a prefix for all workflows.
+
+The former `mentor` plugin marker was archived on 2026-10-09 at
+[mentor-plugin.json](archive/mentor-plugin.json) to remove package-level namespacing.
+Refresh the client to reload the skill catalog after this change.
 
 ## Skills
 
@@ -35,6 +41,7 @@ All 32 source skill names have Codex counterparts.
 - [run-ai-service](../../.agents/skills/run-ai-service/SKILL.md)
 - [tech-write](../../.agents/skills/tech-write/SKILL.md)
 - [test-all](../../.agents/skills/test-all/SKILL.md)
+- [typesafe-ai](../../.agents/skills/typesafe-ai/SKILL.md)
 - [ux-review](../../.agents/skills/ux-review/SKILL.md)
 
 ## Rules

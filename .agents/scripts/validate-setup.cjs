@@ -18,7 +18,14 @@ const sourceSkills = fs.readdirSync(path.join(root, '.claude/skills'), { withFil
   .filter(e => e.isDirectory() && fs.existsSync(path.join(root, '.claude/skills', e.name, 'SKILL.md')))
   .map(e => e.name).sort();
 const ruleNames = fs.readdirSync(path.join(root, '.claude/rules')).filter(n => n.endsWith('.md')).sort();
-for (const name of sourceSkills) {
+// Standalone discovery must not be repackaged under a plugin namespace.
+for (const marker of ['.claude-plugin/plugin.json', '.codex-plugin/plugin.json']) {
+  if (fs.existsSync(path.join(root, '.agents', marker))) failures.push(`Unexpected plugin namespace marker: .agents/${marker}`);
+}
+const localSkills = fs.readdirSync(path.join(root, '.agents/skills'), { withFileTypes: true })
+  .filter(e => e.isDirectory() && fs.existsSync(path.join(root, '.agents/skills', e.name, 'SKILL.md')))
+  .map(e => e.name).sort();
+for (const name of new Set([...sourceSkills, ...localSkills])) {
   const file = path.join(root, '.agents/skills', name, 'SKILL.md');
   if (!fs.existsSync(file)) { failures.push(`Missing skill: ${name}`); continue; }
   const text = fs.readFileSync(file, 'utf8');
@@ -61,7 +68,7 @@ for (const file of docs) {
 const helper = path.join(root, '.agents/skills/create-diagram/verify-diagram.js');
 const syntax = spawnSync(process.execPath, ['--check', helper], { encoding: 'utf8' });
 if (syntax.status !== 0) failures.push(`Diagram helper syntax: ${syntax.stderr || syntax.error}`);
-console.log(`Coverage: ${sourceSkills.length} source skill names; ${ruleNames.length} source rule files.`);
+console.log(`Coverage: ${sourceSkills.length} source skill names; ${localSkills.length} standalone Codex skills; ${ruleNames.length} source rule files.`);
 if (failures.length) {
   failures.forEach(f => console.error(f));
   process.exitCode = 1;

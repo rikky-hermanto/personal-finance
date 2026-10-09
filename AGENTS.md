@@ -5,7 +5,7 @@
 - This file and the nested `AGENTS.md` files are the Codex instruction layer.
 - Preserve Claude configuration: all `CLAUDE.md` files, `.claude/settings*`, `.claude/skills/`, `.claude/rules/`, `.claude/agents/`, `.claude/hooks/`, other non-plan Claude files, and Claude GitHub workflows. `plans/` is the explicitly authorized shared task workspace: Codex may create, edit, archive plans, maintain learning material, and update its board as part of active task management.
 - Do not execute or import Claude settings, permissions, hooks, agent definitions, or model routing. Independently adapted Codex settings live in `.codex/config.toml`. Do not add `CLAUDE.md` as an instruction fallback. These Codex instructions are self-contained.
-- Preserve the mentor curriculum and learning preferences, `.agents/.claude-plugin/plugin.json`, and `.agents/evals/` unless the task specifically concerns them. The Claude plugin manifest is not the Codex configuration file.
+- Preserve the mentor curriculum and learning preferences and `.agents/evals/` unless the task specifically concerns them. Codex skills in `.agents/skills/` are standalone skills; do not add a plugin manifest to `.agents/` or group them under a `mentor:` namespace. The former manifest is retained in `docs/codex/archive/mentor-plugin.json`.
 - Before editing a service, read its `AGENTS.md`, including when working from the repository root: `apps/api/AGENTS.md`, `apps/frontend/AGENTS.md`, and `services/ai-service/AGENTS.md`.
 
 ## Product and architecture
@@ -51,7 +51,9 @@ Use `plans/` and `BOARD.md` as the shared plan workspace for both agents. Plans 
 
 ## Codex workflows
 
-All 32 Claude skill names have Codex counterparts in `.agents/skills/`. Read the
+Codex workflows are individual skills in `.agents/skills/`, invoked by their actual
+name (for example, `plan`, `execute`, or `review-plan`). `mentor` is reserved for
+AI Engineering learning guidance, progress, and curriculum work. Read the
 applicable skill and `.agents/WORKFLOWS.md` when using a workflow. Discovery and
 capability mapping are documented in `docs/codex/skills-and-rules.md`.
 

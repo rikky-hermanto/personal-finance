@@ -15,6 +15,8 @@ description: >
 
 # Build with TypeSafe
 
+Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+
 TypeSafe makes units of AI intelligence usable like programming primitives: small
 judgments you can compose into larger capabilities. Its **System One models** return
 fast, focused judgments that software can consume directly. **Jev** is TypeSafe's

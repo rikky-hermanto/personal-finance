@@ -6,7 +6,8 @@ These conventions apply to every skill in `.agents/skills/`.
 ## Separate configuration, shared task state
 
 - Preserve all non-plan Claude configuration, all `CLAUDE.md` files, Claude GitHub
-  workflows, and `.agents/.claude-plugin/plugin.json`. Never execute Claude hooks.
+  workflows. Never execute Claude hooks. The former `.agents/` plugin marker is
+  archived at `docs/codex/archive/mentor-plugin.json`; keep Codex skills standalone.
 - `plans/` is the explicitly authorized shared writable task workspace.
   Codex may create/edit plans, update progress and acceptance criteria, maintain
   BOARD.md and learning material/glossary, and archive completed feature plans.
@@ -35,6 +36,9 @@ These conventions apply to every skill in `.agents/skills/`.
 
 ## Tools and execution
 
+- Use standalone skill names such as `plan`, `execute`, and `review-plan`, without
+  a `mentor:` prefix. `mentor` handles learning/curriculum requests; it is not a
+  namespace or a general implementation workflow.
 - Skill names refer to `.agents/skills/<name>/SKILL.md`. Read the file directly or use
   the client's skill picker; Claude slash commands and its Skill/Agent/Workflow tools
   are not required. Use only tools available in the current Codex session.
