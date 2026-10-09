@@ -1,6 +1,6 @@
 # Codex adaptation inventory
 
-Codex has independent instructions, 32 adapted skills and six rules. Claude configuration remains separate; its shared-plan directory setting now points to root `plans/`. Both agents actively share that directory.
+Codex has independent instructions, 33 standalone skills and six rules. Claude configuration remains separate; its shared-plan directory setting now points to root `plans/`. Both agents actively share that directory.
 
 | Source | Codex destination |
 |---|---|
@@ -22,12 +22,14 @@ Workspace-write and on-request approvals are project defaults; managed policies 
 
 Adaptations use current apps/services paths, Supabase persistence, Application DTOs, provider-based extraction and service-specific checks. Zen remains the default frontend UX. Local readiness checks are not guarantees about remote CI.
 
-The mentor curriculum is retained with workflow/path compatibility edits. Claude's mentor skill already points at this shared .agents skill; its pointer and plugin manifest remain unchanged. No automatic configuration synchronization is installed.
+The mentor curriculum is retained with workflow/path compatibility edits. Claude's mentor skill still points at the shared `.agents/skills/mentor/` skill; that pointer and the learning resources are unchanged. On 2026-10-09, the user requested removal of the misleading `mentor:` namespace from general Codex workflows. The `.agents/.claude-plugin/plugin.json` marker was moved, byte-for-byte, to [the historical manifest](archive/mentor-plugin.json). No files under `.claude/` were changed. No automatic configuration synchronization is installed.
 
 Planner behavior is covered by plan/execute skills using shared plans. Reviewer/test-writer definitions contain older EF assumptions; current conventions are in Codex skills and scoped instructions. No Claude agents or hooks were enabled or executed.
 
 ## Usage
 
-Ask for a skill by name or read its SKILL.md directly. Refresh the client if discovery metadata is stale. The existing plugin name may group skills under mentor; its manifest has not been renamed.
+Ask for a standalone skill by its actual name, such as `$plan`, `$execute`, or `$review-plan`, or read its SKILL.md directly. Use `$mentor` for AI Engineering learning guidance. `.agents/` must not contain a `.claude-plugin/plugin.json` or `.codex-plugin/plugin.json` marker: those package the skill collection and can introduce a plugin namespace. Refresh the client or start a new session to reload discovery metadata; a running conversation retains its injected skill catalog.
+
+The manifest archive preserves the original package metadata for history, not active discovery. If a separately installed/cached `mentor` plugin still appears after refresh, inspect its registration before disabling it; do not rename the standalone skills or edit plugin caches to compensate.
 
 Run `node .agents/scripts/validate-setup.cjs` to check coverage, metadata, concrete links and helper syntax. This validates setup integrity, not application behavior or live providers.
