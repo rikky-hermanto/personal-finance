@@ -4,16 +4,19 @@ using PersonalFinance.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
 using static Supabase.Postgrest.Constants;
+using PersonalFinance.Application.Interfaces;
 
 public class SpendingAnalysisService : ISpendingAnalysisService
 {
     private readonly Supabase.Client _supabase;
     private readonly ILogger<SpendingAnalysisService> _logger;
+    private readonly ICurrentUser _caller;
 
-    public SpendingAnalysisService(Supabase.Client supabase, ILogger<SpendingAnalysisService> logger)
+    public SpendingAnalysisService(Supabase.Client supabase, ILogger<SpendingAnalysisService> logger, ICurrentUser caller)
     {
         _supabase = supabase;
         _logger = logger;
+        _caller = caller;
     }
 
     public async Task<SafeToSpendDto> GetSafeToSpendAsync(Guid? accountId = null)
@@ -144,6 +147,7 @@ public class SpendingAnalysisService : ISpendingAnalysisService
         while (hasMore)
         {
             var query = _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
                 .Filter("date", Operator.GreaterThanOrEqual, start)
                 .Filter("date", Operator.LessThanOrEqual, end)
                 .Order("date", Ordering.Descending)

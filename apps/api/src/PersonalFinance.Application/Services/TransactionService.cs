@@ -4,18 +4,21 @@ using PersonalFinance.Domain.Entities;
 using static Supabase.Postgrest.Constants;
 using Supabase.Postgrest.Interfaces;
 using Microsoft.Extensions.Logging;
+using PersonalFinance.Application.Interfaces;
 
 public class TransactionService : ITransactionService
 {
     private readonly Supabase.Client _supabase;
     private readonly IMediator _mediator;
     private readonly ILogger<TransactionService> _logger;
+    private readonly ICurrentUser _caller;
 
-    public TransactionService(Supabase.Client supabase, IMediator mediator, ILogger<TransactionService> logger)
+    public TransactionService(Supabase.Client supabase, IMediator mediator, ILogger<TransactionService> logger, ICurrentUser caller)
     {
         _supabase = supabase;
         _mediator = mediator;
         _logger = logger;
+        _caller = caller;
     }
 
     public async Task<List<TransactionDto>> AddTransactionsAsync(IEnumerable<TransactionDto> transactionDtos)
@@ -23,17 +26,9 @@ public class TransactionService : ITransactionService
         var entities = transactionDtos.Select(MapToEntity).ToList();
         _logger.LogInformation("Adding {Count} transactions.", entities.Count);
 
-        try
-        {
-            var result = await _supabase.From<Transaction>().Insert(entities);
-            _logger.LogInformation("Supabase confirmed {ConfirmedCount} of {RequestedCount} transactions inserted.", result.Models.Count, entities.Count);
-            return result.Models.Select(t => MapToDto(t)).ToList();
-        }
-        catch (Exception ex) when (ex.Message.Contains("23505"))
-        {
-            _logger.LogWarning("Unique constraint violation during bulk insert. Some transactions might be duplicates.");
-            return new List<TransactionDto>();
-        }
+        var result = await _supabase.From<Transaction>().Insert(entities);
+        _logger.LogInformation("Supabase confirmed {ConfirmedCount} of {RequestedCount} transactions inserted.", result.Models.Count, entities.Count);
+        return result.Models.Select(t => MapToDto(t)).ToList();
     }
 
     public async Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos)
@@ -52,16 +47,25 @@ public class TransactionService : ITransactionService
         var minDate = dtoList.Min(t => t.Date).AddDays(-1);
         var maxDate = dtoList.Max(t => t.Date).AddDays(1);
 
-        var result = await _supabase.From<Transaction>()
-            .Filter("date", Operator.GreaterThanOrEqual, minDate)
-            .Filter("date", Operator.LessThanOrEqual, maxDate)
-            .Order("date", Ordering.Descending)
-            .Range(0, 1000_000)
-            .Get();
+        var existing = new List<Transaction>();
+        const int pageSize = 1000;
+        for (var offset = 0; ; offset += pageSize)
+        {
+            var page = await _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
+                .Filter("date", Operator.GreaterThanOrEqual, minDate)
+                .Filter("date", Operator.LessThanOrEqual, maxDate)
+                .Order("date", Ordering.Descending)
+                .Order("id", Ordering.Descending)
+                .Range(offset, offset + pageSize - 1)
+                .Get();
+            existing.AddRange(page.Models);
+            if (page.Models.Count < pageSize) break;
+        }
 
-        _logger.LogInformation("Fetched {DbCount} potential duplicates from DB for date range {Min} to {Max}", result.Models.Count, minDate, maxDate);
+        _logger.LogInformation("Fetched {DbCount} potential duplicates from DB for date range {Min} to {Max}", existing.Count, minDate, maxDate);
 
-        var taggedTransactions = TagDuplicatesLogic(dtoList, result.Models, _logger);
+        var taggedTransactions = TagDuplicatesLogic(dtoList, existing, _logger);
 
         _logger.LogInformation("Identified {DuplicateCount} duplicates out of {TotalCount} transactions.",
             taggedTransactions.Count(t => t.IsDuplicate), taggedTransactions.Count);
@@ -156,7 +160,7 @@ public class TransactionService : ITransactionService
     private static string AggressiveNormalize(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-        return System.Text.RegularExpressions.Regex.Replace(input.Trim().ToLower(), @"\s+", " ");
+        return System.Text.RegularExpressions.Regex.Replace(input.Trim().ToLowerInvariant(), @"\s+", " ");
     }
 
     private static DateTime StandardizeDate(DateTime date)
@@ -174,20 +178,25 @@ public class TransactionService : ITransactionService
         string? category = null,
         string? type = null)
     {
-        var query = _supabase.From<Transaction>()
-            .Order("date", Ordering.Descending)
-            .Order("id", Ordering.Descending)
-            .Range(0, 100_000);
-
-        if (accountId.HasValue)  query = query.Filter("account_id", Operator.Equals, accountId.Value.ToString());
-        if (!string.IsNullOrEmpty(category)) query = query.Filter("category",    Operator.Equals, category!);
-        if (!string.IsNullOrEmpty(type))     query = query.Filter("type",        Operator.Equals, type!);
-        if (!string.IsNullOrEmpty(search))   query = query.Filter("description", Operator.ILike,  $"%{search}%");
-
-        var result = await query.Get();
+        var rows = new List<Transaction>();
+        const int pageSize = 1000;
+        for (var offset = 0; ; offset += pageSize)
+        {
+            IPostgrestTable<Transaction> query = _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
+                .Order("date", Ordering.Descending)
+                .Order("id", Ordering.Descending);
+            if (accountId.HasValue) query = query.Filter("account_id", Operator.Equals, accountId.Value.ToString());
+            if (!string.IsNullOrEmpty(category)) query = query.Filter("category", Operator.Equals, category!);
+            if (!string.IsNullOrEmpty(type)) query = query.Filter("type", Operator.Equals, type!);
+            if (!string.IsNullOrEmpty(search)) query = query.Filter("description", Operator.ILike, $"%{search}%");
+            var page = await query.Range(offset, offset + pageSize - 1).Get();
+            rows.AddRange(page.Models);
+            if (page.Models.Count < pageSize) break;
+        }
         var accountNames = await FetchAccountNameLookupAsync();
 
-        return result.Models.Select(t =>
+        return rows.Select(t =>
         {
             var dto = MapToDto(t, accountNames);
             dto.Balance = 0;
@@ -198,6 +207,7 @@ public class TransactionService : ITransactionService
     public async Task<TransactionDto?> GetTransactionByIdAsync(int id)
     {
         var entity = await _supabase.From<Transaction>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Filter("id", Operator.Equals, id.ToString())
             .Single();
         return entity == null ? null : MapToDto(entity);
@@ -212,7 +222,8 @@ public class TransactionService : ITransactionService
         string? type = null,
         string sortOrder = "desc")
     {
-        IPostgrestTable<Transaction> countQuery = _supabase.From<Transaction>();
+        IPostgrestTable<Transaction> countQuery = _supabase.From<Transaction>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString());
         if (accountId.HasValue)          countQuery = countQuery.Filter("account_id", Operator.Equals, accountId.Value.ToString());
         if (!string.IsNullOrEmpty(category)) countQuery = countQuery.Filter("category", Operator.Equals, category!);
         if (!string.IsNullOrEmpty(type))     countQuery = countQuery.Filter("type",     Operator.Equals, type!);
@@ -235,7 +246,8 @@ public class TransactionService : ITransactionService
             };
         }
 
-        IPostgrestTable<TransactionWithBalance> query = _supabase.From<TransactionWithBalance>();
+        IPostgrestTable<TransactionWithBalance> query = _supabase.From<TransactionWithBalance>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString());
         if (sortOrder == "asc")
             query = query.Order("date", Ordering.Ascending).Order("id", Ordering.Ascending);
         else
@@ -268,6 +280,7 @@ public class TransactionService : ITransactionService
     public async Task<bool> IsFileProcessedAsync(string fileHash)
     {
         var result = await _supabase.From<UploadedFile>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Filter("file_hash", Operator.Equals, fileHash)
             .Get();
         return result.Models.Any();
@@ -275,7 +288,7 @@ public class TransactionService : ITransactionService
 
     public async Task RegisterFileHashAsync(string fileHash, string fileName)
     {
-        var entry = new UploadedFile { FileHash = fileHash, FileName = fileName };
+        var entry = new UploadedFile { UserId = _caller.UserId, FileHash = fileHash, FileName = fileName };
         await _supabase.From<UploadedFile>().Insert(entry);
     }
 
@@ -284,6 +297,7 @@ public class TransactionService : ITransactionService
         if (string.IsNullOrWhiteSpace(walletText)) return null;
 
         var result = await _supabase.From<WalletAccountAlias>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Filter("alias_text", Operator.Equals, walletText.Trim())
             .Order("created_at", Ordering.Descending)
             .Limit(1)
@@ -303,7 +317,8 @@ public class TransactionService : ITransactionService
         if (texts.Count == 0)
             return new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
 
-        var all = await _supabase.From<WalletAccountAlias>().Get();
+        var all = await _supabase.From<WalletAccountAlias>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString()).Get();
         return all.Models
             .Where(a => texts.Contains(a.AliasText.Trim(), StringComparer.OrdinalIgnoreCase))
             .GroupBy(a => a.AliasText.Trim(), StringComparer.OrdinalIgnoreCase)
@@ -323,6 +338,7 @@ public class TransactionService : ITransactionService
             {
                 AliasText = walletText.Trim(),
                 AccountId = accountId,
+                UserId = _caller.UserId,
             });
         }
         catch (Exception ex) when (ex.Message.Contains("23505"))
@@ -331,8 +347,9 @@ public class TransactionService : ITransactionService
         }
     }
 
-    private static Transaction MapToEntity(TransactionDto dto) => new()
+    private Transaction MapToEntity(TransactionDto dto) => new()
     {
+        UserId = _caller.UserId,
         Date = dto.Date,
         Description = dto.Description,
         Remarks = dto.Remarks,
@@ -348,7 +365,8 @@ public class TransactionService : ITransactionService
 
     private async Task<Dictionary<Guid, string>> FetchAccountNameLookupAsync()
     {
-        var accounts = await _supabase.From<Account>().Get();
+        var accounts = await _supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString()).Get();
         return accounts.Models.ToDictionary(a => a.Id, a => a.Name);
     }
 

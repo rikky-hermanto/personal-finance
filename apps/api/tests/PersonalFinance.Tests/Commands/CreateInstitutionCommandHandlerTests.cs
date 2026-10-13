@@ -42,7 +42,9 @@ public class CreateInstitutionCommandHandlerTests
         var handler = new CreateInstitutionCommandHandler(
             null!,
             validator,
-            _loggerMock.Object
+            _loggerMock.Object,
+            null!,
+            null!
         );
 
         // Act & Assert

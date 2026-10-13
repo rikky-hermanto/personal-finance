@@ -15,12 +15,14 @@ public class DashboardService : IDashboardService
     private readonly ITransactionService _transactionService;
     private readonly Supabase.Client _supabase;
     private readonly ILogger<DashboardService> _logger;
+    private readonly ICurrentUser _caller;
 
-    public DashboardService(ITransactionService transactionService, Supabase.Client supabase, ILogger<DashboardService> logger)
+    public DashboardService(ITransactionService transactionService, Supabase.Client supabase, ILogger<DashboardService> logger, ICurrentUser caller)
     {
         _transactionService = transactionService;
         _supabase = supabase;
         _logger = logger;
+        _caller = caller;
     }
 
     public async Task<DashboardDto> GetDashboardDataAsync(Guid? accountId, int? year, int? month, int months = 6)
@@ -36,6 +38,7 @@ public class DashboardService : IDashboardService
         else
         {
             var latestTx = await _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
                 .Order("date", Ordering.Descending)
                 .Limit(1)
                 .Get();
@@ -49,6 +52,7 @@ public class DashboardService : IDashboardService
         {
             // All Time: start from the earliest transaction in the DB
             var earliestTx = await _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
                 .Order("date", Ordering.Ascending)
                 .Limit(1)
                 .Get();
@@ -80,6 +84,7 @@ public class DashboardService : IDashboardService
         while (hasMore)
         {
             var query = _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
                 .Filter("date", Operator.GreaterThanOrEqual, prevRangeStartDate)
                 .Filter("date", Operator.LessThanOrEqual, rangeEndDate)
                 .Order("date", Ordering.Descending) // Crucial: get latest data first
@@ -186,6 +191,7 @@ public class DashboardService : IDashboardService
 
         // 1. Get baseline date
         var latestTx = await _supabase.From<Transaction>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Order("date", Ordering.Descending)
             .Limit(1)
             .Get();
@@ -197,6 +203,7 @@ public class DashboardService : IDashboardService
         if (months == -1)
         {
             var earliestTx = await _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
                 .Order("date", Ordering.Ascending)
                 .Limit(1)
                 .Get();
@@ -221,6 +228,7 @@ public class DashboardService : IDashboardService
         while (hasMore)
         {
             var query = _supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
                 .Filter("date", Operator.GreaterThanOrEqual, rangeStartDate)
                 .Filter("date", Operator.LessThanOrEqual, rangeEndDate)
                 .Order("date", Ordering.Descending)

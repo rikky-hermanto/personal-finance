@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using OpenTelemetry.Trace;
+using PersonalFinance.Application.Dtos;
 
 
 namespace PersonalFinance.Api.Extensions
@@ -24,6 +25,27 @@ namespace PersonalFinance.Api.Extensions
                 }
                 catch (Exception ex)
                 {
+                    if (ex is CashflowMutationException mutation)
+                    {
+                        var (status, code) = mutation.Failure switch
+                        {
+                            CashflowMutationFailure.InvalidInput => (400, "invalid_input"),
+                            CashflowMutationFailure.AccountUnavailable => (404, "account_unavailable"),
+                            CashflowMutationFailure.InstitutionUnavailable => (404, "institution_unavailable"),
+                            CashflowMutationFailure.AccountInUse => (409, "account_in_use"),
+                            CashflowMutationFailure.RuleExists => (409, "rule_exists"),
+                            CashflowMutationFailure.IdempotencyConflict => (409, "idempotency_conflict"),
+                            CashflowMutationFailure.FileAlreadyProcessed => (409, "file_already_processed"),
+                            CashflowMutationFailure.ConstraintConflict => (409, "mutation_constraint_conflict"),
+                            CashflowMutationFailure.Retryable => (503, "retry_mutation"),
+                            _ => (500, "cashflow_unavailable")
+                        };
+                        logger.LogWarning("Checked Cashflow mutation failed: {Failure}", mutation.Failure);
+                        context.Response.StatusCode = status;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new { Code = code }));
+                        return;
+                    }
                     logger.LogError(ex, "An unhandled exception has occurred while executing the request.");
                     
                     Activity.Current?.SetStatus(ActivityStatusCode.Error, ex.Message);

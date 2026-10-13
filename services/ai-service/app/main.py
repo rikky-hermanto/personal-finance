@@ -4,10 +4,12 @@ from contextlib import asynccontextmanager
 import datetime
 import json
 import re
+import secrets
 
 import asyncpg
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
 
 # In the lifespan context manager or @app.on_event("shutdown"):
@@ -115,7 +117,8 @@ async def lifespan(app: FastAPI):
     app.state.planner = QueryPlanner(provider=provider)
     app.state.followup_suggester = FollowUpSuggester(provider=provider)
     app.state.aggregator = AggregationService(db_url=settings.database_url)
-    app.state.categories = await _load_categories(settings.database_url)
+    # The pilot never loads a cross-user transaction vocabulary into an allowed path.
+    app.state.categories = [] if settings.cashflow_pilot_enabled else await _load_categories(settings.database_url)
     app.state.answerer = AnswerService(
         retriever=app.state.retriever,
         reranker=app.state.reranker,
@@ -128,7 +131,7 @@ async def lifespan(app: FastAPI):
 
     # Chapter 7 — Transaction Categorizer Agent (smolagents ToolCallingAgent).
     # Tool 1 — rules snapshot straight from the DB.
-    rules = await _load_rules(settings.database_url)
+    rules = {} if settings.cashflow_pilot_enabled else await _load_rules(settings.database_url)
     load_rules(rules)
     # Tool 2 — hand the tool the SAME retriever instance /search and /ask use.
     configure_similarity_tool(app.state.retriever)
@@ -187,6 +190,20 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+_PILOT_INTERNAL_ROUTES = {"/parse", "/parse-pdf", "/parse-image", "/categorize", "/suggest-categories"}
+
+
+@app.middleware("http")
+async def pilot_access_gate(request: Request, call_next):
+    if request.url.path == "/health":
+        return await call_next(request)
+    if not settings.cashflow_pilot_enabled or request.url.path not in _PILOT_INTERNAL_ROUTES:
+        return JSONResponse({"detail": "Unavailable during the Cashflow pilot"}, status_code=404)
+    supplied = request.headers.get("x-internal-api-key", "")
+    if not settings.internal_api_key or not secrets.compare_digest(supplied, settings.internal_api_key):
+        return JSONResponse({"detail": "Internal authentication required"}, status_code=401)
+    return await call_next(request)
 
 # Instrument FastAPI
 FastAPIInstrumentor.instrument_app(app)

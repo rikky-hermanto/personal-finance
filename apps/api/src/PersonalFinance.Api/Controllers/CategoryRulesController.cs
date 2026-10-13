@@ -28,7 +28,8 @@ public class CategoryRulesController : ControllerBase
             Keyword = r.Keyword,
             Type = r.Type,
             Category = r.Category,
-            KeywordLength = r.KeywordLength
+            KeywordLength = r.KeywordLength,
+            Flow = r.Flow
         }).ToList();
         return Ok(dtos);
     }
@@ -43,7 +44,8 @@ public class CategoryRulesController : ControllerBase
             Keyword = created.Keyword,
             Type = created.Type,
             Category = created.Category,
-            KeywordLength = created.KeywordLength
+            KeywordLength = created.KeywordLength,
+            Flow = created.Flow
         };
         return Ok(createdDto);
     }
@@ -59,7 +61,8 @@ public class CategoryRulesController : ControllerBase
             Keyword = updated.Keyword,
             Type = updated.Type,
             Category = updated.Category,
-            KeywordLength = updated.KeywordLength
+            KeywordLength = updated.KeywordLength,
+            Flow = updated.Flow
         };
         return Ok(updatedDto);
     }

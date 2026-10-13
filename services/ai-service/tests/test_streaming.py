@@ -5,6 +5,7 @@ The endpoint routes by planner intent: lookup → retrieve/rerank/cite (with a p
 marker guard); aggregate → SQL total first, narration second.
 """
 import json
+import importlib
 import logging
 from collections.abc import AsyncGenerator
 from decimal import Decimal
@@ -14,6 +15,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
+from app.config import settings
 from app.models import QueryPlan, SearchResult
 from app.services.aggregator import AggregateResult
 
@@ -38,7 +40,12 @@ async def _fake_stream(*args, **kwargs) -> AsyncGenerator[str, None]:
 
 
 @pytest.fixture(autouse=True)
-def wire_app_state():
+def wire_app_state(monkeypatch):
+    main_module = importlib.import_module("app.main")
+    monkeypatch.setattr(settings, "cashflow_pilot_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
+    monkeypatch.setattr(main_module, "_PILOT_INTERNAL_ROUTES",
+                        main_module._PILOT_INTERNAL_ROUTES | {"/ask/stream"})
     names = ("retriever", "reranker", "provider", "planner", "aggregator", "categories")
     saved = {name: getattr(app.state, name, None) for name in names}
 
@@ -64,7 +71,8 @@ def wire_app_state():
 
 
 def _client() -> AsyncClient:
-    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test",
+                       headers={"X-Internal-Api-Key": "test-internal-key"})
 
 
 async def _collect(query: str = "makan maret") -> list[tuple[str, str]]:

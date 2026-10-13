@@ -110,7 +110,13 @@ const TransactionsTab = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
-                <DropdownMenuItem className="gap-2" onClick={() => exportTransactionsCsv()}>
+                <DropdownMenuItem className="gap-2" onClick={() => {
+                  void exportTransactionsCsv().catch(() => toast({
+                    title: 'Export failed',
+                    description: 'Please try again after checking your session.',
+                    variant: 'destructive',
+                  }));
+                }}>
                   <FileDown className="h-3.5 w-3.5" />
                   Export CSV
                 </DropdownMenuItem>

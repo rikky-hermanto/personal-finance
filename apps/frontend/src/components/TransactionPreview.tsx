@@ -13,7 +13,7 @@ import { extractKeyword } from '@/utils/keywordExtractor';
 
 interface TransactionPreviewProps {
   transactions: Transaction[];
-  onConfirm: (transactions: Transaction[]) => void;
+  onConfirm: (result: transactionsApi.CashflowImportResult) => void;
   onBack: () => void;
   fileHash?: string | null;
   fileName?: string | null;
@@ -164,6 +164,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const [aiSuggestedIds, setAiSuggestedIds] = useState<Set<string>>(new Set());
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiNotice, setAiNotice] = useState<string | null>(null);
+  const lastSubmissionRef = useRef<{ payload: string; requestId: string } | null>(null);
 
   const startEdit = (tx: Transaction) => {
     setEditingId(tx.id);
@@ -331,8 +332,14 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
             }
           : null
       }));
-      await transactionsApi.submitTransactions(payload, fileHash || undefined, fileName || undefined);
-      onConfirm(newTransactions);
+      const reviewedPayload = JSON.stringify({ transactions: payload, fileHash, fileName });
+      const requestId = lastSubmissionRef.current?.payload === reviewedPayload
+        ? lastSubmissionRef.current.requestId
+        : crypto.randomUUID();
+      lastSubmissionRef.current = { payload: reviewedPayload, requestId };
+      const result = await transactionsApi.submitTransactions(
+        payload, requestId, fileHash || undefined, fileName || undefined);
+      onConfirm(result);
     } catch (error: unknown) {
       let message = "Failed to submit transactions";
       try {

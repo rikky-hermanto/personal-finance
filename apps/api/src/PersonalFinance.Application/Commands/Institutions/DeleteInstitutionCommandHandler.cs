@@ -1,32 +1,22 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Commands.Institutions;
-using PersonalFinance.Domain.Entities;
-using static Supabase.Postgrest.Constants;
+using PersonalFinance.Application.Interfaces;
 
 public class DeleteInstitutionCommandHandler(
-    Supabase.Client supabase,
-    ILogger<DeleteInstitutionCommandHandler> logger
+    ILogger<DeleteInstitutionCommandHandler> logger,
+    ICashflowMutationService mutations
 ) : IRequestHandler<DeleteInstitutionCommand, bool>
 {
     public async Task<bool> Handle(DeleteInstitutionCommand request, CancellationToken cancellationToken)
     {
         logger.LogInformation("Deleting institution: {Id}", request.Id);
 
-        var existing = await supabase.From<Institution>()
-            .Filter("id", Operator.Equals, request.Id.ToString())
-            .Single();
-
-        if (existing == null)
+        if (!await mutations.DeleteInstitutionAsync(request.Id, cancellationToken))
         {
             logger.LogWarning("Institution {Id} not found", request.Id);
             return false;
         }
-
-        await supabase.From<Institution>()
-            .Filter("id", Operator.Equals, request.Id.ToString())
-            .Delete();
-
         logger.LogInformation("Institution {Id} deleted", request.Id);
         return true;
     }
