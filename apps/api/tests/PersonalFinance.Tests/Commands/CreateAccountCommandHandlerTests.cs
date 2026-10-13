@@ -20,7 +20,9 @@ public class CreateAccountCommandHandlerTests
         var handler = new CreateAccountCommandHandler(
             null!,
             validator,
-            new Mock<ILogger<CreateAccountCommandHandler>>().Object
+            new Mock<ILogger<CreateAccountCommandHandler>>().Object,
+            null!,
+            null!
         );
 
         // Act & Assert

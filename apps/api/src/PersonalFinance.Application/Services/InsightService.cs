@@ -6,7 +6,7 @@ using static Supabase.Postgrest.Constants;
 
 namespace PersonalFinance.Application.Services;
 
-public class InsightService(Supabase.Client supabase, ILogger<InsightService> logger) : IInsightService
+public class InsightService(Supabase.Client supabase, ILogger<InsightService> logger, ICurrentUser caller) : IInsightService
 {
     private static readonly HashSet<string> InvestmentKeywords = new(StringComparer.OrdinalIgnoreCase)
         { "Investment", "Stocks", "Saham", "Mutual Fund", "Reksa Dana", "SBN", "ORI", "Crypto", "P2P" };
@@ -282,6 +282,7 @@ public class InsightService(Supabase.Client supabase, ILogger<InsightService> lo
         while (hasMore)
         {
             var result = await supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, caller.UserId.ToString())
                 .Filter("date", Operator.GreaterThanOrEqual, start)
                 .Filter("date", Operator.LessThanOrEqual, end)
                 .Order("date", Ordering.Descending)
@@ -297,7 +298,8 @@ public class InsightService(Supabase.Client supabase, ILogger<InsightService> lo
         var accountIds = all.Select(t => t.AccountId).Where(id => id.HasValue).Select(id => id!.Value).Distinct().ToList();
         if (accountIds.Count > 0)
         {
-            var accountsResult = await supabase.From<Account>().Get();
+            var accountsResult = await supabase.From<Account>()
+                .Filter("user_id", Operator.Equals, caller.UserId.ToString()).Get();
             var accountNames = accountsResult.Models.ToDictionary(a => a.Id, a => a.Name);
             foreach (var tx in all)
             {

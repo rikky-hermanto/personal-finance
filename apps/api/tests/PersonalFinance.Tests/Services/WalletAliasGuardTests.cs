@@ -13,7 +13,7 @@ namespace PersonalFinance.Tests.Services;
 public class WalletAliasGuardTests
 {
     private static TransactionService BuildService() =>
-        new(null!, Mock.Of<IMediator>(), Mock.Of<ILogger<TransactionService>>());
+        new(null!, Mock.Of<IMediator>(), Mock.Of<ILogger<TransactionService>>(), null!);
 
     // ── ResolveAliasAsync ─────────────────────────────────────────────────────
 

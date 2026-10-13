@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 const API_BASE_URL = import.meta.env.VITE_API_URL || "https://localhost:7209";
 const BASE_URL = `${API_BASE_URL}/api/categoryrules`;
 
@@ -7,16 +8,17 @@ export interface CategoryRuleDto {
   type: string;
   category: string;
   keywordLength: number;
+  flow?: 'DB' | 'CR' | null;
 }
 
 export async function getCategoryRules(): Promise<CategoryRuleDto[]> {
-  const res = await fetch(BASE_URL);
+  const res = await authenticatedFetch(BASE_URL);
   if (!res.ok) throw new Error("Failed to fetch category rules");
   return res.json();
 }
 
 export async function addCategoryRule(rule: Omit<CategoryRuleDto, "id" | "keywordLength">): Promise<CategoryRuleDto> {
-  const res = await fetch(BASE_URL, {
+  const res = await authenticatedFetch(BASE_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(rule),
@@ -26,7 +28,7 @@ export async function addCategoryRule(rule: Omit<CategoryRuleDto, "id" | "keywor
 }
 
 export async function updateCategoryRule(id: number, rule: Omit<CategoryRuleDto, "id" | "keywordLength">): Promise<CategoryRuleDto> {
-  const res = await fetch(`${BASE_URL}/${id}`, {
+  const res = await authenticatedFetch(`${BASE_URL}/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(rule),
@@ -36,12 +38,12 @@ export async function updateCategoryRule(id: number, rule: Omit<CategoryRuleDto,
 }
 
 export async function deleteCategoryRule(id: number): Promise<void> {
-  const res = await fetch(`${BASE_URL}/${id}`, { method: "DELETE" });
+  const res = await authenticatedFetch(`${BASE_URL}/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to delete category rule");
 }
 
 export async function resetAllCategoryRules(): Promise<{ message: string }> {
-  const res = await fetch(`${BASE_URL}/reset`, { method: "DELETE" });
+  const res = await authenticatedFetch(`${BASE_URL}/reset`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to reset category rules");
   return res.json();
 }
@@ -49,7 +51,7 @@ export async function resetAllCategoryRules(): Promise<{ message: string }> {
 export async function importCategoryRules(file: File): Promise<{ added: number }> {
   const formData = new FormData();
   formData.append("file", file);
-  const res = await fetch(`${BASE_URL}/import`, {
+  const res = await authenticatedFetch(`${BASE_URL}/import`, {
     method: "POST",
     body: formData,
   });
@@ -57,4 +59,4 @@ export async function importCategoryRules(file: File): Promise<{ added: number }
   return res.json();
 }
 
-export const EXPORT_RULES_URL = `${BASE_URL}/export`;
+export const EXPORT_RULES_URL = `${BASE_URL}/export`;

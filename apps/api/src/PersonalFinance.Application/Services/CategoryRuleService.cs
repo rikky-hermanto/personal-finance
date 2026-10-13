@@ -12,19 +12,22 @@ public class CategoryRuleService : ICategoryRuleService
     private readonly IMediator _mediator;
     private readonly ILogger<CategoryRuleService> _logger;
     private readonly ICategoryPresetService _categoryPreset;
+    private readonly ICurrentUser _caller;
 
-    public CategoryRuleService(Supabase.Client supabase, IMediator mediator, ILogger<CategoryRuleService> logger, ICategoryPresetService categoryPreset)
+    public CategoryRuleService(Supabase.Client supabase, IMediator mediator, ILogger<CategoryRuleService> logger, ICategoryPresetService categoryPreset, ICurrentUser caller)
     {
         _supabase = supabase;
         _mediator = mediator;
         _logger = logger;
         _categoryPreset = categoryPreset;
+        _caller = caller;
     }
 
     public async Task<string> CategorizeAsync(string description, string type)
     {
         _logger.LogDebug("Categorizing description of type {Type}", type);
         var result = await _supabase.From<CategoryRule>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Filter("type", Operator.ILike, type)
             .Order("keyword_length", Ordering.Descending)
             .Get();
@@ -59,6 +62,7 @@ public class CategoryRuleService : ICategoryRuleService
         //   descCache: (description, flow) → category  [Layer 0 — stable merchant name]
         //   remCache:  (remarks, flow)     → category  [Layer 1 — bank-generated text]
         var historyResult = await _supabase.From<Transaction>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Select("description,remarks,flow,category")
             .Get();
 
@@ -98,6 +102,7 @@ public class CategoryRuleService : ICategoryRuleService
 
         // ── Layer 2: Flow-aware rule engine ──────────────────────────────────────
         var rulesResult = await _supabase.From<CategoryRule>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Order("keyword_length", Ordering.Descending)
             .Get();
         var rules = rulesResult.Models;
@@ -179,6 +184,7 @@ public class CategoryRuleService : ICategoryRuleService
     public async Task<List<CategoryRuleDto>> GetAllAsync()
     {
         var result = await _supabase.From<CategoryRule>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Order("keyword_length", Ordering.Descending)
             .Get();
         return result.Models.Select(MapToDto).ToList();
@@ -187,6 +193,7 @@ public class CategoryRuleService : ICategoryRuleService
     public async Task<CategoryRuleDto?> GetByIdAsync(int id)
     {
         var rule = await _supabase.From<CategoryRule>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Filter("id", Operator.Equals, id.ToString())
             .Single();
         return rule == null ? null : MapToDto(rule);

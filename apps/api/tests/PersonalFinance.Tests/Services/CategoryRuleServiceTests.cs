@@ -23,7 +23,7 @@ public class CategoryRuleServiceTests
         _presetMock = new Mock<ICategoryPresetService>();
         // Supabase.Client is a concrete class — pass null for tests that only exercise the MediatR-delegating methods.
         // Tests requiring a real Supabase connection are skipped until an integration test harness exists (see PF-034).
-        _service = new CategoryRuleService(null!, _mediatorMock.Object, _loggerMock.Object, _presetMock.Object);
+        _service = new CategoryRuleService(null!, _mediatorMock.Object, _loggerMock.Object, _presetMock.Object, Mock.Of<ICurrentUser>());
     }
 
     [Fact(Skip = "Requires Supabase integration — EF Core removed in PF-S06, integration harness tracked in PF-034")]

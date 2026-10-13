@@ -7,6 +7,13 @@ from app.main import app
 from app.models import ParseResponse, TransactionResult
 from app.services.llm_parser import LlmParser
 from app.services.pdf_extractor import PdfExtractor
+from app.config import settings
+
+
+@pytest.fixture(autouse=True)
+def internal_pilot(monkeypatch):
+    monkeypatch.setattr(settings, "cashflow_pilot_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
 
 
 def _make_pdf_bytes() -> bytes:
@@ -33,7 +40,7 @@ async def test_parse_pdf_happy_path():
     app.state.parser = mock_parser
     app.state.pdf_extractor = PdfExtractor()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post(
             "/parse-pdf",
             files={"file": ("statement.pdf", _make_pdf_bytes(), "application/pdf")},
@@ -48,7 +55,7 @@ async def test_parse_pdf_happy_path():
 
 @pytest.mark.anyio
 async def test_parse_pdf_wrong_content_type_returns_422():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post(
             "/parse-pdf",
             files={"file": ("data.csv", b"date,amount\n2024-03-14,85000", "text/csv")},
@@ -59,7 +66,7 @@ async def test_parse_pdf_wrong_content_type_returns_422():
 @pytest.mark.anyio
 async def test_parse_pdf_corrupted_bytes_returns_422():
     app.state.pdf_extractor = PdfExtractor()
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post(
             "/parse-pdf",
             files={"file": ("bad.pdf", b"this is not a pdf", "application/pdf")},
