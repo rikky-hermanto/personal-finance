@@ -1,17 +1,10 @@
-INSERT INTO category_rules (id, category, keyword, keyword_length, type, flow)
-VALUES (1, 'Bill', 'Netflix', 7, 'Expense', NULL);
-INSERT INTO category_rules (id, category, keyword, keyword_length, type, flow)
-VALUES (2, 'Saving Interest', 'SAVING INTEREST', 15, 'Income', 'CR');
-INSERT INTO category_rules (id, category, keyword, keyword_length, type, flow)
-VALUES (3, 'Withdrawing', 'TARIKAN ATM', 11, 'Expense', 'DB');
-INSERT INTO category_rules (id, category, keyword, keyword_length, type, flow)
-VALUES (4, 'Salary', 'WORKX', 5, 'Income', NULL);
-INSERT INTO category_rules (id, category, keyword, keyword_length, type, flow)
-VALUES (5, 'Bill', 'PLN POWER SERVICE', 17, 'Expense', NULL);
-
-SELECT setval(
-    pg_get_serial_sequence('category_rules', 'id'),
-    GREATEST(
-        (SELECT MAX(id) FROM category_rules) + 1,
-        nextval(pg_get_serial_sequence('category_rules', 'id'))),
-    false);
+-- Personal category rules are provisioned per verified owner after enforcement.
+-- Shared presets are created by the historical category_presets migrations.
+-- This replay-safe seed only ensures a generic shared preset exists.
+INSERT INTO public.category_presets (keyword, category, type, flow, keyword_length, version)
+SELECT 'TARIKAN ATM', 'Withdrawing', 'Expense', 'DB', 11, 1
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.category_presets
+    WHERE keyword = 'TARIKAN ATM' AND category = 'Withdrawing'
+      AND type = 'Expense' AND flow = 'DB' AND version = 1
+);

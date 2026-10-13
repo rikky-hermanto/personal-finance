@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:7208';
 
 export interface VarianceDriver {
@@ -22,4 +23,4 @@ async function toJson<T>(res: Response): Promise<T> {
 }
 
 export const getVarianceExplainer = (accountId?: string): Promise<VarianceExplainer> =>
-  fetch(`${BASE}/api/spending-analysis/variance${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ''}`).then(toJson<VarianceExplainer>);
+  authenticatedFetch(`${BASE}/api/spending-analysis/variance${accountId ? `?accountId=${encodeURIComponent(accountId)}` : ''}`).then(toJson<VarianceExplainer>);

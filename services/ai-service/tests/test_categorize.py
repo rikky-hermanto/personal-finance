@@ -6,6 +6,13 @@ from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.services.categorizer import Categorizer
 from app.models import CategorizeRequest, CategorizeResponse
+from app.config import settings
+
+
+@pytest.fixture(autouse=True)
+def internal_pilot(monkeypatch):
+    monkeypatch.setattr(settings, "cashflow_pilot_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
 
 
 def _mock_categorizer(category: str = "Food", confidence: float = 0.95) -> Categorizer:
@@ -18,7 +25,7 @@ def _mock_categorizer(category: str = "Food", confidence: float = 0.95) -> Categ
 @pytest.mark.anyio
 async def test_categorize_happy_path():
     app.state.categorizer = _mock_categorizer("Food", 0.95)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/categorize", json={
             "description": "Go Mie Go",
             "remarks": "QRIS (PAYMENT)",
@@ -36,7 +43,7 @@ async def test_categorize_happy_path():
 
 @pytest.mark.anyio
 async def test_categorize_empty_categories_returns_422():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/categorize", json={
             "description": "Netflix",
             "flow": "DB",
@@ -50,7 +57,7 @@ async def test_categorize_empty_categories_returns_422():
 @pytest.mark.anyio
 async def test_categorize_low_confidence_still_returns_response():
     app.state.categorizer = _mock_categorizer("Groceries", 0.40)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/categorize", json={
             "description": "Sunset Vet Ubud",
             "flow": "DB",

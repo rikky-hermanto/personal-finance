@@ -31,6 +31,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
   const [pdfPassword, setPdfPassword]         = useState('');
   const [bankHint, setBankHint]               = useState('');
   const [fileHash, setFileHash]               = useState<string | null>(null);
+  const [importResult, setImportResult]       = useState<transactionsApi.CashflowImportResult | null>(null);
   const [apiError, setApiError]               = useState<string | null>(null);
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
@@ -195,7 +196,8 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     }
   }, [uploadedFiles, pdfPassword, showPasswordConfirmation, bankHint]);
 
-  const handleConfirmData = useCallback(() => {
+  const handleConfirmData = useCallback((result: transactionsApi.CashflowImportResult) => {
+    setImportResult(result);
     onFileUpload(uploadedFiles);
     setCurrentStep('submitted');
   }, [uploadedFiles, onFileUpload]);
@@ -204,6 +206,7 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
     setUploadedFiles([]);
     setParsedTransactions([]);
     setFileHash(null);
+    setImportResult(null);
     setApiError(null);
     setShowPasswordConfirmation(false);
     setCurrentStep('upload');
@@ -278,7 +281,8 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
           </div>
           <p className="text-base font-semibold text-foreground mb-1">Import complete</p>
           <p className="text-sm text-muted-foreground mb-6">
-            {parsedTransactions.length} transaction{parsedTransactions.length !== 1 ? 's' : ''} imported and categorized.
+            {importResult?.insertedCount ?? 0} transaction{importResult?.insertedCount === 1 ? '' : 's'} imported.
+            {(importResult?.duplicateCount ?? 0) > 0 && ` ${importResult?.duplicateCount} duplicate${importResult?.duplicateCount === 1 ? '' : 's'} skipped.`}
           </p>
           <button
             onClick={handleStartOver}

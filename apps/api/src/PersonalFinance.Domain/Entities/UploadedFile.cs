@@ -9,6 +9,9 @@ public class UploadedFile : BaseModel
     [PrimaryKey("id", shouldInsert: false)]
     public int Id { get; set; }
 
+    [Column("user_id")]
+    public Guid? UserId { get; set; }
+
     [Column("file_hash")]
     public string FileHash { get; set; } = string.Empty;
 

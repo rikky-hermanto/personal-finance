@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Constants;
 using PersonalFinance.Application.Dtos.Buckets;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Domain.Entities.Buckets;
 using static Supabase.Postgrest.Constants;
@@ -13,10 +14,9 @@ namespace PersonalFinance.Application.Services.Buckets;
 /// BucketCalculator. Mirrors the DeskService/DeskCalculator split (PF-133): calculation stays
 /// unit-testable without mocking Supabase.
 /// </summary>
-public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> logger) : IBucketsService
+public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> logger, ICurrentUser caller,
+    ICashflowMutationService mutations) : IBucketsService
 {
-    // Placeholder user_id until PF-S08 (Supabase Auth) lands — matches the Desk convention.
-    private static readonly Guid PlaceholderUserId = Guid.Empty;
 
     public async Task<BucketsResponseDto> GetBucketsAsync()
     {
@@ -73,7 +73,7 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         var incomeVariancePct = incomeMean > 0 ? (monthlyIncomes.Max() - monthlyIncomes.Min()) / incomeMean : 0m;
         var variableIncome = incomeVariancePct > BucketDefaults.VariableIncomeThresholdPct;
 
-        var totalLiquid = await GetTotalLiquidAsync();
+        var totalLiquid = await mutations.GetLiquidTotalAsync();
         var emergencyFund = new EmergencyFundProgressDto(
             Now: totalLiquid,
             Target: committedMedian * BucketDefaults.EmergencyFundTargetMonths,
@@ -193,52 +193,16 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
 
     public async Task<BucketsResponseDto> SetFuturePlanAsync(decimal futureMonthlyAmount)
     {
-        var existing = await supabase.From<BucketSettings>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
-            .Get();
+        await mutations.SetFuturePlanAsync(futureMonthlyAmount);
 
-        if (existing.Models.Count > 0)
-        {
-            var row = existing.Models[0];
-            row.FutureMonthlyAmount = futureMonthlyAmount;
-            row.UpdatedAt = DateTime.UtcNow;
-            await supabase.From<BucketSettings>().Update(row);
-        }
-        else
-        {
-            await supabase.From<BucketSettings>().Insert(new BucketSettings
-            {
-                Id = Guid.NewGuid(),
-                UserId = PlaceholderUserId,
-                FutureMonthlyAmount = futureMonthlyAmount,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-            });
-        }
-
-        logger.LogInformation("Future plan set to {Amount} for user {UserId}", futureMonthlyAmount, PlaceholderUserId);
+        logger.LogInformation("Future plan set to {Amount} for user {UserId}", futureMonthlyAmount, caller.UserId);
         return await GetBucketsAsync();
     }
 
     public async Task<BucketsResponseDto> DemoteCommittedItemAsync(string itemKey)
     {
-        var existing = await supabase.From<BucketCategoryOverride>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
-            .Filter("item_key", Operator.Equals, itemKey)
-            .Get();
-
-        if (existing.Models.Count == 0)
-        {
-            await supabase.From<BucketCategoryOverride>().Insert(new BucketCategoryOverride
-            {
-                Id = Guid.NewGuid(),
-                UserId = PlaceholderUserId,
-                ItemKey = itemKey,
-                Bucket = "free",
-                CreatedAt = DateTime.UtcNow,
-            });
-            logger.LogInformation("Demoted commitment '{Key}' to Free for user {UserId}", itemKey, PlaceholderUserId);
-        }
+        await mutations.DemoteCommittedItemAsync(itemKey);
+        logger.LogInformation("Demoted commitment '{Key}' to Free for user {UserId}", itemKey, caller.UserId);
 
         return await GetBucketsAsync();
     }
@@ -246,7 +210,7 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
     private async Task<HashSet<string>> GetDemotedKeysAsync()
     {
         var result = await supabase.From<BucketCategoryOverride>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Filter("bucket", Operator.Equals, "free")
             .Get();
 
@@ -256,37 +220,10 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
     private async Task<BucketSettings?> GetSettingsAsync()
     {
         var result = await supabase.From<BucketSettings>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Get();
 
         return result.Models.FirstOrDefault();
-    }
-
-    private async Task<decimal> GetTotalLiquidAsync()
-    {
-        var accounts = await supabase.From<Account>()
-            .Filter("account_type", Operator.Equals, "Savings")
-            .Get();
-
-        if (accounts.Models.Count == 0) return 0m;
-
-        var balances = new List<decimal>();
-        foreach (var account in accounts.Models)
-        {
-            var valuation = await supabase.From<Valuation>()
-                .Filter("subject_type", Operator.Equals, "Account")
-                .Filter("subject_id", Operator.Equals, account.Id.ToString())
-                .Order("valued_at", Ordering.Descending)
-                .Limit(1)
-                .Get();
-
-            if (valuation.Models.Count > 0)
-                balances.Add(valuation.Models[0].ValueIdr);
-        }
-
-        // Sum across every account — see BucketCalculator.SumLiquid: the emergency-fund denominator
-        // must not shrink just because liquidity happens to be split across banks.
-        return BucketCalculator.SumLiquid(balances);
     }
 
     private static int ComputeCommittedStreak(
@@ -361,6 +298,7 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         while (hasMore)
         {
             var result = await supabase.From<Transaction>()
+                .Filter("user_id", Operator.Equals, caller.UserId.ToString())
                 .Filter("date", Operator.GreaterThanOrEqual, start)
                 .Filter("date", Operator.LessThanOrEqual, end)
                 .Order("date", Ordering.Descending)

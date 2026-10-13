@@ -9,6 +9,9 @@ public class Transaction : BaseModel
     [PrimaryKey("id", shouldInsert: false)]
     public int Id { get; set; }
 
+    [Column("user_id")]
+    public Guid? UserId { get; set; }
+
     [Column("date")]
     public DateTime Date { get; set; }
 

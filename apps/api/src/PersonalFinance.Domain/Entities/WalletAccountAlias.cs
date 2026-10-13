@@ -9,6 +9,9 @@ public class WalletAccountAlias : BaseModel
     [PrimaryKey("id", shouldInsert: false)]
     public Guid Id { get; set; }
 
+    [Column("user_id")]
+    public Guid? UserId { get; set; }
+
     [Column("alias_text")]
     public string AliasText { get; set; } = string.Empty;
 

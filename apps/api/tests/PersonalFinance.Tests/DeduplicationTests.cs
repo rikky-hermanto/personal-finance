@@ -180,6 +180,24 @@ public class DeduplicationTests
     }
 
     [Fact]
+    public void FilterLogic_UnicodeWhitespaceAndMidpointRounding_FilteredOut()
+    {
+        var date = new DateTime(2026, 10, 9, 1, 2, 3, DateTimeKind.Utc);
+        var incoming = new List<TransactionDto>
+        {
+            new() { Date = date, AmountIdr = 100.004m,
+                    Description = "pf-s08\u00a0boundary", Flow = "CR" }
+        };
+        var existing = new List<Transaction>
+        {
+            new() { Date = date, AmountIdr = 100.005m,
+                    Description = "PF-S08  Boundary", Flow = "CR" }
+        };
+
+        Assert.Empty(TransactionService.FilterLogic(incoming, existing));
+    }
+
+    [Fact]
     public void FilterLogic_DifferentAccountId_NotFilteredOut()
     {
         // Arrange — same transaction text but different bank account -> distinct, not a duplicate

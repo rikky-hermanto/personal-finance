@@ -1,6 +1,7 @@
 """Graph routing tests — verify should_continue routing logic."""
 import pytest
 import asyncio
+import importlib
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -242,11 +243,18 @@ async def test_selected_missing_key_uses_graph_fallback_without_inactive_provide
     unused.assert_not_called()
 
 
-async def test_advisor_http_contract_with_mocked_model(harness):
+async def test_advisor_http_contract_with_mocked_model(harness, monkeypatch):
     agent, service, graph, llm, callback = harness
     from app.main import app
+    from app.config import settings
+    main_module = importlib.import_module("app.main")
+    monkeypatch.setattr(settings, "cashflow_pilot_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
+    monkeypatch.setattr(main_module, "_PILOT_INTERNAL_ROUTES",
+                        main_module._PILOT_INTERNAL_ROUTES | {"/advisor"})
     llm.ainvoke.return_value = AIMessage(content=[{"type": "text", "text": "Mock answer"}])
-    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test",
+                                headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/advisor", json={"query": "Synthetic", "date_from": "2026-01-01"})
         invalid = await client.post("/advisor", json={"query": ""})
     assert response.status_code == 200
