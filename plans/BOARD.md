@@ -4,6 +4,7 @@
 > **Issues:** https://github.com/rikky-hermanto/personal-finance/issues
 > **Last remote sync recorded:** 2026-09-02
 > **Local implementation reconciliation:** 2026-10-08 — source and local plans only; no GitHub issue/project status verified or changed.
+> **Local planning update:** 2026-10-10 — PF-S08/S09 remain in progress in worktree pf-s08-auth-cashflow. Disposable A/B .NET, PostgREST, GraphQL, Storage and browser isolation checks pass, including concurrent reads, checked writes, CSV preview/submit parity, Realtime A/B visibility and 1001-row export. Exposed-schema grant, two injected import-fault audits, and the owner-mapping gate pass; a staged rollout runbook is ready. Remaining parity/fault cases, populated upgrade and rollout remain. Both pilot flags default off. No remote status changed.
 
 This file is the shared local snapshot. GitHub Project #4 remains the source of truth for GitHub-linked issues. Local plan status is reflected by its folder; see [plan workspace rules](README.md). Update this file after each local task operation without implying a remote change.
 
@@ -123,8 +124,8 @@ This file is the shared local snapshot. GitHub Project #4 remains the source of 
 | ~~PF-S05~~ | ~~[#68](https://github.com/rikky-hermanto/personal-finance/issues/68)~~ | ~~Annotate Domain entities for Supabase PostgREST~~ | ~~2~~ |
 | ~~PF-S06~~ | ~~[#69](https://github.com/rikky-hermanto/personal-finance/issues/69)~~ | ~~Rewrite CQRS handlers + services — DbContext → supabase-csharp~~ | ~~2~~ |
 | ~~PF-S07~~ | ~~[#70](https://github.com/rikky-hermanto/personal-finance/issues/70)~~ | ~~Delete PersonalFinance.Persistence project — eliminate EF Core~~ | ~~2~~ |
-| PF-S08 | [#71](https://github.com/rikky-hermanto/personal-finance/issues/71) | Supabase Auth — JWT middleware + user_id columns + RLS policies | 3 |
-| PF-S09 | [#72](https://github.com/rikky-hermanto/personal-finance/issues/72) | Frontend Supabase Auth — login/signup + JWT forwarding | 3 |
+| PF-S08 | [#71](https://github.com/rikky-hermanto/personal-finance/issues/71) | Backend foundation — JWKS/request-scoped clients, owner reads and checked import/account/rule/Bucket writes; disposable A/B API, PostgREST, GraphQL, Storage, CSV preview/submit, exposed grants, injected rollback faults and 1001-row proof passed. Populated upgrade, remaining parity/fault cases and rollout pending; flags off. [Shared plan](in-progress/PF-S08-auth-foundation-cashflow-ownership-todo.md). No remote closure implied. | 3 |
+| PF-S09 | [#72](https://github.com/rikky-hermanto/personal-finance/issues/72) | Frontend foundation — login/session, authenticated fetch and query/realtime lifecycle implemented; browser A/B login, reload, logout, late-response, Realtime visibility, mobile controls, keyboard Enter and theme toggle proof passed. Expired-token refresh and broader accessibility checks pending. In Progress within [shared PF-S08 plan](in-progress/PF-S08-auth-foundation-cashflow-ownership-todo.md). Public signup deferred. | 3 |
 | ~~PF-S10~~ | ~~[#73](https://github.com/rikky-hermanto/personal-finance/issues/73)~~ | ~~Supabase Storage — bank-statements bucket + StorageService + upload endpoint~~ | ~~4~~ |
 | PF-S11 | [#74](https://github.com/rikky-hermanto/personal-finance/issues/74) | Event-driven AI pipeline — statement_uploads + Webhook + Python /webhooks/process | 5 |
 | PF-S12 | [#75](https://github.com/rikky-hermanto/personal-finance/issues/75) | Supabase Realtime — React subscription for live AI processing status | 5 |
@@ -188,6 +189,7 @@ This file is the shared local snapshot. GitHub Project #4 remains the source of 
 
 | ID | Issue | Reason |
 |----|-------|--------|
+| PF-107 Phase 5 | _(local plan)_ | Superseded 2026-10-09 by Auth Foundation + Cashflow Ownership (PF-S08/S09). [Archived original](cancelled/PF-107-phase-5-auth-and-tax-todo.md) retains reason and history; Goals/tax/full Assets isolation remain deferred in the replacement. |
 | PF-039 | [#47](https://github.com/rikky-hermanto/personal-finance/issues/47) | Absorbed into PF-S06 (handler rewrite fixes N+1) |
 | PF-040 | [#48](https://github.com/rikky-hermanto/personal-finance/issues/48) | Absorbed into PF-S06 (dashboard aggregation rewrite) |
 | PF-044 | [#53](https://github.com/rikky-hermanto/personal-finance/issues/53) | Absorbed into PF-S10 (validation pipeline — Supabase-integrated version) |
