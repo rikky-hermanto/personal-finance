@@ -36,7 +36,7 @@ These conventions apply to every skill in `.agents/skills/`.
 
 ## Tools and execution
 
-- Use standalone skill names such as `plan`, `execute`, and `review-plan`, without
+- Use standalone skill names such as `plan`, `execute`, and `consult`, without
   a `mentor:` prefix. `mentor` handles learning/curriculum requests; it is not a
   namespace or a general implementation workflow.
 - Skill names refer to `.agents/skills/<name>/SKILL.md`. Read the file directly or use

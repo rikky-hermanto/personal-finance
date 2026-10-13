@@ -35,32 +35,12 @@
   "model": "opusplan",
   "includeCoAuthoredBy": false,
   "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/hooks/push-notify.sh"
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "hooks": [
           {
             "type": "command",
             "command": "py c:/workspaces/personal-finance/.claude/hooks/plan-complete-sync.py"
-          }
-        ]
-      },
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "py c:/workspaces/personal-finance/.claude/hooks/skill-review-reminder.py",
-            "statusMessage": "Reflecting on skill usage..."
           }
         ]
       }

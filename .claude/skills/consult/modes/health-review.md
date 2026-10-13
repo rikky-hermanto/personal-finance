@@ -14,13 +14,13 @@ Two failure modes ruin this review — guard against both:
 ## Arguments
 
 `$ARGUMENTS` — optional focus area:
-- `/arch-review` → full-stack review (default)
-- `/arch-review backend` → .NET API only
-- `/arch-review frontend` → React app only
-- `/arch-review ai-service` → Python FastAPI service only
-- `/arch-review data-flow` → end-to-end data path: upload → parse → validate → persist → display
-- `/arch-review security` → auth posture, secret handling, upload validation, RLS state
-- `/arch-review tests` → test coverage, skipped tests, E2E health
+- `/consult health` → full-stack review (default)
+- `/consult health backend` → .NET API only
+- `/consult health frontend` → React app only
+- `/consult health ai-service` → Python FastAPI service only
+- `/consult health data-flow` → end-to-end data path: upload → parse → validate → persist → display
+- `/consult health security` → auth posture, secret handling, upload validation, RLS state
+- `/consult health tests` → test coverage, skipped tests, E2E health
 
 ---
 
@@ -219,5 +219,5 @@ Then engage as a discussion partner:
 - "What should we do about X?" → give one concrete recommendation with tradeoffs — not a menu of options
 - User proposes a new idea → evaluate it against the architecture you just read: what fits naturally, what requires structural change, what's a dead end
 - "What would you add next?" → check `docs/STATUS.md` and `plans/BOARD.md` for planned-but-unbuilt work, recommend what the current foundation best supports
-- Any idea worth pursuing → offer `/plan` (produces `PF-{n}-{short-kebab-slug}-todo.md`), `/battle-plans` for competing approaches, or `/council` for contested decisions
+- Any idea worth pursuing → offer `/plan` (produces `PF-{n}-{short-kebab-slug}-todo.md`), `/consult battle` for competing approaches, or `/council` for contested decisions
 - Findings worth tracking → offer to file them as GitHub issues (`PF-XXX`) per the Task Management workflow in CLAUDE.md

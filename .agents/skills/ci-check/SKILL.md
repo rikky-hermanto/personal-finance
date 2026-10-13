@@ -37,6 +37,10 @@ Inspect changed files for accidental secrets without printing secret values. If 
 secret scanner is available and appropriate, run it with redacted output and report
 its scope. Do not claim secret scanning occurred based only on a manual review.
 
+Quick mode (formerly the `test-all` skill): when the user asks only for a test sweep,
+run just the `dotnet test`, `npm run lint`, `test:desk`, `test:macro`, and pytest rows,
+and run `npm run e2e` from `apps/frontend` only if E2E is in scope and services are up.
+
 Report each check as passed, failed, or not run, including warnings and skipped-test
 counts. Fix task-related failures when authorized; otherwise explain the failure and
 the smallest next step. Do not change lint rules, types, or tests just to suppress

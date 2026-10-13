@@ -26,6 +26,13 @@ Start here. This file points to things; it never repeats them.
 - "Make or change a screen, page, or component" → `design/` (data-oriented-zenmode or data-oriented-theme)
 - "Use TypeSafe / Jev" → skill typesafe-ai; Jev setup in `docs/codex/jev-setup.md`
 - "Tidy up the repo" → skill chores
+- "Find what I keep asking for" or "make this a template" → skill job-templates; templates live in `ai/<job>/templates/` or in the repo where the job happens (below)
+- "Audit my AI setup" or "a new model came out, what can I cut" → skill ai-setup-audit; past reports are in `ai/audits/`
+- "Where were we? / status terakhir / what's next" → `C:\workspaces\tarombo\templates\status-check.md` (any repo)
+- "Review the plan for <task>, don't implement" → `C:\workspaces\tarombo\templates\plan-readiness-review.md` (any repo)
+- "Give me a concise prompt for the next chat" → `C:\workspaces\tarombo\templates\handoff-prompt.md` (any repo)
+- "Approved, merge to main, commit push, start clean" → `C:\workspaces\tarombo\templates\task-close-out.md` (any repo)
+- "Reach out / reply / connection note / cover letter" → `C:\workspaces\career-ops\data\templates\outreach-message.md`
 - "Start the app / a service" → skill docker-up
 
 ## Where things live

@@ -30,4 +30,4 @@ exposure are independent of popularity; route to cio/risk-officer/compliance as 
 For a substantive verdict, save a dated note under docs/codex/ideas/ with sources,
 assumptions, score, and decision; preserve prior captures rather than overwrite them.
 Do not create GitHub issues, implementation plans, or code automatically. Use
-braindump for capture-only requests.
+a plain note in docs/ideas/ for capture-only requests.

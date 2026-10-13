@@ -1,43 +1,22 @@
 ---
 description: Rules for Docker and container configuration
-globs: docker-compose.yml,Dockerfile,api/Dockerfile,nginx.conf,.dockerignore,api/.dockerignore
+globs: docker-compose.yml,**/Dockerfile,nginx.conf,**/.dockerignore,supabase/config.toml
 ---
 
 # Docker & Container Rules
 
-## Service Topology
+## Topology (verify against `docker-compose.yml` before acting)
 
-| Service    | Image               | Container Port | Host Port | Healthcheck |
-|------------|---------------------|----------------|-----------|-------------|
-| `db`       | postgres:16-alpine  | 5432           | 5432      | pg_isready  |
-| `api`      | .NET 9 multi-stage  | 7208           | 7208      | —           |
-| `frontend` | Node 20 + Nginx     | 80             | 8080      | —           |
+- **Supabase** (Postgres 17, Auth, Storage, Studio) runs via the Supabase CLI (`npx supabase start`), **not** compose. This is the real database.
+- **Compose** holds: `db` (legacy `postgres:16-alpine`, kept only for the NpgSql health check / older flows), `api` (.NET 10, port 7208), `ai-service` (Python 3.12, port 8000), `frontend` (Node 20 build → nginx, host port 8080), and the monitoring stack `alloy`, `prometheus`, `loki`, `tempo`, `grafana` (3000).
+- `npm start` starts Supabase + `db` + monitoring containers, then runs API, frontend, and AI service as **local processes**, not containers.
+- There are **no EF Core startup migrations** (EF was removed in PF-S07). Schema changes are SQL files in `supabase/migrations/`.
 
-**Startup order:** `db` (with healthcheck) → `api` (depends on db healthy) → `frontend` (depends on api)
+## Rules
 
-## Key Behaviors
-
-- API auto-migrates EF Core on startup (`Program.cs`) — no manual migration step needed
-- Frontend bakes `VITE_API_URL` at build time via Docker build arg
-- PostgreSQL data persists in `postgres_data` named volume
-- `docker compose down -v` **destroys the database volume** — use with caution
-
-## Conventions
-
-- Always use `docker compose` (V2 syntax), NEVER `docker-compose` (V1)
-- Use `--build` flag when source code changed: `docker compose up --build`
-- DB credentials: `postgres` / `***REMOVED-OLD-DEV-PASSWORD***` (dev only — never use in production)
-- API environment: `ASPNETCORE_ENVIRONMENT=Development` in compose
-- Container names: `personalfinance-db`, `personalfinance-api`, `personalfinance-frontend`
-
-## Common Commands
-
-```
-docker compose up --build          # Start all with rebuild
-docker compose up --build db api   # Start only DB + API
-docker compose up db               # Start only DB (for local .NET dev)
-docker compose down                # Stop all containers
-docker compose down -v             # Stop + destroy DB volume
-docker compose logs -f api         # Stream API logs
-docker compose ps                  # Check service status
-```
+- Always `docker compose` (V2), never `docker-compose`.
+- Check `docker compose ps` and health/logs first; start or rebuild only what the task needs. Use `--build` only when container source changed.
+- `docker compose down -v`, volume removal, and pruning destroy data — only with explicit authorization. Plain `down`/`stop` is fine.
+- Vite `VITE_*` values are baked into the frontend build at build time — never put a service-role key there.
+- Read `.env.example` for variable names; never print secret values or hardcode DB passwords in docs.
+- Preserve volumes, health checks, networks, and `depends_on` when editing compose.

@@ -77,7 +77,7 @@ For each VERIFIED COMPLETE plan (and POSSIBLY COMPLETE where issue is CLOSED):
 Move-Item "plans/in-progress/<file>.md" "plans/done/<file>.md"
 ```
 
-After moving, update the local `plans/BOARD.md` status and links in the same task. Use `/kanban-sync` when GitHub-linked status also needs reconciliation; the board's source-of-truth rules still apply.
+After moving, update the local `plans/BOARD.md` status and links in the same task. The board's source-of-truth rules still apply.
 
 ### Step 4 — Report stale plans
 
@@ -289,4 +289,4 @@ Move plans when the user's task already authorizes the cleanup; otherwise report
 - **Never touch `src/components/ui/`** — shadcn/ui managed files.
 - **Never commit** — leave all changes (moves, edits) uncommitted for user review.
 - **One plan move at a time is fine** — no need to batch into a single git operation.
-- After archiving plans, update local `plans/BOARD.md` status and links in the same task. Recommend updates to `docs/STATUS.md`'s `## Known Tech Debt` section (and `CLAUDE.md`'s `## Known Gotchas`) if any items were resolved — apply only after user confirmation. Use `/kanban-sync` when GitHub-linked status needs reconciliation.
+- After archiving plans, update local `plans/BOARD.md` status and links in the same task. Recommend updates to `docs/STATUS.md`'s `## Known Tech Debt` section (and `CLAUDE.md`'s `## Known Gotchas`) if any items were resolved — apply only after user confirmation.
