@@ -1,8 +1,14 @@
 # PF-107 Phase 5 — Auth Retrofit + Tax Reporting + Goals
 
+> **Archive date:** 2026-10-09 (Asia/Makassar)
+> **Disposition:** Superseded — retained for history; do not execute the SQL/design below.
+> **Replacement:** [PF-S08 — Supabase Auth Foundation + Cashflow Ownership](../backlog/PF-S08-auth-foundation-cashflow-ownership-todo.md).
+> **Reason:** User chose auth/identity and transaction ownership first. The old plan mixes unrelated Goals/tax work, waits unnecessarily for Phase 4, assumes an existing JWT/keyed-client pattern, applies owner policies to shared caches without user_id, and relies on insufficient sales history/tax methodology. The replacement addresses request-scoped clients, legacy ownership, complete Cashflow paths and explicit denial of unscoped features.
+> **Preserved follow-ups:** Goals, structured disposal/tax support, full Assets isolation and jobs are deferred in the replacement plan, not completed or discarded. Original content below is retained except this status correction. No GitHub issue closed.
+
 > **Parent Issue:** PF-107 (Assets Management)
 > **Phase:** 5 of 6 — Security, compliance, and goals
-> **Status:** Not started
+> **Status:** Cancelled / superseded (implementation was not started)
 > **Depends on:** Phase 4 complete + PF-S08 (Supabase Auth JWT middleware) complete
 > **Blocks:** Nothing — this is the final phase
 
