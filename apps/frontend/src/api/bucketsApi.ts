@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:7208';
 
 export interface CommittedItem {
@@ -86,20 +87,20 @@ async function toJson<T>(res: Response): Promise<T> {
 }
 
 export const getBuckets = (): Promise<BucketsResponse> =>
-  fetch(`${BASE}/api/buckets`).then(toJson<BucketsResponse>);
+  authenticatedFetch(`${BASE}/api/buckets`).then(toJson<BucketsResponse>);
 
 export const getMonthClose = (): Promise<MonthClose> =>
-  fetch(`${BASE}/api/buckets/month-close`).then(toJson<MonthClose>);
+  authenticatedFetch(`${BASE}/api/buckets/month-close`).then(toJson<MonthClose>);
 
 export const setFuturePlan = (futureMonthlyAmount: number): Promise<BucketsResponse> =>
-  fetch(`${BASE}/api/buckets/future-plan`, {
+  authenticatedFetch(`${BASE}/api/buckets/future-plan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ futureMonthlyAmount }),
   }).then(toJson<BucketsResponse>);
 
 export const demoteCommittedItem = (itemKey: string): Promise<BucketsResponse> =>
-  fetch(`${BASE}/api/buckets/committed-items/demote`, {
+  authenticatedFetch(`${BASE}/api/buckets/committed-items/demote`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ itemKey }),

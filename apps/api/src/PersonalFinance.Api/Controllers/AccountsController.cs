@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Application.Commands.Accounts;
 using PersonalFinance.Application.Commands.Institutions;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using static Supabase.Postgrest.Constants;
 
@@ -10,14 +11,17 @@ namespace PersonalFinance.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AccountsController(IMediator mediator, Supabase.Client supabase) : ControllerBase
+public class AccountsController(IMediator mediator, Supabase.Client supabase, ICurrentUser caller,
+    ITransactionService transactions, ICashflowMutationService mutations) : ControllerBase
 {
     // ── Institutions ──────────────────────────────────────────────────────────
 
     [HttpGet("institutions")]
     public async Task<IActionResult> GetInstitutions()
     {
-        var result = await supabase.From<Institution>().Order("name", Ordering.Ascending).Get();
+        var result = await supabase.From<Institution>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
+            .Order("name", Ordering.Ascending).Get();
         var dtos = result.Models.Select(i => new InstitutionDto(i.Id, i.Name, i.Type, i.Country, i.LogoUrl));
         return Ok(dtos);
     }
@@ -50,7 +54,9 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
     [HttpGet]
     public async Task<IActionResult> GetAccounts()
     {
-        var result = await supabase.From<Account>().Order("name", Ordering.Ascending).Get();
+        var result = await supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
+            .Order("name", Ordering.Ascending).Get();
         var dtos = result.Models.Select(a => ToDto(a));
         return Ok(dtos);
     }
@@ -82,6 +88,7 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
     public async Task<IActionResult> GetAccountBalances()
     {
         var accounts = await supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Filter("is_active", Operator.Equals, "true")
             .Filter("include_in_cashflow", Operator.Equals, "true")
             .Order("name", Ordering.Ascending)
@@ -90,16 +97,14 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
         if (!accounts.Models.Any())
             return Ok(Array.Empty<AccountBalanceDto>());
 
-        var txResult = await supabase.From<Transaction>()
-            .Select("account_id,flow,amount_idr,date")
-            .Get();
-
-        var txByAccount = txResult.Models
+        var txRows = await transactions.GetTransactionsWithBalanceAsync();
+        var txByAccount = txRows
             .Where(t => t.AccountId.HasValue)
             .GroupBy(t => t.AccountId!.Value)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var institutions = await supabase.From<Institution>().Get();
+        var institutions = await supabase.From<Institution>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString()).Get();
         var instMap = institutions.Models.ToDictionary(i => i.Id, i => i.Name);
 
         var balances = accounts.Models.Select(a =>
@@ -125,39 +130,26 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase) : 
     [HttpPatch("{id:guid}/cashflow")]
     public async Task<IActionResult> SetCashflowFlag(Guid id, [FromBody] bool include)
     {
-        var existing = await supabase.From<Account>()
+        if (!await mutations.SetAccountCashflowFlagAsync(id, include, HttpContext.RequestAborted))
+            return NotFound();
+        var updated = await supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
             .Single();
-        if (existing == null) return NotFound();
-
-        await supabase.From<Account>()
-            .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
-            .Set(x => x.IncludeInCashflow, include)
-            .Set(x => x.UpdatedAt, DateTime.UtcNow)
-            .Update();
-
-        existing.IncludeInCashflow = include;
-        return Ok(ToDto(existing));
+        return updated == null ? NotFound() : Ok(ToDto(updated));
     }
 
     [HttpPatch("{id:guid}/opening-balance")]
     public async Task<IActionResult> SetOpeningBalance(Guid id, [FromBody] SetOpeningBalanceRequest req)
     {
-        var existing = await supabase.From<Account>()
+        if (!await mutations.SetOpeningBalanceAsync(id, req.OpeningBalance,
+                req.OpeningDate, HttpContext.RequestAborted))
+            return NotFound();
+        var updated = await supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
             .Single();
-        if (existing == null) return NotFound();
-
-        await supabase.From<Account>()
-            .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())
-            .Set(x => x.OpeningBalance, req.OpeningBalance)
-            .Set(x => x.OpeningDate, req.OpeningDate.ToDateTime(TimeOnly.MinValue))
-            .Set(x => x.UpdatedAt, DateTime.UtcNow)
-            .Update();
-
-        existing.OpeningBalance = req.OpeningBalance;
-        existing.OpeningDate = req.OpeningDate.ToDateTime(TimeOnly.MinValue);
-        return Ok(ToDto(existing));
+        return updated == null ? NotFound() : Ok(ToDto(updated));
     }
 
     private static AccountDto ToDto(Account a) => new(

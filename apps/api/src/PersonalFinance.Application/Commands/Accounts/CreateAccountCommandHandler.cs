@@ -3,11 +3,16 @@ using MediatR;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Commands.Accounts;
 using PersonalFinance.Domain.Entities;
+using PersonalFinance.Application.Interfaces;
+using static Supabase.Postgrest.Constants;
+using PersonalFinance.Application.Dtos;
 
 public class CreateAccountCommandHandler(
     Supabase.Client supabase,
     IValidator<CreateAccountCommand> validator,
-    ILogger<CreateAccountCommandHandler> logger
+    ILogger<CreateAccountCommandHandler> logger,
+    ICurrentUser caller,
+    ICashflowMutationService mutations
 ) : IRequestHandler<CreateAccountCommand, Account>
 {
     public async Task<Account> Handle(CreateAccountCommand request, CancellationToken cancellationToken)
@@ -15,28 +20,11 @@ public class CreateAccountCommandHandler(
         logger.LogDebug("Creating account: {Name}", request.Name);
         await validator.ValidateAndThrowAsync(request, cancellationToken);
 
-        // Investment/debt accounts default to excluded from cashflow
-        var excludeFromCashflow = new HashSet<string> { "brokerage", "loan" };
-
-        var entity = new Account
-        {
-            Id = Guid.NewGuid(),
-            UserId = Guid.Empty, // PF-S08 will replace with JWT user_id
-            InstitutionId = request.InstitutionId,
-            Name = request.Name,
-            AccountType = request.AccountType,
-            Currency = request.Currency,
-            OpeningBalance = request.OpeningBalance,
-            OpeningDate = request.OpeningDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
-            IncludeInCashflow = !excludeFromCashflow.Contains(request.AccountType),
-            Color = request.Color,
-            Icon = request.Icon,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        var result = await supabase.From<Account>().Insert(entity);
-        var inserted = result.Models.First();
+        var id = await mutations.CreateAccountAsync(request, cancellationToken);
+        var inserted = await supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
+            .Filter("id", Operator.Equals, id.ToString())
+            .Single() ?? throw new CashflowMutationException(CashflowMutationFailure.BackendFailure);
         logger.LogInformation("Account created with ID: {Id}", inserted.Id);
         return inserted;
     }

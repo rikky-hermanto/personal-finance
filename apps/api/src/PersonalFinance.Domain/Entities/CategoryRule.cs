@@ -9,6 +9,9 @@ public class CategoryRule : BaseModel
     [PrimaryKey("id", shouldInsert: false)]
     public int Id { get; set; }
 
+    [Column("user_id")]
+    public Guid? UserId { get; set; }
+
     [Column("keyword")]
     public string Keyword { get; set; } = string.Empty;
 

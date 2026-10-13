@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     ai_model: str = "gemini-2.5-flash"
 
     log_level: str = "INFO"
+    cashflow_pilot_enabled: bool = False
+    internal_api_key: str = ""
     cors_origins: list[str] = ["http://localhost:7208", "http://localhost:8080"]
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
     otel_service_name: str = "ai-service"

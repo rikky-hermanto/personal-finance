@@ -4,6 +4,13 @@ from httpx import AsyncClient, ASGITransport
 
 from app.main import app
 from app.services.llm_parser import LlmParser
+from app.config import settings
+
+
+@pytest.fixture(autouse=True)
+def internal_pilot(monkeypatch):
+    monkeypatch.setattr(settings, "cashflow_pilot_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
 
 
 def _fake_extraction(transactions: list[dict]) -> dict:
@@ -23,7 +30,7 @@ async def test_parse_happy_path():
     mock_provider.extract_structured = AsyncMock(return_value=_fake_extraction([fake_tx]))
     app.state.parser = LlmParser(provider=mock_provider)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/parse", json={"text": "some bank text"})
 
     assert response.status_code == 200
@@ -35,7 +42,7 @@ async def test_parse_happy_path():
 @pytest.mark.anyio
 async def test_parse_empty_text_returns_422():
     """Empty text fails Pydantic min_length=1 before reaching the provider."""
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/parse", json={"text": ""})
     assert response.status_code == 422
 
@@ -47,7 +54,7 @@ async def test_parse_provider_error_returns_502():
     mock_provider.extract_structured = AsyncMock(side_effect=Exception("provider down"))
     app.state.parser = LlmParser(provider=mock_provider)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/parse", json={"text": "some bank text"})
 
     assert response.status_code == 502
@@ -64,7 +71,7 @@ async def test_parse_skips_invalid_rows():
     )
     app.state.parser = LlmParser(provider=mock_provider)
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"}) as client:
         response = await client.post("/parse", json={"text": "some bank text"})
 
     assert response.status_code == 200

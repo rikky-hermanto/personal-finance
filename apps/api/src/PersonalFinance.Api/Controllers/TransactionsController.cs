@@ -28,7 +28,8 @@ public class TransactionsController : ControllerBase
     private readonly IFileStorageService _fileStorageService;
     private readonly ITransactionPipelineService _pipelineService;
     private readonly Supabase.Client _supabase;
-    private readonly ILlmSearchClient _searchClient;
+    private readonly ICurrentUser _caller;
+    private readonly ICashflowMutationService _cashflowMutations;
 
     public TransactionsController(
         ILogger<TransactionsController> logger,
@@ -42,7 +43,8 @@ public class TransactionsController : ControllerBase
         IFileStorageService fileStorageService,
         ITransactionPipelineService pipelineService,
         Supabase.Client supabase,
-        ILlmSearchClient searchClient)
+        ICurrentUser caller,
+        ICashflowMutationService cashflowMutations)
     {
         _logger = logger;
         _statementImportService = statementImportService;
@@ -55,7 +57,8 @@ public class TransactionsController : ControllerBase
         _fileStorageService = fileStorageService;
         _pipelineService = pipelineService;
         _supabase = supabase;
-        _searchClient = searchClient;
+        _caller = caller;
+        _cashflowMutations = cashflowMutations;
     }
 
     [HttpGet("health")]
@@ -250,69 +253,23 @@ public class TransactionsController : ControllerBase
     [HttpPost("submit")]
     public async Task<IActionResult> SubmitTransactions([FromBody] SubmitTransactionsRequest request)
     {
-        if (request.Transactions == null || request.Transactions.Count == 0)
-            return BadRequest("No transactions to submit.");
+        if (request.RequestId == Guid.Empty || request.Transactions is not { Count: > 0 and <= 5000 })
+            return BadRequest(new { Code = "invalid_import" });
 
-        await _categoryRuleService.EnsureCategoryRulesAsync(request.Transactions);
-
-        // Re-resolve account_id per-row from Wallet text as safety net.
-        // Guards against accountId being dropped between preview and submit (JSON undefined → null)
-        // and handles multi-bank master CSVs where each row has a different wallet.
-        await ResolveAccountIdsAsync(request.Transactions);
-
-        var nonDuplicates = await _transactionService.FilterOutDuplicatesAsync(request.Transactions);
-        if (nonDuplicates.Count == 0)
+        try
         {
-            return Ok(new
-            {
-                Message = "All transactions are duplicates. Nothing to import.",
-                Transactions = new List<TransactionDto>()
-            });
+            var result = await _cashflowMutations.SubmitAsync(request.RequestId,
+                request.Transactions, request.FileHash, request.FileName, HttpContext.RequestAborted);
+            return Ok(result);
         }
-
-        var addedTransactions = await _transactionService.AddTransactionsAsync(nonDuplicates);
-
-        // Fire-and-forget: embed transactions for semantic search after successful insert.
-        // Failure here must not break the upload response — embedding is optional enrichment.
-        _ = Task.Run(async () =>
+        catch (CashflowMutationException ex)
         {
-            try
-            {
-                var embedItems = addedTransactions
-                    .Where(t => t.Id > 0)
-                    .Select(t => new EmbedItemRequest(
-                        TransactionId: t.Id,
-                        Description:   t.Description,
-                        Remarks:       t.Remarks ?? "",
-                        Category:      t.Category ?? "",
-                        Wallet:        t.AccountName ?? ""))
-                    .ToList();
-                if (embedItems.Count > 0)
-                    await _searchClient.EmbedTransactionsAsync(embedItems);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Background embed failed for {Count} transactions", addedTransactions.Count);
-            }
-        }, CancellationToken.None);
-
-        if (!string.IsNullOrEmpty(request.FileHash))
-            await _transactionService.RegisterFileHashAsync(request.FileHash, request.FileName ?? "uploaded_file");
-
-        // Upsert alias: persist account name → account_id mapping for future auto-resolution
-        var first = request.Transactions.FirstOrDefault(t => t.AccountId.HasValue && !string.IsNullOrWhiteSpace(t.AccountName));
-        if (first != null)
-            await _transactionService.UpsertAliasAsync(first.AccountName, first.AccountId!.Value);
-
-        return Ok(new
-        {
-            Message = $"{addedTransactions.Count} transactions imported successfully.",
-            Transactions = addedTransactions
-        });
+            return MutationError(ex);
+        }
     }
-
     public class SubmitTransactionsRequest
     {
+        public Guid RequestId { get; set; }
         public List<TransactionDto> Transactions { get; set; } = [];
         public string? FileHash { get; set; }
         public string? FileName { get; set; }
@@ -376,20 +333,19 @@ public class TransactionsController : ControllerBase
         var since = DateTime.UtcNow.AddMonths(-months);
 
         var accountsResult = await _supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Filter("include_in_cashflow", Operator.Equals, "true")
             .Order("name", Ordering.Ascending)
             .Get();
 
         var institutionsResult = await _supabase.From<Institution>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Get();
         var instMap = institutionsResult.Models.ToDictionary(i => i.Id, i => i.Name);
 
-        var txResult = await _supabase.From<Transaction>()
-            .Filter("date", Operator.GreaterThanOrEqual, since)
-            .Range(0, 100_000)
-            .Get();
-
-        var grouped = txResult.Models
+        var txRows = await _transactionService.GetTransactionsWithBalanceAsync();
+        var grouped = txRows
+            .Where(t => t.Date >= since)
             .Where(t => t.AccountId.HasValue)
             .GroupBy(t => t.AccountId!.Value)
             .ToDictionary(
@@ -434,6 +390,7 @@ public class TransactionsController : ControllerBase
         if (accountId == null) return NotFound();
 
         var account = await _supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
             .Filter("id", Operator.Equals, accountId.Value.ToString())
             .Single();
         if (account == null) return NotFound();
@@ -442,6 +399,7 @@ public class TransactionsController : ControllerBase
         if (account.InstitutionId.HasValue)
         {
             var inst = await _supabase.From<Institution>()
+                .Filter("user_id", Operator.Equals, _caller.UserId.ToString())
                 .Filter("id", Operator.Equals, account.InstitutionId.Value.ToString())
                 .Single();
             institutionName = inst?.Name ?? string.Empty;
@@ -494,9 +452,27 @@ public class TransactionsController : ControllerBase
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     public async Task<IActionResult> ResetAllTransactions()
     {
-        var deleted = await _mediator.Send(new DeleteAllTransactionsCommand());
-        return Ok(new { deleted });
+        try
+        {
+            var deleted = await _cashflowMutations.ResetAsync(HttpContext.RequestAborted);
+            return Ok(new { deleted });
+        }
+        catch (CashflowMutationException ex)
+        {
+            return MutationError(ex);
+        }
     }
+
+    private IActionResult MutationError(CashflowMutationException exception) => exception.Failure switch
+    {
+        CashflowMutationFailure.InvalidInput => BadRequest(new { Code = "invalid_import" }),
+        CashflowMutationFailure.AccountUnavailable => NotFound(new { Code = "account_unavailable" }),
+        CashflowMutationFailure.IdempotencyConflict => Conflict(new { Code = "idempotency_conflict" }),
+        CashflowMutationFailure.FileAlreadyProcessed => Conflict(new { Code = "file_already_processed" }),
+        CashflowMutationFailure.ConstraintConflict => Conflict(new { Code = "import_constraint_conflict" }),
+        CashflowMutationFailure.Retryable => StatusCode(503, new { Code = "retry_import" }),
+        _ => StatusCode(500, new { Code = "cashflow_unavailable" })
+    };
 
     // Resolves account_id per-transaction from each row's AccountName field.
     // All three lookups (accounts, institutions, aliases) fire in parallel — one round-trip each.
@@ -509,8 +485,10 @@ public class TransactionsController : ControllerBase
 
         var distinctWallets = unlinked.Select(t => t.AccountName).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        var accountsTask      = _supabase.From<Account>().Get();
-        var institutionsTask  = _supabase.From<Institution>().Get();
+        var accountsTask      = _supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString()).Get();
+        var institutionsTask  = _supabase.From<Institution>()
+            .Filter("user_id", Operator.Equals, _caller.UserId.ToString()).Get();
         var aliasTask         = _transactionService.ResolveAliasesBatchAsync(distinctWallets);
         await Task.WhenAll(accountsTask, institutionsTask, aliasTask);
 
@@ -534,8 +512,6 @@ public class TransactionsController : ControllerBase
             if (matchId.HasValue)
             {
                 _logger.LogInformation("Resolved account_id {AccountId} for wallet '{Wallet}' (fuzzy={IsFuzzy})", matchId, wallet, isFuzzy);
-                if (isFuzzy)
-                    await _transactionService.UpsertAliasAsync(wallet, matchId.Value);
             }
             else
                 _logger.LogWarning("Could not resolve account_id for wallet '{Wallet}'", wallet);
