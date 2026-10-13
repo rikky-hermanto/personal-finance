@@ -5,7 +5,7 @@ description: "Compare two concrete proposals through product-owner or architect 
 
 # battle-plans
 
-Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+Read [shared Codex workflow conventions](../../../WORKFLOWS.md) before using this skill.
 
 Resolve explicit files or matching teamA/teamB proposals across the plan status folders.
 Read both fully and inspect relevant implementation.

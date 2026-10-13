@@ -24,3 +24,15 @@ do not repeatedly restart an unchanged failure.
 
 Never use down -v, prune, volume deletion, or database reset as routine startup.
 Report what was started/reused, URLs from actual configuration, health, and blockers.
+
+## AI service only (formerly the run-ai-service skill)
+
+Read AI service instructions, pyproject.toml, config code, and the environment example.
+Do not assume Anthropic is the selected provider. Check credential presence without
+printing values. From services/ai-service, use the existing .venv/Scripts/python.exe:
+- start: .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+- tests: .\.venv\Scripts\python.exe -m pytest (inspect scope for live evaluations first).
+If dependencies are missing, set up only within the task; never install into global
+Python. Check GET /health; a healthy response does not prove provider credentials work.
+Real extraction, embeddings, advisor calls, and paid evaluations need task authorization.
+Never send personal statements or expose keys in diagnostic output.

@@ -1,5 +1,9 @@
 # Personal Finance — Claude Code Guide
 
+**Start here:** [ai/MAP.md](ai/MAP.md) maps every job (build, decide, write, learn, design) to its skills, templates, and examples.
+
+@ai/shared/preferences.md
+
 ## Project Overview
 
 > **"Finance should feel like a game you're winning, not a spreadsheet you're losing."**
@@ -223,92 +227,10 @@ services/
 
 ## Quick Commands
 
-### Frontend
-- Install: `cd apps/frontend && npm install`
-- Dev server: `cd apps/frontend && npm run dev` (port 8080)
-- Build: `cd apps/frontend && npm run build`
-- Lint: `cd apps/frontend && npm run lint`
-
-### Backend (.NET)
-- Restore: `cd apps/api && dotnet restore PersonalFinance.slnx`
-- Build: `cd apps/api && dotnet build PersonalFinance.slnx`
-- Run API: `cd apps/api && dotnet run --project src/PersonalFinance.Api`
-- Run tests: `cd apps/api && dotnet test`
-- Single test: `cd apps/api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
-
-### Supabase (local dev)
-- Start local stack: `supabase start` (Postgres, Auth, Storage, Realtime, Studio)
-- Stop local stack: `supabase stop`
-- Apply migrations: `supabase db push`
-- Reset local DB: `supabase db reset`
-- Open Studio: `http://localhost:54323`
-
-### AI Service (Python)
-- Setup: `cd services/ai-service && python -m venv .venv && source .venv/bin/activate && pip install -e .`
-- Run: `cd services/ai-service && uvicorn app.main:app --reload --port 8000`
-- Test: `cd services/ai-service && pytest`
-
-### Start everything (recommended)
-```
-npm start
-```
-Starts Supabase (Docker), LGTM stack (Docker), .NET API, Python AI service, and frontend in one terminal with labeled output.
-
-### Docker (full stack)
-- **Fresh start (recommended):** `docker compose down && docker compose up --build`
-  - Always run `down` first to remove stale containers (avoids container name conflicts)
-- API + AI service only: `docker compose down && docker compose up --build api ai-service`
-- Stop: `docker compose down`
-- View logs: `docker compose logs -f api`
-- Note: Supabase local stack is managed via `supabase start`, not Docker Compose
-
-### Run everything locally (no Docker)
-```
-# Terminal 1 — Supabase local stack (replaces standalone postgres container)
-supabase start
-
-# Terminal 2 — .NET API
-cd apps/api && dotnet run --project src/PersonalFinance.Api
-
-# Terminal 3 — Python AI service
-cd services/ai-service && uvicorn app.main:app --reload --port 8000
-
-# Terminal 4 — Frontend
-cd apps/frontend && npm run dev
-```
-
-## Ports & URLs
-
-| Service           | Port  | URL                            | Start command         |
-|-------------------|-------|--------------------------------|-----------------------|
-| Frontend          | 8080  | http://localhost:8080           | `npm run dev`         |
-| .NET API          | 7208  | http://localhost:7208           | `dotnet run` / Docker |
-| AI Service        | 8000  | http://localhost:8000           | `uvicorn` / Docker    |
-| Supabase API      | 54321 | http://localhost:54321          | `supabase start`      |
-| Supabase Studio   | 54323 | http://localhost:54323          | `supabase start`      |
-| Supabase Inbucket | 54324 | http://localhost:54324          | `supabase start`      |
-| PostgreSQL        | 54322 | (Supabase-managed)             | `supabase start`      |
-| Grafana           | 3000  | http://localhost:3000           | `npm start` / Docker  |
-| Status Dashboard  | 8080  | http://localhost:8080/status    |                       |
-| API health check  |       | http://localhost:7208/health    |                       |
-| AI health check   |       | http://localhost:8000/health    |                       |
-
-## Environment Variables
-
-- Frontend: `VITE_API_URL` (default: `http://localhost:7208`) — set in `.env`
-- Frontend: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` — planned for PF-S09 (Supabase Auth); not yet used
-- Backend: `Supabase__Url` — Supabase project URL
-- Backend: `Supabase__AnonKey` — Supabase anon key (client-context operations)
-- Backend: `Supabase__ServiceRoleKey` — Supabase service role key (bypasses RLS for server ops)
-- Backend: `AiService__BaseUrl` (default: `http://localhost:8000`) — Python AI service URL
-- Backend: `ConnectionStrings__Default` — Postgres connection string (used by HealthChecks NpgSql)
-- AI Service: `AI_PROVIDER` — `gemini` (default) or `anthropic`
-- AI Service: `GEMINI_API_KEY` — Google Gemini API key (primary provider)
-- AI Service: `AI_MODEL` — model override (default: `gemini-2.5-flash`)
-- AI Service: `ANTHROPIC_API_KEY` — Claude API key (alternate provider)
-- AI Service: `LOG_LEVEL` — logging level (default: `INFO`)
-- AI Service: `OTEL_EXPORTER_OTLP_ENDPOINT` — OTLP endpoint for traces/metrics
-- AI Service: `CORS_ORIGINS` — comma-separated allowed origins
+- Start everything: `npm start` (Supabase, monitoring containers, then API + frontend + AI service). Skill: `docker-up`.
+- Before a push: skill `ci-check` (all gates) or `ci-check quick` (tests + lint).
+- Per-service commands, ports, environment variables, and migrations: [docs/SETUP.md](docs/SETUP.md). Variable names: `.env.example`.
+- Key ports: frontend 8080 · API 7208 (`/health`) · AI service 8000 (`/health`) · Supabase Studio 54323 · Grafana 3000.
 
 ## Key Patterns
 
@@ -344,15 +266,8 @@ cd apps/frontend && npm run dev
 - **Async**: All FastAPI endpoints and LLM calls are async.
 
 ### Frontend (React/TypeScript)
-- **UI Theme**: Always apply `.claude/skills/data-oriented-theme/SKILL.md` when building any UI component, page, dashboard, or artifact — read it before starting any frontend work. Skip only if the user explicitly requests a different style (e.g., landing page, marketing, creative design).
-- **Path alias**: `@/` maps to `./src` — always use it for imports
-- **UI library**: shadcn/ui components in `src/components/ui/` — NEVER manually edit these files
-- **API clients**: Plain `fetch` functions in `src/api/` — no axios
-- **State**: React Query (`@tanstack/react-query`) for server state, `useState` for local state
-- **Styling**: Tailwind CSS utility classes only, `cn()` from `@/lib/utils` for conditional merging
-- **Forms**: react-hook-form + Zod for validation
-- **Charts**: Recharts for data visualization
-- **Routing**: react-router-dom v6, routes in `App.tsx`
+- **UI look**: see [ai/design/](ai/design/README.md) — the zen/theme skills plus Rikky's standing UI rules. Skip only if the user asks for a different style (landing page, marketing, creative).
+- **Code conventions**: [.claude/rules/frontend.md](.claude/rules/frontend.md) (path alias, shadcn/ui, fetch clients, React Query, Tailwind, forms, charts, routing).
 
 ## Testing
 
@@ -371,22 +286,10 @@ cd apps/frontend && npm run dev
 
 **Requires full stack running.** Either `docker compose up -d` (DB + API) or local `dotnet run` + `npm run dev`.
 
-### Backend — xUnit + Moq
-- **Tests:** `api/tests/PersonalFinance.Tests/` — 20+ test files across `Commands/`, `Services/`, `Parsers/`, `Controllers/`
-- **Pattern (post-EF Core removal):** Moq for Supabase-dependent services; pure logic tests for validators, parsers, dedup. `UseInMemoryDatabase` is **gone** — EF Core removed in PF-S07.
-- **⚠ Note:** Many `CategoryRuleService` tests are `[Fact(Skip="Requires Supabase integration")]` — they pass in CI but execute no logic. Integration harness tracked in PF-034.
-- **Run all:** `cd apps/api && dotnet test`
-- **Single test:** `cd apps/api && dotnet test --filter "FullyQualifiedName~TestMethodName"`
-- **Reference pattern:** `Commands/CreateAssetCommandHandlerTests.cs` — validator testing (no DB needed); `Services/DeduplicationTests.cs` — pure logic testing
-- Naming: `MethodName_Condition_ExpectedResult`
-
-### AI Service — pytest
-- **Tests:** `ai-service/tests/`
-- **Run:** `cd ai-service && pytest`
-- **Mock LLM calls** in tests — never hit real API in CI
-
-### Frontend unit tests — Vitest (not yet configured, PF-038)
-- Will use Vitest + React Testing Library; tests alongside components as `*.test.tsx`
+### Backend and AI service
+- Backend: xUnit + Moq conventions in [.claude/rules/backend.md](.claude/rules/backend.md). Many `CategoryRuleService` tests are `[Fact(Skip=...)]` — they pass but execute nothing (integration harness: PF-034).
+- AI service: `pytest` from `services/ai-service/`; always mock LLM calls ([.claude/rules/ai-service.md](.claude/rules/ai-service.md)).
+- Frontend unit tests: Vitest not yet configured (PF-038).
 
 ## Known Gotchas
 

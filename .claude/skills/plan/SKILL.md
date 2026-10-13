@@ -151,7 +151,7 @@ Output format — repeat for each approach:
 
 ### Step 6 — Generate the implementation plan
 
-Write the plan in the exact style of `plans/done/PF-009-gemini-hello-llm-todo.md` (the canonical example). The plan must use this structure.
+Write the plan following [ai/build/templates/plan-template.md](../../../ai/build/templates/plan-template.md) (canonical example: `plans/done/PF-009-gemini-hello-llm-todo.md`). The plan must use this structure.
 
 **Step-writing rules (apply to every TODO step — read before writing the TODO section):**
 - Every step must be independently committable (a junior dev can do step 3 without having read step 4)
@@ -241,7 +241,7 @@ After outputting the plan, **always** save it automatically — do not ask:
 After delivering the plan, offer the natural next steps:
 
 > "Next steps with this plan:
-> - `/review-plan {filename}` — have a Senior Architect stress-test it before execution
+> - `/consult review {filename}` — have the architect stress-test it before execution
 > - `/execute {filename}` — once approved, implement every step end-to-end
-> - `/battle-plans {prefix}` — if you have an alternative plan and want a head-to-head
+> - `/consult battle {prefix}` — if you have an alternative plan and want a head-to-head
 > - `/pm-brainstorm analyze {feature}` — if you want a PM lens before committing to this direction"

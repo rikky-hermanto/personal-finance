@@ -23,13 +23,17 @@ without a corresponding change in `apps/api/src/PersonalFinance.Application/Dtos
 | `amount_idr`    | `AmountIdr`     | number    | Always in IDR, positive value          |
 | `currency`      | `Currency`      | string    | ISO 4217 code — default `"IDR"`        |
 | `exchange_rate` | `ExchangeRate`  | number?   | FX rate (Wise only), null for IDR banks |
-| `wallet`        | `Wallet`        | string    | Bank name (e.g. `"BCA"`, `"Superbank"`) |
+| `account_name`  | `AccountName`   | string    | Bank/account name (e.g. `"BCA"`, `"Superbank"`) — renamed from `wallet`/`Wallet` in PF-125. Separate retrieval/chat models may still expose `wallet`; don't rename those blindly |
 
 ## LLM Extraction Patterns
 
-### Always use tool_use — never JSON mode
+### Always force structured output — never parse free text
 
-Claude's `tool_use` is the only supported extraction method because:
+Each provider uses its own structured-output mechanism (see `app/providers/`):
+- **Gemini (default provider):** JSON mode with a response schema (`response_mime_type="application/json"`).
+- **Anthropic (alternate):** forced `tool_use`, shown below.
+
+Never regex-parse free text. For Anthropic, `tool_use` is required because:
 - Tool schemas are validated server-side before the response is returned
 - Field types are enforced (number vs string) at the API level
 - `stop_reason == "tool_use"` is unambiguous — no free-text parsing required
@@ -137,7 +141,7 @@ class TransactionResult(BaseModel):
     amount_idr: Decimal
     currency: str = "IDR"
     exchange_rate: Decimal | None = None
-    wallet: str
+    account_name: str = ""
 ```
 
 ## Bank-Specific Prompt Rules

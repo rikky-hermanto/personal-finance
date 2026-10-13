@@ -63,9 +63,20 @@ Skip this gate only if `services/ai-service/` has no code yet (pre-PF-011).
 cd apps/api && dotnet build PersonalFinance.slnx && dotnet test PersonalFinance.slnx && cd ../../apps/frontend && npm run lint && npx tsc --noEmit
 ```
 
-## What this replaces
+## Quick mode (`/ci-check quick`)
 
-This skill supersedes `test-all.md`, which only ran 2 of these 5 gates. Keep `test-all.md` for quick iteration; use `ci-check` before any push.
+For fast iteration (formerly `/test-all`): run only the test and lint gates, then report.
+
+| Directory | Command |
+|---|---|
+| `apps/api` | `dotnet test PersonalFinance.slnx --verbosity normal` |
+| `apps/frontend` | `npm run lint` |
+| `apps/frontend` | `npm run test:desk` and `npm run test:macro` |
+| `services/ai-service` | `.venv/Scripts/python -m pytest` |
+
+Report passed/failed/skipped counts per suite and lint errors/warnings. Report any suite that could not run as "not run", never as a pass. Quick mode is not enough before a push — run all gates then.
+
+Type-check note: the frontend root `tsconfig.json` is references-only (`files: []`), so for a real check run `npx --no-install tsc --noEmit -p tsconfig.app.json` and `-p tsconfig.node.json` from `apps/frontend`.
 
 ## If a gate fails
 

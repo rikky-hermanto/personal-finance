@@ -5,7 +5,7 @@ description: "Review Personal Finance architecture health, drift, technical debt
 
 # arch-review
 
-Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
+Read [shared Codex workflow conventions](../../../WORKFLOWS.md) before using this skill.
 
 Resolve scope (full stack or named layer), current diff, status, historical plans,
 and any prior architecture report. Read current manifests and entry points before
