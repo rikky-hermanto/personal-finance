@@ -160,7 +160,10 @@ public class TransactionService : ITransactionService
     private static string AggressiveNormalize(string input)
     {
         if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-        return System.Text.RegularExpressions.Regex.Replace(input.Trim().ToLowerInvariant(), @"\s+", " ");
+        // Invariant casing leaves dotted capital I (U+0130) unchanged; fold it like
+        // cashflow_normalize_description so preview and submit agree.
+        var lower = input.Trim().ToLowerInvariant().Replace('İ', 'i');
+        return System.Text.RegularExpressions.Regex.Replace(lower, @"\s+", " ");
     }
 
     private static DateTime StandardizeDate(DateTime date)

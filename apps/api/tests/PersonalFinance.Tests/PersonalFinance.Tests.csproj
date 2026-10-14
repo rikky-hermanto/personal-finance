@@ -30,6 +30,7 @@
   <ItemGroup>
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Desk\fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\..\..\supabase\tests\fixtures\pf-s08-dedup-parity.json" Link="Fixtures\pf-s08-dedup-parity.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
