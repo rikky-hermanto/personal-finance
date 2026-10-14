@@ -8,14 +8,12 @@ using static Supabase.Postgrest.Constants;
 
 namespace PersonalFinance.Application.Services.Desk;
 
-public class DeskMandateService(Supabase.Client supabase, ILogger<DeskMandateService> logger) : IDeskMandateService
+public class DeskMandateService(Supabase.Client supabase, ICurrentUser caller, ILogger<DeskMandateService> logger) : IDeskMandateService
 {
-    private static readonly Guid PlaceholderUserId = Guid.Empty;
-
     public async Task<List<DeskMandateVersionDto>> GetVersionsAsync()
     {
         var result = await supabase.From<DeskMandateVersion>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Order("version", Ordering.Descending)
             .Get();
 
@@ -25,18 +23,18 @@ public class DeskMandateService(Supabase.Client supabase, ILogger<DeskMandateSer
     public async Task<DeskMandateVersionDto> SaveDraftAsync(MandateParamsDto parameters, string? preset, DateOnly? effectiveDate, string? changeReason)
     {
         var existing = await supabase.From<DeskMandateVersion>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Order("version", Ordering.Descending)
             .Get();
 
         var nextVersion = (existing.Models.Select(m => m.Version).DefaultIfEmpty(0).Max()) + 1;
 
-        logger.LogInformation("Saving mandate draft v{Version} for user {UserId}", nextVersion, PlaceholderUserId);
+        logger.LogInformation("Saving mandate draft v{Version} for user {UserId}", nextVersion, caller.UserId);
 
         var entity = new DeskMandateVersion
         {
             Id = Guid.NewGuid(),
-            UserId = PlaceholderUserId,
+            UserId = caller.UserId,
             Version = nextVersion,
             Status = "draft",
             Preset = preset,
@@ -62,7 +60,7 @@ public class DeskMandateService(Supabase.Client supabase, ILogger<DeskMandateSer
 
         var result = await supabase.From<DeskMandateVersion>()
             .Filter("id", Operator.Equals, versionId.ToString())
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Get();
         var existing = result.Models.FirstOrDefault()
             ?? throw new KeyNotFoundException($"Mandate version {versionId} not found.");
@@ -70,7 +68,7 @@ public class DeskMandateService(Supabase.Client supabase, ILogger<DeskMandateSer
         if (existing.Status == "approved")
             throw new ValidationException("This mandate version is already approved and cannot be re-approved.");
 
-        logger.LogInformation("Approving mandate version {Version} for user {UserId}", existing.Version, PlaceholderUserId);
+        logger.LogInformation("Approving mandate version {Version} for user {UserId}", existing.Version, caller.UserId);
 
         existing.Status = "approved";
         existing.ChangeReason = changeReason;

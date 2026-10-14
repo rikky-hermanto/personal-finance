@@ -25,9 +25,10 @@ test('expired access token is refreshed without losing the session', async ({ pa
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByLabel('Password').press('Enter');
-  await expect(page).toHaveURL(/\/cashflow\/overview$/);
-  await page.getByRole('link', { name: 'Transactions' }).click();
-  await expect(page.getByText(marker)).toBeVisible();
+  await expect(page).toHaveURL(/\/journey$/);
+  await page.getByRole('button', { name: 'Cashflow' }).click();
+  await page.getByRole('tab', { name: 'Transactions' }).click();
+  await expect(page.getByText(marker).first()).toBeVisible();
   const firstToken = await storedAccessToken(page);
   expect(firstToken).toBeTruthy();
 
@@ -40,13 +41,13 @@ test('expired access token is refreshed without losing the session', async ({ pa
   expect(stale.status()).toBe(401);
 
   // A fresh in-app fetch succeeds with a refreshed token, not cached data.
-  await page.getByRole('link', { name: 'Overview' }).click();
+  await page.getByRole('tab', { name: 'Overview' }).click();
   const fetched = nextTransactionsFetch(page);
-  await page.getByRole('link', { name: 'Transactions' }).click();
+  await page.getByRole('tab', { name: 'Transactions' }).click();
   const response = await fetched;
   expect(response.status()).toBe(200);
   expect(response.request().headers()['authorization']).not.toBe(`Bearer ${firstToken}`);
-  await expect(page.getByText(marker)).toBeVisible();
+  await expect(page.getByText(marker).first()).toBeVisible();
   await expect(page).toHaveURL(/\/cashflow\/transactions$/);
   expect(await storedAccessToken(page)).not.toBe(firstToken);
 
@@ -54,6 +55,6 @@ test('expired access token is refreshed without losing the session', async ({ pa
   const reloaded = nextTransactionsFetch(page);
   await page.reload();
   expect((await reloaded).status()).toBe(200);
-  await expect(page.getByText(marker)).toBeVisible();
+  await expect(page.getByText(marker).first()).toBeVisible();
   await expect(page).toHaveURL(/\/cashflow\/transactions$/);
 });

@@ -5,6 +5,20 @@
 DO $audit$
 DECLARE
   unexpected text;
+  -- Reopened modules: direct owner-scoped DML under RLS (no checked RPC needed).
+  owner_dml text[] := ARRAY[
+    'assets', 'holdings', 'liabilities', 'valuations',
+    'investment_setups', 'investment_holdings', 'investment_snapshots',
+    'user_journey_state', 'journey_indicator_snapshots', 'journey_achievements',
+    'macro_scenarios', 'desk_broker_accounts', 'desk_positions',
+    'desk_mandate_versions', 'desk_recon_issues', 'desk_journal_entries',
+    'desk_open_trades'];
+  readable text[] := ARRAY[
+    'accounts', 'bucket_category_overrides', 'bucket_settings',
+    'cashflow_import_receipts', 'category_presets', 'category_rules',
+    'institutions', 'transactions', 'uploaded_files',
+    'v_transactions_with_balance', 'wallet_account_aliases',
+    'fx_rates', 'price_quotes'];
 BEGIN
   SELECT string_agg(n.nspname || '.' || c.relname, ', ' ORDER BY n.nspname, c.relname)
   INTO unexpected
@@ -14,18 +28,28 @@ BEGIN
     AND c.relkind IN ('r', 'v', 'm', 'p', 'f')
     AND (
       has_table_privilege('anon', c.oid, 'SELECT, INSERT, UPDATE, DELETE')
-      OR has_table_privilege('authenticated', c.oid, 'INSERT, UPDATE, DELETE')
+      OR (has_table_privilege('authenticated', c.oid, 'INSERT, UPDATE, DELETE')
+          AND NOT (n.nspname = 'public' AND c.relname = ANY (owner_dml)))
       OR (has_table_privilege('authenticated', c.oid, 'SELECT')
-          AND (n.nspname, c.relname) NOT IN (
-            ('public', 'accounts'), ('public', 'bucket_category_overrides'),
-            ('public', 'bucket_settings'), ('public', 'cashflow_import_receipts'),
-            ('public', 'category_presets'), ('public', 'category_rules'),
-            ('public', 'institutions'), ('public', 'transactions'),
-            ('public', 'uploaded_files'), ('public', 'v_transactions_with_balance'),
-            ('public', 'wallet_account_aliases')))
+          AND NOT (n.nspname = 'public'
+                   AND (c.relname = ANY (owner_dml) OR c.relname = ANY (readable))))
     );
   IF unexpected IS NOT NULL THEN
     RAISE EXCEPTION 'Unexpected exposed relation grants: %', unexpected;
+  END IF;
+
+  -- Every writable module table must enforce RLS with no permissive policy.
+  SELECT string_agg(t, ', ' ORDER BY t) INTO unexpected
+  FROM unnest(owner_dml) t
+  WHERE NOT (SELECT relrowsecurity FROM pg_class WHERE oid = format('public.%I', t)::regclass)
+     OR EXISTS (SELECT 1 FROM pg_policies p
+                WHERE p.schemaname = 'public' AND p.tablename = t
+                  AND (p.qual = 'true' OR p.with_check = 'true'))
+     OR NOT EXISTS (SELECT 1 FROM pg_policies p
+                    WHERE p.schemaname = 'public' AND p.tablename = t
+                      AND 'authenticated' = ANY (p.roles));
+  IF unexpected IS NOT NULL THEN
+    RAISE EXCEPTION 'Module tables without owner-only RLS: %', unexpected;
   END IF;
 
   SELECT string_agg(n.nspname || '.' || p.proname, ', ' ORDER BY n.nspname, p.proname)

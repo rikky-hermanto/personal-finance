@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Mountain, Settings, Menu, X, PiggyBank, Sun, Moon, Landmark, Bot, TrendingUp,
+  Mountain, Settings, Menu, X, PiggyBank, Sun, Moon, Landmark, Bot, TrendingUp, LogOut,
   Wallet, Receipt, Shield, Target, Flame, Coins, ScrollText, FileText, Briefcase, HeartPulse,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
 import { useTheme } from 'next-themes';
+import { useAuth } from '@/auth/AuthProvider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const AI_MODELS = [
@@ -67,6 +68,7 @@ const Sidebar = () => {
   const { theme, setTheme } = useTheme();
   const isDark = theme === 'dark';
   const toggleTheme = () => setTheme(isDark ? 'light' : 'dark');
+  const { session, signOut } = useAuth();
 
   return (
     <div
@@ -281,6 +283,7 @@ const Sidebar = () => {
       <div className={cn('px-3 pb-2', collapsed ? 'flex justify-center' : '')}>
         <button
           onClick={toggleTheme}
+          aria-label="Toggle theme"
           title={isDark ? 'Switch to Light' : 'Switch to Dark'}
           className={cn(
             'w-full flex items-center rounded-lg transition-colors duration-150 group',
@@ -347,6 +350,23 @@ const Sidebar = () => {
             strokeWidth={1.5}
           />
           {!collapsed && <span className="text-xs font-medium tracking-wide">Settings</span>}
+        </button>
+        {!collapsed && session?.user.email && (
+          <p className="px-3 pt-2 truncate text-[11px] text-muted-foreground" title={session.user.email}>
+            {session.user.email}
+          </p>
+        )}
+        <button
+          onClick={() => { void signOut(); }}
+          aria-label="Sign out"
+          title={collapsed ? 'Sign out' : undefined}
+          className={cn(
+            'w-full flex items-center rounded-lg transition-all duration-150 text-sidebar-foreground hover:bg-foreground/5 hover:text-foreground',
+            collapsed ? 'justify-center px-2 py-2' : 'px-3 py-2 gap-3'
+          )}
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          {!collapsed && <span className="text-xs font-medium tracking-wide">Sign out</span>}
         </button>
       </div>
     </div>

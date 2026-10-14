@@ -3,9 +3,11 @@ import { Toaster as Sonner } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/auth/AuthProvider';
-import CashflowPilotShell from '@/components/CashflowPilotShell';
+import AppShell from '@/components/AppShell';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import LoginPage from '@/pages/auth/LoginPage';
+import { JourneyPage } from '@/pages/journey/JourneyPage';
+import { AchievementsPage } from '@/pages/journey/AchievementsPage';
 import CashflowLayout from '@/pages/cashflow/CashflowLayout';
 import OverviewTab from '@/pages/cashflow/OverviewTab';
 import TransactionsTab from '@/pages/cashflow/TransactionsTab';
@@ -19,7 +21,28 @@ import CategoriesTab from '@/pages/settings/CategoriesTab';
 import DataTab from '@/pages/settings/DataTab';
 import RegionalTab from '@/pages/settings/RegionalTab';
 import BanksTab from '@/pages/settings/BanksTab';
+import NotFound from '@/pages/NotFound';
 import StatusPage from '@/pages/StatusPage';
+import AssetsLayout from '@/pages/assets/AssetsLayout';
+import AssetsOverviewTab from '@/pages/assets/OverviewTab';
+import AssetsAccountsTab from '@/pages/assets/AccountsTab';
+import InvestmentsTab from '@/pages/assets/InvestmentsTab';
+import PropertiesTab from '@/pages/assets/PropertiesTab';
+import LiabilitiesTab from '@/pages/assets/LiabilitiesTab';
+import InvestmentLayout from '@/pages/investment/InvestmentLayout';
+import InvestmentHome from '@/pages/investment/InvestmentHome';
+import InvestmentWizard from '@/pages/investment/InvestmentWizard';
+import InvestmentSetupDetail from '@/pages/investment/InvestmentSetupDetail';
+import InvestmentAnalysis from '@/pages/investment/InvestmentAnalysis';
+import HoldingsTab from '@/pages/investment/HoldingsTab';
+import SnapshotsTab from '@/pages/investment/SnapshotsTab';
+import AIReviewTab from '@/pages/investment/AIReviewTab';
+import DeskLayout from '@/pages/desk/DeskLayout';
+import CommandTab from '@/pages/desk/CommandTab';
+import PortfolioTab from '@/pages/desk/PortfolioTab';
+import MandateTab from '@/pages/desk/MandateTab';
+import ReconcileTab from '@/pages/desk/ReconcileTab';
+import MacroLabPage from '@/pages/lab/MacroLabPage';
 
 function RequireAuth() {
   const { session, loading } = useAuth();
@@ -30,11 +53,13 @@ function RequireAuth() {
 function LoginRoute() {
   const { session, loading } = useAuth();
   if (loading) return <main className="flex min-h-screen items-center justify-center text-muted-foreground">Loading your session…</main>;
-  return session ? <Navigate to="/cashflow/overview" replace /> : <LoginPage />;
+  return session ? <Navigate to="/journey" replace /> : <LoginPage />;
 }
 
-function PilotUnavailable() {
-  return <main className="mx-auto max-w-xl px-6 py-20"><h1 className="font-title text-3xl">Available after the pilot</h1><p className="mt-3 text-muted-foreground">This area is temporarily unavailable while private Cashflow is being introduced.</p></main>;
+// Chat/RAG still reads every user's transactions on the AI service side, so it
+// stays off until it is owner-scoped.
+function ChatUnavailable() {
+  return <main className="mx-auto max-w-xl px-6 py-20"><h1 className="font-title text-3xl">AI chat is paused</h1><p className="mt-3 text-muted-foreground">Chat comes back once it only reads your own data.</p></main>;
 }
 
 const App = () => (
@@ -44,14 +69,19 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/cashflow/overview" replace />} />
+          <Route path="/" element={<Navigate to="/journey" replace />} />
           <Route path="/login" element={<LoginRoute />} />
+          {/* Legacy redirects — keep bookmarks working */}
+          <Route path="/dashboard" element={<Navigate to="/journey" replace />} />
           <Route path="/upload" element={<Navigate to="/cashflow/upload" replace />} />
           <Route path="/transactions" element={<Navigate to="/cashflow/transactions" replace />} />
           <Route path="/categories" element={<Navigate to="/settings/categories" replace />} />
           <Route path="/status" element={<StatusPage />} />
           <Route element={<RequireAuth />}>
-            <Route element={<ErrorBoundary><CashflowPilotShell /></ErrorBoundary>}>
+            <Route element={<ErrorBoundary><AppShell /></ErrorBoundary>}>
+              <Route path="/chat" element={<ChatUnavailable />} />
+              <Route path="/journey" element={<JourneyPage />} />
+              <Route path="/journey/achievements" element={<AchievementsPage />} />
               <Route path="/cashflow" element={<CashflowLayout />}>
                 <Route index element={<Navigate to="/cashflow/overview" replace />} />
                 <Route path="overview" element={<OverviewTab />} />
@@ -69,7 +99,35 @@ const App = () => (
                 <Route path="data" element={<DataTab />} />
                 <Route path="banks" element={<BanksTab />} />
               </Route>
-              <Route path="*" element={<PilotUnavailable />} />
+              <Route path="/assets" element={<AssetsLayout />}>
+                <Route index element={<Navigate to="/assets/overview" replace />} />
+                <Route path="overview" element={<AssetsOverviewTab />} />
+                <Route path="accounts" element={<AssetsAccountsTab />} />
+                <Route path="investments" element={<InvestmentsTab />} />
+                <Route path="properties" element={<PropertiesTab />} />
+                <Route path="liabilities" element={<LiabilitiesTab />} />
+              </Route>
+              <Route path="/investment" element={<InvestmentLayout />}>
+                <Route index element={<Navigate to="/investment/overview" replace />} />
+                <Route path="overview" element={<InvestmentHome />} />
+                <Route path="holdings" element={<HoldingsTab />} />
+                <Route path="snapshots" element={<SnapshotsTab />} />
+                <Route path="ai-review" element={<AIReviewTab />} />
+                <Route path="new" element={<InvestmentWizard />} />
+                <Route path=":setupId" element={<InvestmentSetupDetail />} />
+                <Route path=":setupId/review/:snapshotId" element={<InvestmentAnalysis />} />
+              </Route>
+              {/* Trading Desk — separate top-level module, excluded from the reward/streak/achievement system */}
+              <Route path="/desk" element={<DeskLayout />}>
+                <Route index element={<Navigate to="/desk/command" replace />} />
+                <Route path="command" element={<CommandTab />} />
+                <Route path="portfolio" element={<PortfolioTab />} />
+                <Route path="mandate" element={<MandateTab />} />
+                <Route path="reconcile" element={<ReconcileTab />} />
+              </Route>
+              {/* Macro Scenario Lab — separate top-level module (PF-140), tabbed alongside Investment */}
+              <Route path="/lab" element={<MacroLabPage />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Route>
         </Routes>

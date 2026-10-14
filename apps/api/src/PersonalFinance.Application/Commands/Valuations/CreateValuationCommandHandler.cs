@@ -7,6 +7,7 @@ using PersonalFinance.Domain.Entities;
 
 public class CreateValuationCommandHandler(
     Supabase.Client supabase,
+    ICurrentUser caller,
     IFxRateService fxRateService,
     IValidator<CreateValuationCommand> validator,
     ILogger<CreateValuationCommandHandler> logger
@@ -27,7 +28,7 @@ public class CreateValuationCommandHandler(
         var entity = new Valuation
         {
             Id = Guid.NewGuid(),
-            UserId = Guid.Empty, // PF-S08 will replace with JWT user_id
+            UserId = caller.UserId,
             SubjectType = request.SubjectType,
             SubjectId = request.SubjectId,
             ValueNative = request.ValueNative,

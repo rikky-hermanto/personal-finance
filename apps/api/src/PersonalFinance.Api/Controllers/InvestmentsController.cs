@@ -62,7 +62,8 @@ public class InvestmentsController(IMediator mediator, Supabase.Client supabase)
     [HttpDelete("setups/{id:guid}")]
     public async Task<IActionResult> DeleteSetup(Guid id)
     {
-        await mediator.Send(new DeleteInvestmentSetupCommand(id));
+        var deleted = await mediator.Send(new DeleteInvestmentSetupCommand(id));
+        if (!deleted) return NotFound();
         return Ok();
     }
 

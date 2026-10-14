@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
+using PersonalFinance.Infrastructure.Supabase;
 using System.Text.Json;
 using static global::Supabase.Postgrest.Constants;
 
@@ -9,9 +10,14 @@ namespace PersonalFinance.Infrastructure.Services;
 public class JisdorFxRateService(
     HttpClient http,
     global::Supabase.Client supabase,
+    SupabaseSettings settings,
     ILogger<JisdorFxRateService> logger
 ) : IFxRateService
 {
+    // fx_rates is shared market data: users may read it, only the server writes it.
+    // The service-role client is confined to this cache write.
+    private global::Supabase.Client? _cacheWriter;
+
     // JISDOR public endpoint (Bank Indonesia daily exchange rates)
     // Returns IDR per 1 foreign currency unit
     private const string JisdorBaseUrl = "https://www.bi.go.id/biwebservice/wskursbi.asmx";
@@ -122,14 +128,29 @@ public class JisdorFxRateService(
             CreatedAt = DateTime.UtcNow
         };
 
+        if (string.IsNullOrWhiteSpace(settings.ServiceRoleKey))
+        {
+            logger.LogDebug("FX rate not cached: no service-role key configured");
+            return;
+        }
+
         try
         {
-            await supabase.From<FxRate>().Insert(entity);
+            _cacheWriter ??= await CreateCacheWriterAsync();
+            await _cacheWriter.From<FxRate>().Insert(entity);
         }
         catch (Exception ex)
         {
             // Unique constraint violation is expected on duplicate inserts — not an error
             logger.LogDebug(ex, "FX rate cache insert skipped (likely duplicate): {From}/{To} {Date}", from, to, rateDate);
         }
+    }
+
+    private async Task<global::Supabase.Client> CreateCacheWriterAsync()
+    {
+        var client = new global::Supabase.Client(settings.Url, settings.ServiceRoleKey,
+            new global::Supabase.SupabaseOptions { AutoRefreshToken = false, AutoConnectRealtime = false });
+        await client.InitializeAsync();
+        return client;
     }
 }

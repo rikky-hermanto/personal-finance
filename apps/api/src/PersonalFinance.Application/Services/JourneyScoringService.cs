@@ -12,8 +12,6 @@ public class JourneyScoringService(
     ILogger<JourneyScoringService> logger
 ) : IJourneyScoringService
 {
-    private static readonly Guid PlaceholderUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
     private static readonly Dictionary<string, string> AchievementNames = new()
     {
         ["positive_cashflow_3mo"] = "Positive Cashflow Streak",

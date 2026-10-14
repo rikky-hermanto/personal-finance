@@ -7,7 +7,7 @@ using PersonalFinance.Application.Interfaces;
 
 namespace PersonalFinance.Infrastructure.External;
 
-public class JourneyAdvisorClient(HttpClient http, ILogger<JourneyAdvisorClient> logger)
+public class JourneyAdvisorClient(HttpClient http, ICurrentUser caller, ILogger<JourneyAdvisorClient> logger)
     : IJourneyAdvisorClient
 {
     private static readonly JsonSerializerOptions Json = new()
@@ -25,7 +25,7 @@ public class JourneyAdvisorClient(HttpClient http, ILogger<JourneyAdvisorClient>
 
         var payload = new
         {
-            user_id = "00000000-0000-0000-0000-000000000001",
+            user_id = caller.UserId.ToString(),
             current_level = state.CurrentLevel,
             total_score = state.TotalScore,
             indicators = state.Indicators.Select(i => new

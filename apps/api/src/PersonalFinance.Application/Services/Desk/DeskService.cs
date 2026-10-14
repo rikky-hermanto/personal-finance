@@ -7,36 +7,31 @@ using static Supabase.Postgrest.Constants;
 
 namespace PersonalFinance.Application.Services.Desk;
 
-public class DeskService(Supabase.Client supabase, ILogger<DeskService> logger) : IDeskService
+public class DeskService(Supabase.Client supabase, ICurrentUser caller, ILogger<DeskService> logger) : IDeskService
 {
-    // Placeholder user_id until PF-S08 (Supabase Auth) lands — matches the all-zeros convention
-    // used across every other table pre-auth. RLS is permissive (`USING (true)`), so this filter
-    // is the only actual data-isolation mechanism in this phase; never omit it.
-    private static readonly Guid PlaceholderUserId = Guid.Empty;
-
     public async Task<DeskStateDto> GetStateAsync()
     {
-        logger.LogDebug("Assembling desk state for user {UserId}", PlaceholderUserId);
+        logger.LogDebug("Assembling desk state for user {UserId}", caller.UserId);
 
         var accountsResult = await supabase.From<DeskBrokerAccount>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Get();
         var positionsResult = await supabase.From<DeskPosition>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Order("symbol", Ordering.Ascending)
             .Get();
         var reconResult = await supabase.From<DeskReconIssue>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Get();
         var journalResult = await supabase.From<DeskJournalEntry>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Order("trade_date", Ordering.Ascending)
             .Get();
         var openTradesResult = await supabase.From<DeskOpenTrade>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Get();
         var mandateVersionsResult = await supabase.From<DeskMandateVersion>()
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Order("version", Ordering.Descending)
             .Get();
 
@@ -93,7 +88,7 @@ public class DeskService(Supabase.Client supabase, ILogger<DeskService> logger) 
 
         var result = await supabase.From<DeskPosition>()
             .Filter("id", Operator.Equals, positionId.ToString())
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Get();
         var position = result.Models.FirstOrDefault()
             ?? throw new KeyNotFoundException($"Desk position {positionId} not found.");
@@ -111,7 +106,7 @@ public class DeskService(Supabase.Client supabase, ILogger<DeskService> logger) 
 
         var result = await supabase.From<DeskReconIssue>()
             .Filter("id", Operator.Equals, issueId.ToString())
-            .Filter("user_id", Operator.Equals, PlaceholderUserId.ToString())
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Get();
         var issue = result.Models.FirstOrDefault()
             ?? throw new KeyNotFoundException($"Desk recon issue {issueId} not found.");

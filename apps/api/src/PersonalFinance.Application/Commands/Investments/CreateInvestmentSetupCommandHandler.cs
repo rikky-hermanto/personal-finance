@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Domain.Entities;
 
@@ -7,6 +8,7 @@ namespace PersonalFinance.Application.Commands.Investments;
 
 public class CreateInvestmentSetupCommandHandler(
     Supabase.Client supabase,
+    ICurrentUser caller,
     IValidator<CreateInvestmentSetupCommand> validator,
     ILogger<CreateInvestmentSetupCommandHandler> logger
 ) : IRequestHandler<CreateInvestmentSetupCommand, InvestmentSetup>
@@ -19,7 +21,7 @@ public class CreateInvestmentSetupCommandHandler(
         var entity = new InvestmentSetup
         {
             Id = Guid.NewGuid(),
-            UserId = Guid.Empty,
+            UserId = caller.UserId,
             Name = request.Name,
             ArchetypeId = request.ArchetypeId,
             BaseCurrency = request.BaseCurrency,
