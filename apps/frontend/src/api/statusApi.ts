@@ -14,7 +14,7 @@ export interface HealthEntry {
   status: 'Healthy' | 'Unhealthy' | 'Degraded';
   duration: string;
   description?: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 export interface HealthResponse {

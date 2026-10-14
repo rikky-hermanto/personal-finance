@@ -398,7 +398,7 @@ const CategoryManager = () => {
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2">
-                      <button onClick={handleAddRule} className="text-success hover:text-foreground transition-colors">
+                      <button onClick={() => handleAddRule()} className="text-success hover:text-foreground transition-colors">
                         <Save className="w-3.5 h-3.5" strokeWidth={1.5} />
                       </button>
                       <button onClick={() => { setIsAddingNew(false); setNewRule({ keyword: '', category: '', type: 'expense' }); }} className="text-muted-foreground hover:text-foreground transition-colors">

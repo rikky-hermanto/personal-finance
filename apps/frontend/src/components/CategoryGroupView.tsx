@@ -83,7 +83,8 @@ const CategoryGroupView = ({
   const toggle = (category: string) =>
     setExpanded(prev => {
       const next = new Set(prev);
-      next.has(category) ? next.delete(category) : next.add(category);
+      if (next.has(category)) next.delete(category);
+      else next.add(category);
       return next;
     });
 

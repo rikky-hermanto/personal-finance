@@ -230,7 +230,8 @@ function ColMenu<TRow, TKey extends string>({
 
   const toggle = (val: string) => {
     const next = new Set(selected);
-    next.has(val) ? next.delete(val) : next.add(val);
+    if (next.has(val)) next.delete(val);
+    else next.add(val);
     onFilterChange(next);
   };
 
