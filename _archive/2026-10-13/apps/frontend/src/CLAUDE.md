@@ -16,7 +16,7 @@ npm run preview  # Preview production build
 | Directory | Purpose |
 |-----------|---------|
 | `api/` | API client functions (plain fetch, typed responses) |
-| `components/` | Business components (CashFlowDashboard, TransactionTable, etc.) |
+| `components/` | Business components (FileUpload, TransactionTable, etc.) |
 | `components/ui/` | shadcn/ui primitives — **DO NOT EDIT** (managed by CLI) |
 | `pages/` | Route-level views (Index.tsx, NotFound.tsx) |
 | `types/` | TypeScript interfaces (Transaction.ts) |

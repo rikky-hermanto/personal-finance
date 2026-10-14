@@ -28,7 +28,7 @@ export function extractKeyword(description: string): string {
   }
 
   const words = sanitized
-    .split(/[\s\-\/\.\,\(\)]+/)
+    .split(/[\s\-/.,()]+/)
     .map(w => w.trim())
     .filter(w => w.length >= 3 && !BANKING_STOP_WORDS.has(w));
 

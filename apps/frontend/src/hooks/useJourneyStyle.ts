@@ -20,7 +20,7 @@ export function useJourneyStyle() {
   });
 
   const setStyle = (s: JourneyStyle) => {
-    try { localStorage.setItem(KEY, s); } catch {}
+    try { localStorage.setItem(KEY, s); } catch { /* storage unavailable; keep in-memory style */ }
     setStyleState(s);
   };
 
