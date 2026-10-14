@@ -1,6 +1,6 @@
 # PF-142 — CI workflow that runs the existing gates
 
-> **Status:** To Do
+> **Status:** Done (2026-10-14)
 > **Started:** 2026-10-14
 > **Planned from branch:** main
 > **Depends on:** nothing
@@ -11,11 +11,11 @@ Governance rule CI-01 says `dotnet build`, `dotnet test`, `npm run lint`, `npm r
 
 ## Acceptance Criteria
 
-- [ ] `.github/workflows/ci.yml` runs on every push to `main` and every PR into `main`, with four jobs: `api`, `frontend`, `ai-service`, `secrets`.
-- [ ] Each job runs only commands that already exist in the repo (`/ci-check`, `package.json`, `pyproject.toml`). No new gate is invented, and no gate is weakened, skipped or filtered to get green.
-- [ ] Before the workflow lands, a local baseline of every gate on the starting SHA is recorded in this plan's Notes.
-- [ ] A push to `main` produces a green `CI` run, and its URL and SHA are recorded in Notes. Any gate that can't go green within this ticket is recorded as a pre-existing failure with its own follow-up ticket, not hidden.
-- [ ] `/ci-check` and the docs say that CI now runs these gates, and the stale Gate 4 `tsc` command is corrected.
+- [x] `.github/workflows/ci.yml` runs on every push to `main` and every PR into `main`, with four jobs: `api`, `frontend`, `ai-service`, `secrets`.
+- [x] Each job runs only commands that already exist in the repo (`/ci-check`, `package.json`, `pyproject.toml`). No new gate is invented, and no gate is weakened, skipped or filtered to get green.
+- [x] Before the workflow lands, a local baseline of every gate on the starting SHA is recorded in this plan's Notes.
+- [x] A push to `main` produces a green `CI` run, and its URL and SHA are recorded in Notes. Any gate that can't go green within this ticket is recorded as a pre-existing failure with its own follow-up ticket, not hidden.
+- [x] `/ci-check` and the docs say that CI now runs these gates, and the stale Gate 4 `tsc` command is corrected.
 
 ## Approach
 
@@ -36,7 +36,7 @@ Add one GitHub Actions workflow with four parallel jobs that mirror `/ci-check` 
 
 ## TODO
 
-### [ ] STEP 1 — Record the local baseline on the starting SHA
+### [x] STEP 1 — Record the local baseline on the starting SHA
 
 Run every gate locally from a clean `main` checkout and record pass/fail with the counts. Install nothing new and run no migrations.
 
@@ -55,7 +55,7 @@ cd ../../services/ai-service && .venv/Scripts/python -m pytest -q
 
 ---
 
-### [ ] STEP 2 — Create the workflow on a branch
+### [x] STEP 2 — Create the workflow on a branch
 
 ```bash
 git switch -c chore/PF-142-ci-gates
@@ -154,7 +154,7 @@ jobs:
 
 ---
 
-### [ ] STEP 3 — Push the branch and open a draft PR to exercise the workflow
+### [x] STEP 3 — Push the branch and open a draft PR to exercise the workflow
 
 ```bash
 git add .github/workflows/ci.yml
@@ -169,7 +169,7 @@ gh pr checks --watch
 
 ---
 
-### [ ] STEP 4 — Resolve each red job by cause, never by weakening the gate
+### [x] STEP 4 — Resolve each red job by cause, never by weakening the gate
 
 For each red job, read the full log (`gh run view --log-failed`) and classify the failure as one of these:
 
@@ -184,7 +184,7 @@ For each red job, read the full log (`gh run view --log-failed`) and classify th
 
 ---
 
-### [ ] STEP 5 — Update `/ci-check` and the docs to match reality
+### [x] STEP 5 — Update `/ci-check` and the docs to match reality
 
 - In `.claude/skills/ci-check/SKILL.md`, replace the Gate 4 command `npx tsc --noEmit` with the two `-p tsconfig.app.json` / `-p tsconfig.node.json` commands. The root `tsconfig.json` has `files: []`, so the current command checks nothing. Fix the "Quick run" line the same way, and add one line saying `.github/workflows/ci.yml` runs these same gates on every push and PR.
 - Apply the same edit to `.agents/skills/ci-check/SKILL.md` if it exists.
@@ -196,7 +196,7 @@ For each red job, read the full log (`gh run view --log-failed`) and classify th
 
 ---
 
-### [ ] STEP 6 — Merge and confirm a green run on `main`
+### [x] STEP 6 — Merge and confirm a green run on `main`
 
 ```bash
 gh pr ready
@@ -243,4 +243,4 @@ PR: https://github.com/rikky-hermanto/personal-finance/pull/85
 | ai-service (pytest) | pass | 1m7s |
 | secrets (gitleaks) | pass (all steps succeeded, no findings) | ~7s |
 
-No gate was weakened. Remaining for you: STEP 6 (merge to main and confirm the green `push` run) is intentionally not done; merging was not approved.
+No gate was weakened. STEP 6: PR #85 was merged by Rikky. Green `CI` push run on main: https://github.com/rikky-hermanto/personal-finance/actions/runs/38564814430 (SHA 3f6841469861b6acc64cb85ea4fa7561128a879b).

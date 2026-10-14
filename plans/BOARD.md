@@ -14,6 +14,7 @@ This file is the shared local snapshot. GitHub Project #4 remains the source of 
 
 | ID | Issue | Title |
 |----|-------|-------|
+| PF-142 | _(no issue)_ | CI workflow for the existing CI-01 gates — done 2026-10-14. PR #85 merged; green `CI` push run on main at 3f684146 (https://github.com/rikky-hermanto/personal-finance/actions/runs/38564814430). Pre-existing PII regex test failure fixed. [Plan](done/PF-142-ci-workflow-existing-gates-todo.md). |
 | PF-AI008 | _(no issue)_ | LangGraph Financial Health Advisor — completed 2026-09-15 by user acceptance. Gemini-default factory and bounded execution; AdvisorService and Langfuse ACTs accepted. 41 advisor tests passed; full suite 193 passed/1 prior failure. Live turn 2, scenario suite and visual dashboard check deferred; dependency issues retained. [Plan](done/learning/PF-AI008-langgraph-financial-advisor.md). |
 | PF-AI010 | _(no issue)_ | Categorization Eval Harness — implemented; plan marked Done, August 5 baseline recorded in services/ai-service/evals/results/20260805-categorize-eval.md. Local reconciliation 2026-10-08. |
 | PF-AI003b | _(no issue)_ | Embedding Provider Toggle (OpenAI ⇄ Gemini) |
