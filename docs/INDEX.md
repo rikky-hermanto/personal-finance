@@ -11,6 +11,7 @@
 | Topic | File | What it covers |
 |-------|------|----------------|
 | Architecture overview + event flow | [architecture/architecture-diagram.md](architecture/architecture-diagram.md) | Current service relationships, synchronous upload, chat/agent paths and planned webhook boundaries |
+| System design — whole platform (interactive) | [architecture/diagram-system-design.html](architecture/diagram-system-design.html) | Interview-style high-level design on one canvas: React app, .NET API (parsers, Journey scoring), FastAPI AI service, LLM providers, Supabase (Auth, Postgres, Realtime, Storage) and observability, with labelled sync/async/planned edges; open in a browser |
 | C4 Container diagram | [architecture/c4-container-diagram.md](architecture/c4-container-diagram.md) | Component relationships at container level |
 | AI system — target architecture (interactive) | [ai-features/diagram-ai-system-target.html](ai-features/diagram-ai-system-target.html) | Node-graph of the AI Learning Track (PF-AI001–PF-AI009): live vs. in-progress vs. planned, open in a browser |
 | PF-AI006 — advanced RAG patterns | [mentor/advanced-rag-notes.md](mentor/advanced-rag-notes.md) | Measured hybrid comparison; sentence-window/auto-merging deferred |
