@@ -1,22 +1,23 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 import { DeskMandateVersion, DeskPosition, DeskReconIssue, DeskState, MandateParams, MandatePreset } from '@/types/desk';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7209';
 const BASE_URL = `${API_BASE_URL}/api/desk`;
 
 export async function getDeskState(): Promise<DeskState> {
-  const res = await fetch(`${BASE_URL}/state`);
+  const res = await authenticatedFetch(`${BASE_URL}/state`);
   if (!res.ok) throw new Error('Failed to fetch desk state');
   return res.json();
 }
 
 export async function getMandateVersions(): Promise<DeskMandateVersion[]> {
-  const res = await fetch(`${BASE_URL}/mandate/versions`);
+  const res = await authenticatedFetch(`${BASE_URL}/mandate/versions`);
   if (!res.ok) throw new Error('Failed to fetch mandate versions');
   return res.json();
 }
 
 export async function getMandatePresets(): Promise<MandatePreset[]> {
-  const res = await fetch(`${BASE_URL}/mandate/presets`);
+  const res = await authenticatedFetch(`${BASE_URL}/mandate/presets`);
   if (!res.ok) throw new Error('Failed to fetch mandate presets');
   return res.json();
 }
@@ -29,7 +30,7 @@ export interface SaveMandateDraftPayload {
 }
 
 export async function saveMandateDraft(payload: SaveMandateDraftPayload): Promise<DeskMandateVersion> {
-  const res = await fetch(`${BASE_URL}/mandate/draft`, {
+  const res = await authenticatedFetch(`${BASE_URL}/mandate/draft`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -45,7 +46,7 @@ export interface ApproveMandatePayload {
 }
 
 export async function approveMandate(payload: ApproveMandatePayload): Promise<DeskMandateVersion> {
-  const res = await fetch(`${BASE_URL}/mandate/approve`, {
+  const res = await authenticatedFetch(`${BASE_URL}/mandate/approve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -55,7 +56,7 @@ export async function approveMandate(payload: ApproveMandatePayload): Promise<De
 }
 
 export async function resolveReconIssue(id: string, resolution: string): Promise<DeskReconIssue> {
-  const res = await fetch(`${BASE_URL}/recon/${id}/resolve`, {
+  const res = await authenticatedFetch(`${BASE_URL}/recon/${id}/resolve`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ resolution }),
@@ -65,7 +66,7 @@ export async function resolveReconIssue(id: string, resolution: string): Promise
 }
 
 export async function setPositionSleeve(id: string, sleeve: string): Promise<DeskPosition> {
-  const res = await fetch(`${BASE_URL}/positions/${id}/sleeve`, {
+  const res = await authenticatedFetch(`${BASE_URL}/positions/${id}/sleeve`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sleeve }),

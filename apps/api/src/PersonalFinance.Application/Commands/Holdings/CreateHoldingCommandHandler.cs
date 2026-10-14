@@ -1,11 +1,13 @@
 using FluentValidation;
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Commands.Holdings;
 using PersonalFinance.Domain.Entities;
 
 public class CreateHoldingCommandHandler(
     Supabase.Client supabase,
+    ICurrentUser caller,
     IValidator<CreateHoldingCommand> validator,
     ILogger<CreateHoldingCommandHandler> logger
 ) : IRequestHandler<CreateHoldingCommand, Holding>
@@ -18,7 +20,7 @@ public class CreateHoldingCommandHandler(
         var entity = new Holding
         {
             Id = Guid.NewGuid(),
-            UserId = Guid.Empty, // PF-S08 will replace with JWT user_id
+            UserId = caller.UserId,
             AccountId = request.AccountId,
             Ticker = request.Ticker,
             Quantity = request.Quantity,

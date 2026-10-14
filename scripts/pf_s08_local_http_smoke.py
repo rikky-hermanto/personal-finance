@@ -17,6 +17,20 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
+# Every owner-keyed table a disposable test user can touch, children before
+# parents, so cleanup can delete the user afterwards.
+OWNED_TABLES = (
+    "transactions", "uploaded_files", "cashflow_import_receipts",
+    "valuations", "liabilities", "holdings", "assets",
+    "investment_setups", "macro_scenarios",
+    "user_journey_state", "journey_indicator_snapshots", "journey_achievements",
+    "desk_open_trades", "desk_journal_entries", "desk_recon_issues",
+    "desk_mandate_versions", "desk_positions", "desk_broker_accounts",
+    "category_rules", "wallet_account_aliases", "bucket_settings",
+    "bucket_category_overrides", "accounts", "institutions",
+)
+
+
 def request(base, path, key, token, method="GET", payload=None, extra=None):
     headers = {"apikey": key, "Authorization": f"Bearer {token}"}
     if payload is not None:
@@ -184,8 +198,9 @@ def main(harness):
             require(status == 200 and len(rows) == 1 and rows[0]["user_id"] == user_id
                     and int(rows[0]["running_balance"]) == (100 if index == 0 else 50),
                     "Balance view isolation failed")
-            status, _ = request(base, "/rest/v1/desk_positions?select=id", anon, token)
-            require(status in (401, 403, 404), "Deferred table remained readable")
+            status, rows = request(base, "/rest/v1/desk_positions?select=user_id", anon, token)
+            require(status == 200 and all(row["user_id"] == user_id for row in rows),
+                    "Desk positions leaked another owner's rows")
             status, _ = request(base, "/rest/v1/transactions", anon, token, "POST", {
                 "user_id": users[1 - index][0], "date": datetime.now(timezone.utc).isoformat(),
                 "description": "forged", "remarks": "", "flow": "CR", "type": "Income",
@@ -200,9 +215,11 @@ def main(harness):
                     len(graph["data"]["transactionsCollection"]["edges"]) == 1,
                     f"GraphQL transaction owner isolation failed (HTTP {status}, {graph})")
             status, graph = request(base, "/graphql/v1", anon, token, "POST", {
-                "query": "{ valuationsCollection(first: 10) { edges { node { id } } } }"})
-            require(status in (401, 403, 404) or (status == 200 and graph.get("errors")),
-                    "Deferred valuation data remained readable in GraphQL")
+                "query": "{ valuationsCollection(first: 10) { edges { node { id user_id } } } }"})
+            require(status == 200 and graph and not graph.get("errors") and
+                    all(edge["node"]["user_id"] == user_id for edge in
+                        graph.get("data", {}).get("valuationsCollection", {}).get("edges", [])),
+                    "GraphQL valuations leaked another owner's rows")
         storage_object = f"pf-s08/{uuid.uuid4().hex}.txt"
         storage_path = f"/storage/v1/object/bank-statements/{storage_object}"
         upload_request = Request(base + storage_path, data=b"pf-s08-disposable-storage-check",
@@ -251,7 +268,8 @@ def main(harness):
         for _ in range(240):
             if api_process.poll() is not None:
                 raise AssertionError(f"API process exited before readiness:\n{startup_diagnostics()}")
-            status, _ = request(api_base, "/api/journey/state", anon, users[0][1])
+            # An unlisted /api route answers 404 once the gate is in the pipeline.
+            status, _ = request(api_base, "/api/pf-s08-readiness-probe", anon, users[0][1])
             if status == 404:
                 break
             time.sleep(0.25)
@@ -503,8 +521,9 @@ def main(harness):
             status, _ = request(base, "/rest/v1/bucket_settings", anon, token,
                                 "POST", {"user_id": users[index][0], "future_monthly_amount": 999})
             require(status in (401, 403), "Direct bucket settings DML was accepted")
-            status, _ = request(base, "/rest/v1/valuations?select=id", anon, token)
-            require(status in (401, 403), "Direct deferred valuation read was accepted")
+            status, rows = request(base, "/rest/v1/valuations?select=user_id", anon, token)
+            require(status == 200 and len(rows) == 1 and rows[0]["user_id"] == users[index][0],
+                    "Direct valuation read leaked another owner's rows")
         preflight = Request(api_base + "/api/transactions?page=1", method="OPTIONS",
                             headers={"Origin": "http://127.0.0.1:8088",
                                      "Access-Control-Request-Method": "GET",
@@ -730,18 +749,13 @@ def main(harness):
                 pass
         for user in users:
             user_id = user[0] if isinstance(user, tuple) else user
-            for table in ("transactions", "uploaded_files", "cashflow_import_receipts",
-                          "valuations",
-                          "category_rules", "wallet_account_aliases", "bucket_settings",
-                          "bucket_category_overrides", "accounts", "institutions"):
+            for table in OWNED_TABLES:
                 request(base, f"/rest/v1/{table}?user_id=eq.{user_id}", admin, admin, "DELETE")
         for user in users:
             user_id = user[0] if isinstance(user, tuple) else user
             request(base, f"/auth/v1/admin/users/{user_id}", admin, admin, "DELETE")
         if empty_user_id is not None:
-            for table in ("transactions", "uploaded_files", "cashflow_import_receipts",
-                          "valuations", "category_rules", "wallet_account_aliases",
-                          "bucket_settings", "bucket_category_overrides", "accounts", "institutions"):
+            for table in OWNED_TABLES:
                 request(base, f"/rest/v1/{table}?user_id=eq.{empty_user_id}",
                         admin, admin, "DELETE")
             request(base, f"/auth/v1/admin/users/{empty_user_id}", admin, admin, "DELETE")

@@ -3,16 +3,36 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Infrastructure.External;
 
 namespace PersonalFinance.Tests.Infrastructure;
 
 public class JourneyAdvisorClientTests
 {
+    private sealed record TestCaller(Guid UserId, string AccessToken) : ICurrentUser;
+
+    private static readonly TestCaller Caller = new(Guid.Parse("4b6f0c3e-2d55-4a8e-9a43-0d1c7f5e9b21"), "token");
+
     private static JourneyAdvisorClient BuildClient(HttpMessageHandler handler)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("http://ai-service:8000") };
-        return new JourneyAdvisorClient(http, NullLogger<JourneyAdvisorClient>.Instance);
+        return new JourneyAdvisorClient(http, Caller, NullLogger<JourneyAdvisorClient>.Instance);
+    }
+
+    [Fact]
+    public async Task GenerateQuestsAsync_SendsVerifiedCallerAsUserId()
+    {
+        // Arrange
+        var handler = new FakeHttpHandler(HttpStatusCode.OK, "{\"quests\":[]}");
+        var client = BuildClient(handler);
+
+        // Act
+        await client.GenerateQuestsAsync(SampleState());
+
+        // Assert
+        using var sent = JsonDocument.Parse(handler.LastRequestBody!);
+        Assert.Equal(Caller.UserId.ToString(), sent.RootElement.GetProperty("user_id").GetString());
     }
 
     private static JourneyStateDto SampleState() => new(
@@ -96,11 +116,16 @@ public class JourneyAdvisorClientTests
             _body = body;
         }
 
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(_status)
+        public string? LastRequestBody { get; private set; }
+
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            LastRequestBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(_status)
             {
                 Content = new StringContent(_body, Encoding.UTF8, "application/json"),
-            });
+            };
+        }
     }
 }

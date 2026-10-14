@@ -18,6 +18,13 @@ public class UpsertInvestmentHoldingsCommandHandler(
         logger.LogDebug("Upserting holdings for setup: {SetupId}", request.SetupId);
         await validator.ValidateAndThrowAsync(request, cancellationToken);
 
+        // RLS hides other owners' setups; never replace holdings of a setup the caller cannot see.
+        var setup = await supabase.From<InvestmentSetup>()
+            .Filter("id", Operator.Equals, request.SetupId.ToString())
+            .Single();
+        if (setup == null)
+            throw new KeyNotFoundException($"Investment setup {request.SetupId} not found.");
+
         // Replace-all: delete existing then insert new
         await supabase.From<InvestmentHolding>()
             .Filter("setup_id", Operator.Equals, request.SetupId.ToString())
