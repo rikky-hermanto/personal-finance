@@ -39,6 +39,8 @@ namespace PersonalFinance.Api
 
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+            builder.Services.AddSingleton<ICashflowPilotMode>(
+                new CashflowPilotMode(builder.Configuration.GetValue<bool>("CashflowPilot:Enabled")));
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
