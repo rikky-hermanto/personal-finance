@@ -26,7 +26,8 @@ interface FixtureCase {
   };
 }
 
-const cases = (fixtureFile as { cases: FixtureCase[] }).cases;
+// JSON imports are inferred structurally; the shared C#/TS fixture is the contract.
+const cases = (fixtureFile as unknown as { cases: FixtureCase[] }).cases;
 
 const NUMERIC_TOLERANCE = 6;
 

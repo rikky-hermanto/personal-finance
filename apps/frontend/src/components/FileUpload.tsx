@@ -174,10 +174,10 @@ const FileUpload = ({ onFileUpload }: FileUploadProps) => {
       });
       setParsedTransactions(transactions);
       setCurrentStep('preview');
-    } catch (error: any) {
+    } catch (error: unknown) {
       let message = 'Error processing files.';
       try {
-        const res: Response | undefined = error.response;
+        const res = error instanceof transactionsApi.ApiResponseError ? error.response : undefined;
         const data = await res?.json?.();
         const msg = data?.message ?? data?.Message;
         if (msg) {

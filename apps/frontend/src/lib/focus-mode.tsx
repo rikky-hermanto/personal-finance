@@ -26,7 +26,9 @@ export const FocusModeProvider = ({ children }: { children: React.ReactNode }) =
       const next = !prev;
       try {
         localStorage.setItem(STORAGE_KEY, String(next));
-      } catch {}
+      } catch {
+        /* storage unavailable; keep in-memory state */
+      }
       return next;
     });
   };
@@ -34,7 +36,9 @@ export const FocusModeProvider = ({ children }: { children: React.ReactNode }) =
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, String(focused));
-    } catch {}
+    } catch {
+      /* storage unavailable; keep in-memory state */
+    }
   }, [focused]);
 
   return (

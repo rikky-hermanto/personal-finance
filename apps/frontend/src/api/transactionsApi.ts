@@ -19,7 +19,20 @@ export interface TransactionDto {
   statementBalance: number | null;
   balance: number;
   isDuplicate: boolean;
-  categoryRuleDto: any;
+  categoryRuleDto: CategoryRuleDraft | null;
+}
+
+export interface CategoryRuleDraft {
+  keyword: string;
+  category: string;
+  type: string;
+  flow: string | null;
+}
+
+export class ApiResponseError extends Error {
+  constructor(public readonly response: Response) {
+    super("API Error");
+  }
 }
 
 export interface PagedResult<T> {
@@ -90,9 +103,7 @@ export async function uploadPreview(
   });
 
   if (!res.ok) {
-    const error: any = new Error("API Error");
-    error.response = res;
-    throw error;
+    throw new ApiResponseError(res);
   }
   return res.json();
 }
@@ -131,9 +142,7 @@ export async function submitTransactions(
     body: JSON.stringify({ transactions, fileHash, fileName }),
   });
   if (!res.ok) {
-    const error: any = new Error("API Error");
-    error.response = res;
-    throw error;
+    throw new ApiResponseError(res);
   }
 }
 

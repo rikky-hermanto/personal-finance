@@ -232,7 +232,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
     }
   };
 
-  const handleFieldChange = (transactionId: string, field: keyof Transaction, value: any) => {
+  const handleFieldChange = <K extends keyof Transaction>(transactionId: string, field: K, value: Transaction[K]) => {
     setEditedTransactions(prev =>
       prev.map(t => t.id === transactionId ? { ...t, [field]: value } : t)
     );
@@ -333,10 +333,10 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       }));
       await transactionsApi.submitTransactions(payload, fileHash || undefined, fileName || undefined);
       onConfirm(newTransactions);
-    } catch (error: any) {
+    } catch (error: unknown) {
       let message = "Failed to submit transactions";
       try {
-        if (error?.response && typeof error.response.json === 'function') {
+        if (error instanceof transactionsApi.ApiResponseError) {
           const data = await error.response.json();
           if (data?.Message) message = message + (data.Detail ? `: ${data.Detail}` : "");
         } else if (error instanceof Error && error.message) {

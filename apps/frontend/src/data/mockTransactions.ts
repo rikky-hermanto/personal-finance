@@ -245,7 +245,7 @@ export const mockWalletBalances: WalletBalance[] = [
   },
 ];
 
-export const categorizeTransaction = (description: string): { category: string; type: 'income' | 'expense' } => {
+export const categorizeTransaction = (description: string): { category: string; type: CategoryRule['type'] } => {
   const upperDesc = description.toUpperCase();
   
   for (const rule of categoryRules) {
