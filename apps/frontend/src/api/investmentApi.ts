@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:7208';
 const BASE_URL = `${API_BASE_URL}/api/investments`;
 
@@ -59,46 +60,46 @@ const json = (r: Response) => {
 };
 
 export const listArchetypes = (): Promise<object[]> =>
-  fetch(`${BASE_URL}/archetypes`).then(json);
+  authenticatedFetch(`${BASE_URL}/archetypes`).then(json);
 
 export const listSetups = (): Promise<InvestmentSetupDto[]> =>
-  fetch(`${BASE_URL}/setups`).then(json);
+  authenticatedFetch(`${BASE_URL}/setups`).then(json);
 
 export const getSetup = (id: string): Promise<{ setup: InvestmentSetupDto; holdings: InvestmentHoldingDto[] }> =>
-  fetch(`${BASE_URL}/setups/${id}`).then(json);
+  authenticatedFetch(`${BASE_URL}/setups/${id}`).then(json);
 
 export const createSetup = (body: CreateSetupBody): Promise<InvestmentSetupDto> =>
-  fetch(`${BASE_URL}/setups`, {
+  authenticatedFetch(`${BASE_URL}/setups`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).then(json);
 
 export const updateSetup = (id: string, body: CreateSetupBody): Promise<InvestmentSetupDto> =>
-  fetch(`${BASE_URL}/setups/${id}`, {
+  authenticatedFetch(`${BASE_URL}/setups/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).then(json);
 
 export const deleteSetup = (id: string): Promise<void> =>
-  fetch(`${BASE_URL}/setups/${id}`, { method: 'DELETE' }).then(r => {
+  authenticatedFetch(`${BASE_URL}/setups/${id}`, { method: 'DELETE' }).then(r => {
     if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
   });
 
 export const upsertHoldings = (id: string, body: UpsertHoldingsBody): Promise<InvestmentHoldingDto[]> =>
-  fetch(`${BASE_URL}/setups/${id}/holdings`, {
+  authenticatedFetch(`${BASE_URL}/setups/${id}/holdings`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).then(json);
 
 export const runReview = (id: string, body: RunReviewBody): Promise<InvestmentSnapshotDto> =>
-  fetch(`${BASE_URL}/setups/${id}/review`, {
+  authenticatedFetch(`${BASE_URL}/setups/${id}/review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   }).then(json);
 
 export const getSnapshot = (setupId: string, snapshotId: string): Promise<InvestmentSnapshotDto> =>
-  fetch(`${BASE_URL}/setups/${setupId}/snapshots/${snapshotId}`).then(json);
+  authenticatedFetch(`${BASE_URL}/setups/${setupId}/snapshots/${snapshotId}`).then(json);

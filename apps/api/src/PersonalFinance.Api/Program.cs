@@ -39,8 +39,6 @@ namespace PersonalFinance.Api
 
             builder.Services.AddHttpContextAccessor();
             builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
-            builder.Services.AddSingleton<ICashflowPilotMode>(
-                new CashflowPilotMode(builder.Configuration.GetValue<bool>("CashflowPilot:Enabled")));
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -169,6 +167,8 @@ namespace PersonalFinance.Api
             {
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
                 client.Timeout = TimeSpan.FromMinutes(2);
+                var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
+                if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
             });
             builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<BcaCsvParser>();
@@ -221,6 +221,8 @@ namespace PersonalFinance.Api
             {
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
                 client.Timeout = TimeSpan.FromSeconds(120);
+                var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
+                if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
             });
             builder.Services.AddHttpClient<ILlmSearchClient, LlmSearchClient>(client =>
             {
@@ -274,15 +276,24 @@ namespace PersonalFinance.Api
             app.UseAuthentication();
             app.Use(async (context, next) =>
             {
-                // Fail closed while non-Cashflow modules still use unscoped persistence.
+                // Fail closed: only owner-scoped modules are served.
                 var path = context.Request.Path;
+                // Reopened modules write directly under owner-only RLS (no checked RPCs needed).
+                var ownerScopedModule = path.StartsWithSegments("/api/assets") ||
+                              path.StartsWithSegments("/api/liabilities") ||
+                              path.StartsWithSegments("/api/networth") ||
+                              path.StartsWithSegments("/api/investments") ||
+                              path.StartsWithSegments("/api/journey") ||
+                              path.StartsWithSegments("/api/desk") ||
+                              path.StartsWithSegments("/api/macro-scenarios");
                 var allowed = cashflowPilotEnabled && (path.StartsWithSegments("/api/transactions") &&
                               !path.StartsWithSegments("/api/transactions/upload-preview-new") ||
                               path.StartsWithSegments("/api/accounts") ||
                               path.StartsWithSegments("/api/categoryrules") ||
                               path.StartsWithSegments("/api/buckets") ||
                               path.StartsWithSegments("/api/spending-analysis") ||
-                              path.StartsWithSegments("/api/insights")) ||
+                              path.StartsWithSegments("/api/insights") ||
+                              ownerScopedModule) ||
                               !path.StartsWithSegments("/api");
                 if (!allowed)
                 {
@@ -336,7 +347,8 @@ namespace PersonalFinance.Api
                     !HttpMethods.IsGet(context.Request.Method) &&
                     !HttpMethods.IsHead(context.Request.Method) &&
                     !(HttpMethods.IsPost(context.Request.Method) && preview) &&
-                    !checkedMutation)
+                    !checkedMutation &&
+                    !ownerScopedModule)
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;

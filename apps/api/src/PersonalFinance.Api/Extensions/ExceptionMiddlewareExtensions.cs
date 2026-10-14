@@ -46,8 +46,17 @@ namespace PersonalFinance.Api.Extensions
                         await context.Response.WriteAsync(JsonSerializer.Serialize(new { Code = code }));
                         return;
                     }
+                    if (ex is KeyNotFoundException)
+                    {
+                        // ERR-03. Also the answer for another owner's id: RLS hides the row.
+                        logger.LogInformation("Requested resource not found: {Path}", context.Request.Path);
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new ApiError { Message = "Not found." }));
+                        return;
+                    }
                     logger.LogError(ex, "An unhandled exception has occurred while executing the request.");
-                    
+
                     Activity.Current?.SetStatus(ActivityStatusCode.Error, ex.Message);
                     Activity.Current?.RecordException(ex);
 

@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 import { Asset } from '@/types/Asset';
 import { Holding } from '@/types/Holding';
 import { Valuation } from '@/types/Valuation';
@@ -5,13 +6,13 @@ import { Valuation } from '@/types/Valuation';
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:7209';
 
 export async function getAssets(): Promise<Asset[]> {
-  const res = await fetch(`${BASE}/api/assets`);
+  const res = await authenticatedFetch(`${BASE}/api/assets`);
   if (!res.ok) throw new Error('Failed to fetch assets');
   return res.json();
 }
 
 export async function addAsset(data: Partial<Asset>): Promise<Asset> {
-  const res = await fetch(`${BASE}/api/assets`, {
+  const res = await authenticatedFetch(`${BASE}/api/assets`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -21,7 +22,7 @@ export async function addAsset(data: Partial<Asset>): Promise<Asset> {
 }
 
 export async function addHolding(data: Partial<Holding>): Promise<Holding> {
-  const res = await fetch(`${BASE}/api/assets/holdings`, {
+  const res = await authenticatedFetch(`${BASE}/api/assets/holdings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -31,13 +32,13 @@ export async function addHolding(data: Partial<Holding>): Promise<Holding> {
 }
 
 export async function getHoldings(): Promise<Holding[]> {
-  const res = await fetch(`${BASE}/api/assets/holdings`);
+  const res = await authenticatedFetch(`${BASE}/api/assets/holdings`);
   if (!res.ok) throw new Error('Failed to fetch holdings');
   return res.json();
 }
 
 export async function addValuation(data: Partial<Valuation>): Promise<Valuation> {
-  const res = await fetch(`${BASE}/api/assets/valuations`, {
+  const res = await authenticatedFetch(`${BASE}/api/assets/valuations`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

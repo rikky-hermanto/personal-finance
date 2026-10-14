@@ -1,7 +1,8 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 const BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:7209';
 
 export async function getNetWorthCurrent(): Promise<{ netWorthIdr: number }> {
-  const res = await fetch(`${BASE}/api/networth/current`);
+  const res = await authenticatedFetch(`${BASE}/api/networth/current`);
   if (!res.ok) throw new Error('Failed to fetch net worth');
   return res.json();
 }
@@ -13,13 +14,13 @@ export async function getNetWorthHistory(from?: string, to?: string): Promise<Ar
   const params = new URLSearchParams();
   if (from) params.set('from', from);
   if (to) params.set('to', to);
-  const res = await fetch(`${BASE}/api/networth/history?${params}`);
+  const res = await authenticatedFetch(`${BASE}/api/networth/history?${params}`);
   if (!res.ok) throw new Error('Failed to fetch net worth history');
   return res.json();
 }
 
 export async function getAllocationByClass(): Promise<Record<string, number>> {
-  const res = await fetch(`${BASE}/api/networth/allocation`);
+  const res = await authenticatedFetch(`${BASE}/api/networth/allocation`);
   if (!res.ok) throw new Error('Failed to fetch allocation');
   return res.json();
 }

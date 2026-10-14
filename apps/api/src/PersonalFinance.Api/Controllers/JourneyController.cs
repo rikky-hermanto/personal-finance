@@ -10,30 +10,29 @@ namespace PersonalFinance.Api.Controllers;
 public class JourneyController(
     IMediator mediator,
     IJourneyScoringService scoringService,
-    IJourneyAdvisorClient advisorClient)
+    IJourneyAdvisorClient advisorClient,
+    ICurrentUser caller)
     : ControllerBase
 {
-    // TODO PF-S08: replace with User.FindFirst("sub")?.Value
-    private static readonly Guid PlaceholderUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
 
     [HttpGet("state")]
     public async Task<ActionResult<JourneyStateDto>> GetState(CancellationToken ct)
     {
-        var state = await scoringService.GetStateAsync(PlaceholderUserId, ct);
+        var state = await scoringService.GetStateAsync(caller.UserId, ct);
         return Ok(state);
     }
 
     [HttpPost("recalculate")]
     public async Task<ActionResult<JourneyStateDto>> Recalculate(CancellationToken ct)
     {
-        var state = await mediator.Send(new RecalculateJourneyCommand(PlaceholderUserId), ct);
+        var state = await mediator.Send(new RecalculateJourneyCommand(caller.UserId), ct);
         return Ok(state);
     }
 
     [HttpGet("quests")]
     public async Task<ActionResult<List<JourneyQuestDto>>> GetQuests(CancellationToken ct)
     {
-        var state = await scoringService.GetStateAsync(PlaceholderUserId, ct);
+        var state = await scoringService.GetStateAsync(caller.UserId, ct);
         var quests = await advisorClient.GenerateQuestsAsync(state, ct);
         return Ok(quests);
     }

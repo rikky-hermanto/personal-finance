@@ -33,7 +33,7 @@ BEGIN
     OR (SELECT count(*) FROM public.uploaded_files) <> 1
     OR (SELECT running_balance FROM public.v_transactions_with_balance) <> 100
     OR has_table_privilege(current_user, 'public.transactions', 'INSERT')
-    OR has_table_privilege(current_user, 'public.desk_positions', 'SELECT')
+    OR has_table_privilege(current_user, 'public.fx_rates', 'INSERT')
   THEN RAISE EXCEPTION 'User A isolation/grant check failed'; END IF;
 END $check_a$;
 

@@ -18,7 +18,7 @@ import uuid
 from datetime import date
 from pathlib import Path
 
-from pf_s08_local_http_smoke import request, require
+from pf_s08_local_http_smoke import OWNED_TABLES, request, require
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -71,8 +71,8 @@ def main(harness):
             cwd=REPO, env=environment, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(240):
             require(api_process.poll() is None, "API exited before readiness")
-            # A gated module route answers 404 once the pipeline is up.
-            if request(api_base, "/api/journey/state", anon, anon)[0] == 404:
+            # An unlisted /api route answers 404 once the gate is in the pipeline.
+            if request(api_base, "/api/pf-s08-readiness-probe", anon, anon)[0] == 404:
                 break
             time.sleep(0.25)
         else:
@@ -98,7 +98,8 @@ def main(harness):
         if api_process is not None:
             api_process.terminate()
         if user_id is not None:
-            request(base, f"/rest/v1/transactions?user_id=eq.{user_id}", admin, admin, "DELETE")
+            for table in OWNED_TABLES:
+                request(base, f"/rest/v1/{table}?user_id=eq.{user_id}", admin, admin, "DELETE")
             request(base, f"/auth/v1/admin/users/{user_id}", admin, admin, "DELETE")
 
 

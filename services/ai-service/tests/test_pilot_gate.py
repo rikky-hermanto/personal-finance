@@ -35,3 +35,15 @@ async def test_pilot_gate_stays_closed_when_disabled(monkeypatch):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         assert (await client.post("/parse", json={})).status_code == 404
         assert (await client.get("/health")).status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_pilot_gate_allows_payload_only_advice_routes_with_internal_key(monkeypatch):
+    monkeypatch.setattr(settings, "cashflow_pilot_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        for path in ("/journey/advise", "/portfolio-review"):
+            assert (await client.post(path, json={})).status_code == 401, path
+            # Authenticated malformed input reaches validation, not the provider.
+            response = await client.post(path, json={}, headers={"X-Internal-Api-Key": "test-internal-key"})
+            assert response.status_code == 422, path

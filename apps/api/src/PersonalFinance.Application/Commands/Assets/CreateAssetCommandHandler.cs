@@ -1,11 +1,13 @@
 using FluentValidation;
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Commands.Assets;
 using PersonalFinance.Domain.Entities;
 
 public class CreateAssetCommandHandler(
     Supabase.Client supabase,
+    ICurrentUser caller,
     IValidator<CreateAssetCommand> validator,
     ILogger<CreateAssetCommandHandler> logger
 ) : IRequestHandler<CreateAssetCommand, Asset>
@@ -18,7 +20,7 @@ public class CreateAssetCommandHandler(
         var entity = new Asset
         {
             Id = Guid.NewGuid(),
-            UserId = Guid.Empty, // PF-S08 will replace with JWT user_id
+            UserId = caller.UserId,
             Name = request.Name,
             AssetClass = request.AssetClass,
             AccountId = request.AccountId,

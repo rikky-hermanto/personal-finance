@@ -13,6 +13,8 @@ import AiChatPanel from '@/components/chat/AiChatPanel';
 import { cn } from '@/lib/utils';
 
 const CHAT_OPEN_KEY = 'pf_chat_open';
+// Chat/RAG reads every user's transactions on the AI service side; off until owner-scoped.
+const AI_CHAT_AVAILABLE = false;
 
 const AppShellInner = () => {
   const { focused, toggle } = useFocusMode();
@@ -54,7 +56,7 @@ const AppShellInner = () => {
       <main className="flex-1 overflow-hidden min-w-0 flex flex-col relative">
         {/* AI chat + focus mode toggles — ghost buttons, top-right corner */}
         <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
-          {!isChatRoute && (
+          {AI_CHAT_AVAILABLE && !isChatRoute && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -107,7 +109,7 @@ const AppShellInner = () => {
           </div>
         </div>
       </main>
-      {chatOpen && !isChatRoute ? <AiChatPanel onClose={toggleChat} /> : <ActivityPanel />}
+      {AI_CHAT_AVAILABLE && chatOpen && !isChatRoute ? <AiChatPanel onClose={toggleChat} /> : <ActivityPanel />}
     </div>
   );
 };

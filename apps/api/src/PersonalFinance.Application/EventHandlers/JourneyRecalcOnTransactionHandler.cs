@@ -1,31 +1,25 @@
 using MediatR;
-using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace PersonalFinance.Application.EventHandlers;
 
 public class JourneyRecalcOnTransactionHandler(
     IMediator mediator,
-    ICashflowPilotMode pilotMode,
     ILogger<JourneyRecalcOnTransactionHandler> logger)
     : INotificationHandler<TransactionCreatedEvent>
 {
-    // Placeholder until Journey is owner-scoped; the pilot check below keeps it off real users.
-    private static readonly Guid PlaceholderUserId = Guid.Parse("00000000-0000-0000-0000-000000000001");
-
     public async Task Handle(TransactionCreatedEvent notification, CancellationToken ct)
     {
-        // Journey scoring is not owner-scoped yet; never recalc placeholder data while
-        // the pilot serves real users.
-        if (pilotMode.Enabled)
+        // Recalculate only for the transaction's verified owner; never a placeholder.
+        if (notification.Transaction.UserId is not { } owner || owner == Guid.Empty)
         {
-            logger.LogDebug("Journey recalc skipped during Cashflow pilot");
+            logger.LogWarning("Journey recalc skipped: transaction {Id} has no owner", notification.Transaction.Id);
             return;
         }
 
         try
         {
-            await mediator.Send(new RecalculateJourneyCommand(PlaceholderUserId), ct);
+            await mediator.Send(new RecalculateJourneyCommand(owner), ct);
         }
         catch (Exception ex)
         {

@@ -1,3 +1,4 @@
+import { authenticatedFetch } from '@/api/authenticatedFetch';
 import { useQuery } from '@tanstack/react-query';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
@@ -8,7 +9,7 @@ async function fetchDailyActivity(): Promise<Record<string, number>> {
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - 83); // 12 weeks = 84 days
-  const r = await fetch(
+  const r = await authenticatedFetch(
     `${API}/api/transactions?page=1&pageSize=1000&from=${start.toISOString().slice(0, 10)}&to=${end.toISOString().slice(0, 10)}`
   );
   if (!r.ok) return {};
