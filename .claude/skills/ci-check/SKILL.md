@@ -38,10 +38,10 @@ Expected: No ESLint errors. Warnings are acceptable but should be noted.
 ### Gate 4 — TypeScript type check
 
 ```bash
-cd apps/frontend && npx tsc --noEmit
+cd apps/frontend && npx --no-install tsc --noEmit -p tsconfig.app.json && npx --no-install tsc --noEmit -p tsconfig.node.json
 ```
 
-Expected: No output (zero type errors). Any error is a blocker.
+Expected: No output (zero type errors). Any error is a blocker. The root `tsconfig.json` has `files: []`, so a bare `tsc --noEmit` checks nothing.
 
 Note: TypeScript strict mode is currently disabled (CODE-04 violation, PF-052). Once enabled, this gate will be stricter.
 
@@ -60,8 +60,10 @@ Skip this gate only if `services/ai-service/` has no code yet (pre-PF-011).
 ## Quick run (all gates, sequential)
 
 ```bash
-cd apps/api && dotnet build PersonalFinance.slnx && dotnet test PersonalFinance.slnx && cd ../../apps/frontend && npm run lint && npx tsc --noEmit
+cd apps/api && dotnet build PersonalFinance.slnx && dotnet test PersonalFinance.slnx && cd ../../apps/frontend && npm run lint && npx --no-install tsc --noEmit -p tsconfig.app.json && npx --no-install tsc --noEmit -p tsconfig.node.json
 ```
+
+`.github/workflows/ci.yml` runs these same gates (plus both Vitest suites, `npm run build` and gitleaks) on every push and PR to `main`. Playwright e2e is not run in CI.
 
 ## Quick mode (`/ci-check quick`)
 
@@ -85,7 +87,7 @@ Type-check note: the frontend root `tsconfig.json` is references-only (`files: [
 | dotnet build | Missing package reference | `dotnet restore PersonalFinance.slnx` |
 | dotnet test | New code broke existing test | Fix the code, not the test (THINK-04) |
 | npm run lint | ESLint error | Fix the linting issue; never disable rules inline |
-| tsc --noEmit | Type error | Add proper types; never use `any` or `// @ts-ignore` |
+| tsc -p tsconfig.app.json / tsconfig.node.json | Type error | Add proper types; never use `any` or `// @ts-ignore` |
 | pytest | Mock not set up | Ensure all Anthropic calls are mocked (ai-service.md) |
 
 ## Related

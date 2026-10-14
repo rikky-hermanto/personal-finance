@@ -8,8 +8,8 @@ description: Check Personal Finance's local build, test, lint, and TypeScript re
 Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this skill.
 
 Read root and service `AGENTS.md` files and inspect the current diff. These are local
-readiness checks, not a claim that GitHub workflows enforce them. Inspect actual
-workflow files before describing remote CI. Running this skill alone does not
+readiness checks. `.github/workflows/ci.yml` runs the same gates on every push and PR
+to `main` (not Playwright e2e). Inspect actual workflow files before describing remote CI. Running this skill alone does not
 authorize a commit, push, PR publication, or deployment.
 
 Use explicit working directories, not chained Bash `cd` commands:
