@@ -55,7 +55,7 @@
 |-------|------|----------------|
 | Current phase + active tasks | [STATUS.md](STATUS.md) | What's working, what's next, known tech debt — updated each sprint |
 | Sprint implementation map | [sprint-plan.md](sprint-plan.md) | Original sprint scope mapped to current code and pending checks |
-| Documentation audit | [codex/documentation-status-audit.md](codex/documentation-status-audit.md) | Evidence, corrected drift and verification limits |
+| Documentation audit | [documentation-status-audit.md](../_archive/2026-10-13/docs/codex/documentation-status-audit.md) | Archived 2026-10-13 — evidence, corrected drift and verification limits |
 | Sprint progress log | [mentor/progress.md](mentor/progress.md) | Day-by-day AI learning path progress |
 
 ---
@@ -79,7 +79,7 @@
 | Investment tax reference | [reference/finance-domain/tax-id.md](reference/finance-domain/tax-id.md) | Rate per instrument with regulation citation and verification date — crypto moved to 0.21% on 2026-01-01 |
 
 Domain judgment routes to `/cio` (is the finance sound), `/risk-officer` (limits and sizing), and
-`/compliance` (regulatory and tax) — see [../.claude/skills/SKILLS-GUIDE.md](../.claude/skills/SKILLS-GUIDE.md).
+`/compliance` (regulatory and tax) — see [../ai/MAP.md](../ai/MAP.md).
 
 ---
 

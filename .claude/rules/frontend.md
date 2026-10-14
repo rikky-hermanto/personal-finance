@@ -5,6 +5,8 @@ globs: apps/frontend/**
 
 # Frontend Development Rules (React 18 + TypeScript)
 
+Commands run from `apps/frontend/` (not `src/`): `npm run dev` (port 8080), `npm run build`, `npm run lint`, `npm run preview`.
+
 ## Component Conventions
 
 - Use functional components with arrow functions: `const MyComponent = () => { ... }`
@@ -19,6 +21,7 @@ globs: apps/frontend/**
 
 - Use `@tanstack/react-query` (`useQuery` / `useMutation`) for all API data fetching and caching
 - Use `react-hook-form` with Zod schemas for form validation
+- Charts: Recharts. Routing: react-router-dom v6, routes in `App.tsx`
 - Keep server state in React Query, local UI state in `useState`
 - API client functions go in `src/api/` — use plain `fetch()`, NOT axios
 - Follow existing patterns in `transactionsApi.ts` and `categoryRulesApi.ts`

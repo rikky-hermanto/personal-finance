@@ -8,7 +8,7 @@ Semua skill lain menilai *"apakah ini dibangun dengan baik"*. Arsitektur bisa ra
 lint bersih — dan rumusnya tetap salah. Di produk keuangan, itu bukan bug tampilan; itu user
 mengambil keputusan uang nyata berdasarkan informasi yang salah.
 
-- Katalog semua skill: [../../../.claude/skills/SKILLS-GUIDE.md](../../../.claude/skills/SKILLS-GUIDE.md)
+- Peta semua skill: [../../../ai/MAP.md](../../../ai/MAP.md)
 - Invarian yang selalu ter-load: [../../../.claude/rules/finance-domain.md](../../../.claude/rules/finance-domain.md) (FIN-01…FIN-06)
 
 ---

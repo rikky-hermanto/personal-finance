@@ -13,10 +13,10 @@ You take one of two roles depending on the `as architect` flag:
 ## Arguments
 
 `$ARGUMENTS` — plan prefix, optional explicit file paths, and optional lens flag. Examples:
-- `/battle-plans PF-115` → PO lens, searches status folders for `PF-115*teamA*` and `PF-115*teamB*`
-- `/battle-plans PF-115 as architect` → Architect lens, same auto-discovery
-- `/battle-plans PF-115-feature-teamA PF-115-feature-teamB` → PO lens, explicit files
-- `/battle-plans PF-115-feature-teamA PF-115-feature-teamB as architect` → Architect lens, explicit files
+- `/consult battle PF-115` → PO lens, searches status folders for `PF-115*teamA*` and `PF-115*teamB*`
+- `/consult battle PF-115 as architect` → Architect lens, same auto-discovery
+- `/consult battle PF-115-feature-teamA PF-115-feature-teamB` → PO lens, explicit files
+- `/consult battle PF-115-feature-teamA PF-115-feature-teamB as architect` → Architect lens, explicit files
 
 ## Instructions
 

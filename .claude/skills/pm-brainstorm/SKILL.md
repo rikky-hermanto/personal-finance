@@ -20,10 +20,9 @@ Use `/pm-brainstorm` when the question is **"is this feature worth building?"** 
 | Skill | Use when |
 |-------|----------|
 | `/pm-brainstorm` | Evaluate whether a feature idea is worth building — pain, competition, scope, verdict |
-| `/braindump` | Capture a raw idea or shower thought as-is — no analysis, no verdict |
 | `/council` | Adversarial multi-persona debate on a contested direction |
 | `/consult` | Architecture or technical-tradeoff decision — system design focus |
-| `/battle-plans` | Compare two concrete, already-formed proposals head-to-head |
+| `/consult battle` | Compare two concrete, already-formed proposals head-to-head |
 | `/cio` | Whether the **finance** is sound — formula correctness, investment substance, what a fiduciary could defend |
 | `/risk-officer` | Limits, position sizing, and whether a risk screen is honest — Trading Desk work |
 | `/compliance` | Whether we're allowed to ship it in Indonesia, and the tax the user actually pays |
@@ -303,7 +302,7 @@ After delivering any analysis, enter discussion mode. Respond to follow-up quest
 - If the user pushes back on your verdict, engage — don't just reverse, make them earn it with evidence
 - If the user says "what about X?", evaluate X on the same dimensions without repeating the full template
 - If the user asks "what should we build next?", look at What's Not Built Yet in CLAUDE.md and rank by pain severity + foundation fit
-- Offer to create a plan file (`PF-{n}-{feature}-todo.md`) or hand off to `/battle-plans` or `/review-plan` when the idea is ready to execute
+- Offer to create a plan file (`PF-{n}-{feature}-todo.md`) or hand off to `/consult battle` or `/plan` when the idea is ready to execute
 - **Handoff on verdict:** if the discussion lands on **Go**, point to `/plan {slug}` to produce the implementation plan; if it lands on **No-Go**, offer to `/plan` the prerequisite work that would unblock it (the conditions listed under "What would flip this verdict")
 
 ---

@@ -23,6 +23,8 @@ globs: apps/api/**
 - Application MUST NOT reference Infrastructure or Api
 - Controllers MUST NOT touch `Supabase.Client` directly — always go through services or MediatR
 
+**Key files** (paths under `apps/api/`): solution `PersonalFinance.slnx` · composition root `src/PersonalFinance.Api/Program.cs` · Supabase DI `src/PersonalFinance.Infrastructure/Supabase/DependencyInjection.cs` · tests `tests/PersonalFinance.Tests/`. Run `dotnet` commands from `apps/api/`.
+
 ## CQRS Pattern (MediatR)
 
 Follow these exact patterns from the existing codebase:
