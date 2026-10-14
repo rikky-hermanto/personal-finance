@@ -1,6 +1,6 @@
 ---
 name: create-diagram
-description: Use when creating a self-contained interactive HTML architecture diagram — a node-graph visualization with pan/zoom/drag-to-reposition, light/dark theme toggle, and click-to-drill-down group cards. Triggers on "draw a diagram", "visualize the architecture", "diagram this system/subsystem", "node graph", "system diagram", or documenting how components connect for onboarding/review.
+description: Use when creating a self-contained interactive HTML architecture diagram — a node-graph visualization with pan/zoom/drag-to-reposition, light/dark theme toggle, and click-to-drill-down group cards. Has a `system-design` mode for FAANG-interview-style high-level design diagrams (component icons, labelled sync/async arrows, cluster/VPC boundaries). Triggers on "draw a diagram", "visualize the architecture", "diagram this system/subsystem", "node graph", "system diagram", "system design diagram", "high-level design", "HLD", "interview-style diagram", or documenting how components connect for onboarding/review.
 ---
 
 # Create Diagram
@@ -13,19 +13,29 @@ Produces a single **self-contained interactive HTML file** — a node-graph diag
 
 - User asks to visualize, diagram, or map out how components/services/modules connect
 - Documenting a subsystem's internal wiring for onboarding, architecture review, or a design doc
+- Drawing a high-level system design in FAANG-interview style → `system-design` mode
 - **Not** for a markdown/ASCII box diagram — this skill only produces the interactive HTML format (for that, use `tech-write diagram text`)
 
 ## Arguments
 
-`$ARGUMENTS` — optional subject scope:
+`$ARGUMENTS` — optional mode, then optional subject scope:
 
 ```
-/create-diagram                      # full system architecture
-/create-diagram rag-pipeline         # just the RAG subsystem
-/create-diagram upload-flow          # just the upload flow
+/create-diagram                              # full system architecture (default node-graph mode)
+/create-diagram rag-pipeline                 # just the RAG subsystem
+/create-diagram upload-flow                  # just the upload flow
+/create-diagram system-design                # whole platform, FAANG-interview style
+/create-diagram system-design upload-flow    # one flow, FAANG-interview style
 ```
 
-Omitted subject → full system architecture.
+Omitted subject → full system architecture. Omitted mode → the default two-tier node-graph format. The first word is read as the mode only if it is exactly `system-design`; anything else is the subject.
+
+| Mode | Use for | Section |
+|---|---|---|
+| *(default)* | Internal wiring of this codebase for onboarding/review: two tiers, drill-down, unlabeled edges | **The HTML node-graph format** |
+| `system-design` | High-level design the way it is drawn in a system-design interview: component icons, labelled arrows, sync vs async, cluster/VPC boundaries, one flat canvas | **Mode: `system-design`** — read it *after* the default format, it lists only the overrides |
+
+Pick `system-design` without the argument when the user asks for a "system design diagram", "high-level design", "HLD", "interview-style" or "FAANG-style" diagram.
 
 ## Output location
 
@@ -42,7 +52,7 @@ Omitted subject → full system architecture.
 
 ## The HTML node-graph format
 
-A single **self-contained HTML file** (inline CSS + JS + font, zero CDN/external requests — must work by double-clicking the file offline). Visual language modeled on Foglamp/n8n-style agent-workflow canvases: **sparse, calm, readable at a glance**. The reference exemplar is [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html) — reuse its engine (pan/zoom/drag/tooltip/drill-down machinery) and swap the data arrays; do not rebuild from scratch.
+A single **self-contained HTML file** (inline CSS + JS + font, zero CDN/external requests — must work by double-clicking the file offline). Visual language modeled on Foglamp/n8n-style agent-workflow canvases: **sparse, calm, readable at a glance**. The reference exemplar is [docs/ai-features/diagram-ai-system-target.html](../../../docs/ai-features/diagram-ai-system-target.html) — reuse its engine (pan/zoom/drag/tooltip/drill-down machinery) and swap the data arrays; do not rebuild from scratch.
 
 **Anti-crowding rule (the core lesson — never regress on this):**
 A canvas with 20+ visible nodes, edge labels, and always-on tag pills is unreadable. Structure every diagram as **two tiers**:
@@ -81,7 +91,7 @@ A stub styled like a smaller leaf card is indistinguishable from the group's act
   - **Anchor the edge to the leaf row's bounding box, not to a specific leaf card** — the cross-group edge is defined at the group level in the data (`GROUP_EDGES`), not against any one internal leaf, so drawing it into an individual leaf would assert a relationship the data doesn't actually contain. Compute `rowLeft`/`rowRight`/`rowTop`/`rowBottom` from the current leaf positions (recomputed on every redraw, so it stays correct if a leaf gets dragged) and route the stub's edge to that box's near edge, entry-point Y clamped to the box so it never enters above/below the row.
   - Preserve the edge's original dashed/solid style from `GROUP_EDGES` (a dashed cross-cutting group edge should still render dashed here, not silently become solid).
   - Reference implementation: [docs/mentor/production-llm-topics-diagram.html](../../../docs/mentor/production-llm-topics-diagram.html) — `layoutStubs()` (left/right placement, source vs. destination) and the stub-connector loops inside `drawLeafEdges()` (`upStubs`/`downStubs`, `clampY`) in `openGroup()`.
-- Reference implementation (stub visual styling): [docs/architecture/diagram-query-pipeline-listrik.html](../../../docs/architecture/diagram-query-pipeline-listrik.html) — `.node.kind-stub` / `.stub-up` / `.stub-down` CSS, and the `isDownstream` computation + `--stub-accent` / `--stub-bg` custom properties in `openGroup()`.
+- Reference implementation (stub visual styling): [docs/ai-features/diagram-query-pipeline-listrik.html](../../../docs/ai-features/diagram-query-pipeline-listrik.html) — `.node.kind-stub` / `.stub-up` / `.stub-down` CSS, and the `isDownstream` computation + `--stub-accent` / `--stub-bg` custom properties in `openGroup()`.
 
 **Progressive disclosure — where detail lives (never all at once on the canvas):**
 - Card face: icon + title + one-line subtitle only. **Never render a bullet/chip list on the card face** — a 2–3 item list almost always wraps to more lines than the card's fixed height allows and spills past the border (seen and fixed once already — do not regress). Bullet/chip lists belong exclusively in the hover tooltip.
@@ -98,7 +108,7 @@ A stub styled like a smaller leaf card is indistinguishable from the group's act
 - Dark theme: near-black background (`#0b0b0d`). Light theme (default): cream/off-white background (`#f7f5f0`). Both share a subtle dot-grid texture, themed via `--bg-dot`.
 - Pan (drag empty canvas) + zoom (wheel), fit-to-view on load, zoom controls bottom-right
 - **Nodes are draggable** — mousedown-drag moves a single card, its edges reroute live; a 3px movement threshold separates drag from click. Canvas pan only triggers on empty space.
-- **Persist dragged positions across a refresh** — a drag that's forgotten on reload trains the user not to bother rearranging. Load a `savedPositions` object once from a per-diagram `localStorage` key (`pf-diagram-<subject>:positions`), keyed by `<view>::<nodeId>` (view = `'overview'` or the drilled-into group's own id, so a leaf index reused across different groups' drill-downs — every group has a leaf 0, 1, 2… — never collides with another group's saved leaf). Save via `saveNodePosition(key,x,y)` on drag-**end** only (mouseup, and only if the movement crossed the drag threshold — not on every mousemove, not on a bare click). Apply saved overrides once at init, right after the default layout runs, so a dragged node keeps its spot while everything else still gets the fresh layout. Reference: `savedPositions`/`positionKey()`/`saveNodePosition()` in [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html) (original, per-node closure drag handling) and [docs/mentor/production-llm-topics-diagram.html](../../../docs/mentor/production-llm-topics-diagram.html) (adapted for a single shared drag-state variable instead of per-node closures).
+- **Persist dragged positions across a refresh** — a drag that's forgotten on reload trains the user not to bother rearranging. Load a `savedPositions` object once from a per-diagram `localStorage` key (`pf-diagram-<subject>:positions`), keyed by `<view>::<nodeId>` (view = `'overview'` or the drilled-into group's own id, so a leaf index reused across different groups' drill-downs — every group has a leaf 0, 1, 2… — never collides with another group's saved leaf). Save via `saveNodePosition(key,x,y)` on drag-**end** only (mouseup, and only if the movement crossed the drag threshold — not on every mousemove, not on a bare click). Apply saved overrides once at init, right after the default layout runs, so a dragged node keeps its spot while everything else still gets the fresh layout. Reference: `savedPositions`/`positionKey()`/`saveNodePosition()` in [docs/ai-features/diagram-ai-system-target.html](../../../docs/ai-features/diagram-ai-system-target.html) (original, per-node closure drag handling) and [docs/mentor/production-llm-topics-diagram.html](../../../docs/mentor/production-llm-topics-diagram.html) (adapted for a single shared drag-state variable instead of per-node closures).
 
 **Nodes** — cards, not boxes:
 - Dark card (`#141519`), 1px border (`#26272d`), 14px radius, soft shadow
@@ -122,14 +132,14 @@ A stub styled like a smaller leaf card is indistinguishable from the group's act
     }
     ```
   - **Assign lane offsets per corridor, not by summing each edge's lane index at its two ends.** The obvious implementation gives every edge a lane index at its source port and another at its target port and adds them — but an edge that is outermost at its source and innermost at its target sums to the same offset as one that is the reverse, so the two elbows turn on the same line and draw as one. Bucket edges by the corridor they turn in, spread each bucket evenly around the midline, and shrink the gap to fit when the corridor is tight; sort the bucket by target position then source position so edges heading for the same card sit in adjacent lanes instead of interleaving. Collisions then aren't merely unlikely, they're impossible.
-  - Reference implementation: [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html) — `assignPorts()`, `sidePoint()`, `roundedWaypointPath()`, `edgePath()`.
+  - Reference implementation: [docs/ai-features/diagram-ai-system-target.html](../../../docs/ai-features/diagram-ai-system-target.html) — `assignPorts()`, `sidePoint()`, `roundedWaypointPath()`, `edgePath()`.
 - **Collapse an `A → B` / `B → A` pair into ONE line carrying an arrowhead at each end.** Two separate lines say "two relationships", and routed through the same corridor they braid around each other; one double-headed line says "round trip", which is what a call and its return leg actually are. Merge at draw time only — the layout pass still needs to see both directions, since a dashed back-edge is often what tells a layered layout where a node belongs. On merge, solid wins over dashed and `hot` wins over plain: a live path with a dashed return leg is still a live path. This applies to group edges on the overview and to cross-group stub links alike — for stubs it means deduping on `(target group, local leaf)` and **not** on direction.
 - **An edge must never pass under a card.** Cards paint over the SVG, so a tunnelling edge doesn't look like an overlap — it looks like a line that stops at one card and an unrelated line that starts at another, and the reader cannot tell they're the same edge. This is almost always a *layout* fault, not a routing one: fix it with the two placement rules under **Layout**, not by building a bypass router.
 - **Direction must be readable without following the line by eye — always render an arrowhead** at the point the edge enters the target node, oriented to the port's side (a `polygon` whose tip sits on the port point, base pulled back along the incoming direction — see `arrowPoints()` in the reference implementation). A canvas of unlabeled curves with no arrowheads reads as "these nodes are related," not "A feeds into B" — that ambiguity is the same defect as a missing legend.
 - **"Diusahakan tidak numpuk" (edges must not stack/cross unreadably) is a target, not a guarantee** — a dense graph will always have some crossings once it exceeds a handful of nodes. Treat it as two obligations, not one "make it perfect" ask:
   1. **At layout time:** route through `assignPorts()` port-spreading (already required above) so parallel edges between the same two nodes fan out instead of literally overlapping on one pixel line — true overlap (two edges tracing the identical path) is a bug and must not happen; crossing between *unrelated* edges is normal and acceptable.
   2. **At read time:** give the reader a way to disambiguate crossings on demand — hovering (or selecting) a node fades every edge that doesn't touch it and highlights the ones that do (`edge-active` class + a dimmed `has-focus` state on the SVG root, driven by the node's existing `mouseenter`/`mouseleave`). This is what actually resolves "which line goes where" at a crowded junction — static routing alone cannot fully prevent visual crossings on a real system diagram.
-  - Reference implementation for both: `arrowPoints()`, `focusEdgesFor()`, `clearEdgeFocus()`, `.has-focus` / `.edge-active` CSS in [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html).
+  - Reference implementation for both: `arrowPoints()`, `focusEdgesFor()`, `clearEdgeFocus()`, `.has-focus` / `.edge-active` CSS in [docs/ai-features/diagram-ai-system-target.html](../../../docs/ai-features/diagram-ai-system-target.html).
 
 **Layout**
 - Left-to-right flow lanes: clients → API/orchestration → workers/AI → data stores/outputs
@@ -157,13 +167,88 @@ A stub styled like a smaller leaf card is indistinguishable from the group's act
 **Implementation rules**
 - **Start the file with `<!doctype html>` + `<meta charset="utf-8">` before the `<title>`.** Without it, a double-clicked local file falls back to Latin-1 decoding in Windows browsers and every smart quote, em-dash, and arrow in node text (`— " " ▸ ◂`) renders as mojibake (`â€œ`, `â€"`, `â†'`) — a real bug hit and fixed once on this format, do not regress. Also add `<meta name="viewport" content="width=device-width, initial-scale=1">` alongside it.
 - Plain HTML + vanilla JS + inline SVG for edges; no framework, no build step, no external requests
-- **Support both dark and light themes, default to light.** Define every color as a CSS custom property on `:root` (dark values), then add a `#app[data-theme="light"]` block that overrides each one with light-mode values (cream/white canvas, dark text, darkened accent/status colors for contrast on a light background) — never hardcode a color outside the variable set (e.g. no bare `#d6d7dc` on a text rule; route it through a themed var like `--chip-text`). Ship a header `theme-toggle` button that flips `#app`'s `data-theme` attribute between `"light"` and `"dark"` and swaps its icon (☀️/🌙); default `data-theme` to `"light"`. Reference implementation: [docs/architecture/diagram-ai-system-target.html](../../../docs/architecture/diagram-ai-system-target.html) — see the `:root` / `#app[data-theme="light"]` variable blocks and the theme-toggle IIFE near the end of the `<script>`.
+- **Support both dark and light themes, default to light.** Define every color as a CSS custom property on `:root` (dark values), then add a `#app[data-theme="light"]` block that overrides each one with light-mode values (cream/white canvas, dark text, darkened accent/status colors for contrast on a light background) — never hardcode a color outside the variable set (e.g. no bare `#d6d7dc` on a text rule; route it through a themed var like `--chip-text`). Ship a header `theme-toggle` button that flips `#app`'s `data-theme` attribute between `"light"` and `"dark"` and swaps its icon (☀️/🌙); default `data-theme` to `"light"`. Reference implementation: [docs/ai-features/diagram-ai-system-target.html](../../../docs/ai-features/diagram-ai-system-target.html) — see the `:root` / `#app[data-theme="light"]` variable blocks and the theme-toggle IIFE near the end of the `<script>`.
 - **`#app` itself must declare `color: var(--text)`, not just the theme's custom properties — a real bug, fixed once, do not regress.** The toggle only flips `data-theme` on `#app`, never on `<html>`/`<body>`. If `color: var(--text)` is only set on `html, body` (never re-declared on/under `#app`), the browser resolves that `color` once at the `body` element — using whatever `--text` equals in `:root`'s scope, i.e. the **dark** default — and inherits that literal computed value down through `#app` and every descendant that never re-declares `color` itself. Any element without its own explicit `color` (e.g. a bare `.node .title{font-size:…;font-weight:600}` with no `color` line) is silently stuck showing dark-theme text forever, even after switching to light — on a light/cream card that reads as "title barely visible, nearly invisible," not as an obvious color-swap bug. Fix: declare `color: var(--text)` on `#app` in addition to `html, body`, so anything inside the toggled subtree that relies on inheritance re-resolves against the *live* theme. Cheap audit before shipping: toggle the theme and check every card title, not just the canvas background and accent colors — background/border bugs are obvious at a glance, this one only shows up as low-contrast text.
 - **Verify before delivering — run the geometry harness, don't eyeball it.** `node --check` on the extracted `<script>` only proves it parses; every failure in the one-view contract is a *geometry* bug that a syntax check and a glance at one view both sail straight past. [verify-diagram.js](verify-diagram.js) shims just enough DOM for the diagram's own script to run headlessly, opens the overview and every drill-down by firing each group card's real click handler, and asserts the whole contract per view — off-canvas cards, edges under cards, duplicate paths, edges stacked on the same line, overlapping cards, and the fit-to-view scale:
   ```bash
   node .claude/skills/create-diagram/verify-diagram.js path/to/diagram-<subject>.html
   ```
   It exits non-zero and names the offending view, edge and card (`EDGE-UNDER-CARD  edge#10 passes under D5`), which is enough to fix without opening a browser. Run it after any edit to the data arrays or the layout/routing code, not just at the end. It reads only the `<script>` block and standard node shapes, so it works unchanged on any diagram built to this format.
+
+## Mode: `system-design` (FAANG-interview style)
+
+Draws the diagram the way it is drawn on a whiteboard in a system-design interview: real component icons, short labelled arrows, sync vs async lines, dashed boundaries around clusters, VPCs and stacks. The reader should be able to narrate one request from client to storage by following the arrows alone.
+
+**What carries over unchanged: the zen base look.** Same engine, same file contract, same canvas. That means the cream `#f7f5f0` / near-black `#0b0b0d` dot-grid canvas, embedded Inter (no mono on the canvas), white cards with a 1px border and soft shadow, the theme toggle (default light), the `:root` / `#app[data-theme="light"]` token blocks, pan/zoom/drag with persisted positions, hover tooltip and click side panel, the header strip, elbow routing with ports and corridor lanes, arrowheads, hover-focus on edges, and the one-view contract checked by [verify-diagram.js](verify-diagram.js). Everything below overrides the default format **for this mode only**. Any rule not mentioned here still applies.
+
+### Overrides
+
+| Default format | `system-design` mode |
+|---|---|
+| Two tiers: group overview, click to drill down | **One flat canvas.** Every component is visible at once, because the reader wants the whole request path in one look. Cap at ~18 cards. Over that, split into two diagrams (e.g. *write path* and *read path*) instead of adding drill-downs. No stub cards. |
+| Emoji icon tile, colour-coded per group | **Component icon** as inline SVG (see *Icons*). Card layout: icon tile on top (56px rounded square, `--card-bg`, 1px border), title under it (15px/600), one-line subtitle under that (12.5px muted, e.g. `primary db`, `event bus`, `service · ×3`). The node element's box includes the caption, so the overlap checks cover the text. A 2px accent underline in the component's category colour is allowed; nothing else goes on the face. |
+| No edge labels | **Every edge carries a short label**, 1–3 words, protocol or verb: `HTTPS`, `gRPC`, `SQL`, `publish OrderPlaced`, `get / update`, `cache miss`, `scrape`. The label sits centred on the longest straight segment of the routed path, on a pill filled with `var(--bg)`, 11.5px Inter in `--text-muted`, so it masks the line under it. Anything longer than 3 words goes in the tooltip/panel, as before. |
+| Dashed edge = planned or telemetry | **Solid = synchronous request/response. Dashed (`4 5`) = asynchronous** (publish, consume, replicate, scrape, webhook). A planned edge is dotted (`1.5 4`). The header legend shows all three line styles next to the Live / In progress / Planned card legend. |
+| No per-edge colours | Still uniform `--edge` grey, with one exception: the **primary request path** may be `hot` (`--edge-hot`, the existing accent). One hot path per diagram at most: the path the interviewer would ask you to walk through. |
+| Groups are clickable cards | **Boundaries are zones, not cards.** A zone is a dashed rounded rectangle (1.5px `--border-hover`, fill `hexToRgba(accent, .04)`) with an 11px uppercase, letter-spaced label sitting on its top border: `KUBERNETES CLUSTER`, `VPC · ap-southeast-1`, `CI/CD`, `3RD-PARTY PROVIDERS`, `NOTIFICATIONS DB`. Zones render in their own `#zones` layer **under** `#edges` and `#nodes`, and are neither draggable nor clickable. Derive each zone's box from its member cards' bounding box plus 32px padding (+20px on top for the label), and recompute it on every redraw so it follows dragged cards. Never nest zones more than one level deep. |
+
+### Component vocabulary
+
+Use the standard interview building blocks. Name them by role first and product second (title `Cache`, subtitle `Redis`), or the reverse (title `Redis`, subtitle `cache`). Pick one convention per diagram and keep it.
+
+| Role | Icon | Notes |
+|---|---|---|
+| Client (web / mobile) | monitor or phone | Always leftmost |
+| DNS · CDN | globe · cloud | In front of the load balancer when static content matters |
+| Load balancer · API gateway | split arrows · gateway | One per entry point. Auth and rate limiting are labelled at the gateway |
+| Stateless service | logo of its runtime (.NET, Python, Go…) or a box glyph | Horizontally scaled → **stack effect**: two offset card outlines behind it and `×N` in the subtitle |
+| Cache | Redis logo or bolt | Edge labels `get` / `set`, and `cache miss` on the fallthrough to the DB |
+| Database | brand logo (PostgreSQL, DynamoDB…) or cylinder | Primary with read replicas: one zone holding all of them, with `replicate` dashed edges inside it |
+| Object storage | bucket | S3, Supabase Storage |
+| Queue · stream · event bus | segmented bar | Kafka, SQS, database webhooks. Edges into and out of it are dashed |
+| Worker / consumer | gear or the runtime logo | Downstream of the queue, never called synchronously |
+| Search index · vector store | magnifier · brand logo | Elasticsearch, pgvector |
+| Third-party provider | its brand logo | Inside a `3RD-PARTY PROVIDERS` zone |
+| Observability · CI/CD | brand logos (Grafana, Prometheus, GitHub Actions) | Bottom row or right column, dashed edges (`scrape`, `rollout`, `build · push`) |
+
+### Icons: inline SVG, still zero external requests
+
+- **Brand logos:** fetch each glyph **at build time** from Simple Icons (CC0; `https://cdn.jsdelivr.net/npm/simple-icons@<exact version>/icons/<slug>.svg`, pin the version from `npm view simple-icons version`). Inline it with a Node one-liner as a `<symbol id="i-<slug>">` inside one hidden `<svg>` sprite at the top of `<body>`. This is the same "download once, inject, never echo through chat" pattern as the Inter font. Cards reference it with `<svg><use href="#i-<slug>"/></svg>`. The finished file still makes no network requests.
+- **Generic roles** (client, load balancer, gateway, cache, queue, bucket, worker, globe): inline Lucide paths (ISC licence) the same way, with `stroke="currentColor"` so they follow the theme.
+- **Zen colour rule:** the tile stays neutral (`--card-bg`) and only the glyph carries colour. Use the brand colour when it reads on both themes. For black or near-black brands (Kafka, Rust, GitHub, Vercel) use `fill="currentColor"` with `color: var(--text)`, so the glyph flips with the theme instead of vanishing on the dark canvas. Never paint the whole tile in a brand colour: a canvas of saturated tiles is exactly the noise the zen base exists to remove.
+- No logo for a component → use the role's generic glyph. **Never invent a logo, and never use a vendor logo for something the project does not actually run.** Accuracy over completeness still applies.
+
+### Layout for this mode
+
+- **Left to right by request depth:** client → edge (DNS / CDN / LB) → gateway → services → data stores. Async consumers sit **below** the service that publishes, with the queue between them, so dashed lines run vertically and solid lines run horizontally. The reader then tells sync from async by direction as well as by dash.
+- Supporting systems (CI/CD, observability, third parties) go on the bottom row or in the far-right column, outside the main zone.
+- A zone must never cut a card: every card is fully inside a zone or fully outside it. Leave at least 40px between sibling zones so the router has a corridor.
+- **Label placement is a layout problem.** A label landing on a card or on another label means the straight segment is too short. Move the card to lengthen it before shortening the label.
+- Position by hand: this is a curated topology. Numbered flow steps are optional. If used, prefix the label (`1 · HTTPS`, `2 · SQL`) and number only the primary path.
+
+### Data arrays for this mode
+
+Replace `GROUPS` / `LEAF_NODES` / `LEAF_EDGES` with a flat set at the top of the script:
+
+```js
+const ZONES = [ { id: "k8s", label: "Kubernetes cluster", members: ["gw", "orders", "billing"] } ];
+const NODES = [ { id: "orders", title: "Orders", sub: "service · ×3", icon: "go", accent: "#00ADD8",
+                  status: "live", replicas: 3, x: 640, y: 120, desc: "…", files: ["…"] } ];
+const EDGES = [ { from: "gw", to: "orders", label: "HTTPS", hot: true },
+                { from: "orders", to: "kafka", label: "publish OrderPlaced", async: true } ];
+```
+
+Cards get the class `node kind-service`. Zones are children of `#zones`. Labels are children of `#edge-labels`, each with explicit `left` / `top` / `width` / `height` styles (estimate the width as `8 + text.length * 6.4` px at 11.5px Inter), so the verifier can check them headlessly.
+
+### Verify: same harness, three extra checks
+
+`verify-diagram.js` runs unchanged on this mode. A flat diagram has no group cards, so it checks the single view. On top of the one-view contract it reports:
+
+| Failure | Why it breaks the contract |
+|---|---|
+| `LABEL-ON-CARD` | A label over a card hides its title or icon |
+| `LABELS-OVERLAP` | Two labels on top of each other read as one garbled label |
+| `ZONE-CUTS-CARD` | A card half inside a boundary leaves the one question a boundary exists to answer ("is it in the cluster?") ambiguous |
 
 ## After delivering
 
@@ -188,3 +273,7 @@ A stub styled like a smaller leaf card is indistinguishable from the group's act
 | Two separate lines for `A → B` and `B → A` | One line, arrowhead at each end |
 | Fading a "planned" node with `opacity` | Dashed border + a fill with real delta from `--bg`, no opacity |
 | Shipping without running the geometry harness | `node .claude/skills/create-diagram/verify-diagram.js <file>` before delivering |
+| `system-design`: drill-down groups or stub cards | One flat canvas with dashed zones; split into two diagrams past ~18 cards |
+| `system-design`: same dash for async and planned | Solid = sync, dashed = async, dotted = planned |
+| `system-design`: whole icon tile painted in a brand colour | Neutral tile, coloured glyph; near-black brands use `currentColor` |
+| `system-design`: loading logos from a CDN at runtime | Inline them as an SVG sprite at build time |

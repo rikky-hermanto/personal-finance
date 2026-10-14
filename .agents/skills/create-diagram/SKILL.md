@@ -1,6 +1,6 @@
 ---
 name: create-diagram
-description: Use when creating a self-contained interactive HTML architecture diagram — a node-graph visualization with pan/zoom/drag-to-reposition, light/dark theme toggle, and click-to-drill-down group cards. Triggers on "draw a diagram", "visualize the architecture", "diagram this system/subsystem", "node graph", "system diagram", or documenting how components connect for onboarding/review.
+description: Use when creating a self-contained interactive HTML architecture diagram — a node-graph visualization with pan/zoom/drag-to-reposition, light/dark theme toggle, and click-to-drill-down group cards. Has a `system-design` mode for FAANG-interview-style high-level design diagrams (component icons, labelled sync/async arrows, cluster/VPC boundaries). Triggers on "draw a diagram", "visualize the architecture", "diagram this system/subsystem", "node graph", "system diagram", "system design diagram", "high-level design", "HLD", "interview-style diagram", or documenting how components connect for onboarding/review.
 ---
 
 # Create Diagram
@@ -15,19 +15,29 @@ Produces a single **self-contained interactive HTML file** — a node-graph diag
 
 - User asks to visualize, diagram, or map out how components/services/modules connect
 - Documenting a subsystem's internal wiring for onboarding, architecture review, or a design doc
+- Drawing a high-level system design in FAANG-interview style → `system-design` mode
 - **Not** for a markdown/ASCII box diagram — this skill only produces the interactive HTML format (for that, use `tech-write diagram text`)
 
 ## Arguments
 
-The user's requested subject — optional subject scope:
+The user's requested mode and subject — optional mode, then optional subject scope:
 
 ```
-/create-diagram                      # full system architecture
-/create-diagram rag-pipeline         # just the RAG subsystem
-/create-diagram upload-flow          # just the upload flow
+/create-diagram                              # full system architecture (default node-graph mode)
+/create-diagram rag-pipeline                 # just the RAG subsystem
+/create-diagram upload-flow                  # just the upload flow
+/create-diagram system-design                # whole platform, FAANG-interview style
+/create-diagram system-design upload-flow    # one flow, FAANG-interview style
 ```
 
-Omitted subject → full system architecture.
+Omitted subject → full system architecture. Omitted mode → the default two-tier node-graph format. The first word is read as the mode only if it is exactly `system-design`; anything else is the subject.
+
+| Mode | Use for | Section |
+|---|---|---|
+| *(default)* | Internal wiring of this codebase for onboarding/review: two tiers, drill-down, unlabeled edges | **The HTML node-graph format** |
+| `system-design` | High-level design the way it is drawn in a system-design interview: component icons, labelled arrows, sync vs async, cluster/VPC boundaries, one flat canvas | **Mode: `system-design`** — read it *after* the default format, it lists only the overrides |
+
+Pick `system-design` without the argument when the user asks for a "system design diagram", "high-level design", "HLD", "interview-style" or "FAANG-style" diagram.
 
 ## Output location
 
@@ -167,6 +177,81 @@ A stub styled like a smaller leaf card is indistinguishable from the group's act
   ```
   It exits non-zero and names the offending view, edge and card (`EDGE-UNDER-CARD  edge#10 passes under D5`), which is enough to fix without opening a browser. Run it after any edit to the data arrays or the layout/routing code, not just at the end. It reads only the `<script>` block and standard node shapes, so it works unchanged on any diagram built to this format.
 
+## Mode: `system-design` (FAANG-interview style)
+
+Draws the diagram the way it is drawn on a whiteboard in a system-design interview: real component icons, short labelled arrows, sync vs async lines, dashed boundaries around clusters, VPCs and stacks. The reader should be able to narrate one request from client to storage by following the arrows alone.
+
+**What carries over unchanged: the zen base look.** Same engine, same file contract, same canvas. That means the cream `#f7f5f0` / near-black `#0b0b0d` dot-grid canvas, embedded Inter (no mono on the canvas), white cards with a 1px border and soft shadow, the theme toggle (default light), the `:root` / `#app[data-theme="light"]` token blocks, pan/zoom/drag with persisted positions, hover tooltip and click side panel, the header strip, elbow routing with ports and corridor lanes, arrowheads, hover-focus on edges, and the one-view contract checked by [verify-diagram.js](verify-diagram.js). Everything below overrides the default format **for this mode only**. Any rule not mentioned here still applies.
+
+### Overrides
+
+| Default format | `system-design` mode |
+|---|---|
+| Two tiers: group overview, click to drill down | **One flat canvas.** Every component is visible at once, because the reader wants the whole request path in one look. Cap at ~18 cards. Over that, split into two diagrams (e.g. *write path* and *read path*) instead of adding drill-downs. No stub cards. |
+| Emoji icon tile, colour-coded per group | **Component icon** as inline SVG (see *Icons*). Card layout: icon tile on top (56px rounded square, `--card-bg`, 1px border), title under it (15px/600), one-line subtitle under that (12.5px muted, e.g. `primary db`, `event bus`, `service · ×3`). The node element's box includes the caption, so the overlap checks cover the text. A 2px accent underline in the component's category colour is allowed; nothing else goes on the face. |
+| No edge labels | **Every edge carries a short label**, 1–3 words, protocol or verb: `HTTPS`, `gRPC`, `SQL`, `publish OrderPlaced`, `get / update`, `cache miss`, `scrape`. The label sits centred on the longest straight segment of the routed path, on a pill filled with `var(--bg)`, 11.5px Inter in `--text-muted`, so it masks the line under it. Anything longer than 3 words goes in the tooltip/panel, as before. |
+| Dashed edge = planned or telemetry | **Solid = synchronous request/response. Dashed (`4 5`) = asynchronous** (publish, consume, replicate, scrape, webhook). A planned edge is dotted (`1.5 4`). The header legend shows all three line styles next to the Live / In progress / Planned card legend. |
+| No per-edge colours | Still uniform `--edge` grey, with one exception: the **primary request path** may be `hot` (`--edge-hot`, the existing accent). One hot path per diagram at most: the path the interviewer would ask you to walk through. |
+| Groups are clickable cards | **Boundaries are zones, not cards.** A zone is a dashed rounded rectangle (1.5px `--border-hover`, fill `hexToRgba(accent, .04)`) with an 11px uppercase, letter-spaced label sitting on its top border: `KUBERNETES CLUSTER`, `VPC · ap-southeast-1`, `CI/CD`, `3RD-PARTY PROVIDERS`, `NOTIFICATIONS DB`. Zones render in their own `#zones` layer **under** `#edges` and `#nodes`, and are neither draggable nor clickable. Derive each zone's box from its member cards' bounding box plus 32px padding (+20px on top for the label), and recompute it on every redraw so it follows dragged cards. Never nest zones more than one level deep. |
+
+### Component vocabulary
+
+Use the standard interview building blocks. Name them by role first and product second (title `Cache`, subtitle `Redis`), or the reverse (title `Redis`, subtitle `cache`). Pick one convention per diagram and keep it.
+
+| Role | Icon | Notes |
+|---|---|---|
+| Client (web / mobile) | monitor or phone | Always leftmost |
+| DNS · CDN | globe · cloud | In front of the load balancer when static content matters |
+| Load balancer · API gateway | split arrows · gateway | One per entry point. Auth and rate limiting are labelled at the gateway |
+| Stateless service | logo of its runtime (.NET, Python, Go…) or a box glyph | Horizontally scaled → **stack effect**: two offset card outlines behind it and `×N` in the subtitle |
+| Cache | Redis logo or bolt | Edge labels `get` / `set`, and `cache miss` on the fallthrough to the DB |
+| Database | brand logo (PostgreSQL, DynamoDB…) or cylinder | Primary with read replicas: one zone holding all of them, with `replicate` dashed edges inside it |
+| Object storage | bucket | S3, Supabase Storage |
+| Queue · stream · event bus | segmented bar | Kafka, SQS, database webhooks. Edges into and out of it are dashed |
+| Worker / consumer | gear or the runtime logo | Downstream of the queue, never called synchronously |
+| Search index · vector store | magnifier · brand logo | Elasticsearch, pgvector |
+| Third-party provider | its brand logo | Inside a `3RD-PARTY PROVIDERS` zone |
+| Observability · CI/CD | brand logos (Grafana, Prometheus, GitHub Actions) | Bottom row or right column, dashed edges (`scrape`, `rollout`, `build · push`) |
+
+### Icons: inline SVG, still zero external requests
+
+- **Brand logos:** fetch each glyph **at build time** from Simple Icons (CC0; `https://cdn.jsdelivr.net/npm/simple-icons@<exact version>/icons/<slug>.svg`, pin the version from `npm view simple-icons version`). Inline it with a Node one-liner as a `<symbol id="i-<slug>">` inside one hidden `<svg>` sprite at the top of `<body>`. This is the same "download once, inject, never echo through chat" pattern as the Inter font. Cards reference it with `<svg><use href="#i-<slug>"/></svg>`. The finished file still makes no network requests.
+- **Generic roles** (client, load balancer, gateway, cache, queue, bucket, worker, globe): inline Lucide paths (ISC licence) the same way, with `stroke="currentColor"` so they follow the theme.
+- **Zen colour rule:** the tile stays neutral (`--card-bg`) and only the glyph carries colour. Use the brand colour when it reads on both themes. For black or near-black brands (Kafka, Rust, GitHub, Vercel) use `fill="currentColor"` with `color: var(--text)`, so the glyph flips with the theme instead of vanishing on the dark canvas. Never paint the whole tile in a brand colour: a canvas of saturated tiles is exactly the noise the zen base exists to remove.
+- No logo for a component → use the role's generic glyph. **Never invent a logo, and never use a vendor logo for something the project does not actually run.** Accuracy over completeness still applies.
+
+### Layout for this mode
+
+- **Left to right by request depth:** client → edge (DNS / CDN / LB) → gateway → services → data stores. Async consumers sit **below** the service that publishes, with the queue between them, so dashed lines run vertically and solid lines run horizontally. The reader then tells sync from async by direction as well as by dash.
+- Supporting systems (CI/CD, observability, third parties) go on the bottom row or in the far-right column, outside the main zone.
+- A zone must never cut a card: every card is fully inside a zone or fully outside it. Leave at least 40px between sibling zones so the router has a corridor.
+- **Label placement is a layout problem.** A label landing on a card or on another label means the straight segment is too short. Move the card to lengthen it before shortening the label.
+- Position by hand: this is a curated topology. Numbered flow steps are optional. If used, prefix the label (`1 · HTTPS`, `2 · SQL`) and number only the primary path.
+
+### Data arrays for this mode
+
+Replace `GROUPS` / `LEAF_NODES` / `LEAF_EDGES` with a flat set at the top of the script:
+
+```js
+const ZONES = [ { id: "k8s", label: "Kubernetes cluster", members: ["gw", "orders", "billing"] } ];
+const NODES = [ { id: "orders", title: "Orders", sub: "service · ×3", icon: "go", accent: "#00ADD8",
+                  status: "live", replicas: 3, x: 640, y: 120, desc: "…", files: ["…"] } ];
+const EDGES = [ { from: "gw", to: "orders", label: "HTTPS", hot: true },
+                { from: "orders", to: "kafka", label: "publish OrderPlaced", async: true } ];
+```
+
+Cards get the class `node kind-service`. Zones are children of `#zones`. Labels are children of `#edge-labels`, each with explicit `left` / `top` / `width` / `height` styles (estimate the width as `8 + text.length * 6.4` px at 11.5px Inter), so the verifier can check them headlessly.
+
+### Verify: same harness, three extra checks
+
+`verify-diagram.js` runs unchanged on this mode. A flat diagram has no group cards, so it checks the single view. On top of the one-view contract it reports:
+
+| Failure | Why it breaks the contract |
+|---|---|
+| `LABEL-ON-CARD` | A label over a card hides its title or icon |
+| `LABELS-OVERLAP` | Two labels on top of each other read as one garbled label |
+| `ZONE-CUTS-CARD` | A card half inside a boundary leaves the one question a boundary exists to answer ("is it in the cluster?") ambiguous |
+
 ## After delivering
 
 - Tell the user to open the local file in a browser (clickable link) — no external hosting.
@@ -190,6 +275,10 @@ A stub styled like a smaller leaf card is indistinguishable from the group's act
 | Two separate lines for `A → B` and `B → A` | One line, arrowhead at each end |
 | Fading a "planned" node with `opacity` | Dashed border + a fill with real delta from `--bg`, no opacity |
 | Shipping without running the geometry harness | `node .agents/skills/create-diagram/verify-diagram.js <file>` before delivering |
+| `system-design`: drill-down groups or stub cards | One flat canvas with dashed zones; split into two diagrams past ~18 cards |
+| `system-design`: same dash for async and planned | Solid = sync, dashed = async, dotted = planned |
+| `system-design`: whole icon tile painted in a brand colour | Neutral tile, coloured glyph; near-black brands use `currentColor` |
+| `system-design`: loading logos from a CDN at runtime | Inline them as an SVG sprite at build time |
 
 ## Verification limits
 

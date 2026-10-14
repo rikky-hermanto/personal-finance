@@ -5,6 +5,9 @@
 //   2. no edge segment passes under a card
 //   3. no two edges trace the identical path
 //   4. canvas aspect ratio is close enough to a viewport to fit in one view
+// For system-design mode it also checks edge labels (#edge-labels) and
+// boundary zones (#zones): labels must not cover cards or each other, and a
+// zone must contain each card wholly or not at all.
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
@@ -93,7 +96,7 @@ function mkEl(tag) {
 const byId = {};
 ["nodes", "edges", "viewport", "canvas-wrap", "app", "theme-toggle", "breadcrumb", "crumb-current",
  "crumb-root", "h-sub", "empty-hint", "zoom-in", "zoom-out", "zoom-fit", "reset-layout", "panel",
- "tooltip", "panel-close", "panel-title", "panel-sub", "panel-body"].forEach((id) => (byId[id] = mkEl("div")));
+ "tooltip", "panel-close", "panel-title", "panel-sub", "panel-body", "zones", "edge-labels"].forEach((id) => (byId[id] = mkEl("div")));
 
 const document = {
   getElementById: (id) => (byId[id] = byId[id] || mkEl("div")),
@@ -127,8 +130,11 @@ function snapshot() {
   }));
   const paths = svgEl.children.filter((c) => c.tagName === "path").map((c) => c.getAttribute("d"));
   const arrows = svgEl.children.filter((c) => c.tagName === "polygon").length;
+  const rect = (el) => ({ id: el.dataset.id || el.textContent || "?", x: px(el.style.left), y: px(el.style.top), w: px(el.style.width), h: px(el.style.height) });
+  const labels = byId["edge-labels"].children.map(rect);
+  const zones = byId["zones"].children.map(rect);
   return {
-    boxes, paths, arrows,
+    boxes, paths, arrows, labels, zones,
     canvasW: px(svgEl.getAttribute("width")), canvasH: px(svgEl.getAttribute("height")),
   };
 }
@@ -223,6 +229,18 @@ function report(view, snap) {
       }
     }
   }
+
+  const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  (snap.labels || []).forEach((l, i) => {
+    boxes.forEach((b) => { if (hit(l, b)) problems.push(`LABEL-ON-CARD  label "${l.id}" covers ${b.id}`); });
+    snap.labels.slice(i + 1).forEach((m) => { if (hit(l, m)) problems.push(`LABELS-OVERLAP  "${l.id}" and "${m.id}"`); });
+  });
+  (snap.zones || []).forEach((z) => {
+    boxes.forEach((b) => {
+      const inside = b.x >= z.x && b.y >= z.y && b.x + b.w <= z.x + z.w && b.y + b.h <= z.y + z.h;
+      if (hit(z, b) && !inside) problems.push(`ZONE-CUTS-CARD  zone ${z.id} cuts ${b.id}`);
+    });
+  });
 
   const fit = Math.min((VIEWPORT.width - 100) / canvasW, (VIEWPORT.height - 100) / canvasH, 1);
   if (!boxes.length) problems.push("EMPTY-VIEW  no cards rendered");
