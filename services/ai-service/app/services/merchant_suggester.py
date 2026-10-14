@@ -58,7 +58,7 @@ _PII_PATTERNS = [
     re.compile(r'\d{7,}'),                    # 7+ digit berturutan
     re.compile(r'(\+62|08\d{2})\d+'),         # nomor HP Indonesia
     re.compile(r'\bA\/N\b', re.IGNORECASE),   # atas nama
-    re.compile(r'\bREK\b', re.IGNORECASE),    # rekening
+    re.compile(r'\bREK(?![A-Z])', re.IGNORECASE),  # rekening (also REK123456)
 ]
 
 def _is_pii_keyword(keyword: str) -> bool:
