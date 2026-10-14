@@ -1,10 +1,12 @@
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace PersonalFinance.Application.EventHandlers;
 
 public class JourneyRecalcOnAssetHandler(
     IMediator mediator,
+    ICashflowPilotMode pilotMode,
     ILogger<JourneyRecalcOnAssetHandler> logger)
     : INotificationHandler<AssetUpdatedEvent>
 {
@@ -12,6 +14,14 @@ public class JourneyRecalcOnAssetHandler(
 
     public async Task Handle(AssetUpdatedEvent notification, CancellationToken ct)
     {
+        // Journey scoring is not owner-scoped yet; never recalc placeholder data while
+        // the pilot serves real users.
+        if (pilotMode.Enabled)
+        {
+            logger.LogDebug("Journey recalc skipped during Cashflow pilot");
+            return;
+        }
+
         try
         {
             await mediator.Send(new RecalculateJourneyCommand(PlaceholderUserId), ct);

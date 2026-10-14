@@ -74,6 +74,17 @@ replay historical seeds, or apply the disposable fixture mapper.
    row/group-to-UUID mapping. Include transactions without accounts, file
    hashes, rules, aliases, accounts, institutions, Bucket preferences, and
    dependent deferred-module rows. Ambiguous ownership blocks enforcement.
+   When the operator has decided that all legacy data belongs to one person,
+   use `supabase/scripts/pf-s08-map-single-owner.sql` with both the UUID and
+   the email; it aborts unless the target is at owner-expand, the Auth user is
+   confirmed and active with that email, and no row already belongs to another
+   real owner:
+
+   ```powershell
+   Get-Content -Raw supabase/scripts/pf-s08-map-single-owner.sql |
+     docker exec -i $dbContainer psql -X -U postgres -d postgres `
+       -v owner_id=<uuid> -v owner_email=<email> -f -
+   ```
 3. Run `supabase/scripts/pf-s08-ownership-preflight.sql` and retain its
    aggregate report. Compare row counts, monetary/date checksums, and parent
    links with the pre-mapping baseline. Review normalized duplicate groups;
@@ -99,7 +110,12 @@ approved maintenance procedure and target-specific recovery decision.
 The disposable local harness passed the A/B HTTP/browser smoke, exposed grant
 audit, injected import-fault rollback tests, reset/embedding isolation,
 rollback-only RLS test, and
-shared seed replay on 2026-10-10. A populated target, its owner mapping,
-backup/restore rehearsal, signing configuration, and rollout have not been
-verified. See the [shared PF-S08 plan](../../plans/in-progress/PF-S08-auth-foundation-cashflow-ownership-todo.md)
+shared seed replay on 2026-10-10. On 2026-10-14 the populated path was
+rehearsed on a hash-verified restore of the local main database: expand,
+single-owner mapping, preflight, gate, enforce and every later migration, then
+the SQL suites, the full HTTP/browser smoke, `scripts/pf_s08_dedup_parity.py`,
+`scripts/pf_s08_reset_race.py` and `scripts/pf_s08_session_expiry.py` (the last
+needs the harness `jwt_expiry` set to 20 and restored afterwards). Owner data
+and running balances stayed identical to the source. The real target has not
+been migrated yet. See the [shared PF-S08 plan](../../plans/in-progress/PF-S08-auth-foundation-cashflow-ownership-todo.md)
 for the acceptance checklist and remaining cases.
