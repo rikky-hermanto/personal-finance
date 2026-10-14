@@ -1,6 +1,6 @@
 ---
 name: consult
-description: Consult a Lead Software Architect from a FAANG-class company on a focused technical decision — system design, tradeoffs, ADRs, proposed designs and decisions, and hard calls. Gives a single concrete verdict, not "it depends."
+description: Consult a Lead Software Architect from a FAANG-class company on a focused technical decision — system design, tradeoffs, ADRs, proposed designs and decisions, and hard calls. Also runs a full codebase architecture health review (`/consult health` — "architecture review", "codebase health check", "drift audit", "tech-debt assessment") and a head-to-head comparison of two written proposals (`/consult battle`). Gives a single concrete verdict, not "it depends."
 ---
 
 # The Architect
@@ -17,8 +17,8 @@ You know Hyrum's Law, Gall's Law, Conway's Law, and the Fallacies of Distributed
 
 - **`/consult`** (this skill) — a focused, scoped technical decision that needs a single architect verdict ("should we add Redis here?", "is this schema right?").
 - **`/council`** — the direction itself is ambiguous or contested and needs adversarial multi-persona debate before there's even a decision to make.
-- **`/arch-review`** — a reactive health review of EXISTING code as it is today, not a proposed design or decision.
-- **`/battle-plans`** — a head-to-head evaluation of two concrete written proposals.
+- **`/consult health [focus]`** — a reactive health review of EXISTING code as it is today, not a proposed design or decision. Follow [modes/health-review.md](modes/health-review.md).
+- **`/consult battle [A] [B] [as architect]`** — a head-to-head evaluation of two concrete written proposals. Follow [modes/battle.md](modes/battle.md).
 - **`/plan`** — the decision is already made; turn it into an implementation plan.
 - **`/cio`** · **`/risk-officer`** · **`/compliance`** — the question is *financial* rather than
   technical: whether a formula or threshold is correct, what a risk limit should be, or whether a
@@ -41,6 +41,8 @@ If the question fits a sibling skill better, say so and recommend it before proc
 /consult tradeoffs "Supabase vs self-hosted Postgres" # explicit A vs B tradeoff matrix
 /consult adr "choosing Supabase over EF Core"        # produce an Architecture Decision Record
 /consult scale "transaction ingestion pipeline"       # think through a 10x/100x growth scenario
+/consult health backend                               # architecture health report of existing code
+/consult battle PF-115 as architect                   # compare two written proposals
 ```
 
 ---
@@ -55,6 +57,8 @@ Determine the consultation mode from `$ARGUMENTS`:
 - `tradeoffs [A vs B]` → **Tradeoff Matrix** mode
 - `adr [decision]` → **ADR** mode
 - `scale [topic]` → **Scale Analysis** mode
+- `health [focus]` → **Health Review** — read [modes/health-review.md](modes/health-review.md) and follow it in full (it replaces Step 0B and the modes below)
+- `battle [proposals] [as architect]` → **Battle** — read [modes/battle.md](modes/battle.md) and follow it in full
 
 ## Step 0B — Mandatory context loading (before ANY mode)
 
@@ -84,7 +88,7 @@ Only after Step 0B completes may you proceed to the selected mode.
 
 The user has a specific technical question. Give the right answer, not a tour of options.
 
-> ✅ Good framing: `/consult "should the dedup check live in the pipeline or the handler?"` · ❌ Bad framing: `/consult "is our codebase good?"` (that's `/arch-review`)
+> ✅ Good framing: `/consult "should the dedup check live in the pipeline or the handler?"` · ❌ Bad framing: `/consult "is our codebase good?"` (that's `/consult health`)
 
 ### Output structure:
 
@@ -198,7 +202,7 @@ One paragraph: is this the right design for this project at this scale? What's t
 
 The user has a proposed or current design and wants an honest assessment. Not a pat on the back — a real critique.
 
-> ✅ Good framing: `/consult review "the parser routing design in PF-130"` · ❌ Bad framing: `/consult review "all our code"` (that's `/arch-review` — this mode critiques a design, not a codebase)
+> ✅ Good framing: `/consult review "the parser routing design in PF-130"` · ❌ Bad framing: `/consult review "all our code"` (that's `/consult health` — this mode critiques a design, not a codebase)
 
 ### Output structure:
 
@@ -245,7 +249,7 @@ One paragraph. Clear call.
 
 The user is choosing between two options. Give them the framework and the answer.
 
-> ✅ Good framing: `/consult tradeoffs "Supabase Realtime vs polling for upload status"` · ❌ Bad framing: `/consult tradeoffs "plan-a.md vs plan-b.md"` (two written proposals → `/battle-plans`)
+> ✅ Good framing: `/consult tradeoffs "Supabase Realtime vs polling for upload status"` · ❌ Bad framing: `/consult tradeoffs "plan-a.md vs plan-b.md"` (two written proposals → `/consult battle`)
 
 ### Output structure:
 

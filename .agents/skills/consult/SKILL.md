@@ -1,6 +1,6 @@
 ---
 name: consult
-description: "Evaluate a focused architecture decision, system design, critique, tradeoff, ADR, or scaling question against Personal Finance's actual topology and constraints."
+description: "Evaluate a focused architecture decision, system design, critique, tradeoff, ADR, or scaling question against Personal Finance's actual topology and constraints. Also covers a codebase architecture health review (health mode) and comparing two competing written proposals (battle mode)."
 ---
 
 # consult
@@ -27,6 +27,10 @@ Modes:
 - scale: establish real request/data/dependency topology and baseline first, then
   state 10x/100x assumptions, bottlenecks, failure cliff, and staged mitigations.
   Do not invent measured throughput.
+- health: architecture health review of existing code (formerly arch-review). Read
+  and follow [modes/health-review.md](modes/health-review.md).
+- battle: compare two concrete written proposals (formerly battle-plans). Read and
+  follow [modes/battle.md](modes/battle.md).
 
 Every mode states phase fit: right now, durable, or expected to evolve, with reason.
 Cite implementation evidence. Stay open to contrary evidence; avoid forced certainty.

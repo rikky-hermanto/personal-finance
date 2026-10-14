@@ -1,54 +1,42 @@
 ---
 name: db-migrate
-description: Create and apply EF Core database migrations
+description: Create and verify Supabase SQL schema migrations (Postgres 17). Use for any database schema change — new table, column, index, RLS policy — or an explicitly requested migration apply. Not EF Core (removed in PF-S07).
 ---
 
-# Database Migration
+# Database Migration (Supabase)
 
-Create or apply Entity Framework Core migrations for the PersonalFinance database.
+Persistence is Supabase/PostgREST. There is no EF Core, no DbContext, and no startup auto-migration. Every schema change is a SQL file.
 
-**Important:** All migration commands MUST include both `--project` and `--startup-project` flags.
+## Step 1 — Read before writing
 
-## Create a New Migration
+- `.claude/rules/backend.md` (entity conventions) and `supabase/config.toml`
+- The latest few files in `supabase/migrations/` (naming, style, RLS pattern)
+- The entity in `apps/api/src/PersonalFinance.Domain/Entities/` and any DTOs or clients that read the table
 
-1. Ask the user for a migration name (PascalCase, descriptive, e.g., `AddBudgetTable`)
+## Step 2 — Write the migration
 
-2. Generate migration:
-   ```
-   cd api && dotnet ef migrations add {MigrationName} --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api
-   ```
+Create `supabase/migrations/{yyyyMMddHHmmss}_{snake_description}.sql` with a unique timestamp later than the newest existing file (e.g. `20261013000001_add_budget_table.sql`).
 
-3. Review the generated migration in `api/src/PersonalFinance.Persistence/Migrations/`:
-   - Verify `Up()` creates expected schema changes
-   - Verify `Down()` correctly reverses changes
-   - NEVER edit `Designer.cs` or `Snapshot.cs` files
+- Make the smallest schema change. Include constraints, indexes, any backfill (ordered correctly), and an RLS policy and grants for new tables.
+- Money columns are `numeric`, never float (FIN-01).
+- Keep `[Column("snake_case")]` attributes on the entity in sync, and update DTOs and clients in the same change.
+- **Never edit a migration that has already been applied.** Add a new one.
+- State rollback limits, especially for destructive changes (drops, type narrowing).
 
-4. Apply the migration:
-   ```
-   cd api && dotnet ef database update --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api
-   ```
+## Step 3 — Apply (only what the user asked for)
 
-## Apply Pending Migrations Only
+| Goal | Command |
+|---|---|
+| Apply to the local stack | `npx supabase db push` (or `npx supabase migration up`) |
+| Rebuild local from scratch | `npx supabase db reset` — **destroys local data**; only when explicitly asked |
+| Remote project | Only with explicit authorization; confirm the target first |
 
-```
-cd api && dotnet ef database update --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api
-```
+Writing a migration does not authorize applying it remotely, resetting data, or dropping objects. Never print credentials.
 
-## List All Migrations
+## Step 4 — Verify
 
-```
-cd api && dotnet ef migrations list --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api
-```
+- Check the table or column in Studio (http://localhost:54323) or with `npx supabase db diff`.
+- Run the affected backend tests (`cd apps/api && dotnet test`).
+- If no database was available, say the migration is **unverified**. Don't claim it works because the file exists.
 
-## Remove Last Migration (if not applied)
-
-```
-cd api && dotnet ef migrations remove --project src/PersonalFinance.Persistence --startup-project src/PersonalFinance.Api
-```
-
-## Notes
-
-- The API auto-applies pending migrations on startup (see `Program.cs`), so Docker users get migrations automatically
-- When running locally, ensure PostgreSQL is running on port 5432
-- Connection string is in `appsettings.Development.json`
-- Snake_case naming is applied globally via `UseSnakeCaseNamingConvention()`
+Report: the migration path, its intended effect, whether it was applied (and where), the checks run, and any rollout risks.

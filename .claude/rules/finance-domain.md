@@ -31,7 +31,7 @@ Domain judgment does not belong in the same head as implementation judgment. Rou
 | What are the limits, and what is the sizing math? Is this risk screen honest? | `/risk-officer` |
 | Are we allowed to ship this in Indonesia, and what does it cost the user in tax? | `/compliance` |
 | Do users want it, and do competitors have it? | `/pm-brainstorm` |
-| Where does the code live and how is it structured? | `/consult` · `/arch-review` |
+| Where does the code live and how is it structured? | `/consult` (incl. `/consult health`) |
 
 `/pm-brainstorm` can pass a feature and `/cio` still reject it — users often want things a
 professional could not defend (price prediction, guaranteed returns, market timing signals).

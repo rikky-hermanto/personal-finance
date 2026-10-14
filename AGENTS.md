@@ -52,10 +52,10 @@ Use `plans/` and `BOARD.md` as the shared plan workspace for both agents. Plans 
 ## Codex workflows
 
 Codex workflows are individual skills in `.agents/skills/`, invoked by their actual
-name (for example, `plan`, `execute`, or `review-plan`). `mentor` is reserved for
+name (for example, `plan`, `execute`, or `consult`). `mentor` is reserved for
 AI Engineering learning guidance, progress, and curriculum work. Read the
 applicable skill and `.agents/WORKFLOWS.md` when using a workflow. Discovery and
-capability mapping are documented in `docs/codex/skills-and-rules.md`.
+capability mapping are in `ai/MAP.md`. Read `ai/shared/preferences.md` at the start of every task — it holds the user's standing preferences.
 
 Read `.agents/rules/governance.md` for cross-cutting implementation/review work and
 `.agents/rules/finance-domain.md` for financial logic, specifications, and displays.

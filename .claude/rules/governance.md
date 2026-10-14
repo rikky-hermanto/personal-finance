@@ -16,7 +16,7 @@ globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 | ARCH-02 | Architecture | All interfaces in `Application/Interfaces/`. Never define interfaces in Infrastructure. |
 | ARCH-03 | Architecture | File physical path must match namespace. Cross-layer DTOs → `Application/Dtos/`. |
 | ARCH-04 | Architecture | Controller action body max 15 lines. No business logic in controllers. |
-| ARCH-05 | Architecture | Handlers inject repository interfaces (not AppDbContext). Application has zero Persistence deps. |
+| ARCH-05 | Architecture | Handlers inject Application-layer service/repository interfaces backed by Supabase. Never add a DbContext or Persistence project (EF Core removed in PF-S07). |
 | ARCH-06 | Architecture | `Api.csproj` references only ASP.NET Core / OpenAPI / DI. Parsing libs stay in Infrastructure. |
 | CODE-01 | Convention | Naming: `{Verb}{Entity}Command/Handler/Validator`, `I{Entity}Service`, `{Entity}Controller` (plural), snake_case DB tables, PascalCase React components, `use-` camelCase hooks. |
 | CODE-02 | Convention | All `async Task` methods end with `Async`. Exemptions: MediatR `Handle()`, controller actions. |
@@ -25,7 +25,7 @@ globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 | CODE-05 | Convention | No `Console.WriteLine` in `api/src/`. All output via `ILogger<T>`. |
 | TEST-01 | Testing | Every public method in Services, Commands, Validators, Parsers, Controllers must have tests. |
 | TEST-02 | Testing | Test method naming: `MethodName_Condition_ExpectedResult`. |
-| TEST-03 | Testing | `UseInMemoryDatabase(Guid.NewGuid().ToString())`. Implement `IDisposable`. No shared DbContext. |
+| TEST-03 | Testing | Isolate tests with Moq or pure logic, or a real configured integration harness (PF-034). Never reintroduce EF `UseInMemoryDatabase`. |
 | TEST-04 | Testing | Delete all scaffold test files. Every test file needs at least one `[Fact]` or `[Theory]`. |
 | ERR-01 | Error | Never return `ex.Message` or `ex.StackTrace` in responses. Log full exception, return generic message + correlation ID. |
 | ERR-02 | Error | Every class with business logic injects `ILogger<T>`. |
@@ -95,6 +95,6 @@ Do this BEFORE writing schema code.
 
 **Rule:** These fields are a shared frozen contract across `TransactionDto.cs` (C#) and `models.py` (Python):
 
-`Date/date` · `Description/description` · `Remarks/remarks` · `Flow/flow` · `Type/type` · `AmountIdr/amount_idr` · `Currency/currency` · `ExchangeRate/exchange_rate` · `Wallet/wallet`
+`Date/date` · `Description/description` · `Remarks/remarks` · `Flow/flow` · `Type/type` · `AmountIdr/amount_idr` · `Currency/currency` · `ExchangeRate/exchange_rate` · `AccountName/account_name` (was `Wallet/wallet` until PF-125)
 
 Any rename requires updating **both files in the same commit**. After the change, update the contract table in `.claude/rules/ai-service.md`.
