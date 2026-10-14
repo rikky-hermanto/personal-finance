@@ -191,7 +191,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-_PILOT_INTERNAL_ROUTES = {"/parse", "/parse-pdf", "/parse-image", "/categorize", "/suggest-categories"}
+# Internal routes the .NET API calls with scoped input. /journey/advise and
+# /portfolio-review only see the caller's data sent in the request body; they
+# never query the database.
+_PILOT_INTERNAL_ROUTES = {
+    "/parse", "/parse-pdf", "/parse-image", "/categorize", "/suggest-categories",
+    "/journey/advise", "/portfolio-review",
+}
 
 
 @app.middleware("http")

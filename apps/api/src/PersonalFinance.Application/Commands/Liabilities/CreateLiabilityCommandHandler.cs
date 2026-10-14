@@ -1,11 +1,13 @@
 using FluentValidation;
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Commands.Liabilities;
 using PersonalFinance.Domain.Entities;
 
 public class CreateLiabilityCommandHandler(
     Supabase.Client supabase,
+    ICurrentUser caller,
     IValidator<CreateLiabilityCommand> validator,
     ILogger<CreateLiabilityCommandHandler> logger
 ) : IRequestHandler<CreateLiabilityCommand, Liability>
@@ -18,7 +20,7 @@ public class CreateLiabilityCommandHandler(
         var entity = new Liability
         {
             Id = Guid.NewGuid(),
-            UserId = Guid.Empty, // PF-S08 will replace with JWT user_id
+            UserId = caller.UserId,
             Name = request.Name,
             LiabilityType = request.LiabilityType,
             AccountId = request.AccountId,

@@ -47,7 +47,10 @@ Get-Content -Raw supabase/tests/pf-s08-import-faults.sql |
   docker exec -i $dbContainer psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -f -
 Get-Content -Raw supabase/tests/pf-s08-reset-derived.sql |
   docker exec -i $dbContainer psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -f -
+Get-Content -Raw supabase/tests/pf-s08-deferred-modules-rls.sql |
+  docker exec -i $dbContainer psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -f -
 rtk proxy python scripts/pf_s08_local_http_smoke.py $harness
+rtk proxy python scripts/pf_s08_module_isolation.py $harness
 ```
 
 The RLS and fault SQL tests roll back their fixtures. The HTTP smoke

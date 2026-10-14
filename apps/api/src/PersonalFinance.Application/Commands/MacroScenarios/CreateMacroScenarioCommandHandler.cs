@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Commands.MacroScenarios;
 using PersonalFinance.Domain.Entities;
@@ -7,6 +8,7 @@ using PersonalFinance.Domain.Events;
 
 public class CreateMacroScenarioCommandHandler(
     Supabase.Client supabase,
+    ICurrentUser caller,
     IValidator<CreateMacroScenarioCommand> validator,
     IMediator mediator,
     ILogger<CreateMacroScenarioCommandHandler> logger
@@ -20,7 +22,7 @@ public class CreateMacroScenarioCommandHandler(
         var entity = new MacroScenario
         {
             Id = Guid.NewGuid(),
-            UserId = Guid.Empty, // PF-S08 will replace with JWT user_id
+            UserId = caller.UserId,
             Name = request.Name,
             DriversJson = request.DriversJson,
             CreatedAt = DateTime.UtcNow,

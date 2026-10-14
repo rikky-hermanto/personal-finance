@@ -12,7 +12,7 @@ namespace PersonalFinance.Tests.Authentication;
 
 public sealed class CashflowPilotBoundaryTests
 {
-    private const string Secret = "local-test-signing-secret-32-bytes-minimum";
+    private const string Secret = "local-test-signing-secret-32-bytes-minimum"; // commit-skill:allow (fake key for the in-process test server)
     private const string Issuer = "http://127.0.0.1:54321/auth/v1";
 
     private static WebApplicationFactory<PersonalFinance.Api.Program> CreateFactory(
@@ -73,7 +73,7 @@ public sealed class CashflowPilotBoundaryTests
         var client = factory.CreateClient();
         var token = scenario switch
         {
-            "wrong-signature" => Token(Guid.NewGuid().ToString(), secret: "a-different-32-byte-signing-secret-for-test"),
+            "wrong-signature" => Token(Guid.NewGuid().ToString(), secret: "a-different-32-byte-signing-secret-for-test"), // commit-skill:allow (deliberately wrong fake key)
             "wrong-issuer" => Token(Guid.NewGuid().ToString(), issuer: "https://wrong.example/auth/v1"),
             "wrong-audience" => Token(Guid.NewGuid().ToString(), audience: "other"),
             "expired" => Token(Guid.NewGuid().ToString(), expires: DateTime.UtcNow.AddMinutes(-1)),
@@ -86,11 +86,37 @@ public sealed class CashflowPilotBoundaryTests
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
-    [Fact]
-    public async Task Journey_WhenPilotEnabled_ReturnsNotFound()
+    [Theory]
+    [InlineData("/api/journey/state")]
+    [InlineData("/api/assets")]
+    [InlineData("/api/liabilities")]
+    [InlineData("/api/networth")]
+    [InlineData("/api/investments/setups")]
+    [InlineData("/api/desk/state")]
+    [InlineData("/api/macro-scenarios")]
+    public async Task OwnerScopedModule_MissingToken_ReturnsUnauthorized(string path)
     {
         using var factory = CreateFactory();
+        var response = await factory.CreateClient().GetAsync(path);
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task OwnerScopedModule_WhenPilotDisabled_ReturnsNotFound()
+    {
+        using var factory = CreateFactory(pilotEnabled: false);
         var response = await factory.CreateClient().GetAsync("/api/journey/state");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnlistedApiRoute_WithValidToken_ReturnsNotFound()
+    {
+        using var factory = CreateFactory();
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", Token(Guid.NewGuid().ToString()));
+        var response = await client.GetAsync("/api/transactions/upload-preview-new");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 

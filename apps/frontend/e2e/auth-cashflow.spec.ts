@@ -13,8 +13,10 @@ async function signIn(page: Page, index: number) {
   await page.getByLabel('Email').fill(user.email);
   await page.getByLabel('Password').fill(user.password);
   await page.getByLabel('Password').press('Enter');
+  await expect(page).toHaveURL(/\/journey$/);
+  await page.getByRole('button', { name: 'Cashflow' }).click();
   await expect(page).toHaveURL(/\/cashflow\/overview$/);
-  await page.getByRole('link', { name: 'Transactions' }).click();
+  await page.getByRole('tab', { name: 'Transactions' }).click();
   await expect(page).toHaveURL(/\/cashflow\/transactions$/);
 }
 
@@ -31,7 +33,7 @@ test('login, refresh, logout, account switch, and late-response isolation', asyn
   await page.getByRole('button', { name: 'Sign in' }).click();
   await expect(page.getByRole('alert')).toContainText('Sign in failed.');
   await signIn(page, 0);
-  await expect(page.getByText(markerA)).toBeVisible();
+  await expect(page.getByText(markerA).first()).toBeVisible();
   await expect(page.getByText(markerB)).toHaveCount(0);
   const wasDark = await page.locator('html').evaluate(element => element.classList.contains('dark'));
   await page.getByRole('button', { name: 'Toggle theme' }).click();
@@ -39,24 +41,24 @@ test('login, refresh, logout, account switch, and late-response isolation', asyn
     .toBe(!wasDark);
   await page.getByRole('button', { name: 'Toggle theme' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole('link', { name: 'Transactions' })).toBeVisible();
+  await expect(page.getByRole('tab', { name: 'Transactions' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
   await page.setViewportSize({ width: 1280, height: 800 });
 
   await page.reload();
-  await expect(page.getByText(markerA)).toBeVisible();
+  await expect(page.getByText(markerA).first()).toBeVisible();
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, 1);
-  await expect(page.getByText(markerB)).toBeVisible();
+  await expect(page.getByText(markerB).first()).toBeVisible();
   await expect(page.getByText(markerA)).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, 0);
-  await expect(page.getByText(markerA)).toBeVisible();
+  await expect(page.getByText(markerA).first()).toBeVisible();
 
-  await page.getByRole('link', { name: 'Overview' }).click();
+  await page.getByRole('tab', { name: 'Overview' }).click();
   await expect(page).toHaveURL(/\/cashflow\/overview$/);
 
   let releaseOldResponse: (() => void) | undefined;
@@ -71,12 +73,12 @@ test('login, refresh, logout, account switch, and late-response isolation', asyn
     }
     await route.continue().catch(() => {});
   });
-  await page.getByRole('link', { name: 'Transactions' }).click();
+  await page.getByRole('tab', { name: 'Transactions' }).click();
   await held;
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, 1);
-  await expect(page.getByText(markerB)).toBeVisible();
+  await expect(page.getByText(markerB).first()).toBeVisible();
   releaseOldResponse?.();
   await expect(page.getByText(markerA)).toHaveCount(0);
 
