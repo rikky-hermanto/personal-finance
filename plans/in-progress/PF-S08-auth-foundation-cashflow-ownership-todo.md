@@ -1,8 +1,8 @@
 # PF-S08 — Supabase Auth Foundation + Cashflow Ownership
 
-> **Status:** In Progress — worktree `pf-s08-auth-cashflow`; partial disposable-database isolation proof complete
+> **Status:** In Progress — worktree `pf-s08-auth-cashflow`; local verification and populated-upgrade rehearsal complete; STEP 8 rollout to the real local database pending
 > **Created:** 2026-10-09 (Asia/Makassar)
-> **Revised:** 2026-10-10 — local A/B API, database, Storage, GraphQL, and browser proof expanded; rollout remains pending
+> **Revised:** 2026-10-14 — populated-upgrade rehearsal on a restored copy of main's database, dedup parity matrix (one collation fix), fault/race, event-path and token-expiry checks passed; rollout remains pending
 > **Task:** PF-S08 — backend auth foundation and Cashflow ownership
 > **Related work:** PF-S09 frontend auth; coordinated in this shared plan, no new ticket allocated
 > **Remote status:** Existing issues #71/#72 are references only; not verified or changed by this planning task
@@ -214,28 +214,23 @@ Tidak memperluas task menjadi durable import/queue. Submit memakai satu transaks
 
 ## Acceptance criteria
 
-- [ ] Pilot accounts dapat login/logout dan restore/refresh session; loading/error states, keyboard, mobile, light/dark mengikuti Zen.
-  - 🟡 **Coded, verification pending (2026-10-13 audit):** `AuthProvider.tsx`, `LoginPage.tsx`, `RequireAuth`; Playwright `auth-cashflow.spec.ts` passes login, reload restore, logout, switch, keyboard, mobile and theme. Real access-token expiry/refresh is not yet exercised.
+- [x] Pilot accounts dapat login/logout dan restore/refresh session; loading/error states, keyboard, mobile, light/dark mengikuti Zen. — `auth-cashflow.spec.ts` covers login, reload, logout, switch, keyboard, mobile and theme; `auth-session-expiry.spec.ts` (via `scripts/pf_s08_session_expiry.py`, harness `jwt_expiry = 20`) proves the expired token is rejected by the API, the app refreshes and keeps loading, and reload restores the session through the rotated refresh token.
 - [x] API menolak token hilang/invalid/expired/wrong issuer/wrong audience dan subject non-UUID; owner selalu berasal dari verified caller.
 - [x] User client terpisah per request; request A/B bersamaan tidak saling membawa token atau hasil.
 - [x] Semua transaksi baru punya owner termasuk account_id null; account/institution/alias lintas owner ditolak server dan DB.
 - [x] Semua Cashflow reads, counts, balances, exports, insights, Spending dan Buckets hanya memakai data caller.
 - [x] Duplicate file/transaction hanya berlaku pada owner yang sama; A/B dapat mengimpor file identik.
-- [ ] Preview dan submit memakai predicate duplicate yang sama; submit melakukan recheck setelah lock. Concurrent same-owner imports tidak menggandakan transaksi, termasuk normalized description dan NULL statement_balance.
-  - 🟡 **Coded, verification pending (2026-10-13 audit):** `submit_cashflow_import` RPC with per-owner advisory lock and in-transaction recheck (`20261009100000_pf_s08_checked_cashflow_import.sql`). Per-owner concurrency, NULL account/balance, Unicode, midpoint and 0.01 boundaries passed; the full C#↔SQL canonical preview/submit parity matrix remains.
-- [ ] Submit atomically commits rows, file hash, aliases, submit-induced rules dan receipt. Fault sebelum commit meninggalkan nol efek; response hilang sesudah commit dapat direplay dengan request_id/payload yang sama tanpa insert ulang. Changed payload dengan request_id yang sama menghasilkan 409.
-  - 🟡 **Coded, verification pending (2026-10-13 audit):** receipts table, replay, `idempotency_conflict` / `file_already_processed` → 409 in RPC and `TransactionsController`. Rollback faults before hash and before receipt (`supabase/tests/pf-s08-import-faults.sql`) and committed replay passed; remaining fault cases (after row insert, reset racing submit) are open.
+- [x] Preview dan submit memakai predicate duplicate yang sama; submit melakukan recheck setelah lock. Concurrent same-owner imports tidak menggandakan transaksi, termasuk normalized description dan NULL statement_balance. — Shared 22-case matrix `supabase/tests/fixtures/pf-s08-dedup-parity.json` runs against the C# tagger (`DedupParityTests`) and the real RPC (`scripts/pf_s08_dedup_parity.py`). It found one divergence: ICU `lower()` applies context rules (word-final capital sigma, dotted capital I) that .NET does not. Fixed by `20261014000000_pf_s08_dedup_simple_case_fold.sql` (`COLLATE pg_c_utf8`) plus an explicit U+0130 fold in C#; both halves now pass all 22.
+- [x] Submit atomically commits rows, file hash, aliases, submit-induced rules dan receipt. Fault sebelum commit meninggalkan nol efek; response hilang sesudah commit dapat direplay dengan request_id/payload yang sama tanpa insert ulang. Changed payload dengan request_id yang sama menghasilkan 409. — `pf-s08-import-faults.sql` now also injects a fault right after a row insert; `scripts/pf_s08_reset_race.py` proves submit→reset and reset→submit serialize on the owner lock and that a waiter past the 3 s `lock_timeout` fails with no effect.
 - [x] Custom category rules, aliases, file hashes dan bucket preferences tidak dibagikan; shared presets read-only.
 - [x] Reset A hanya menghapus transaksi, file-hash metadata dan derived transaction embeddings A; data B serta rekening/preferences tetap utuh.
 - [x] Balance view memakai window per owner dan invoker-safe access; tidak membocorkan saldo/count melalui query langsung.
 - [x] Logout/account switch menghapus query cache, preview, selection, chat state dan realtime subscription; late responses tidak mengisi state baru. — `AuthProvider` cancels queries, swaps the QueryClient and remounts the tree keyed by user id; Realtime channel is per user with `user_id` filter; only date-format prefs live in localStorage. Playwright verifies switch, late A response after B and Realtime A-positive/B-negative.
 - [x] Direct PostgREST/GraphQL/view/RPC/storage access ke data personal yang belum diisolasi ditolak untuk anon dan authenticated.
-- [ ] Unscoped .NET/FastAPI routes, experimental upload, embedding dispatch dan Journey placeholder consumers dinonaktifkan server-side; standard extraction tetap berfungsi dengan mocks.
-  - 🟡 **Coded, verification pending (2026-10-13 audit):** fail-closed `/api` allowlist in `Program.cs` (excludes `upload-preview-new`), FastAPI `pilot_access_gate` + internal key, global category/rule caches skipped in pilot; pilot-gate tests 3 passed. Not yet shown: Journey recalc/embedding dispatch disabled on the event path, and mocked PDF/image import under the gate.
+- [x] Unscoped .NET/FastAPI routes, experimental upload, embedding dispatch dan Journey placeholder consumers dinonaktifkan server-side; standard extraction tetap berfungsi dengan mocks. — Embedding dispatch has no caller after PF-S08; both Journey recalc handlers now no-op when `ICashflowPilotMode.Enabled` (`JourneyRecalcPilotGateTests`). Mocked `/parse-pdf` and new `/parse-image` tests pass under the gate with the internal key, and `/parse-image` without the key never reaches the parser.
 - [ ] Legacy data dipetakan eksplisit, dipreservasi, dan tervalidasi; tidak ada auto-claim kepada pengguna pertama atau destructive reset.
-  - 🟡 **Coded, verification pending (2026-10-13 audit):** tooling only — `pf-s08-ownership-preflight.sql`, `pf-s08-ownership-gate.sql`, disposable fixture mapping. Real legacy-owner mapping and backup have not run.
-- [ ] Fresh install mengikuti staged bootstrap sampai expand → provision/map fixtures → enforce → user-rule bootstrap; populated upgrade mengikuti backup/maintenance → expand → explicit mapping → enforce. Keduanya preserve counts/relations dan tidak menjalankan seed personal tanpa owner valid.
-  - 🟡 **Coded, verification pending (2026-10-13 audit):** fresh path proven on the disposable harness (expand → map fixtures → enforce, seed replay twice idempotent); runbook `docs/runbooks/pf-s08-cashflow-pilot.md`. Populated-upgrade rehearsal not run.
+  - 🟡 **Rehearsed 2026-10-14, not yet applied:** decision — all legacy rows belong to one new Auth user (the owner's email). `supabase/scripts/pf-s08-map-single-owner.sql` mapped a restored copy of main's database cleanly (see checkpoint). The real local main database is untouched; applying it is STEP 8.
+- [x] Fresh install mengikuti staged bootstrap sampai expand → provision/map fixtures → enforce → user-rule bootstrap; populated upgrade mengikuti backup/maintenance → expand → explicit mapping → enforce. Keduanya preserve counts/relations dan tidak menjalankan seed personal tanpa owner valid. — Fresh path proven 2026-10-10; populated path rehearsed 2026-10-14 on a verified restore of main's database (checkpoint below).
 - [x] Real local Supabase + API tests membuktikan allow/deny dua pengguna; skipped tests tidak dianggap coverage.
 
 ## Data and contract decisions
@@ -354,7 +349,7 @@ Deliver scripts/runbook and separate fresh/populated integration scenarios. If C
 
 **Done when:** owner spoofing and missing-token paths cannot reach privileged client behavior; concurrency checks pass.
 
-### [~] STEP 4 — Scope the complete Cashflow workflow
+### [x] STEP 4 — Scope the complete Cashflow workflow
 
 **Purpose:** eliminate secondary leaks beyond the transaction list.
 
@@ -367,7 +362,7 @@ Deliver scripts/runbook and separate fresh/populated integration scenarios. If C
 
 **Done when:** all acceptance-listed Cashflow operations pass A/B checks; no placeholder caller remains in pilot paths.
 
-### [~] STEP 5 — Close unscoped service and feature paths
+### [x] STEP 5 — Close unscoped service and feature paths
 
 **Purpose:** Cashflow isolation remains true when API URLs are called directly.
 
@@ -378,7 +373,7 @@ Deliver scripts/runbook and separate fresh/populated integration scenarios. If C
 
 **Done when:** direct denied-route tests pass with A/B/anon, while mocked CSV/PDF/image standard import still succeeds.
 
-### [~] STEP 6 — Build session UX and authenticated frontend requests
+### [x] STEP 6 — Build session UX and authenticated frontend requests
 
 **Purpose:** usable identity lifecycle without stale data after account switch.
 
@@ -390,7 +385,7 @@ Deliver scripts/runbook and separate fresh/populated integration scenarios. If C
 
 **Done when:** browser tests cover refresh/logout/A→B and empty account setup without global seeded records.
 
-### [~] STEP 7 — Build real local isolation tests
+### [x] STEP 7 — Build real local isolation tests
 
 **Purpose:** prove policies, API paths and browser state using actual user tokens.
 
@@ -503,3 +498,14 @@ Reviewed 2026-10-09 for this plan. SDK-specific APIs and deployed signing mode r
 - Additional database checks: repeatable `supabase/tests/pf-s08-exposed-grants.sql` passed for `public`/`graphql_public` relations/functions and Storage policies; anon has no exposed personal relation reads, authenticated writes require checked RPCs, and vector extension math functions remain callable without personal-data reads. Rollback-only `supabase/tests/pf-s08-import-faults.sql` injected failures before hash and receipt writes and verified zero partial transactions, aliases, rules, hashes, or receipts. Rollback-only `supabase/tests/pf-s08-reset-derived.sql` verified that reset cascades A's embedding and deletes only A's transactions, hashes and receipts while B's data and A/B accounts/preferences remain. Replaying `seed.sql` twice kept 404 shared presets, 12 historical Desk fixture positions, and zero transactions/private rules. The limited function role and legacy policy overlap were corrected in additive migrations.
 - Read-only `supabase/scripts/pf-s08-ownership-gate.sql` passed on the disposable mapped harness. It blocks missing/placeholder Auth owners and six direct parent-owner mismatches before enforce. [PF-S08 Cashflow pilot runbook](../../docs/runbooks/pf-s08-cashflow-pilot.md) records the staged local commands and the target backup/mapping/maintenance sequence; no populated-target rehearsal has run.
 - Still pending before pilot release: target Auth signing mode/issuer and browser origin, real legacy-owner mapping and backup, remaining canonical preview/submit parity and fault cases, populated-upgrade validation, actual session token expiry/refresh, and deployment. Re-run grants/policies against the actual target before enabling traffic. Both pilot flags remain default off. No populated or remote database, GitHub issue, commit, or deployment was changed.
+
+## Execution checkpoint — 2026-10-14
+
+- Decisions (owner): populated target = the local main Supabase stack; all legacy rows map to one new Auth user with the owner's email; asymmetric JWKS signing; pre-existing lint/tsc errors fixed separately first (`a6a93441`, fast-forwarded to main). PF-S08 rebased onto it.
+- Backup: full and public data-only `pg_dump` of main's database stored outside the repo. Baseline = per-table row count plus a content hash excluding `user_id` for all public tables (24 transactions, 13 accounts, 12 institutions, 5 rules, Bucket and deferred-module rows).
+- Classification against a pristine migration run: accounts, institutions, assets, holdings, valuations and liabilities come from the gitignored `20260516000001_assets_seed.sql`; Desk rows from the tracked fixture migration (recon issues edited since). Transactions, rules, Bucket preferences and Journey state are user-created. All 24 transactions have no account.
+- Rehearsal on a fresh harness at main's exact ledger (27 migrations including the gitignored seed): data restore verified hash-for-hash, then expand, owner provisioned through the Auth admin API, `pf-s08-map-single-owner.sql` (rejects a wrong email or UUID; mapped 16 tables), preflight all zero, gate passed, content unchanged except `user_id`, enforce plus every later PF-S08 migration, RLS/grant/fault/reset SQL suites pass, full HTTP/browser smoke PASS. The owner sees exactly 24 transactions, 13 accounts, 12 institutions and 5 rules through PostgREST, anon is denied, and per-owner running balances equal main's byte for byte. Owner data was unchanged after every test run.
+- Added: single-owner mapper and runbook step; post-row-insert fault case; `scripts/pf_s08_reset_race.py`; shared dedup parity fixture with C# and SQL runners; `20261014000000_pf_s08_dedup_simple_case_fold.sql` and the matching C# U+0130 fold; `ICashflowPilotMode` gate on both Journey recalc handlers; `/parse-image` gate tests; `auth-session-expiry.spec.ts` with `scripts/pf_s08_session_expiry.py`.
+- Verification: .NET 394 passed, 9 skipped; AI service 239 passed with the same single baseline failure (`test_merchant_suggester::test_is_pii_keyword[REK123456-True]`); frontend lint 0 errors and tsc clean.
+- Rollout note: with both flags off the API gate returns 404 for every `/api` route and FastAPI for every route except `/health`. Merging PF-S08 therefore takes the app offline until the pilot is enabled; merge, apply and enable must happen together.
+- Still pending (STEP 8): apply the rehearsed sequence to the real local main database, set the owner's password, enable the pilot flags, and record results. Nothing outside the disposable harness was modified.
