@@ -1,6 +1,6 @@
 # PF-S08 — Supabase Auth Foundation + Cashflow Ownership
 
-> **Status:** In Progress — worktree `pf-s08-auth-cashflow`; local verification and populated-upgrade rehearsal complete; STEP 8 rollout to the real local database pending
+> **Status:** In Progress — pilot live on the local main stack since 2026-10-14 (merged to main, flags on). Open: follow-ups listed in the 2026-10-14 rollout record; remote issues #71/#72 not yet reviewed.
 > **Created:** 2026-10-09 (Asia/Makassar)
 > **Revised:** 2026-10-14 — populated-upgrade rehearsal on a restored copy of main's database, dedup parity matrix (one collation fix), fault/race, event-path and token-expiry checks passed; rollout remains pending
 > **Task:** PF-S08 — backend auth foundation and Cashflow ownership
@@ -228,8 +228,8 @@ Tidak memperluas task menjadi durable import/queue. Submit memakai satu transaks
 - [x] Logout/account switch menghapus query cache, preview, selection, chat state dan realtime subscription; late responses tidak mengisi state baru. — `AuthProvider` cancels queries, swaps the QueryClient and remounts the tree keyed by user id; Realtime channel is per user with `user_id` filter; only date-format prefs live in localStorage. Playwright verifies switch, late A response after B and Realtime A-positive/B-negative.
 - [x] Direct PostgREST/GraphQL/view/RPC/storage access ke data personal yang belum diisolasi ditolak untuk anon dan authenticated.
 - [x] Unscoped .NET/FastAPI routes, experimental upload, embedding dispatch dan Journey placeholder consumers dinonaktifkan server-side; standard extraction tetap berfungsi dengan mocks. — Embedding dispatch has no caller after PF-S08; both Journey recalc handlers now no-op when `ICashflowPilotMode.Enabled` (`JourneyRecalcPilotGateTests`). Mocked `/parse-pdf` and new `/parse-image` tests pass under the gate with the internal key, and `/parse-image` without the key never reaches the parser.
-- [ ] Legacy data dipetakan eksplisit, dipreservasi, dan tervalidasi; tidak ada auto-claim kepada pengguna pertama atau destructive reset.
-  - 🟡 **Rehearsed 2026-10-14, not yet applied:** decision — all legacy rows belong to one new Auth user (the owner's email). `supabase/scripts/pf-s08-map-single-owner.sql` mapped a restored copy of main's database cleanly (see checkpoint). The real local main database is untouched; applying it is STEP 8.
+- [x] Legacy data dipetakan eksplisit, dipreservasi, dan tervalidasi; tidak ada auto-claim kepada pengguna pertama atau destructive reset.
+  - ✅ **Applied 2026-10-14:** all legacy rows mapped to one new Auth user (the owner's email) with `supabase/scripts/pf-s08-map-single-owner.sql`, after a rehearsal on a restored copy. Backups kept outside the repo; see the rollout record.
 - [x] Fresh install mengikuti staged bootstrap sampai expand → provision/map fixtures → enforce → user-rule bootstrap; populated upgrade mengikuti backup/maintenance → expand → explicit mapping → enforce. Keduanya preserve counts/relations dan tidak menjalankan seed personal tanpa owner valid. — Fresh path proven 2026-10-10; populated path rehearsed 2026-10-14 on a verified restore of main's database (checkpoint below).
 - [x] Real local Supabase + API tests membuktikan allow/deny dua pengguna; skipped tests tidak dianggap coverage.
 
@@ -398,7 +398,7 @@ Deliver scripts/runbook and separate fresh/populated integration scenarios. If C
 
 **Done when:** every release acceptance checkbox has reproducible test evidence.
 
-### [ ] STEP 8 — Roll out the pilot and record actual results
+### [x] STEP 8 — Roll out the pilot and record actual results
 
 **Purpose:** enforce ownership without data loss or access reopening.
 
@@ -520,3 +520,12 @@ Reviewed 2026-10-09 for this plan. SDK-specific APIs and deployed signing mode r
 - **Frontend:** the full `AppShell` is back behind login (Journey is home again); the sidebar shows the account email and Sign out; module API clients use `authenticatedFetch`; the AI chat toggle and `/chat` show as paused.
 - **Verification:** .NET 404 passed, 9 skipped; AI 240 passed plus the known baseline failure; lint 0 errors, tsc clean, build passes. On the rehearsal database: all six SQL suites, full HTTP/browser smoke, `scripts/pf_s08_module_isolation.py` (A/B through the API, plus the mapped owner sees exactly 11 assets), dedup parity, reset race and token expiry pass. Test cleanup now covers every owner-keyed table (`OWNED_TABLES`); owner data still equals main's baseline.
 - **Next:** STEP 8 — apply to the real local database, merge, enable the pilot flags, set the owner password.
+
+## STEP 8 rollout record — 2026-10-14 (local main Supabase)
+
+- **Target:** the local main stack (project `personal-finance`, PostgreSQL 17, Auth ES256 JWKS, issuer `http://127.0.0.1:54321/auth/v1`, browser origin `http://localhost:8080`). No remote or cloud project touched.
+- **Before:** ledger 27 migrations (head `20260902000001`, including the gitignored `20260516000001_assets_seed.sql`); app processes stopped; fresh full `pg_dump` taken and the per-table baseline confirmed unchanged since the rehearsal.
+- **Sequence:** expand via a staging workdir (ledger `20261009080000`) → owner Auth user provisioned through the admin API (random password stored outside the repo) → single-owner mapping (16 tables) → preflight all zero → gate passed → content unchanged except `user_id` → PF-S08 fast-forwarded to main → remaining 14 migrations applied (ledger 42, head `20261014010000`) → Supabase restarted so `enable_signup = false` applies (signup now returns 422).
+- **Config (gitignored, originals backed up):** API `Supabase:JwtValidationMode=Jwks`, issuer and audience, `CashflowPilot:Enabled` and `CheckedMutationsEnabled` true, `AiService:InternalApiKey`; AI service `CASHFLOW_PILOT_ENABLED=true` with the same `INTERNAL_API_KEY`.
+- **Verification on the real database:** all five rollback-only SQL suites pass; every table matches the pre-rollout baseline apart from `user_id`; running balances byte-identical. Live API as the owner: 24 transactions, 13 accounts, 12 institutions, 5 rules, 11 assets, 7 holdings, 1 liability, Net Worth, Journey, Desk (5 accounts, 12 positions, 3 recon issues, 8 journal entries), Buckets and daily pulse all 200; no token → 401.
+- **Known limitations / follow-ups:** AI chat/RAG paused until owner-scoped; legacy asset-side seed rows and Desk fixture trades remain the owner's (decide demo owner vs delete later); broader accessibility checks (PF-S09); review and close GitHub #71/#72 separately; Supabase Cloud rollout not planned here.
