@@ -76,6 +76,7 @@ Development uses Supabase CLI (Postgres 17, API 54321, DB 54322, Studio 54323). 
 - Some PostgREST consumers request large ranges without paging while local `max_rows=1000`; Dashboard/Spending/Buckets page separately. Requested ranges alone do not establish complete large-dataset coverage.
 - Durable advisor memory and complete container environment wiring are unfinished. Permissive RLS does not provide per-user isolation.
 - Historical PF-AI008 record: 41 advisor checks passed; full AI suite 193 passed / 1 pre-existing merchant-suggester PII failure; dependency conflicts recorded. PF-141 has a separate offline verification record. These are previous runs, not October 8 results.
+- CI: `.github/workflows/ci.yml` (PF-142) runs the local gates on every push and PR to `main`; Playwright e2e is excluded.
 - This sync inspected source, migrations, manifests, tests and plans. Shell execution was unavailable (process helper initialization failed; Node spawning returned EPERM), so no build/test/live checks or GitHub reconciliation ran today.
 
 ## References

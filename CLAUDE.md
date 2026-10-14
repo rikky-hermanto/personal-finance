@@ -134,7 +134,7 @@ React 18 frontend → .NET 10 API (supabase-csharp) → Supabase (PostgreSQL 17 
 
 ### Infrastructure
 - **Containers:** Docker Compose (local dev), individual Dockerfiles per service
-- **CI/CD:** GitHub Actions
+- **CI/CD:** GitHub Actions (`ci.yml` runs dotnet build/test, ESLint, tsc, Vitest, vite build, pytest and gitleaks on push and PR; e2e is not run in CI)
 - **Monitoring:** Structured logging, OpenTelemetry → Alloy → Prometheus + Loki + Tempo → Grafana (LGTM stack)
 - **Cloud Target:** Supabase Cloud (database + platform), Azure (API + AI service hosting)
 
