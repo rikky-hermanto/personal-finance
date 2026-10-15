@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "project": {
+    "name": "personal-finance"
+  },
+  "ticket": {
+    "idPattern": "PF-\\d+",
+    "filePattern": "{id}-{slug}-todo.md"
+  },
+  "folders": {
+    "epics": "plans/epics",
+    "backlog": "plans/backlog",
+    "inProgress": "plans/in-progress",
+    "readyToReview": "plans/ready-to-review",
+    "done": "plans/done",
+    "cancelled": "plans/cancelled",
+    "board": "plans/BOARD.md"
+  },
+  "commands": {
+    "plan": "/plan",
+    "execute": "/execute",
+    "test": [
+      "cd apps/api && dotnet test PersonalFinance.slnx",
+      "node \"C:/workspaces/personal-finance/scripts/loop-env.mjs\" deps . && cd apps/frontend && npm run test:desk && npm run test:macro",
+      "cd services/ai-service && \"C:/workspaces/personal-finance/services/ai-service/.venv/Scripts/python.exe\" -m pytest -q"
+    ],
+    "ci": "/ci-check",
+    "e2e": {
+      "cmd": "cd apps/frontend && npx --no-install playwright test",
+      "when": "never"
+    }
+  },
+  "env": {
+    "up": "node \"C:/workspaces/personal-finance/scripts/loop-env.mjs\" up {slot} \"{worktree}\"",
+    "down": "node \"C:/workspaces/personal-finance/scripts/loop-env.mjs\" down {slot} \"{worktree}\"",
+    "slots": {
+      "0": { "frontend": 8080, "api": 7208, "ai": 8000 },
+      "1": { "frontend": 8180, "api": 7308, "ai": 8100 }
+    },
+    "sharedServices": {
+      "supabase": {
+        "api": "http://127.0.0.1:54321",
+        "db": "postgresql://postgres@127.0.0.1:54322/postgres"
+      }
+    },
+    "dbSnapshot": "node \"C:/workspaces/personal-finance/scripts/loop-env.mjs\" snapshot \"{file}\"",
+    "dbRestore": "node \"C:/workspaces/personal-finance/scripts/loop-env.mjs\" restore \"{file}\""
+  },
+  "models": {
+    "allowed": [
+      "opus",
+      "sonnet",
+      "haiku"
+    ],
+    "plan": {
+      "model": "opus",
+      "effort": "high"
+    },
+    "standup": {
+      "model": "sonnet",
+      "effort": "medium"
+    },
+    "grill": {
+      "model": "opus",
+      "effort": "high"
+    },
+    "orchestrator": {
+      "model": "sonnet",
+      "effort": "medium"
+    },
+    "executeDefault": {
+      "model": "sonnet",
+      "effort": "high"
+    },
+    "verifier": {
+      "S": {
+        "model": "sonnet",
+        "effort": "medium"
+      },
+      "M": {
+        "model": "opus",
+        "effort": "high"
+      },
+      "L": {
+        "model": "opus",
+        "effort": "high"
+      }
+    }
+  },
+  "budget": {
+    "requireOwnerApproval": true,
+    "maxConcurrentExecutions": 1,
+    "guard5hPct": 70,
+    "guardWeekPct": 80,
+    "usageSnapshot": "~/.claude/loop-usage.json",
+    "calibration": ".loop/calibration.json"
+  },
+  "policy": {
+    "maxRework": 2,
+    "maxFixRounds": 1,
+    "e2eRequired": false,
+    "commitOnLoopBranch": true,
+    "segmentMinutes": 30,
+    "segmentGraceMinutes": 10,
+    "maxSegments": 4
+  },
+  "instrumentation": {
+    "promptLog": true
+  },
+  "notify": {
+    "push": true,
+    "desktop": true
+  },
+  "board": {
+    "file": "plans/BOARD.md",
+    "markers": [
+      "<!-- loop:begin -->",
+      "<!-- loop:end -->"
+    ]
+  },
+  "sensitive": {
+    "auth": [
+      "apps/api/src/PersonalFinance.Api/Authentication/**",
+      "apps/frontend/src/auth/**",
+      "apps/frontend/src/pages/auth/**"
+    ],
+    "money": [
+      "apps/api/src/PersonalFinance.Application/Services/**",
+      "apps/api/src/PersonalFinance.Application/Commands/Desk/**",
+      "apps/api/src/PersonalFinance.Application/Commands/Valuations/**",
+      "apps/api/src/PersonalFinance.Application/Commands/Investments/**",
+      "apps/frontend/src/lib/desk/**",
+      "apps/frontend/src/lib/macroScenario/**"
+    ],
+    "secrets": [
+      ".env*"
+    ],
+    "schema": [
+      "supabase/migrations/**"
+    ]
+  }
+}

@@ -119,3 +119,4 @@ docs/architecture/quartext-tech-alignment-matrix.md
 # Local Jev router checkout, environment, configuration and decision logs
 /tools/jev-router/
 /.jev-local/
+.loop/
