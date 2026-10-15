@@ -1,0 +1,4 @@
+.env
+apps/frontend/.env
+services/ai-service/.env
+apps/api/src/PersonalFinance.Api/appsettings.Development.json
