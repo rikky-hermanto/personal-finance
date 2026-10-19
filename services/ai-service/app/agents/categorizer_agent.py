@@ -153,10 +153,14 @@ class CategorizerAgent:
             api_key = settings.anthropic_api_key
         # timeout bounds wall-clock per LLM call — max_steps bounds iteration count,
         # not time; a hung provider call would otherwise hold a to_thread worker forever.
-        model = LiteLLMModel(model_id=model_id, api_key=api_key, timeout=30)
-        self._agent = ToolCallingAgent(
+        self._model = LiteLLMModel(model_id=model_id, api_key=api_key, timeout=30)
+
+    def _new_agent(self) -> ToolCallingAgent:
+        """A fresh agent per run (PF-S15). Its memory holds every tool output, so a
+        shared instance would mix two concurrent callers' rules, history and answers."""
+        return ToolCallingAgent(
             tools=[search_category_rules, find_similar_transactions, list_all_categories],
-            model=model,
+            model=self._model,
             # The strategy prompt goes HERE — the kwarg confirmed in STEP 1b
             # (`instructions=` on MultiStepAgent, installed smolagents==1.26.0).
             # NOT additional_args: that carries task *variables*, not instructions.
@@ -168,7 +172,9 @@ class CategorizerAgent:
     def categorize(
         self, description: str, wallet: str, amount_idr: float
     ) -> CategorizationResult:
-        """Run the agent for one transaction. Synchronous — call via asyncio.to_thread."""
+        """Run the agent for one transaction. Synchronous — call via asyncio.to_thread,
+        inside a bound OwnerContext (app/agents/owner_context.py)."""
+        agent = self._new_agent()
         task = (
             f"Categorize this bank transaction:\n"
             f"  Description: {description}\n"
@@ -179,12 +185,12 @@ class CategorizerAgent:
             name="categorizer_agent_run", as_type="agent", input=task,
         ) as span:
             try:
-                raw = self._agent.run(task)
+                raw = agent.run(task)
                 # Real step count from the agent's own memory — confirmed in STEP 1b
                 # (ToolCallingAgent instances expose .memory.steps). Never hardcode
                 # this: a field that is always 0 is worse than no field, because it
                 # looks like a measurement.
-                steps = getattr(self._agent, "memory", None)
+                steps = getattr(agent, "memory", None)
                 tool_calls = len(steps.steps) if steps is not None else 0
                 result = _parse_result(str(raw), tool_calls_count=tool_calls)
                 logger.info(

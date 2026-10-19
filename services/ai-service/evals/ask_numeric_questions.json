@@ -1,76 +1,76 @@
 [
   {
-    "id": "food-apr-2024",
-    "query": "berapa total pengeluaran makan bulan April 2024?",
+    "id": "food-jul-2026",
+    "query": "berapa total pengeluaran makan bulan Juli 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Food"], "flow": "DB",
-                      "date_from": "2024-04-01", "date_to": "2024-04-30"}
+    "truth_filters": {"categories": ["Food & Drinks"], "flow": "DB",
+                      "date_from": "2026-07-01", "date_to": "2026-07-31"}
   },
   {
-    "id": "electricity-feb-2024",
-    "query": "berapa tagihan listrik bulan Februari 2024?",
+    "id": "bill-may-2026",
+    "query": "berapa total tagihan bulan Mei 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Electricity"], "flow": "DB",
-                      "date_from": "2024-02-01", "date_to": "2024-02-29"}
+    "truth_filters": {"categories": ["Bill"], "flow": "DB",
+                      "date_from": "2026-05-01", "date_to": "2026-05-31"}
   },
   {
-    "id": "groceries-mar-2024",
-    "query": "berapa pengeluaran belanja minimarket bulan Maret 2024?",
+    "id": "loan-jun-2026",
+    "query": "berapa cicilan pinjaman yang saya bayar bulan Juni 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Groceries"], "flow": "DB",
-                      "date_from": "2024-03-01", "date_to": "2024-03-31"}
+    "truth_filters": {"categories": ["Loan"], "flow": "DB",
+                      "date_from": "2026-06-01", "date_to": "2026-06-30"}
   },
   {
-    "id": "food-full-year-2024",
-    "query": "berapa total pengeluaran makan sepanjang tahun 2024?",
+    "id": "emergency-fund-may-jul-2026",
+    "query": "berapa total dana darurat yang saya setor dari Mei sampai Juli 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Food"], "flow": "DB",
-                      "date_from": "2024-01-01", "date_to": "2024-12-31"}
+    "truth_filters": {"categories": ["Emergency Fund"], "flow": "DB",
+                      "date_from": "2026-05-01", "date_to": "2026-07-31"}
   },
   {
-    "id": "salary-full-year-2024",
-    "query": "berapa total gaji yang saya terima tahun 2024?",
+    "id": "salary-year-2026",
+    "query": "berapa total gaji yang saya terima tahun 2026?",
     "intent_expected": "aggregate",
     "truth_filters": {"categories": ["Salary"], "flow": "CR",
-                      "date_from": "2024-01-01", "date_to": "2024-12-31"}
+                      "date_from": "2026-01-01", "date_to": "2026-12-31"}
   },
   {
-    "id": "food-empty-2030",
-    "query": "berapa pengeluaran makan bulan Januari 2030?",
+    "id": "salary-aug-2026-single-row",
+    "query": "berapa gaji yang saya terima bulan Agustus 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Food"], "flow": "DB",
-                      "date_from": "2030-01-01", "date_to": "2030-01-31"}
+    "truth_filters": {"categories": ["Salary"], "flow": "CR",
+                      "date_from": "2026-08-01", "date_to": "2026-08-31"}
   },
   {
-    "id": "groceries-last-month",
-    "query": "berapa pengeluaran belanja minimarket bulan lalu?",
+    "id": "all-spending-jul-2026-no-category",
+    "query": "berapa total semua pengeluaran saya bulan Juli 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Groceries"], "flow": "DB", "relative": "last_month"}
+    "truth_filters": {"flow": "DB",
+                      "date_from": "2026-07-01", "date_to": "2026-07-31"}
   },
   {
-    "id": "food-jan-2025",
-    "query": "berapa total pengeluaran makan bulan Januari 2025?",
+    "id": "food-year-2026-english",
+    "query": "how much did I spend on food and drinks in 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Food"], "flow": "DB",
-                      "date_from": "2025-01-01", "date_to": "2025-01-31"}
+    "truth_filters": {"categories": ["Food & Drinks"], "flow": "DB",
+                      "date_from": "2026-01-01", "date_to": "2026-12-31"}
   },
   {
-    "id": "groceries-year-2025-english",
-    "query": "how much did I spend on groceries in 2025?",
+    "id": "bill-apr-2026-before-data-starts",
+    "query": "berapa total tagihan bulan April 2026?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Groceries"], "flow": "DB",
-                      "date_from": "2025-01-01", "date_to": "2025-12-31"}
+    "truth_filters": {"categories": ["Bill"], "flow": "DB",
+                      "date_from": "2026-04-01", "date_to": "2026-04-30"}
   },
   {
-    "id": "electricity-full-year-2024",
-    "query": "berapa total tagihan listrik sepanjang 2024?",
+    "id": "food-last-month-relative",
+    "query": "berapa pengeluaran makan bulan lalu?",
     "intent_expected": "aggregate",
-    "truth_filters": {"categories": ["Electricity"], "flow": "DB",
-                      "date_from": "2024-01-01", "date_to": "2024-12-31"}
+    "truth_filters": {"categories": ["Food & Drinks"], "flow": "DB", "relative": "last_month"}
   },
   {
-    "id": "lookup-electricity-last",
-    "query": "kapan terakhir saya bayar tagihan listrik PLN?",
+    "id": "lookup-loan-last",
+    "query": "kapan terakhir saya bayar cicilan pinjaman?",
     "intent_expected": "lookup"
   }
 ]

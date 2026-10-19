@@ -4,7 +4,7 @@
     "name": "personal-finance"
   },
   "ticket": {
-    "idPattern": "PF-\\d+",
+    "idPattern": "PF-(?:AI)?\\d+",
     "filePattern": "{id}-{slug}-todo.md"
   },
   "folders": {
@@ -14,6 +14,7 @@
     "readyToReview": "plans/ready-to-review",
     "done": "plans/done",
     "cancelled": "plans/cancelled",
+    "learningSubfolder": "learning",
     "board": "plans/BOARD.md"
   },
   "commands": {

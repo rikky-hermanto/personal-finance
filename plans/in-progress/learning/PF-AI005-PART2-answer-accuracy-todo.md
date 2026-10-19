@@ -1,7 +1,7 @@
 # PF-AI005 PART 2 — Answer Accuracy: Query Routing, Deterministic Aggregation, Grounded Streaming
 
 > **Learning Phase:** Phase 2 · Chapter 5 addendum (PART 2 of 2) · Day ~42 of 90
-> **Status:** Code complete (2026-07-09) — live eval + metrics pending Supabase stack
+> **Status:** Code complete (2026-07-09) — recalibrated 2026-10-16 for the reset 2026 dataset; live eval + metrics pending only an LLM quota/paid tier (see [Recalibration](#recalibration-2026-10-16))
 > **Started:** 2026-07-08
 > **Planned from branch:** main
 > **Depends on:** PF-AI005 PART 1 (SSE streaming, `/ask/stream`, ChatPage) — shipped 2026-07-06
@@ -115,12 +115,12 @@ Chat answers about money must be **provably correct or explicitly unverified** �
   > Verification: `test_aggregate_total_comes_from_sql_not_prose` (answerer) and `test_ask_stream_aggregate_carries_sql_total_in_payload` (streaming) — provider mocked to say "Rp 999.999", payload still carries the SQL total.
 - [x] `/ask/stream` lookup path buffers the streamed text and validates `[n]` markers post-stream; `done` payload carries `{confident, verified, intent, total_idr?}`; a test where the mocked provider cites `[7]` (not in context) must yield `verified: false`
   > Verification: `test_ask_stream_unknown_marker_is_unverified` + `test_ask_stream_valid_marker_is_verified` + `test_ask_stream_no_markers_is_unverified` in [test_streaming.py](../../../services/ai-service/tests/test_streaming.py).
-- [ ] The three failing queries from 2026-07-08 now behave: "pengeluaran makan bulan april" returns Rp 2,309,954 (43 transactions, April 2024 — or the correct year-disambiguated set); "tagihan listrik pln bulan februari" returns only real PLN rows or a refusal; no answer ever displays sources unrelated to its claim
-  > Not met (live): requires the Supabase stack (down this session). Correct by construction (aggregate → SQL `SUM` over Food/April; sources come from the same filtered rows) and encoded as eval fixtures `food-apr-2024` / `electricity-feb-2024`; live rupiah confirmation pending.
+- [ ] The failure class from 2026-07-08 is fixed on the current dataset (the original 2024 queries can no longer be replayed — that data was reset): an aggregate question returns exactly the SQL total (e.g. "pengeluaran makan bulan Juli 2026" → Rp 2,000,000, 2 rows); a question about a period or category with no rows (April 2026, "listrik") returns an honest zero/refusal instead of a fabricated figure; no answer ever displays sources unrelated to its claim
+  > Not met (live): correct by construction (aggregate → SQL `SUM`; sources come from the same filtered rows) and encoded as eval fixtures `food-jul-2026` / `bill-apr-2026-before-data-starts`; live confirmation pending the eval run (LLM quota). The original 2024 incident figures (43 rows, Rp 2,309,954) stay in the Introduction as history only.
 - [x] [ChatPage.tsx](../../../apps/frontend/src/pages/ChatPage.tsx) — contexts stored per-message; sources rendered under their own message only; label distinguishes cited vs considered; stream errors show a visible message; `verified: false` answers show a badge
   > Verification: read the file — `Message.contexts` per-message, `sourceLabel()` distinguishes cited/considered, `⚠ tidak terverifikasi` badge on `verified === false`, error branch renders the failure text; `npm run build` + scoped eslint pass. Not visually verified (no live UI this session).
 - [ ] [eval_numeric_accuracy.py](../../../services/ai-service/evals/eval_numeric_accuracy.py) over [ask_numeric_questions.json](../../../services/ai-service/evals/ask_numeric_questions.json) (10 questions): **exact-match ≥ 9/10** on the aggregate set (was ~0/10 by design before); results recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
-  > Partial: harness + 10-aggregate/1-lookup question set created and import-verified; a pending-numbers section is scaffolded in the metrics doc. The ≥ 9/10 live run requires the Supabase stack (down) — pending.
+  > Partial: harness + 10-aggregate/1-lookup question set created and import-verified; a pending-numbers section is scaffolded in the metrics doc. Fixtures re-pointed 2026-10-16 at the reset 2026 dataset (5 real categories). The ≥ 9/10 live run is blocked only by LLM quota (Gemini free-tier daily cap) — pending.
 - [x] All new services Langfuse-visible (planner + narration calls appear as GENERATION observations — free via the existing provider abstraction)
   > Verification: `QueryPlanner.plan` calls `provider.generate_json` and the narration calls `generate_json`/`stream_generate` — all three wrap `langfuse.start_observation(as_type="generation")` in [gemini.py](../../../services/ai-service/app/providers/gemini.py). Tracing is structural (zero new code); live dashboard confirmation pending infra.
 - [x] `pytest` green: `test_query_planner.py`, `test_aggregator.py`, updated `test_streaming.py`, `test_answerer.py` — no real LLM/DB calls in unit tests
@@ -160,7 +160,7 @@ Out of scope: conversation memory (Chapter 8), hybrid BM25 (Chapter 6), multi-st
 
 ### [!] STEP 0 — Reproduce and pin the failure
 
-> **Skipped:** Supabase stack unavailable this session (no docker/supabase up) — the live baseline was not captured. Exact commands + expected findings are recorded in the `## STEP 0 baseline` note at the bottom of this file; run them when the stack is up.
+> **Dropped (2026-10-16):** The 2024 data this step targeted no longer exists (database reset; the owner's 24 transactions span 2026-05-01 to 2026-08-03), so the original Food/April-2024 baseline can never be captured. The incident itself stays documented in the Introduction. The "before" side of the before/after is now the by-construction baseline (top-K retrieval cannot sum), optionally measured by running the eval against the pre-router commit. The commands below are kept for reference; the substitute check is in [Recalibration](#recalibration-2026-10-16).
 
 Before changing anything, freeze the evidence. With the stack up (`supabase start`, AI service on 8000):
 
@@ -769,7 +769,24 @@ Run before STEP 4 lands (expect ~0/9 numeric — the pinned baseline) and after 
 *Maps to: Databricks GenAI Engineer · Application Development (agents & orchestration)*
 </details>
 
-## STEP 0 baseline
+## Recalibration (2026-10-16)
+
+The database was reset and now holds only the owner's 24 transactions (2026-05-01 → 2026-08-03; categories `Bill`, `Emergency Fund`, `Food & Drinks`, `Loan`, `Salary`). Everything in this plan that named 2024 data, `Food`, `Groceries` or `Electricity` was written against the old seeded set.
+
+**What changed**
+- The eval fixtures [ask_numeric_questions.json](../../../services/ai-service/evals/ask_numeric_questions.json) were rewritten against the real categories and 2026 months. They contain no hardcoded answers: ground truth is still computed live by the harness SQL, so they will not go stale again as long as the filters hit real categories and periods. The set now covers a single-row month, a multi-month range, a no-category total, an English question, two empty cases (April 2026 before the data starts, and "bulan lalu" which is currently September 2026) and one lookup control.
+- STEP 0 (live 2024 baseline) is dropped as impossible; the two unchecked criteria are reworded to the current dataset.
+- Infra is no longer a blocker (Supabase is up). The only remaining blocker is LLM quota: the Gemini free tier allows 20 requests/day on `gemini-2.5-flash`, and the eval spends two calls per question (planner + narration), so 11 questions need about 22 calls.
+
+**Known weak spots of the new set:** with 24 rows the totals are small and several months repeat the same amounts, so a wrong-month plan could still pass by coincidence (Food & Drinks is Rp 1,000,000 in both May and June). The fixtures avoid that by asking about distinguishable periods (July Food = Rp 2,000,000, Salary and Loan across months), but this is a weaker discriminator than the old 43-row month. If the eval ever needs a harder test, seed a separate synthetic dataset in a throwaway schema instead of reusing owner data.
+
+**What to do next (in order)**
+1. Resolve quota: wait for the daily reset, or set `ANTHROPIC_API_KEY` and run with the Anthropic provider, or enable Gemini billing.
+2. Run `PYTHONPATH=. python evals/eval_numeric_accuracy.py` from `services/ai-service` and record the table. Target stays ≥ 9/10.
+3. Optional "before" number: check out the commit before the router landed, run the same file, record it (expected near 0/10 on aggregates).
+4. Then finish STEP 8 (metrics doc, Langfuse two-generation check, faithfulness re-run) and mark the plan done.
+
+## STEP 0 baseline (obsolete — 2024 data reset)
 
 > **⏳ Not captured live (2026-07-09).** The Supabase stack was unavailable in the execution
 > environment (no `supabase start` / docker; port 8000 and 54322 both unreachable), so the three

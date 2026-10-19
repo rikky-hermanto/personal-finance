@@ -30,6 +30,8 @@ public class TransactionsController : ControllerBase
     private readonly Supabase.Client _supabase;
     private readonly ICurrentUser _caller;
     private readonly ICashflowMutationService _cashflowMutations;
+    private readonly ILlmSearchClient _searchClient;
+    private readonly IConfiguration _configuration;
 
     public TransactionsController(
         ILogger<TransactionsController> logger,
@@ -44,7 +46,9 @@ public class TransactionsController : ControllerBase
         ITransactionPipelineService pipelineService,
         Supabase.Client supabase,
         ICurrentUser caller,
-        ICashflowMutationService cashflowMutations)
+        ICashflowMutationService cashflowMutations,
+        ILlmSearchClient searchClient,
+        IConfiguration configuration)
     {
         _logger = logger;
         _statementImportService = statementImportService;
@@ -59,6 +63,8 @@ public class TransactionsController : ControllerBase
         _supabase = supabase;
         _caller = caller;
         _cashflowMutations = cashflowMutations;
+        _searchClient = searchClient;
+        _configuration = configuration;
     }
 
     [HttpGet("health")]
@@ -260,6 +266,7 @@ public class TransactionsController : ControllerBase
         {
             var result = await _cashflowMutations.SubmitAsync(request.RequestId,
                 request.Transactions, request.FileHash, request.FileName, HttpContext.RequestAborted);
+            await QueueEmbeddingAsync(result.InsertedIds);
             return Ok(result);
         }
         catch (CashflowMutationException ex)
@@ -267,6 +274,68 @@ public class TransactionsController : ControllerBase
             return MutationError(ex);
         }
     }
+    /// <summary>
+    /// PF-S15: embed newly imported rows for chat search, for the importing user only.
+    /// Rows are read owner-scoped inside the request; the AI call runs in the background
+    /// with the owner captured now, because ICurrentUser is gone once the request ends.
+    /// Embedding is optional enrichment: any failure is a warning, never a failed import.
+    /// </summary>
+    private async Task QueueEmbeddingAsync(IReadOnlyList<int> insertedIds)
+    {
+        if (!_configuration.GetValue<bool>("AiChat:Enabled") || insertedIds.Count == 0) return;
+        var ownerId = _caller.UserId;
+        List<EmbedItemRequest> items;
+        try
+        {
+            items = await LoadEmbedItemsAsync(insertedIds, ownerId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Could not load {Count} imported transactions for embedding", insertedIds.Count);
+            return;
+        }
+        if (items.Count == 0) return;
+
+        var searchClient = _searchClient;
+        var logger = _logger;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await searchClient.EmbedTransactionsAsync(items, ownerId);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Background embed failed for {Count} transactions", items.Count);
+            }
+        }, CancellationToken.None);
+    }
+
+    private async Task<List<EmbedItemRequest>> LoadEmbedItemsAsync(IReadOnlyList<int> ids, Guid ownerId)
+    {
+        var rows = await _supabase.From<Transaction>()
+            .Filter("user_id", Operator.Equals, ownerId.ToString())
+            .Filter("id", Operator.In, ids.Select(id => (object)id).ToList())
+            .Get();
+        var accountIds = rows.Models.Where(t => t.AccountId.HasValue)
+            .Select(t => (object)t.AccountId!.Value.ToString()).Distinct().ToList();
+        var accountNames = accountIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : (await _supabase.From<Account>()
+                .Filter("user_id", Operator.Equals, ownerId.ToString())
+                .Filter("id", Operator.In, accountIds)
+                .Get()).Models.ToDictionary(a => a.Id, a => a.Name);
+        return rows.Models
+            .Where(t => t.Id > 0)
+            .Select(t => new EmbedItemRequest(
+                TransactionId: t.Id,
+                Description: t.Description,
+                Remarks: t.Remarks ?? "",
+                Category: t.Category ?? "",
+                Wallet: t.AccountId is { } accountId && accountNames.TryGetValue(accountId, out var name) ? name : ""))
+            .ToList();
+    }
+
     public class SubmitTransactionsRequest
     {
         public Guid RequestId { get; set; }

@@ -8,6 +8,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langgraph.errors import GraphRecursionError
 from langfuse.langchain import CallbackHandler
 
+from app.agents.advisor_tools import caller_token
 from app.agents.chat_model_factory import GRAPH_RECURSION_LIMIT
 from app.agents.financial_advisor import advisor_graph, call_fallback
 from app.models import AdvisorRequest, AdvisorResponse
@@ -16,15 +17,20 @@ logger = logging.getLogger(__name__)
 
 
 class AdvisorService:
-    async def ask(self, request: AdvisorRequest) -> AdvisorResponse:
+    async def ask(
+        self, request: AdvisorRequest, *, owner_id: uuid.UUID, user_token: str
+    ) -> AdvisorResponse:
         session_id = request.session_id or str(uuid.uuid4())
+        # PF-S15: memory is keyed by owner plus session, so a session id that belongs
+        # to another user starts an empty thread instead of resuming their memory.
+        thread_id = f"{owner_id}:{session_id}"
 
-        # LangGraph checkpointer key — same session_id = same memory thread.
+        # LangGraph checkpointer key — same owner + session_id = same memory thread.
         # callbacks: routes every node's LLM/tool spans into the existing
         # Langfuse dashboard (PF-AI001) with zero new tracing code — the
         # CallbackHandler reads the default client configured in observability.py.
         config = {
-            "configurable": {"thread_id": session_id},
+            "configurable": {"thread_id": thread_id},
             "callbacks": [CallbackHandler()],
             "recursion_limit": GRAPH_RECURSION_LIMIT,
         }
@@ -42,16 +48,18 @@ class AdvisorService:
 
         logger.info("advisor.ask session=%s", session_id)
 
-        # LangGraph ainvoke runs the graph to completion and returns final state.
-        try:
-            final_state = await advisor_graph.ainvoke(initial_state, config=config)
-        except GraphRecursionError:
-            logger.warning("advisor recursion limit reached")
-            snapshot = await advisor_graph.aget_state(config)
-            fallback = call_fallback(snapshot.values)
-            # Finish the saved turn so a subsequent request can resume cleanly.
-            await advisor_graph.aupdate_state(config, fallback, as_node="fallback")
-            final_state = {**snapshot.values, "messages": snapshot.values.get("messages", []) + fallback["messages"]}
+        # Every tool call inside this block carries the caller's own bearer token.
+        with caller_token(user_token):
+            # LangGraph ainvoke runs the graph to completion and returns final state.
+            try:
+                final_state = await advisor_graph.ainvoke(initial_state, config=config)
+            except GraphRecursionError:
+                logger.warning("advisor recursion limit reached")
+                snapshot = await advisor_graph.aget_state(config)
+                fallback = call_fallback(snapshot.values)
+                # Finish the saved turn so a subsequent request can resume cleanly.
+                await advisor_graph.aupdate_state(config, fallback, as_node="fallback")
+                final_state = {**snapshot.values, "messages": snapshot.values.get("messages", []) + fallback["messages"]}
 
         # The last AIMessage IS the agent's final answer — should_continue only
         # reaches END once the latest AIMessage carries no pending tool_calls, so

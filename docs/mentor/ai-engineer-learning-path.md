@@ -1,7 +1,7 @@
 # The Generative AI Engineer Learning Path — Final (Personalized)
 
 > **Status:** Personalized for Rikky's pivot from Senior Backend (.NET) → AI Engineer.
-> **Horizon:** 12 chapters over ~90 days. Chapters 1–9 (the Application + Specialization build layers) are the critical path. Foundations is a skim; Chapters 10–12 are positioning/apply; the Fine-Tuning layer is deferred.
+> **Horizon:** originally 12 chapters over ~90 days (started 2026-05-26). **Re-baselined 2026-10-17 at Day ~144**: the day count no longer drives the plan; the [remaining schedule](#remaining-schedule-re-baselined-2026-10-17) does. Chapters 1–9.75 (Application, Specialization and Production Hardening layers) are the critical path. Foundations is a skim; Chapters 10–12 are positioning/apply; the Fine-Tuning layer is deferred.
 > **Chapter numbers are the single cross-doc coordinate** — they line up with the execution task file and `docs/mentor/progress.md`. This doc's sections are *named layers*, not numbered phases, to avoid colliding with the execution track's 30-day "Phase 1/2/3" blocks.
 > **Implementation vehicle:** Personal Finance Platform (`C:\workspaces\personal-finance`). Every concept ships as a real feature — no toy scripts, no next-day deferral.
 > **Companion doc:** Use-case mapping (which feature in Personal Finance proves each concept) lives in the Personal Finance repo, not here. This doc stays curriculum-only.
@@ -27,22 +27,27 @@ The entire path on one screen. Follow the numbers. The build + positioning layer
 | # | Chapter | Status | Topic | Why it sits here | Primary resource |
 |---|---------|--------|-------|------------------|------------------|
 | — | skim | — | LLM API mechanics + structured output (tool_use / JSON mode) | Already on CV — skim for gaps only | Anthropic Academy: *Building with the Claude API* |
-| — | skim | — | Prompt engineering + prompt caching | One-evening polish | Anthropic Academy · OpenAI Quickstart |
+| — | skim | — | **Context engineering** + prompt caching (was "prompt engineering") | Everything that goes into an LLM call, not just the prompt text. Mostly already practiced — name it, write it down | Anthropic Academy · Anthropic: *Effective context engineering for AI agents* |
 | 1 | Ch1 | ✅ | **AI observability** (tracing, cost, latency) | Measure *before* you build, so every later topic produces a quotable number | Langfuse docs |
 | 2 | Ch2 | ✅ | **LLM eval harness** (golden sets, accuracy, faithfulness) | "How do you know it's correct?" — must exist before you can claim any RAG number | RAGAS docs · Promptfoo docs |
 | 3 | Ch3 | ✅ | **Embeddings + vector search** | The retrieval foundation everything in RAG stands on | Google Cloud Skills Boost: *Vector Search and Embeddings* |
 | 4 | Ch3–4 | ✅ | **RAG core**: chunk → retrieve → re-rank → grounded generation | The #1 applied AI-Eng skill | Coursera (LlamaIndex): *RAG with LlamaIndex* · NVIDIA: *Building RAG Agents with LLMs* |
-| 5 | Ch5 | ⏳ | **Streaming (SSE)** | Production UX; cheap once RAG works | FastAPI docs (`StreamingResponse` / `sse-starlette`) |
-| 6 | Ch6 | ⏳ | **Advanced RAG**: hybrid search, sentence-window, auto-merging | Squeeze accuracy; measure the lift on P@5 + faithfulness (MRR is already saturated) | Google Cloud / LlamaIndex courses (advanced sections) |
-| 7 | Ch7 | ⏳ | **Tool-calling agents** (smolagents) | Smallest agent surface — grok the Thought-Action-Observation loop first | Hugging Face: *Agents Course* |
-| 8 | Ch8 | ⏳ | **Stateful orchestration** (LangGraph) | State, routing, memory, error handling — "industrial smolagents" | LangGraph docs · Coursera (IBM): *RAG & Agentic AI* |
-| 9 | Ch8 | ⏳ | **Agent evaluation** | Tool-call accuracy + trajectory — closes the "how do you eval an agent?" gap | RAGAS · HF Agents Course (eval units) |
-| 10 | Ch9 | ⏳ | **Model Context Protocol (MCP)** | Interop frontier signal; server + client | Anthropic Academy: *The MCP Series* |
+| 5 | Ch5 | ✅ 🔄 | **Streaming (SSE)** — plus the answer-accuracy addendum (PF-AI005-PART2, in progress) | Production UX; cheap once RAG works | FastAPI docs (`StreamingResponse` / `sse-starlette`) |
+| 6 | Ch6 | ✅ | **Advanced RAG**: hybrid search (shipped and measured; vector won). Sentence-window + auto-merging deferred (PF-AI006-PART2) | Squeeze accuracy; measure the lift on P@5 + faithfulness (MRR is already saturated) | Google Cloud / LlamaIndex courses (advanced sections) |
+| 7 | Ch7 | 🔄 | **Tool-calling agents** (smolagents) — code shipped, smoke gate at 2 of 5 | Smallest agent surface — grok the Thought-Action-Observation loop first | Hugging Face: *Agents Course* |
+| 8 | Ch8 | ✅ | **Stateful orchestration** (LangGraph) | State, routing, memory, error handling — "industrial smolagents" | LangGraph docs · Coursera (IBM): *RAG & Agentic AI* |
+| 9 | Ch8 | 🔄 | **Agent evaluation** — scenarios written, **never run** (deferred at PF-AI008 close) | Tool-call accuracy + trajectory — closes the "how do you eval an agent?" gap | RAGAS · HF Agents Course (eval units) |
+| 12 | Ch9.5 | ⏳ Ready | **AI security + guardrails**: prompt injection, PII masking, input/output guards, threat model (PF-AI011) | AI chat runs on real data with no guard; guardrails appear in AI Eng JDs. **Runs before Ch9** | OWASP Top 10 for LLM Applications · Langfuse docs |
+| 10 | Ch9 | ⏳ | **Model Context Protocol (MCP)** (PF-AI009) | Interop frontier signal; server + client | Anthropic Academy: *The MCP Series* |
 | 11 | Ch9 | ⏳ | Multi-agent over MCP (stretch) | Orchestration over a standard protocol | Anthropic *MCP Series* |
+| 13 | Ch9.75 | ⏳ | **Deployment + LLMOps**: public URL, auth, rate limits, budget alert, response cache, cost write-up (PF-AI012) | Turns "deployed" from a claim into a fact; cost control is a hiring signal | Azure Container Apps docs · GitHub Actions docs |
+| 14 | Ch9.75 | ⏳ | **Evals in CI**: a small, cheap eval subset as a blocking CI gate | Eval engineering is the most-cited AI Eng skill; turns one-off evals into regression protection | Promptfoo CI docs · the Chapter 2 harness |
 | — | Ch10 | ⏳ | Public presence + certification | Make the work findable; add the credential if ROI is there | Databricks GenAI Eng Associate / Azure AI-102 |
 | — | Ch11 | ⏳ | Interview prep (STAR stories + deep-dives) | Translate the build into interview-ready narratives | self-authored — see task file |
 | — | Ch12 | ⏳ | Active applications | Ship applications like code — deliberate, not spam | career-ops — handled separately |
-| ⏸ | — | ⏸ | Fine-tuning / MLOps / guardrails-at-scale | Deferred to month 4+ unless a JD demands it | see the Fine-Tuning layer below |
+| ⏸ | — | ⏸ | Fine-tuning / training-side MLOps | Deferred to month 4+ unless a JD demands it | see the Fine-Tuning layer below |
+
+> **Topic numbers vs run order.** Topics 12–14 were added on 2026-10-17, so their numbers are higher than their position. The run order is the table order: Ch7/agent-eval close-out → **Ch9.5** → Ch9 → Ch9.75 → Ch10–12. Ch9.5 jumps ahead of Ch9 because chat went live on real transactions on 2026-10-16 with no injection or PII guard.
 
 ---
 
@@ -58,8 +63,9 @@ The mechanics of talking to an LLM programmatically. You've already shipped most
 ✅ Already on CV: Anthropic `tool_use` structured extraction, Gemini JSON mode, multi-provider factory, PyMuPDF token reduction, temperature=0.0 with `stop_reason == max_tokens` as a hard error.
 → *Resources:* **Anthropic Academy** — *Building with the Claude API* · **OpenAI Academy / Quickstart** — text generation, streaming, function calling.
 
-**2. Prompt engineering** — system-prompt design, few-shot formatting, XML-tag structuring. Skim for the XML patterns you haven't formalized yet.
-→ *Resource:* **DeepLearning.AI** — *Generative AI for Software Development* (configuration-driven development, LLMs as pair-programming partners).
+**2. Context engineering** (the successor framing to "prompt engineering") — designing *everything* that goes into an LLM call: system prompt, few-shot examples, retrieved context, tool definitions, memory, metadata, and what gets left out. Prompt wording is now one part of it.
+✅ Mostly practiced already, just not named: RAG context formatting with citations (Ch4), the advisor's tool schemas and checkpointer memory (Ch8), owner-scoped memory per user (PF-S15). The remaining work is writing it up: one page on how this project decides what enters the context window, and why. That page is an interview answer.
+→ *Resources:* **Anthropic** — *Effective context engineering for AI agents* (engineering blog) · **DeepLearning.AI** — *Generative AI for Software Development*.
 
 **3. Prompt caching + cost mechanics** — Anthropic prompt caching, function-calling parity across providers. ≤ 1 evening.
 → *Resource:* **Anthropic Academy** — *Building with the Claude API* (caching section).
@@ -71,7 +77,7 @@ API setup, system-prompt design, few-shot formatting, multimodal inputs (text, i
 
 ## The Application Layer (RAG, Evals & Observability) — Chapters 1–6
 
-**Status:** 🎯 Critical path — Chapters 1–6. Chapters 1–4 ✅ shipped and measured; Chapters 5–6 are next. This is where most production work happens and where the biggest gaps are.
+**Status:** ✅ Chapters 1–6 shipped and measured (as of 2026-10-17). One open addendum: PF-AI005-PART2 (numeric answer accuracy). Its questions were rewritten for the 2026 data, and the eval is waiting on LLM quota.
 
 You're going to give an LLM access to your own data (RAG) **and** instrument the whole loop so every claim is a measured number. The order is forced by one rule: **install the measuring tools before the thing you measure.** So observability and the eval harness come first (a few hours each), then RAG is built on top — which means every chapter of RAG work produces a quotable metric ("extraction costs $X/doc at Yms p95", "faithfulness scores 0.90 on cited answers", "hybrid search lifted P@5 from X to Y") instead of a vibe.
 
@@ -107,6 +113,8 @@ Three accuracy techniques, each benchmarked with the harness from #2 — but **n
 - **A rerank rematch** — the English-only FlashRank `ms-marco` model *demoted* correct Indonesian results (negative delta on `gaji bulanan`); swapping in FlashRank's multilingual model is the retry to benchmark.
 
 Hybrid search (pgvector + Postgres `tsvector`) directly targets the terse bank-code misses (listrik, streaming, Mansek). Ship the winner by the numbers, not by which sounds most impressive. Keep RAGAS faithfulness in the loop as the second axis.
+
+**Result (PF-AI006, done):** the chapter was re-scoped to hybrid search only. Hybrid BM25 + RRF **lost** to pure vector search (MRR@5 0.750 vs 0.771), so the default stays `vector`. A measured "the fancy option lost" result is a strong interview story. Sentence-window and auto-merging moved to PF-AI006-PART2, deferred until there is a product decision on statement-level Q&A.
 → *Resources:* the advanced sections of the **Google Cloud** and **LlamaIndex** courses above; hybrid search = pgvector + Postgres `tsvector`.
 
 ### Key skills (what you can claim after the Application layer)
@@ -114,7 +122,7 @@ Hybrid search (pgvector + Postgres `tsvector`) directly targets the terse bank-c
 - Eval suites (golden sets, regression tests, faithfulness/relevance scoring).
 - Tracing every LLM call (latency, cost, prompt/response, tool invocations).
 - SSE / async generators for streaming UX.
-- Deploying with FastAPI / Flask / Gradio.
+- Serving with FastAPI. *Deployment* to a public URL is not claimable yet; it arrives in Chapter 9.75.
 
 ### Suggested cadence
 - **Chapters 1–2** — Topics #1–#2: Langfuse + eval harness (Promptfoo / RAGAS basics).
@@ -126,7 +134,7 @@ Hybrid search (pgvector + Postgres `tsvector`) directly targets the terse bank-c
 
 ## The Specialization Layer (Agents & Orchestration) — Chapters 7–9
 
-**Status:** 🎯 Critical path — Chapters 7–9. The Tier 3 → Tier 4 jump.
+**Status:** 🎯 Critical path — Chapters 7–9. The Tier 3 → Tier 4 jump. As of 2026-10-17: Ch8 ✅. Ch7 🔄 (code shipped, smoke test 2 of 5). Agent evaluation (#9) is 🔄 and **has never run**. Ch9 MCP ⏳ runs after Ch9.5.
 
 Move from reactive apps (answer a question) to agentic apps (take an action). The order is smallest-surface-first: tool-calling loops in smolagents (grok the Thought→Action→Observation cycle in a day), then LangGraph as "industrial smolagents" (state, routing, memory), then how to *evaluate* an agent, then MCP to expose your tools over a standard protocol. Everything you build here is logged to the Langfuse you installed in Chapter 1 — the traces are your demo material.
 
@@ -142,6 +150,7 @@ State machines for multi-step workflows: a state object, conditional routing, ch
 
 **9. Agent evaluation** — *Chapter 8.*
 Beyond extraction accuracy: tool-call accuracy (right tool, right args?) and a trajectory check over fixture scenarios, logged to Langfuse. This is the answer to *"how do you eval an agent?"* — a question most candidates can't answer. Reuses the Chapter-2 harness.
+> **Open debt (2026-10-17):** PF-AI008 closed with the five scenarios in `evals/advisor_scenarios.json` written but never run, and the PF-AI007 smoke test sits at 2 of 5. Until both run, this topic is not claimable. Both need about one day of paid LLM quota (see Execution Rule 7). Add two realistic rows (e.g. `GOFOOD JKT`, `PLN PREPAID`) so the smoke test proves categorization, not string matching.
 → *Resources:* the Chapter-2 eval harness + **RAGAS**; **HF Agents Course** evaluation units.
 
 **10. Model Context Protocol (MCP)** — *Chapter 9.*
@@ -161,6 +170,32 @@ Building specialists/sub-agents, state machines for long-running workflows, MCP 
 
 ---
 
+## The Production Hardening Layer (Security, Deployment, Evals in CI) — Chapters 9.5–9.75
+
+**Status:** 🎯 Critical path, added 2026-10-17. Ch9.5 ⏳ Ready (PF-AI011, replanned against the post-auth code). Ch9.75 ⏳ (PF-AI012, depends on PF-AI011).
+
+Until now everything ran locally, and you were the only user. This layer covers what changes when an AI system faces untrusted input and a public network. It was missing from the original path because guardrails had been filed under "deferred MLOps". That was the wrong shelf. Current AI Engineer job posts list guardrails, cost control and continuous evaluation as core skills, not specializations. The order follows the same "measure first" rule as Chapters 1–2: attack your own system before you build defences, deploy before you optimize cost, and gate on evals before you call it production.
+
+### Learning Order (study top to bottom)
+
+**12. AI security + guardrails** — *Chapter 9.5 (PF-AI011). Runs before Chapter 9.*
+Red-team your own `/ask` and categorizer agent first, then add defences. Direct and indirect prompt injection (a poisoned transfer memo retrieved by RAG), spotlighting retrieved data so the model treats it as data, input and output guards that also work on streamed answers, PII masking (NIK, phone, account, email) before text reaches the LLM, and a threat-model doc. The target is to block at least 80% of attacks, reported separately on held-out attacks, with zero false alarms on 20 normal Indonesian queries.
+Why it jumps ahead of MCP: AI chat went live on real transactions on 2026-10-16, and an MCP server would add another untrusted entry point. Secure the existing surface before opening a new one.
+→ *Resources:* **OWASP Top 10 for LLM Applications** · Langfuse docs (tagging flagged requests) · sequence diagrams in `docs/architecture/sequences/diagram-ai-security-governance-sequence.html`.
+
+**13. Deployment + LLMOps** — *Chapter 9.75 (PF-AI012).*
+The AI service on a public URL (Azure Container Apps, ACR, GitHub Actions deploy, Supabase Cloud with anonymized data), protected by an API key, rate limits and a budget alert. Add a TTL response cache and write a one-page cost breakdown. This is what turns "I built it" into "I run it".
+→ *Resources:* **Azure Container Apps** docs · **GitHub Actions** docs · Langfuse cost dashboards.
+
+**14. Evals in CI** — *Chapter 9.75, alongside the deploy pipeline.*
+A small, cheap eval subset (a few extraction fixtures, a few RAG questions, a few injection attacks) that runs as a blocking gate in the existing PF-142 CI workflow, with a strict call budget. One-off evals prove a number once. A CI eval stops a regression from merging.
+→ *Resources:* **Promptfoo** CI integration docs · the Chapter 2 harness · `.github/workflows/ci.yml`.
+
+### Key skills
+Prompt-injection defence, PII handling for LLM inputs, threat modeling for AI systems, deploying and securing an AI service, cost and rate controls, eval-gated CI.
+
+---
+
 ## Advanced Fine-Tuning & Generative MLOps (Production AI) — Deferred
 
 **Status:** ⏸️ Deferred to month 4+. Retained for context — none of the target Staff/Senior AI Engineer roles in the current pipeline (Grafana, GitLab, Datadog, Anthropic, Intercom) require fine-tuning or SageMaker. Revisit only if a specific role demands it.
@@ -168,15 +203,17 @@ Building specialists/sub-agents, state machines for long-running workflows, MCP 
 The lifecycle of deploying, scaling, evaluating, and fine-tuning models securely in the cloud. There's no Learning Order here on purpose — it's parked. Treat the list below as a *map of what exists* so you can spin one topic up fast if a JD asks for it.
 
 ### Deferred topics (reference only, not scheduled)
-- **Core concepts:** LLM lifecycle, Parameter-Efficient Fine-Tuning (LoRA, QLoRA), model alignment (RLHF, DPO), evaluation frameworks at scale (RAGAS, lm-eval-harness), observability, guardrails.
-- **Key skills:** Fine-tuning open-source models, drift/bias detection, guardrail enforcement, latency/cost optimization, CI/CD for AI pipelines.
+- **Core concepts:** LLM lifecycle, Parameter-Efficient Fine-Tuning (LoRA, QLoRA), model alignment (RLHF, DPO), evaluation frameworks at scale (lm-eval-harness), drift/bias detection.
+- **Key skills:** Fine-tuning open-source models, drift/bias detection, training pipelines.
+- *Moved out on 2026-10-17:* guardrails, cost/latency optimization and CI/CD for AI pipelines are now active work in the Production Hardening layer (Chapters 9.5–9.75). Only the training side stays deferred.
 - **Resources (reference only):**
   - **AWS** — *Certified Machine Learning Engineer – Associate* and *Generative AI Developer – Professional* (SageMaker pipelines, Amazon Bedrock, enterprise guardrails). *Skip unless targeting AWS-shop roles.*
   - **DeepLearning.AI** — *Generative AI with Large Language Models* (transformer mechanics, full fine-tuning lifecycle).
   - **Hugging Face** — *LLM Course* (Transformers, Datasets, TRL).
 
 ### Chapters 10–12 (instead of starting this layer): Positioning & proof
-- Blog post + demo video on the RAG + Agent system shipped in the Application + Specialization layers (Chapters 1–9).
+- **Publish one blog post now, not at Chapter 10.** As of 2026-10-17, 2 drafts have sat since 2026-06-24 and nothing is published. Ship the eval-harness post in parallel with Chapter 9.5. The full blog post + demo video come after Chapter 9.75.
+- Blog post + demo video on the RAG + Agent + security system shipped in Chapters 1–9.75.
 - CV update with new proof points.
 - Certification, if ROI is there (Databricks GenAI Engineer Associate or Azure AI-102).
 - Apply to roles in the pipeline (Datadog, Grafana, Anthropic, GitLab, Intercom).
@@ -188,6 +225,25 @@ The lifecycle of deploying, scaling, evaluating, and fine-tuning models securely
 1. **Follow the Learning Order, not the resource catalog.** The numbered topics are the path. Courses are references attached to a step — a single course may span several topics, and some topics live only in tool docs.
 2. **One concept → one Personal Finance commit, same day.** No deferral, no toy scripts.
 3. **The Foundations layer is a skim, not a study block.** Use it as a reference map; don't sit through the courses.
-4. **The Application + Specialization layers (Chapters 1–9) are non-negotiable.** They close every critical gap (RAG, evals, observability, agents, MCP).
+4. **The Application, Specialization and Production Hardening layers (Chapters 1–9.75) are non-negotiable.** They close every critical gap (RAG, evals, observability, agents, MCP, security, deployment).
 5. **The Fine-Tuning layer stays on the shelf** until a target JD demands it. Don't burn weeks on an AWS ML cert for roles that don't ask for it.
 6. **Use-case mapping lives in Personal Finance**, not in this doc. Each layer gets a "what we built and why" page in that repo, with links back to the commits and the curriculum item that motivated them.
+7. **Budget the LLM calls.** A curriculum built on measured numbers can't run on a free tier of 20 requests a day. In October 2026 that cap blocked three evals at once. Keep a small paid budget (Gemini billing or an Anthropic key) with a hard spend alert, and size every eval run in calls before starting it.
+8. **Re-audit a plan before executing it if the platform changed after it was written.** PF-AI011 was written before auth landed, and would have broken if run as written. Check the plan's date against the last platform change (auth, schema, provider) first.
+9. **A chapter isn't done until its live gate ran.** Mocked tests prove wiring. Only a live run proves the claim. Close a chapter with its live gate deferred only explicitly, and keep that gate visible in the Topic Index (as with agent evaluation, #9).
+
+---
+
+## Remaining schedule (re-baselined 2026-10-17)
+
+The original 90-day clock ran out at Day 90 (~2026-08-24). This replaces it. The targets are planning estimates, not commitments, and should be revised at each weekly review.
+
+| Order | Chapter | Work | Plan | Target finish |
+|---|---|---|---|---|
+| 1 | Ch7 + #9 | Close the smoke test (5 of 5) and run the five agent scenarios; finish the PF-AI005-PART2 numeric eval | PF-AI007, PF-AI008 follow-up, PF-AI005-PART2 | 2026-10-24 |
+| 2 | Ch9.5 | AI security + guardrails | PF-AI011 (Ready) | 2026-11-07 |
+| — | Ch10 (early) | Publish the eval-harness blog post, in parallel | `docs/ideas/blogs/` | 2026-11-07 |
+| 3 | Ch9 | MCP server + client (+ multi-agent stretch) | PF-AI009 | 2026-11-21 |
+| 4 | Ch9.75 | Deployment + LLMOps + evals in CI | PF-AI012 | 2026-12-05 |
+| 5 | Ch10–11 | Full blog + demo, certification decision, STAR stories | — | 2026-12-19 |
+| 6 | Ch12 | Active applications | career-ops | from 2026-12 |
