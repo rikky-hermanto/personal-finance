@@ -1,9 +1,12 @@
+import uuid
 from decimal import Decimal
 from unittest.mock import AsyncMock
 import pytest
 from app.models import AskRequest, QueryPlan, SearchResult
 from app.services.aggregator import AggregateResult
 from app.services.answerer import AnswerService
+
+OWNER = uuid.UUID("11111111-1111-1111-1111-111111111111")
 
 
 def _result(tid: int) -> SearchResult:
@@ -29,7 +32,7 @@ def _service(
     planner.plan = AsyncMock(return_value=plan or QueryPlan(intent="lookup", categories=[]))
     aggregator = AsyncMock()
     aggregator.aggregate = AsyncMock(return_value=agg)
-    return AnswerService(retriever, reranker, provider, planner, aggregator, categories=["Food"])
+    return AnswerService(retriever, reranker, provider, planner, aggregator)
 
 
 # ── lookup path (PART 1 behavior, unchanged semantics) ───────────────────────
@@ -40,7 +43,7 @@ async def test_ask_returns_grounded_answer_with_citations():
         {"answer": "Total Rp 10.000 [1]", "cited_transaction_ids": [1], "confident": True},
         [_result(1)],
     )
-    response = await service.ask(AskRequest(query="makan maret"))
+    response = await service.ask(AskRequest(query="makan maret"), owner_id=OWNER, categories=["Food"])
     assert response.intent == "lookup"
     assert response.confident is True
     assert response.verified is True
@@ -54,14 +57,14 @@ async def test_ask_drops_hallucinated_citation_ids():
         {"answer": "x [1]", "cited_transaction_ids": [1, 999], "confident": True},
         [_result(1)],
     )
-    response = await service.ask(AskRequest(query="q"))
+    response = await service.ask(AskRequest(query="q"), owner_id=OWNER, categories=["Food"])
     assert [c.transaction_id for c in response.citations] == [1]   # 999 dropped
 
 
 @pytest.mark.asyncio
 async def test_ask_no_contexts_returns_not_confident_without_llm_call():
     service = _service({"answer": "", "cited_transaction_ids": [], "confident": False}, [])
-    response = await service.ask(AskRequest(query="q"))
+    response = await service.ask(AskRequest(query="q"), owner_id=OWNER, categories=["Food"])
     assert response.confident is False
     assert response.verified is False
     service._provider.generate_json.assert_not_called()
@@ -80,7 +83,7 @@ async def test_aggregate_total_comes_from_sql_not_prose():
                        date_from="2024-04-01", date_to="2024-04-30"),
         agg=agg,
     )
-    response = await service.ask(AskRequest(query="berapa pengeluaran makan bulan april?"))
+    response = await service.ask(AskRequest(query="berapa pengeluaran makan bulan april?"), owner_id=OWNER, categories=["Food"])
     assert response.intent == "aggregate"
     assert response.total_idr == 2309954.0        # SQL total — NOT the prose's 999999
     assert response.verified is True
@@ -96,7 +99,7 @@ async def test_aggregate_zero_rows_refuses_without_narration():
         plan=QueryPlan(intent="aggregate", categories=["Food"], flow="DB"),
         agg=agg,
     )
-    response = await service.ask(AskRequest(query="berapa pengeluaran makan bulan depan?"))
+    response = await service.ask(AskRequest(query="berapa pengeluaran makan bulan depan?"), owner_id=OWNER, categories=["Food"])
     assert response.intent == "aggregate"
     assert response.confident is False
     assert response.total_idr == 0.0

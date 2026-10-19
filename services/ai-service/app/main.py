@@ -1,13 +1,14 @@
 import asyncio
+import contextvars
 import logging
 from contextlib import asynccontextmanager
 import datetime
 import json
 import re
 import secrets
+import uuid
 
-import asyncpg
-from fastapi import FastAPI, Form, HTTPException, Request, UploadFile, File
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from sse_starlette.sse import EventSourceResponse
@@ -15,6 +16,7 @@ from sse_starlette.sse import EventSourceResponse
 # In the lifespan context manager or @app.on_event("shutdown"):
 from app.observability import langfuse
 from app.config import settings
+from app.owner import require_owner, require_user_token
 from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse, FollowUpRequest, FollowUpResponse, AdvisorRequest, AdvisorResponse
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
@@ -23,6 +25,7 @@ from app.services.answerer import AnswerService, SYSTEM_PROMPT, NARRATE_PROMPT, 
 from app.services.query_planner import QueryPlanner
 from app.services.aggregator import AggregationService
 from app.services.followup_suggester import FollowUpSuggester
+from app.services.vocabulary import CategoryVocabulary
 from app.providers.factory import ProviderFactory
 from app.providers.embedding_factory import create_embedding_provider
 from app.services.llm_parser import LlmParser, LlmParseError
@@ -33,9 +36,9 @@ from app.services.portfolio_reviewer import PortfolioReviewer
 from app.services.journey_advisor import JourneyAdvisor
 from app.services.advisor import AdvisorService
 from app.agents.categorizer_agent import CategorizerAgent, AgentRateLimitedError
-from app.agents.tools.category_rules import load_rules
-from app.agents.tools.categories import load_categories as load_agent_categories
-from app.agents.tools.similarity import configure as configure_similarity_tool
+from app.agents.owner_context import OwnerContext, bind_owner_context
+from app.agents.tools.categories import FALLBACK_CATEGORIES
+from app.services.owner_rules import load_owner_rules
 
 from opentelemetry import trace, metrics
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -59,46 +62,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def _load_categories(db_url: str) -> list[str]:
-    """Load the closed category vocabulary the planner selects from.
-
-    Values are set by the 106-rule categorizer — a finite, known set. Failing to
-    reach the DB at startup must not crash the service; the planner just sees an
-    empty menu and extracts no categories until the next restart.
-    """
-    try:
-        conn = await asyncpg.connect(db_url)
-        try:
-            rows = await conn.fetch(
-                "SELECT DISTINCT category FROM transactions WHERE category <> '' ORDER BY category"
-            )
-        finally:
-            await conn.close()
-        return [r["category"] for r in rows]
-    except Exception:
-        logger.exception("failed to load category vocabulary — planner will see an empty list")
-        return []
-
-
-async def _load_rules(db_url: str) -> dict[str, str]:
-    """Snapshot the 106 category rules for the agent's search_category_rules tool.
-
-    Columns are (id, keyword, type, category, keyword_length) — see
-    supabase/migrations/20260101000000_initial_schema.sql. Mirrors
-    _load_categories(): failure degrades the tool, never blocks the service.
-    """
-    try:
-        conn = await asyncpg.connect(db_url)
-        try:
-            rows = await conn.fetch("SELECT keyword, category FROM category_rules")
-        finally:
-            await conn.close()
-        return {r["keyword"]: r["category"] for r in rows}
-    except Exception:
-        logger.exception("failed to load category rules — agent rule tool will return no matches")
-        return {}
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     provider = ProviderFactory.create(settings)
@@ -117,34 +80,22 @@ async def lifespan(app: FastAPI):
     app.state.planner = QueryPlanner(provider=provider)
     app.state.followup_suggester = FollowUpSuggester(provider=provider)
     app.state.aggregator = AggregationService(db_url=settings.database_url)
-    # The pilot never loads a cross-user transaction vocabulary into an allowed path.
-    app.state.categories = [] if settings.cashflow_pilot_enabled else await _load_categories(settings.database_url)
+    # PF-S15: the planner's category menu is loaded per owner, per request. There is
+    # no global cross-user vocabulary any more.
+    app.state.vocabulary = CategoryVocabulary(db_url=settings.database_url)
     app.state.answerer = AnswerService(
         retriever=app.state.retriever,
         reranker=app.state.reranker,
         provider=provider,
         planner=app.state.planner,
         aggregator=app.state.aggregator,
-        categories=app.state.categories,
     )
     app.state.provider = provider
 
     # Chapter 7 — Transaction Categorizer Agent (smolagents ToolCallingAgent).
-    # Tool 1 — rules snapshot straight from the DB.
-    rules = {} if settings.cashflow_pilot_enabled else await _load_rules(settings.database_url)
-    load_rules(rules)
-    # Tool 2 — hand the tool the SAME retriever instance /search and /ask use.
-    configure_similarity_tool(app.state.retriever)
-    # Tool 3 — reuse the vocabulary already loaded above for the query planner.
-    load_agent_categories(app.state.categories)
+    # PF-S15: its rules, categories and similarity search are bound per request
+    # (see /categorize-agent), so nothing user-specific is loaded at startup.
     app.state.categorizer_agent = CategorizerAgent()
-    logger.info(
-        "Categorizer agent ready — %d rules, %d categories", len(rules), len(app.state.categories),
-    )
-
-    logger.info(
-        "Loaded %d category vocabulary entries for the planner", len(app.state.categories),
-    )
     logger.info(
         "AI service starting up | provider=%s | model=%s | categorization_backend=%s | "
         "categorization_model=%s | embedding_provider=%s | embedding_model=%s",
@@ -199,10 +150,27 @@ _PILOT_INTERNAL_ROUTES = {
     "/journey/advise", "/portfolio-review",
 }
 
+# PF-S15: routes that read or write transactions. They reopen only behind
+# AI_CHAT_ENABLED, and each handler takes its owner from require_owner (internal key
+# plus a server-signed owner token), so a request without either gets 401.
+_OWNER_CHAT_ROUTES = {"/ask", "/ask/stream", "/ask/followups", "/search", "/embed-transactions"}
+
+# PF-S15 Phase 2: the agents, behind AI_AGENTS_ENABLED. Same owner dependency; the
+# advisor also needs the caller's own Supabase token to read data through the API.
+_OWNER_AGENT_ROUTES = {"/advisor", "/categorize-agent"}
+
 
 @app.middleware("http")
 async def pilot_access_gate(request: Request, call_next):
     if request.url.path == "/health":
+        return await call_next(request)
+    if request.url.path in _OWNER_CHAT_ROUTES:
+        if not settings.ai_chat_enabled:
+            return JSONResponse({"detail": "Unavailable during the Cashflow pilot"}, status_code=404)
+        return await call_next(request)
+    if request.url.path in _OWNER_AGENT_ROUTES:
+        if not settings.ai_agents_enabled:
+            return JSONResponse({"detail": "Unavailable during the Cashflow pilot"}, status_code=404)
         return await call_next(request)
     if not settings.cashflow_pilot_enabled or request.url.path not in _PILOT_INTERNAL_ROUTES:
         return JSONResponse({"detail": "Unavailable during the Cashflow pilot"}, status_code=404)
@@ -310,19 +278,34 @@ async def categorize_transaction(request: CategorizeRequest) -> CategorizeRespon
 
 
 @app.post("/categorize-agent", response_model=CategorizeAgentResponse)
-async def categorize_with_agent(request: CategorizeAgentRequest) -> CategorizeAgentResponse:
+async def categorize_with_agent(
+    request: CategorizeAgentRequest, owner_id: uuid.UUID = Depends(require_owner)
+) -> CategorizeAgentResponse:
     """Categorize a transaction using the ReAct agent with visible reasoning trace.
 
     Slower than /categorize (1-3 LLM calls vs 0-1) but shows its work — use for
     debugging edge cases, demos, or when the fast path returns 'Other'.
+
+    PF-S15: internal-only (no UI or .NET caller yet). Every tool sees only this
+    caller's private rules plus the shared presets, their categories, and an
+    owner-scoped similarity search.
     """
+    owner_context = OwnerContext(
+        owner_id=owner_id,
+        rules=await load_owner_rules(settings.database_url, owner_id),
+        categories=await app.state.vocabulary.for_owner(owner_id) or list(FALLBACK_CATEGORIES),
+        retriever=app.state.retriever,
+    )
     try:
-        result = await asyncio.to_thread(
-            app.state.categorizer_agent.categorize,
-            request.description,
-            request.wallet,
-            request.amount_idr,
-        )
+        with bind_owner_context(owner_context):
+            # The agent runs in a worker thread; hand it a copy of this request's context.
+            result = await asyncio.to_thread(
+                contextvars.copy_context().run,
+                app.state.categorizer_agent.categorize,
+                request.description,
+                request.wallet,
+                request.amount_idr,
+            )
         return CategorizeAgentResponse(
             category=result.category,
             confidence=result.confidence,
@@ -341,10 +324,14 @@ async def categorize_with_agent(request: CategorizeAgentRequest) -> CategorizeAg
 
 
 @app.post("/advisor", response_model=AdvisorResponse)
-async def advisor(request: AdvisorRequest) -> AdvisorResponse:
+async def advisor(
+    request: AdvisorRequest,
+    owner_id: uuid.UUID = Depends(require_owner),
+    user_token: str = Depends(require_user_token),
+) -> AdvisorResponse:
     """Stateful financial advisor — multi-step, tool-grounded, session-persistent."""
     try:
-        return await _advisor.ask(request)
+        return await _advisor.ask(request, owner_id=owner_id, user_token=user_token)
     except Exception as exc:
         logger.exception("advisor failed")
         raise HTTPException(status_code=502, detail="advisor_error") from exc
@@ -383,7 +370,9 @@ async def suggest_categories(request: SuggestCategoriesRequest) -> SuggestCatego
 
 
 @app.post("/embed-transactions", response_model=EmbedTransactionsResponse)
-async def embed_transactions(request: EmbedTransactionsRequest) -> EmbedTransactionsResponse:
+async def embed_transactions(
+    request: EmbedTransactionsRequest, owner_id: uuid.UUID = Depends(require_owner)
+) -> EmbedTransactionsResponse:
     """Embed a batch of transactions and store vectors to transaction_embeddings."""
     items = [
         EmbedItemInternal(
@@ -395,7 +384,7 @@ async def embed_transactions(request: EmbedTransactionsRequest) -> EmbedTransact
         )
         for i in request.items
     ]
-    embedded, skipped = await app.state.embedder.embed_and_store(items)
+    embedded, skipped = await app.state.embedder.embed_and_store(items, owner_id)
     return EmbedTransactionsResponse(
         embedded=embedded,
         skipped=skipped,
@@ -404,7 +393,9 @@ async def embed_transactions(request: EmbedTransactionsRequest) -> EmbedTransact
 
 
 @app.post("/search", response_model=SearchResponse)
-async def search_transactions(request: SearchRequest) -> SearchResponse:
+async def search_transactions(
+    request: SearchRequest, owner_id: uuid.UUID = Depends(require_owner)
+) -> SearchResponse:
     """Semantic search over transactions using pgvector cosine similarity."""
     # Rerank needs a wider candidate pool to select from — re-ordering the
     # same top_k barely moves rankings (see eval_retrieval.py --rerank).
@@ -418,6 +409,7 @@ async def search_transactions(request: SearchRequest) -> SearchResponse:
         date_from=request.date_from,
         date_to=request.date_to,
         search_mode=request.search_mode,
+        owner_id=owner_id,
     )
     if request.rerank:
         results = await app.state.reranker.rerank(request.query, results, top_k=request.top_k)
@@ -429,24 +421,28 @@ async def search_transactions(request: SearchRequest) -> SearchResponse:
 
 
 @app.post("/ask", response_model=AskResponse)
-async def ask(request: AskRequest) -> AskResponse:
+async def ask(request: AskRequest, owner_id: uuid.UUID = Depends(require_owner)) -> AskResponse:
     """Grounded Q&A over the user's transactions (retrieve → rerank → synthesize)."""
     try:
-        return await app.state.answerer.ask(request)
+        categories = await app.state.vocabulary.for_owner(owner_id)
+        return await app.state.answerer.ask(request, owner_id=owner_id, categories=categories)
     except Exception as exc:
         logger.exception("ask failed")
         raise HTTPException(status_code=502, detail="llm_parse_error") from exc
 
 
 @app.post("/ask/followups", response_model=FollowUpResponse)
-async def ask_followups(request: FollowUpRequest) -> FollowUpResponse:
+async def ask_followups(
+    request: FollowUpRequest, owner_id: uuid.UUID = Depends(require_owner)
+) -> FollowUpResponse:
     """Suggest 3 self-contained follow-up questions for the answer just streamed.
 
     Deliberately never raises. Suggestions are decorative — a provider failure
     returns an empty list and the client falls back to its static chips, rather
     than painting an error beside an answer that succeeded.
     """
-    questions = await app.state.followup_suggester.suggest(request, app.state.categories)
+    categories = await app.state.vocabulary.for_owner(owner_id)
+    questions = await app.state.followup_suggester.suggest(request, categories)
     return FollowUpResponse(questions=questions)
 
 
@@ -465,7 +461,9 @@ def _context_payload(rows) -> list[dict]:
 
 
 @app.post("/ask/stream")
-async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
+async def ask_stream(
+    request: AskRequest, req: Request, owner_id: uuid.UUID = Depends(require_owner)
+) -> EventSourceResponse:
     """Stream the routed RAG answer token-by-token over SSE.
 
     A temperature-0 planner classifies intent first, then the stream splits:
@@ -482,7 +480,8 @@ async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
     async def event_generator():
         today = datetime.date.today()
         try:
-            plan = await app.state.planner.plan(request.query, today, app.state.categories)
+            categories = await app.state.vocabulary.for_owner(owner_id)
+            plan = await app.state.planner.plan(request.query, today, categories)
         except Exception:
             logger.exception("planner failed")
             yield {"event": "error", "data": json.dumps({"detail": "planner_failed"})}
@@ -490,7 +489,7 @@ async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
 
         # ── aggregate: the number is computed before the model is ever called ──
         if plan.intent == "aggregate":
-            agg = await app.state.aggregator.aggregate(plan)
+            agg = await app.state.aggregator.aggregate(plan, owner_id=owner_id)
 
             if agg.count == 0:
                 yield {"event": "metadata", "data": json.dumps(
@@ -535,6 +534,7 @@ async def ask_stream(request: AskRequest, req: Request) -> EventSourceResponse:
             date_from=date_from, date_to=date_to,
             # search_mode intentionally omitted — the Ch6 eval measured "vector"
             # (the default) beating "hybrid" on this corpus; see advanced-rag-notes.md
+            owner_id=owner_id,
         )
         contexts = await app.state.reranker.rerank(
             request.query, candidates, top_k=request.top_k or 3

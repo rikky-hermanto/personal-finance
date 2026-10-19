@@ -1,6 +1,7 @@
 # Project Status
 
 > **Code reviewed:** 2026-10-08 (Asia/Makassar)
+> **Updated:** 2026-10-16 — PF-S08/S09 (sign-in and owner-only data) and PF-S15 (owner-scoped AI chat, RAG, advisor and categorizer agent) are done and accepted by the owner. Sections on auth, chat and agents below reflect that; the rest is still the 2026-10-08 review.
 > Current implementation reference. “Implemented” means source and wiring exist; it does not mean deployed, live-tested today, or production-ready. Historical results retain their original dates.
 
 ## Current phase
@@ -13,13 +14,13 @@ The latest recorded feature is **PF-141 — opt-in Jev residual categorization**
 
 | Area | Coded behavior | Evidence / boundary |
 |---|---|---|
-| Journey | Home at `/journey`; five-tier presentation, scored indicators, stored snapshots/achievements, generated quests with fallback, Living Garden hero | `JourneyScoringService`, `JourneyController`, Journey pages. Four data-derived indicators: spending/income, liquid savings coverage, DTI, savings rate. Other indicators are unavailable; five tiers do not imply five complete finance products. Placeholder identity remains. |
+| Journey | Home at `/journey`; five-tier presentation, scored indicators, stored snapshots/achievements, generated quests with fallback, Living Garden hero | `JourneyScoringService`, `JourneyController`, Journey pages. Four data-derived indicators: spending/income, liquid savings coverage, DTI, savings rate. Other indicators are unavailable; five tiers do not imply five complete finance products. Scored per signed-in owner since PF-S08. |
 | Cashflow | Upload/review/submit, account linking and alias learning, file-hash/in-memory/database deduplication, server-paged transactions, CSV export, statements, balances, analysis | `TransactionsController`, `TransactionService`, cashflow pages. See ingestion limitations below. |
 | Categorization | User rules, presets, history lookup, bulk preview Suggest; separate normalization/categorization service with merchant batch and residual fallback | `CategoryRuleService`, `TransactionPipelineService`, `CategorizePreviewCommand`. Standard upload does not invoke the full pipeline. |
 | Spending / Buckets | Safe-to-Spend with historical savings outflows, variance, Committed/Future/Free budgeting, persisted Future plan and commitment demotions, month-close and variable-income views | `BucketsService` + pure `BucketCalculator`, `BucketsController`, `BucketsCard` in `/cashflow/analysis`; migration `20260804000001_buckets.sql`. Not every envelope/zero-based/50-30-20 method is implemented. |
 | Assets | Institutions/accounts, assets, holdings, valuations, liabilities, FX service, net-worth/allocation/history | Accounts/Assets/Liabilities/NetWorth controllers and services; `/assets/*`. |
 | Investment | Archetype setups, holdings, AI portfolio review and saved review snapshots | `InvestmentsController`, review command/client, `/investment/*`; no claim of broker execution or audited TWR/XIRR reporting. |
-| Transaction chat | `/chat` and shared AI panel; SSE answers, per-answer sources, SQL totals, verification/error states, contextual follow-up suggestions | `chatApi.ts`, `useChatSession.ts`, Python `/ask/stream` and `/ask/followups`. Calls FastAPI directly. UI history is not sent as conversational memory to `/ask`. |
+| Transaction chat | `/chat` and shared AI panel; SSE answers, per-answer sources, SQL totals, verification/error states, contextual follow-up suggestions | `chatApi.ts`, `useChatSession.ts`, `ChatController` (`/api/chat/*`), Python `/ask/stream` and `/ask/followups`. Since PF-S15 the browser calls only the .NET API with its Supabase token; the API signs a 60-second owner token and the AI service reads as that user under RLS. Gated by `AiChat:Enabled`, `AI_CHAT_ENABLED` and `VITE_AI_CHAT_ENABLED`. UI history is not sent as conversational memory to `/ask`. Chat totals still travel as JSON numbers (FIN-01 follow-up). |
 | Trading Desk | Command, Portfolio, Mandate and Reconcile; mandate versioning/presets, multi-portfolio positions and symbol aggregation, NAV/risk/sizing/gate engine | `/desk/*`, `DeskService`, `DeskCalculator`, TS mirror. Pre-Trade and Journal tabs are disabled; state evaluates without a trade plan. Deferred rules remain unresolved. |
 | Macro Scenario Lab | Deterministic solver, presets, personal portfolio/spending/liability/runway estimates, comparisons, saved scenarios | `/lab`, `src/lib/macroScenario/`, `useMacroLab`, `MacroScenariosController`; migration `20260902000001_macro_scenarios.sql`. Estimates are assumptions, not validated forecasts. |
 | Settings / platform | Appearance/Zen, categories, regional formatting, banks, data controls; health/status page; OTel/LGTM and Langfuse instrumentation | `App.tsx`, `Program.cs`, `observability.py`, Compose/monitoring. Runtime health was not checked in this task. |
@@ -31,8 +32,8 @@ The latest recorded feature is **PF-141 — opt-in Jev residual categorization**
 - **RAG (PF-AI003/003b/004):** embeddings, backfill, model-aware retrieval, local FlashRank reranking and grounded `/ask` exist. Embeddings default to Gemini; OpenAI is selectable independently of generation. Each transaction is the indexed unit. Chunking helpers exist; statement-level sentence-window retrieval and auto-merging are deferred.
 - **Streaming / routing (PF-AI005 + PART2):** `/ask/stream` routes aggregates to parameterized SQL SUM/COUNT and lookups to vector retrieval/reranking. Arithmetic uses Decimal; existing responses still convert money to JSON numbers. Citation-marker checks do not prove every sentence true. Formal numeric evaluation remains deferred in the July 14 record after quota exhaustion; current quota was not rechecked.
 - **Hybrid retrieval (PF-AI006):** vector, PostgreSQL full-text (`bm25` mode name), and RRF hybrid modes exist. Recorded July 24 benchmark favored vector (MRR@5 0.771 vs hybrid 0.750); coded default remains vector. This is corpus-specific historical evidence.
-- **Categorizer agent (PF-AI007):** separate `/categorize-agent` endpoint with smolagents rules/history/vocabulary tools. Does not replace upload categorization. Plan remains in progress with partial, quota-limited live smoke evidence.
-- **Financial advisor (PF-AI008):** separate `/advisor` LangGraph endpoint, four .NET-backed tools, process-memory sessions, bounded calls/timeouts and fallback. Closed by user acceptance September 15; second-turn/scenario/visual dashboard checks were deferred. React transaction chat does not call this endpoint. Requested dates enter prompts rather than structured tool filters.
+- **Categorizer agent (PF-AI007):** separate `/categorize-agent` endpoint with smolagents rules/history/vocabulary tools. Does not replace upload categorization. Since PF-S15 each request binds the caller's own rules (private rules over shared presets), categories and owner-scoped similarity search, and gets a fresh agent. Gated by `AI_AGENTS_ENABLED`; internal only, with no .NET or UI caller. The PF-AI007 plan remains in progress with partial, quota-limited live smoke evidence.
+- **Financial advisor (PF-AI008):** separate `/advisor` LangGraph endpoint, four .NET-backed tools, process-memory sessions, bounded calls/timeouts and fallback. Since PF-S15 it is reached through `POST /api/chat/advisor` (gated by `AiChat:AgentsEnabled` and `AI_AGENTS_ENABLED`); its tools call the API with the caller's own token and its memory is keyed by user plus session. No UI calls it yet. On Gemini 3 models it returns its fallback reply, because the installed `langchain-google-genai` drops thought signatures. Closed by user acceptance September 15; second-turn/scenario/visual dashboard checks were deferred. Requested dates enter prompts rather than structured tool filters.
 - **Categorization evaluator (PF-AI010):** implemented with recorded August 5 baseline in `services/ai-service/evals/results/20260805-categorize-eval.md`; its plan says Done despite the old board's To Do entry.
 - **Jev (PF-141):** independent opt-in `/categorize` backend, closed vocabulary, explicit threshold, abstention, bounded timeout and .NET rule-seeding guard. Never allows automatic Jev rule creation. A versioned evaluator with 100 held-out cases plus 20 tuning cases exists; live evaluation, calibrated threshold, rollout and savings evidence remain pending. Bulk preview Suggest and agent endpoint are unaffected.
 
@@ -49,17 +50,19 @@ Standard submit starts embeddings through background `Task.Run`; failure is logg
 | Task / capability | Actual code status |
 |---|---|
 | PF-S01–S07 — schema + SDK + EF removal | Implemented; timestamped SQL migrations are the schema source |
-| PF-S08/S09 — backend/frontend Auth | Not implemented: no JWT authentication registration or login/protected-route flow; placeholder users and permissive app policies remain |
+| PF-S08/S09 — backend/frontend Auth | Done 2026-10-16; live on the local stack since 2026-10-14. Supabase email/password sign-in (no public signup), JWKS-validated API, per-request user clients and owner RLS on Cashflow, Journey, Assets, Investment, Desk and Macro Lab. All legacy rows belong to the single owner account. Deferred: broader accessibility checks, public signup, Supabase Cloud rollout |
 | PF-S10 — Storage | Bucket migration and StorageService implemented; used by experimental endpoint, not standard wizard |
 | PF-S11 — event-driven extraction | Not implemented: no `statement_uploads` migration or `/webhooks/process` endpoint |
 | PF-S12 — Realtime | Transaction INSERT updates implemented under PF-AI005; original upload-status scope remains pending |
 | PF-S13 — RAG | Capability implemented under PF-AI003–006; GitHub issue/project closure not verified |
+| PF-S15 — owner-scoped AI | Done 2026-10-16. Chat, search, import embeddings, advisor and categorizer agent read only the signed-in user's data (migration `20261015000000`, live two-user check `scripts/pf_s15_ai_isolation.py`). Open follow-ups are listed in the plan |
 
 Development uses Supabase CLI (Postgres 17, API 54321, DB 54322, Studio 54323). Compose still contains standalone Postgres 16 at 5432, also started by `npm start`; it is not the Supabase database. Docker-only configuration is incomplete for current Supabase/AI/realtime requirements. See [SETUP.md](SETUP.md).
 
 ## Remaining scope
 
-- Authentication and tenant isolation; AI security/governance and deployment work (PF-AI011/012) remain planned.
+- AI security/governance and deployment work (PF-AI011/012) remain planned. Authentication and per-user isolation are done locally (PF-S08/S09, PF-S15); public signup and the cloud rollout are not.
+- PF-S15 follow-ups: decimal chat totals end to end (FIN-01), the advisor on Gemini 3, the API-to-AI keep-alive race, agent stdout logging, and checking the agent's category against the caller's vocabulary.
 - Durable webhook extraction and upload-status realtime completion (PF-S11/S12).
 - Trading Desk Pre-Trade/Journal and gated trade-plan persistence (PF-134), deferred risk rules (PF-135).
 - Formal numeric evaluation, remaining agent/advisor live checks, Jev evaluation/promotion.
@@ -74,7 +77,7 @@ Development uses Supabase CLI (Postgres 17, API 54321, DB 54322, Studio 54323). 
 - DashboardService and SpendingAnalysisService now have ILogger. Several legacy services/parsers still use global namespaces.
 - Standard upload catches can include exception text; middleware emits detail in DEBUG. Exception leakage is not fully eliminated.
 - Some PostgREST consumers request large ranges without paging while local `max_rows=1000`; Dashboard/Spending/Buckets page separately. Requested ranges alone do not establish complete large-dataset coverage.
-- Durable advisor memory and complete container environment wiring are unfinished. Permissive RLS does not provide per-user isolation.
+- Durable advisor memory and complete container environment wiring are unfinished. Per-user isolation now comes from the PF-S08 owner RLS policies, not the earlier permissive ones.
 - Historical PF-AI008 record: 41 advisor checks passed; full AI suite 193 passed / 1 pre-existing merchant-suggester PII failure; dependency conflicts recorded. PF-141 has a separate offline verification record. These are previous runs, not October 8 results.
 - CI: `.github/workflows/ci.yml` (PF-142) runs the local gates on every push and PR to `main`; Playwright e2e is excluded.
 - This sync inspected source, migrations, manifests, tests and plans. Shell execution was unavailable (process helper initialization failed; Node spawning returned EPERM), so no build/test/live checks or GitHub reconciliation ran today.
@@ -83,4 +86,4 @@ Development uses Supabase CLI (Postgres 17, API 54321, DB 54322, Studio 54323). 
 
 - [Architecture](architecture/architecture-diagram.md), [REST/AI routes](architecture/API-endpoints.md), [backend](architecture/API-backend.md), [frontend](architecture/Front-End.md)
 - [Migration scope](architecture/supabase-migration.md), [sprint implementation map](sprint-plan.md), [documentation audit](../_archive/2026-10-13/docs/codex/documentation-status-audit.md) (archived)
-- [Task board](../plans/BOARD.md), [learning progress](mentor/progress.md), [PF-141 plan](../plans/in-progress/PF-141-jev-categorizer-todo.md)
+- [Task board](../plans/BOARD.md), [learning progress](mentor/progress.md), [PF-141 plan](../plans/ready-to-review/PF-141-jev-categorizer-todo.md), [PF-S08 plan](../plans/done/PF-S08-auth-foundation-cashflow-ownership-todo.md), [PF-S15 plan](../plans/done/PF-S15-resume-ai-chat-owner-scoped-todo.md), [pilot runbook](runbooks/pf-s08-cashflow-pilot.md)

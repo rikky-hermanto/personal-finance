@@ -9,6 +9,7 @@ namespace PersonalFinance.Infrastructure.External;
 public sealed class LlmSearchClient : ILlmSearchClient
 {
     private readonly HttpClient _http;
+    private readonly OwnerTokenSigner _signer;
     private readonly ILogger<LlmSearchClient> _logger;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -17,17 +18,18 @@ public sealed class LlmSearchClient : ILlmSearchClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     };
 
-    public LlmSearchClient(HttpClient http, ILogger<LlmSearchClient> logger)
+    public LlmSearchClient(HttpClient http, OwnerTokenSigner signer, ILogger<LlmSearchClient> logger)
     {
         _http = http;
+        _signer = signer;
         _logger = logger;
     }
 
     public async Task EmbedTransactionsAsync(
-        IReadOnlyList<EmbedItemRequest> items, CancellationToken ct = default)
+        IReadOnlyList<EmbedItemRequest> items, Guid ownerId, CancellationToken ct = default)
     {
-        var payload = new { items };
-        var response = await _http.PostAsJsonAsync("/embed-transactions", payload, JsonOptions, ct);
+        using var message = OwnerRequest("/embed-transactions", new { items }, ownerId);
+        using var response = await _http.SendAsync(message, ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -39,11 +41,21 @@ public sealed class LlmSearchClient : ILlmSearchClient
     }
 
     public async Task<SearchResponse> SearchAsync(
-        string query, int topK = 5, CancellationToken ct = default)
+        string query, Guid ownerId, int topK = 5, CancellationToken ct = default)
     {
-        var payload = new { query, top_k = topK };
-        var response = await _http.PostAsJsonAsync("/search", payload, JsonOptions, ct);
+        using var message = OwnerRequest("/search", new { query, top_k = topK }, ownerId);
+        using var response = await _http.SendAsync(message, ct);
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<SearchResponse>(JsonOptions, ct))!;
+    }
+
+    private HttpRequestMessage OwnerRequest<T>(string path, T payload, Guid ownerId)
+    {
+        var message = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            Content = JsonContent.Create(payload, options: JsonOptions),
+        };
+        message.Headers.Add(OwnerTokenSigner.HeaderName, _signer.Sign(ownerId));
+        return message;
     }
 }

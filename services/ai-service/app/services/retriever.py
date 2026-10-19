@@ -3,12 +3,13 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from datetime import date
 
-import asyncpg
 from pgvector.asyncpg import register_vector
 
 from app.models import SearchResult
+from app.owner import owner_connection
 from app.providers.embedding_base import EmbeddingProvider
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,8 @@ class RetrievalService:
         account: str | None,
         date_from: str | None,
         date_to: str | None,
+        *,
+        owner_id: uuid.UUID,
     ) -> list[int]:
         """Rank transaction IDs by PostgreSQL tsvector BM25 score (ts_rank).
 
@@ -105,8 +108,8 @@ class RetrievalService:
             return []
 
         where, params = self._build_where(
-            ["t.description_tsv @@ to_tsquery('simple', $1)"],
-            [tsquery_str],
+            ["t.user_id = $2", "t.description_tsv @@ to_tsquery('simple', $1)"],
+            [tsquery_str, owner_id],
             category, account, date_from, date_to,
         )
         params.append(top_k)
@@ -122,7 +125,9 @@ class RetrievalService:
         rows = await conn.fetch(sql, *params)
         return [r["id"] for r in rows]
 
-    async def _fetch_results_by_ids(self, conn, ids: list[int]) -> list[SearchResult]:
+    async def _fetch_results_by_ids(
+        self, conn, ids: list[int], *, owner_id: uuid.UUID
+    ) -> list[SearchResult]:
         """Fetch full transaction rows for a fixed ID list, preserving its order.
 
         Used by the bm25/hybrid paths where ranking was already decided by
@@ -143,9 +148,10 @@ class RetrievalService:
                 t.category
             FROM transactions t
             LEFT JOIN accounts a ON a.id = t.account_id
-            WHERE t.id = ANY($1::bigint[])
+            WHERE t.id = ANY($1::bigint[]) AND t.user_id = $2
             """,
             ids,
+            owner_id,
         )
         by_id = {row["transaction_id"]: row for row in rows}
         return [
@@ -173,6 +179,8 @@ class RetrievalService:
         date_from: str | None = None,
         date_to: str | None = None,
         search_mode: str = "vector",
+        *,
+        owner_id: uuid.UUID,
     ) -> list[SearchResult]:
         # 1. Embed the query with the same model used for storage.
         #    Always embed the query text as-is — no category/wallet addition.
@@ -181,20 +189,24 @@ class RetrievalService:
         query_vector = None if search_mode == "bm25" else await self._provider.embed_query(query)
         model = self._provider.model
 
-        conn = await asyncpg.connect(self._db_url)
-        await register_vector(conn)
-        try:
+        async with owner_connection(self._db_url, owner_id) as conn:
+            await register_vector(conn)
             # ivfflat default probes=1 only searches 1 cluster → high miss rate on small
             # datasets. sqrt(lists) is the standard starting point; lists=100 → probes=10
             # gives ~99% recall on 4467 rows without meaningful latency cost.
-            # SET (not SET LOCAL) — asyncpg uses autocommit; LOCAL needs an active txn.
-            await conn.execute("SET ivfflat.probes = 10")
+            # SET LOCAL — owner_connection holds a transaction, so the setting ends with it.
+            await conn.execute("SET LOCAL ivfflat.probes = 10")
+            # ivfflat applies the owner filter after the index scan; without iterative
+            # scans a user can get fewer than top_k rows once another user's vectors
+            # share the index (pgvector >= 0.8, verified 0.8.0 locally in PF-S15 STEP 1).
+            await conn.execute("SET LOCAL ivfflat.iterative_scan = relaxed_order")
 
             if search_mode == "bm25":
                 ids = await self._search_bm25_ids(
-                    conn, query, top_k, category, account, date_from, date_to
+                    conn, query, top_k, category, account, date_from, date_to,
+                    owner_id=owner_id,
                 )
-                return await self._fetch_results_by_ids(conn, ids)
+                return await self._fetch_results_by_ids(conn, ids, owner_id=owner_id)
 
             if search_mode == "hybrid":
                 # Fetch top_k from EACH ranked list before merging — capping either
@@ -202,22 +214,21 @@ class RetrievalService:
                 # in bm25 (an exact keyword hit) before RRF ever sees it.
                 vector_results = await self._search_vector(
                     conn, query_vector, model, top_k, min_similarity,
-                    category, account, date_from, date_to,
+                    category, account, date_from, date_to, owner_id=owner_id,
                 )
                 vector_ids = [r.transaction_id for r in vector_results]
                 bm25_ids = await self._search_bm25_ids(
-                    conn, query, top_k, category, account, date_from, date_to
+                    conn, query, top_k, category, account, date_from, date_to,
+                    owner_id=owner_id,
                 )
                 merged_ids = _rrf_merge(vector_ids, bm25_ids)[:top_k]
-                return await self._fetch_results_by_ids(conn, merged_ids)
+                return await self._fetch_results_by_ids(conn, merged_ids, owner_id=owner_id)
 
             # default: "vector" — existing path unchanged
             return await self._search_vector(
                 conn, query_vector, model, top_k, min_similarity,
-                category, account, date_from, date_to,
+                category, account, date_from, date_to, owner_id=owner_id,
             )
-        finally:
-            await conn.close()
 
     async def _search_vector(
         self,
@@ -230,6 +241,8 @@ class RetrievalService:
         account: str | None,
         date_from: str | None,
         date_to: str | None,
+        *,
+        owner_id: uuid.UUID,
     ) -> list[SearchResult]:
         # pgvector cosine-distance search.
         # <=> = cosine distance (0 = identical, 2 = opposite).
@@ -238,12 +251,13 @@ class RetrievalService:
         # provider switch (results shrink until backfill completes — never mixed).
         #
         # Compile optional filters to parametrized WHERE clauses.
-        # NEVER interpolate values into SQL — parameters only ($5, $6, ...).
+        # NEVER interpolate values into SQL — parameters only ($6, $7, ...).
+        # t.user_id = $5 comes first: the owner filter is never optional (PF-S15).
         # Filtering here (not post-filtering the rows) keeps LIMIT $2 meaningful:
         # post-filtering a fixed top-K can silently shrink the result set below top_k.
         where, params = self._build_where(
-            ["te.model = $4", "1 - (te.embedding <=> $1::vector) >= $3"],
-            [query_vector, top_k, min_similarity, model],
+            ["t.user_id = $5", "te.model = $4", "1 - (te.embedding <=> $1::vector) >= $3"],
+            [query_vector, top_k, min_similarity, model, owner_id],
             category, account, date_from, date_to,
         )
 

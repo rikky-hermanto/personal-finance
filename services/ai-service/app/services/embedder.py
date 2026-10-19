@@ -6,6 +6,7 @@ pgvector requires raw SQL <=> operator).
 from __future__ import annotations
 
 import logging
+import uuid
 from dataclasses import dataclass
 
 import asyncpg
@@ -46,8 +47,15 @@ class EmbeddingService:
         self._provider = provider
         self._db_url = db_url
 
-    async def embed_and_store(self, items: list[EmbedItem]) -> tuple[int, int]:
+    async def embed_and_store(
+        self, items: list[EmbedItem], owner_id: uuid.UUID
+    ) -> tuple[int, int]:
         """Embed a batch of transactions and upsert into transaction_embeddings.
+
+        Only rows owned by `owner_id` are written: the INSERT selects from
+        transactions with an ownership join, so a forged or buggy transaction_id
+        writes nothing and counts as skipped (PF-S15 STEP 6). This stays on the
+        service connection because `authenticated` has no write grant here.
 
         Returns (embedded, skipped) counts.
         """
@@ -84,6 +92,7 @@ class EmbeddingService:
             type(self._provider).__name__, model, len(texts), token_count, cost,
         )
 
+        # Service connection, not owner_connection: this is a write (see docstring).
         conn = await asyncpg.connect(self._db_url)
         await register_vector(conn)
         try:
@@ -91,11 +100,12 @@ class EmbeddingService:
             skipped = 0
             for item, text, vector in zip(items, texts, vectors):
                 try:
-                    await conn.execute(
+                    status = await conn.execute(
                         """
                         INSERT INTO transaction_embeddings
                             (transaction_id, embedding, search_text, model)
-                        VALUES ($1, $2, $3, $4)
+                        SELECT t.id, $2::vector, $3::text, $4::text FROM transactions t
+                        WHERE t.id = $1 AND t.user_id = $5
                         ON CONFLICT (transaction_id) DO UPDATE
                             SET embedding = EXCLUDED.embedding,
                                 search_text = EXCLUDED.search_text,
@@ -105,7 +115,14 @@ class EmbeddingService:
                         vector,
                         text,
                         model,
+                        owner_id,
                     )
+                    if status == "INSERT 0 0":
+                        logger.warning(
+                            "Embedding skipped: tx %d not owned by caller", item.transaction_id
+                        )
+                        skipped += 1
+                        continue
                     embedded += 1
                 except Exception as exc:
                     logger.warning("Failed to store embedding for tx %d: %s", item.transaction_id, exc)

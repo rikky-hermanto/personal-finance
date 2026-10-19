@@ -224,10 +224,22 @@ namespace PersonalFinance.Api
                 var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
                 if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
             });
+            // PF-S15: owner-scoped AI routes need the internal key AND a signed owner token.
+            builder.Services.AddSingleton(new OwnerTokenSigner(
+                builder.Configuration["AiChat:OwnerSigningSecret"], TimeProvider.System));
             builder.Services.AddHttpClient<ILlmSearchClient, LlmSearchClient>(client =>
             {
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
                 client.Timeout = TimeSpan.FromSeconds(60);
+                var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
+                if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
+            });
+            builder.Services.AddHttpClient<IAiChatClient, AiChatClient>(client =>
+            {
+                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
+                client.Timeout = TimeSpan.FromMinutes(2);
+                var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
+                if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
             });
             builder.Services.AddMediatR(cfg =>
             {
@@ -258,6 +270,9 @@ namespace PersonalFinance.Api
             var checkedMutationsEnabled = builder.Configuration.GetValue<bool>("CashflowPilot:CheckedMutationsEnabled");
             if (cashflowPilotEnabled && string.IsNullOrWhiteSpace(app.Configuration["AiService:InternalApiKey"]))
                 throw new InvalidOperationException("An internal AI service key is required for the Cashflow pilot.");
+            var aiChatEnabled = cashflowPilotEnabled && builder.Configuration.GetValue<bool>("AiChat:Enabled");
+            if (aiChatEnabled && string.IsNullOrWhiteSpace(app.Configuration["AiChat:OwnerSigningSecret"]))
+                throw new InvalidOperationException("AiChat:OwnerSigningSecret is required when AI chat is enabled.");
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -286,6 +301,8 @@ namespace PersonalFinance.Api
                               path.StartsWithSegments("/api/journey") ||
                               path.StartsWithSegments("/api/desk") ||
                               path.StartsWithSegments("/api/macro-scenarios");
+                // PF-S15: chat forwards to owner-scoped AI routes; ChatController also 404s when off.
+                var chatRoute = aiChatEnabled && path.StartsWithSegments("/api/chat");
                 var allowed = cashflowPilotEnabled && (path.StartsWithSegments("/api/transactions") &&
                               !path.StartsWithSegments("/api/transactions/upload-preview-new") ||
                               path.StartsWithSegments("/api/accounts") ||
@@ -293,7 +310,7 @@ namespace PersonalFinance.Api
                               path.StartsWithSegments("/api/buckets") ||
                               path.StartsWithSegments("/api/spending-analysis") ||
                               path.StartsWithSegments("/api/insights") ||
-                              ownerScopedModule) ||
+                              ownerScopedModule || chatRoute) ||
                               !path.StartsWithSegments("/api");
                 if (!allowed)
                 {
@@ -348,7 +365,8 @@ namespace PersonalFinance.Api
                     !HttpMethods.IsHead(context.Request.Method) &&
                     !(HttpMethods.IsPost(context.Request.Method) && preview) &&
                     !checkedMutation &&
-                    !ownerScopedModule)
+                    !ownerScopedModule &&
+                    !chatRoute)
                 {
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
                     return;

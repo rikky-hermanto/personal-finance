@@ -5,6 +5,7 @@ import { useChatSession } from '@/hooks/useChatSession';
 import type { ContextItem } from '@/api/chatApi';
 import { formatCurrency } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import ChatDisclaimer from '@/components/chat/ChatDisclaimer';
 
 const CONTEXT_LABELS: Array<[string, string]> = [
   ['/journey', 'Journey'],
@@ -248,6 +249,9 @@ const AiChatPanel = ({ onClose }: AiChatPanelProps) => {
             Kirim
           </button>
         )}
+      </div>
+      <div className="px-4 pb-3 flex-shrink-0">
+        <ChatDisclaimer />
       </div>
     </div>
   );

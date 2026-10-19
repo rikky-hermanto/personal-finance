@@ -1,0 +1,17 @@
+# Extends the default gitleaks rules. Gitleaks scans every commit's diff, so an inline
+# `gitleaks:allow` added in a later commit cannot clear a finding in an earlier one;
+# this config applies to the whole scanned range.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake secrets used only as test fixtures, and the public local-Supabase default URL"
+paths = [
+  '''apps/api/tests/PersonalFinance\.Tests/Infrastructure/AiChatClientTests\.cs''',
+  '''services/ai-service/tests/test_owner_scope\.py''',
+  '''services/ai-service/tests/test_advisor_tools\.py''',
+]
+regexes = [
+  '''pf-s15-fixture-secret''',
+  '''postgresql://postgres:postgres@127\.0\.0\.1:54322/postgres''',
+]

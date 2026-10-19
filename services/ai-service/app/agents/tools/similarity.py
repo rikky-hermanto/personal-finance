@@ -6,19 +6,15 @@ import logging
 
 from smolagents import tool
 
+from app.agents.owner_context import current_owner_context
 from app.observability import langfuse
 
 logger = logging.getLogger(__name__)
 
-# Set at startup from app.state.retriever — the SAME instance the /search and
-# /ask endpoints use. No self-HTTP: calling our own port from inside our own
-# process doubles serialization and couples the tool to its own liveness.
-_RETRIEVER = None
-
-
-def configure(retriever) -> None:
-    global _RETRIEVER
-    _RETRIEVER = retriever
+# PF-S15: the retriever and the owner come from the per-request owner context. It is
+# the SAME RetrievalService instance /search and /ask use, called with the caller's
+# owner_id. No self-HTTP: calling our own port from inside our own process doubles
+# serialization and couples the tool to its own liveness.
 
 
 @tool
@@ -35,12 +31,14 @@ def find_similar_transactions(description: str) -> str:
     with langfuse.start_as_current_observation(
         name="find_similar_transactions", as_type="tool", input={"description": description}
     ) as obs:
-        if _RETRIEVER is None:
+        context = current_owner_context()
+        if context is None or context.retriever is None:
             result = "Similarity search unavailable."
             obs.update(output=result)
             return result
         try:
-            results = asyncio.run(_RETRIEVER.search(query=description, top_k=3))
+            results = asyncio.run(context.retriever.search(
+                query=description, top_k=3, owner_id=context.owner_id))
         except Exception:
             # A tool must NEVER raise into the agent loop — one flaky DB call would
             # abort the whole run. Degrade to a string the LLM can reason about:
