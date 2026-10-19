@@ -1,7 +1,11 @@
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from app.services.retriever import RetrievalService, _rrf_merge, _to_or_tsquery
 from app.models import SearchResult
+from tests.conftest import make_owner_conn
+
+OWNER = uuid.UUID("11111111-1111-1111-1111-111111111111")
 
 
 def test_to_or_tsquery_joins_tokens_with_or():
@@ -72,10 +76,10 @@ def _make_mock_provider(model: str = "test-model", query_vector: list | None = N
 
 @pytest.fixture
 def mock_provider_and_asyncpg():
-    with patch("app.services.retriever.asyncpg.connect", new_callable=AsyncMock) as mock_connect, \
+    with patch("app.owner.asyncpg.connect", new_callable=AsyncMock) as mock_connect, \
          patch("app.services.retriever.register_vector", new_callable=AsyncMock):
 
-        mock_conn = AsyncMock()
+        mock_conn = make_owner_conn()
         mock_conn.fetch = AsyncMock(return_value=[_make_mock_row()])
         mock_connect.return_value = mock_conn
 
@@ -88,7 +92,7 @@ async def test_search_bm25_mode_skips_embedding(mock_provider_and_asyncpg):
     provider, mock_conn = mock_provider_and_asyncpg
     service = RetrievalService(provider=provider, db_url="postgresql://test")
 
-    results = await service.search("tagihan listrik PLN", top_k=5, search_mode="bm25")
+    results = await service.search("tagihan listrik PLN", top_k=5, search_mode="bm25", owner_id=OWNER)
 
     provider.embed_query.assert_not_called()
     assert len(results) == 1
@@ -100,7 +104,7 @@ async def test_search_bm25_mode_uses_or_joined_tsquery(mock_provider_and_asyncpg
     provider, mock_conn = mock_provider_and_asyncpg
     service = RetrievalService(provider=provider, db_url="postgresql://test")
 
-    await service.search("tagihan listrik PLN", top_k=5, search_mode="bm25")
+    await service.search("tagihan listrik PLN", top_k=5, search_mode="bm25", owner_id=OWNER)
 
     # First fetch call is the bm25 id-ranking query; second is the by-id fetch
     first_sql = mock_conn.fetch.call_args_list[0].args[0]
@@ -122,7 +126,7 @@ async def test_search_hybrid_mode_merges_vector_and_bm25(mock_provider_and_async
     ])
     service = RetrievalService(provider=provider, db_url="postgresql://test")
 
-    results = await service.search("tagihan listrik PLN", top_k=5, search_mode="hybrid")
+    results = await service.search("tagihan listrik PLN", top_k=5, search_mode="hybrid", owner_id=OWNER)
 
     provider.embed_query.assert_called_once()
     assert len(results) == 1
@@ -138,7 +142,7 @@ async def test_search_hybrid_mode_returns_empty_when_no_matches(mock_provider_an
     ])
     service = RetrievalService(provider=provider, db_url="postgresql://test")
 
-    results = await service.search("no match query", top_k=5, search_mode="hybrid")
+    results = await service.search("no match query", top_k=5, search_mode="hybrid", owner_id=OWNER)
 
     assert results == []
 
@@ -148,7 +152,7 @@ async def test_search_default_mode_is_vector_unchanged(mock_provider_and_asyncpg
     provider, mock_conn = mock_provider_and_asyncpg
     service = RetrievalService(provider=provider, db_url="postgresql://test")
 
-    await service.search("food spending", top_k=5)
+    await service.search("food spending", top_k=5, owner_id=OWNER)
 
     sql = mock_conn.fetch.call_args.args[0]
     assert "transaction_embeddings" in sql

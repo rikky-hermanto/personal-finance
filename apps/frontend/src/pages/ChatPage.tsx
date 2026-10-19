@@ -3,6 +3,7 @@ import { useChatSession, type ChatMessage } from "@/hooks/useChatSession";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import ChatDisclaimer from "@/components/chat/ChatDisclaimer";
 
 /** Honest source label: distinguishes cited evidence from merely-considered rows. */
 function sourceLabel(m: ChatMessage): string {
@@ -124,6 +125,7 @@ const ChatPage = () => {
           Kirim
         </Button>
       </div>
+      <ChatDisclaimer />
     </div>
   );
 };

@@ -1,6 +1,9 @@
+import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from app.services.embedder import EmbeddingService, EmbedItem
+
+OWNER = uuid.UUID("11111111-1111-1111-1111-111111111111")
 
 
 def _make_mock_provider(model: str = "test-model", vectors: list | None = None):
@@ -17,7 +20,7 @@ def mock_provider_and_asyncpg():
          patch("app.services.embedder.register_vector", new_callable=AsyncMock):
 
         mock_conn = AsyncMock()
-        mock_conn.execute = AsyncMock(return_value=None)
+        mock_conn.execute = AsyncMock(return_value="INSERT 0 1")
         mock_connect.return_value = mock_conn
 
         provider = _make_mock_provider()
@@ -30,7 +33,7 @@ async def test_embed_and_store_calls_provider_with_batch(mock_provider_and_async
     service = EmbeddingService(provider=provider, db_url="postgresql://test")
     items = [EmbedItem(transaction_id=1, description="GOPAY FOOD", category="Food & Dining")]
 
-    embedded, skipped = await service.embed_and_store(items)
+    embedded, skipped = await service.embed_and_store(items, OWNER)
 
     provider.embed_documents.assert_called_once()
     assert embedded == 1
@@ -42,7 +45,7 @@ async def test_embed_empty_list_returns_zeros(mock_provider_and_asyncpg):
     provider, _ = mock_provider_and_asyncpg
     service = EmbeddingService(provider=provider, db_url="postgresql://test")
 
-    embedded, skipped = await service.embed_and_store([])
+    embedded, skipped = await service.embed_and_store([], OWNER)
 
     provider.embed_documents.assert_not_called()
     assert embedded == 0 and skipped == 0
@@ -55,7 +58,7 @@ async def test_embed_skips_on_db_error(mock_provider_and_asyncpg):
     service = EmbeddingService(provider=provider, db_url="postgresql://test")
     items = [EmbedItem(transaction_id=1, description="GOPAY FOOD")]
 
-    embedded, skipped = await service.embed_and_store(items)
+    embedded, skipped = await service.embed_and_store(items, OWNER)
 
     assert embedded == 0
     assert skipped == 1
@@ -68,7 +71,7 @@ async def test_embed_stores_provider_model_in_db(mock_provider_and_asyncpg):
     service = EmbeddingService(provider=provider, db_url="postgresql://test")
     items = [EmbedItem(transaction_id=1, description="DEBIT TRANSFER")]
 
-    await service.embed_and_store(items)
+    await service.embed_and_store(items, OWNER)
 
     call_args = mock_conn.execute.call_args.args
     assert "gemini-embedding-001" in call_args

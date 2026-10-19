@@ -11,10 +11,11 @@ import Sidebar from '@/components/Sidebar';
 import ActivityPanel from '@/components/dashboard/ActivityPanel';
 import AiChatPanel from '@/components/chat/AiChatPanel';
 import { cn } from '@/lib/utils';
+import { AI_CHAT_ENABLED } from '@/lib/featureFlags';
 
 const CHAT_OPEN_KEY = 'pf_chat_open';
-// Chat/RAG reads every user's transactions on the AI service side; off until owner-scoped.
-const AI_CHAT_AVAILABLE = false;
+// PF-S15: chat is owner-scoped through /api/chat; still off unless VITE_AI_CHAT_ENABLED=true.
+const AI_CHAT_AVAILABLE = AI_CHAT_ENABLED;
 
 const AppShellInner = () => {
   const { focused, toggle } = useFocusMode();

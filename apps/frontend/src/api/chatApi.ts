@@ -1,4 +1,6 @@
 import { fetchEventSource } from "@microsoft/fetch-event-source";
+import { authenticatedFetch } from "@/api/authenticatedFetch";
+import { supabase } from "@/lib/supabase";
 
 export interface ContextItem {
   transaction_id: number;
@@ -32,7 +34,9 @@ export interface AskStreamParams {
   top_k?: number;
 }
 
-const AI_URL = import.meta.env.VITE_AI_SERVICE_URL ?? "http://localhost:8000";
+// PF-S15: the browser never calls the AI service. Chat goes through the .NET API,
+// which verifies the Supabase token and forwards for that user only.
+const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:7209";
 
 export function streamAsk(
   params: AskStreamParams,
@@ -45,9 +49,25 @@ export function streamAsk(
 ): AbortController {
   const controller = new AbortController();
 
-  fetchEventSource(`${AI_URL}/ask/stream`, {
+  void openAskStream(params, handlers, controller);
+  return controller;
+}
+
+async function openAskStream(
+  params: AskStreamParams,
+  handlers: Parameters<typeof streamAsk>[1],
+  controller: AbortController
+): Promise<void> {
+  const { data, error } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (error || !token) {
+    handlers.onError(new Error("Please sign in again."));
+    return;
+  }
+
+  await fetchEventSource(`${BASE}/api/chat/ask/stream`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(params),
     signal: controller.signal,
     openWhenHidden: true,   // don't pause when tab is hidden
@@ -83,9 +103,9 @@ export function streamAsk(
       handlers.onError(err);
       throw err;    // stops fetch-event-source from auto-retrying on errors
     },
+  }).catch(() => {
+    // Already reported through onError/onclose; the rejection only ends the request.
   });
-
-  return controller;
 }
 
 export interface FollowUpParams {
@@ -104,7 +124,7 @@ export async function fetchFollowUps(
   signal: AbortSignal
 ): Promise<string[]> {
   try {
-    const res = await fetch(`${AI_URL}/ask/followups`, {
+    const res = await authenticatedFetch(`${BASE}/api/chat/followups`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),

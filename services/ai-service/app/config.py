@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     cashflow_pilot_enabled: bool = False
     internal_api_key: str = ""
+    # PF-S15: owner-scoped chat/RAG routes (/ask, /search, ...) and the Phase 2 agents.
+    # Each reopens behind its own flag so a rollback is a config change.
+    ai_chat_enabled: bool = False
+    ai_agents_enabled: bool = False
+    # HMAC key for the X-Pf-Owner-Token the .NET API signs per request. Separate from
+    # internal_api_key so holding the key alone can't choose which user to act as.
+    owner_signing_secret: str = ""
     cors_origins: list[str] = ["http://localhost:7208", "http://localhost:8080"]
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
     otel_service_name: str = "ai-service"
@@ -53,9 +60,9 @@ class Settings(BaseSettings):
     embedding_model: str = ""
 
     # Direct Postgres URL for asyncpg (pgvector operations bypass PostgREST)
-    # Local Supabase: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    # Local Supabase: postgresql://postgres:postgres@127.0.0.1:54322/postgres  commit-skill:allow
     # Supabase Cloud: from Project Settings → Database → Connection string → URI
-    database_url: str = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    database_url: str = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"  # commit-skill:allow (local Supabase default)
 
     # .NET API base URL — Chapter 8 advisor tools fetch pyramid/cashflow/net worth
     # data over HTTP rather than querying Postgres directly (see app/agents/advisor_tools.py)

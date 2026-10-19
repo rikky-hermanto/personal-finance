@@ -5,12 +5,12 @@ Postgres computes the number. Decimal end-to-end — money never touches float.
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import date
 from decimal import Decimal
 
-import asyncpg
-
 from app.models import QueryPlan, SearchResult
+from app.owner import owner_connection
 
 logger = logging.getLogger(__name__)
 
@@ -26,9 +26,13 @@ class AggregationService:
     def __init__(self, db_url: str) -> None:
         self._db_url = db_url
 
-    async def aggregate(self, plan: QueryPlan, display_rows: int = 5) -> AggregateResult:
-        where = ["1=1"]
-        params: list = []
+    async def aggregate(
+        self, plan: QueryPlan, display_rows: int = 5, *, owner_id: uuid.UUID
+    ) -> AggregateResult:
+        # The owner filter is always first and always bound (PF-S15); RLS on the
+        # owner connection backs it up.
+        where = ["t.user_id = $1"]
+        params: list = [owner_id]
 
         def add(clause: str, value) -> None:
             params.append(value)
@@ -47,8 +51,7 @@ class AggregationService:
             add("t.date <= ${n}::date", date.fromisoformat(plan.date_to))
 
         clause = " AND ".join(where)
-        conn = await asyncpg.connect(self._db_url)
-        try:
+        async with owner_connection(self._db_url, owner_id) as conn:
             agg = await conn.fetchrow(
                 f"SELECT COALESCE(SUM(t.amount_idr), 0) AS total, COUNT(*) AS n "
                 f"FROM transactions t WHERE {clause}",
@@ -62,8 +65,6 @@ class AggregationService:
                     ORDER BY t.amount_idr DESC LIMIT {int(display_rows)}""",
                 *params,
             )
-        finally:
-            await conn.close()
 
         return AggregateResult(
             total_idr=Decimal(str(agg["total"])),

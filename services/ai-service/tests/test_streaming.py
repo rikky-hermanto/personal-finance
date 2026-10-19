@@ -5,8 +5,8 @@ The endpoint routes by planner intent: lookup → retrieve/rerank/cite (with a p
 marker guard); aggregate → SQL total first, narration second.
 """
 import json
-import importlib
 import logging
+import uuid
 from collections.abc import AsyncGenerator
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
@@ -17,7 +17,10 @@ from httpx import ASGITransport, AsyncClient
 from app.main import app
 from app.config import settings
 from app.models import QueryPlan, SearchResult
+from app.owner import require_owner
 from app.services.aggregator import AggregateResult
+
+OWNER = uuid.UUID("11111111-1111-1111-1111-111111111111")
 
 
 def _make_result(tid: int) -> SearchResult:
@@ -41,12 +44,12 @@ async def _fake_stream(*args, **kwargs) -> AsyncGenerator[str, None]:
 
 @pytest.fixture(autouse=True)
 def wire_app_state(monkeypatch):
-    main_module = importlib.import_module("app.main")
-    monkeypatch.setattr(settings, "cashflow_pilot_enabled", True)
+    # PF-S15: /ask/stream is an owner route behind AI_CHAT_ENABLED; the owner token
+    # itself is covered in test_owner_scope.py, so it is overridden here.
+    monkeypatch.setattr(settings, "ai_chat_enabled", True)
     monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
-    monkeypatch.setattr(main_module, "_PILOT_INTERNAL_ROUTES",
-                        main_module._PILOT_INTERNAL_ROUTES | {"/ask/stream"})
-    names = ("retriever", "reranker", "provider", "planner", "aggregator", "categories")
+    app.dependency_overrides[require_owner] = lambda: OWNER
+    names = ("retriever", "reranker", "provider", "planner", "aggregator", "vocabulary")
     saved = {name: getattr(app.state, name, None) for name in names}
 
     mock_retriever = AsyncMock()
@@ -64,8 +67,11 @@ def wire_app_state(monkeypatch):
     app.state.provider = mock_provider
     app.state.planner = mock_planner
     app.state.aggregator = mock_aggregator
-    app.state.categories = ["Food"]
+    mock_vocabulary = AsyncMock()
+    mock_vocabulary.for_owner = AsyncMock(return_value=["Food"])
+    app.state.vocabulary = mock_vocabulary
     yield
+    app.dependency_overrides.pop(require_owner, None)
     for name, value in saved.items():
         setattr(app.state, name, value)
 

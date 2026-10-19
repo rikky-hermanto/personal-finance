@@ -4,6 +4,7 @@ The contract under test: values are ALWAYS bound parameters, never interpolated
 into the SQL string; money returns as Decimal; dates are bound as datetime.date
 (the asyncpg ::date codec bug regression-guarded from PF-AI004 STEP 10).
 """
+import uuid
 from datetime import date
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -12,6 +13,9 @@ import pytest
 
 from app.models import QueryPlan, SearchResult
 from app.services.aggregator import AggregationService
+from tests.conftest import make_owner_conn
+
+OWNER = uuid.UUID("11111111-1111-1111-1111-111111111111")
 
 
 def _row(data: dict) -> MagicMock:
@@ -29,8 +33,8 @@ def _display_row(tid=1, amount=100000.0) -> MagicMock:
 
 @pytest.fixture
 def mock_asyncpg():
-    with patch("app.services.aggregator.asyncpg.connect", new_callable=AsyncMock) as mock_connect:
-        mock_conn = AsyncMock()
+    with patch("app.owner.asyncpg.connect", new_callable=AsyncMock) as mock_connect:
+        mock_conn = make_owner_conn()
         mock_conn.fetchrow = AsyncMock(return_value=_row({"total": 2309954, "n": 43}))
         mock_conn.fetch = AsyncMock(return_value=[_display_row(1, 500000.0)])
         mock_connect.return_value = mock_conn
@@ -43,7 +47,7 @@ async def test_aggregate_categories_bind_as_param_not_sql_string(mock_asyncpg):
     plan = QueryPlan(intent="aggregate", categories=["Food"], flow="DB",
                      date_from="2024-04-01", date_to="2024-04-30")
 
-    await service.aggregate(plan)
+    await service.aggregate(plan, owner_id=OWNER)
 
     sql = mock_asyncpg.fetchrow.call_args.args[0]
     params = mock_asyncpg.fetchrow.call_args.args[1:]
@@ -53,14 +57,14 @@ async def test_aggregate_categories_bind_as_param_not_sql_string(mock_asyncpg):
 
 
 @pytest.mark.asyncio
-async def test_aggregate_empty_plan_is_full_table_total(mock_asyncpg):
+async def test_aggregate_empty_plan_is_owner_full_total(mock_asyncpg):
     service = AggregationService(db_url="postgresql://test")
     plan = QueryPlan(intent="aggregate", categories=[])
 
-    await service.aggregate(plan)
+    await service.aggregate(plan, owner_id=OWNER)
 
     sql = mock_asyncpg.fetchrow.call_args.args[0]
-    assert "WHERE 1=1" in sql
+    assert "WHERE t.user_id = $1" in sql  # Reason: owner filter replaced "1=1" (PF-S15)
     assert "ANY(" not in sql
     assert "t.flow =" not in sql
     assert "t.date" not in sql
@@ -70,7 +74,7 @@ async def test_aggregate_empty_plan_is_full_table_total(mock_asyncpg):
 async def test_aggregate_total_is_decimal(mock_asyncpg):
     service = AggregationService(db_url="postgresql://test")
 
-    result = await service.aggregate(QueryPlan(intent="aggregate", categories=["Food"]))
+    result = await service.aggregate(QueryPlan(intent="aggregate", categories=["Food"]), owner_id=OWNER)
 
     assert isinstance(result.total_idr, Decimal)
     assert result.total_idr == Decimal("2309954")
@@ -83,7 +87,7 @@ async def test_aggregate_dates_bound_as_date_objects_not_strings(mock_asyncpg):
     plan = QueryPlan(intent="aggregate", categories=["Food"],
                      date_from="2024-04-01", date_to="2024-04-30")
 
-    await service.aggregate(plan)
+    await service.aggregate(plan, owner_id=OWNER)
 
     sql = mock_asyncpg.fetchrow.call_args.args[0]
     params = mock_asyncpg.fetchrow.call_args.args[1:]
@@ -98,7 +102,7 @@ async def test_aggregate_dates_bound_as_date_objects_not_strings(mock_asyncpg):
 async def test_aggregate_returns_display_rows_as_search_results(mock_asyncpg):
     service = AggregationService(db_url="postgresql://test")
 
-    result = await service.aggregate(QueryPlan(intent="aggregate", categories=["Food"]))
+    result = await service.aggregate(QueryPlan(intent="aggregate", categories=["Food"]), owner_id=OWNER)
 
     assert len(result.rows) == 1
     assert isinstance(result.rows[0], SearchResult)
@@ -110,6 +114,6 @@ async def test_aggregate_returns_display_rows_as_search_results(mock_asyncpg):
 async def test_aggregate_closes_connection(mock_asyncpg):
     service = AggregationService(db_url="postgresql://test")
 
-    await service.aggregate(QueryPlan(intent="aggregate", categories=[]))
+    await service.aggregate(QueryPlan(intent="aggregate", categories=[]), owner_id=OWNER)
 
     mock_asyncpg.close.assert_called_once()

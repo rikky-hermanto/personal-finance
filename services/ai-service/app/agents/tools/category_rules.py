@@ -3,18 +3,12 @@ from __future__ import annotations
 
 from smolagents import tool
 
+from app.agents.owner_context import current_owner_context
 from app.observability import langfuse
 
-# Populated at service startup via load_rules() — same 106 rules the 4-layer
-# categorizer uses. A snapshot is correct: rules change rarely, and a stale
-# snapshot is better than a live DB call on every agent iteration.
-_CATEGORY_RULES: dict[str, str] = {}
-
-
-def load_rules(rules: dict[str, str]) -> None:
-    """Called from main.py lifespan to populate the rules snapshot at startup."""
-    global _CATEGORY_RULES
-    _CATEGORY_RULES = {k.lower(): v for k, v in rules.items()}
+# PF-S15: the rules are the caller's private rules plus the shared presets, loaded once
+# per request into the owner context (app/services/owner_rules.py) rather than on every
+# agent iteration. There is no global cross-user snapshot any more.
 
 
 @tool
@@ -32,16 +26,23 @@ def search_category_rules(keyword: str) -> str:
     with langfuse.start_as_current_observation(
         name="search_category_rules", as_type="tool", input={"keyword": keyword}
     ) as obs:
+        context = current_owner_context()
+        if context is None:
+            result = "Rule search unavailable."
+            obs.update(output=result)
+            return result
         normalized = keyword.lower().strip()
         matches: list[tuple[str, str]] = [
             (pattern, category)
-            for pattern, category in _CATEGORY_RULES.items()
+            for pattern, category in context.rules.items()
             if normalized in pattern or pattern in normalized
         ]
         if not matches:
             result = "No rules matched."
         else:
-            lines = [f"  pattern='{p}' → category='{c}'" for p, c in matches[:5]]
+            # ASCII only: smolagents echoes observations to stdout, which is cp1252 on a
+            # redirected Windows console, and a non-encodable arrow there 502s the run.
+            lines = [f"  pattern='{p}' -> category='{c}'" for p, c in matches[:5]]
             result = "Matched rules:\n" + "\n".join(lines)
         obs.update(output=result)
         return result

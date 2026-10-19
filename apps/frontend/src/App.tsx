@@ -23,6 +23,8 @@ import RegionalTab from '@/pages/settings/RegionalTab';
 import BanksTab from '@/pages/settings/BanksTab';
 import NotFound from '@/pages/NotFound';
 import StatusPage from '@/pages/StatusPage';
+import ChatPage from '@/pages/ChatPage';
+import { AI_CHAT_ENABLED } from '@/lib/featureFlags';
 import AssetsLayout from '@/pages/assets/AssetsLayout';
 import AssetsOverviewTab from '@/pages/assets/OverviewTab';
 import AssetsAccountsTab from '@/pages/assets/AccountsTab';
@@ -56,8 +58,7 @@ function LoginRoute() {
   return session ? <Navigate to="/journey" replace /> : <LoginPage />;
 }
 
-// Chat/RAG still reads every user's transactions on the AI service side, so it
-// stays off until it is owner-scoped.
+// Shown while VITE_AI_CHAT_ENABLED is off (PF-S15 rollout flag).
 function ChatUnavailable() {
   return <main className="mx-auto max-w-xl px-6 py-20"><h1 className="font-title text-3xl">AI chat is paused</h1><p className="mt-3 text-muted-foreground">Chat comes back once it only reads your own data.</p></main>;
 }
@@ -79,7 +80,7 @@ const App = () => (
           <Route path="/status" element={<StatusPage />} />
           <Route element={<RequireAuth />}>
             <Route element={<ErrorBoundary><AppShell /></ErrorBoundary>}>
-              <Route path="/chat" element={<ChatUnavailable />} />
+              <Route path="/chat" element={AI_CHAT_ENABLED ? <ChatPage /> : <ChatUnavailable />} />
               <Route path="/journey" element={<JourneyPage />} />
               <Route path="/journey/achievements" element={<AchievementsPage />} />
               <Route path="/cashflow" element={<CashflowLayout />}>

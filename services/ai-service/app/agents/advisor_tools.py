@@ -18,10 +18,17 @@ get_spending_by_category both call it and each extract their own slice. There is
 no dedicated /api/investments/summary endpoint yet; get_investment_summary
 composes /api/networth/current + /api/networth/allocation instead (see the
 plan's Notes section for why that gap exists).
+
+PF-S15: every call carries the caller's own Supabase token, so the .NET endpoints
+apply their normal owner scoping. The token lives in a ContextVar set per request
+by AdvisorService, never in shared client headers. asyncio tasks LangGraph spawns
+inherit it, and a concurrent request for another user sees only its own value.
 """
 from __future__ import annotations
 
 import logging
+from contextlib import contextmanager
+from contextvars import ContextVar
 
 import httpx
 from langchain_core.tools import tool
@@ -30,7 +37,34 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Shared for connection pooling only. It carries no caller identity of its own.
 _CLIENT = httpx.AsyncClient(base_url=settings.net_api_base_url, timeout=10.0)
+
+_CALLER_TOKEN: ContextVar[str | None] = ContextVar("advisor_caller_token", default=None)
+
+
+@contextmanager
+def caller_token(token: str):
+    """Act as this caller for every tool call made inside the block."""
+    reset = _CALLER_TOKEN.set(token)
+    try:
+        yield
+    finally:
+        _CALLER_TOKEN.reset(reset)
+
+
+def _auth_headers() -> dict[str, str]:
+    token = _CALLER_TOKEN.get()
+    if not token:
+        # Fail closed: an unscoped call would hit the API anonymously at best.
+        raise PermissionError("advisor tool called without a caller token")
+    return {"Authorization": f"Bearer {token}"}
+
+
+async def _get(path: str) -> httpx.Response:
+    resp = await _CLIENT.get(path, headers=_auth_headers())
+    resp.raise_for_status()
+    return resp
 
 
 @tool
@@ -40,8 +74,7 @@ async def get_pyramid_scores() -> dict:
     Returns a dict with keys: current_level (int 1-5), level_scores
     (dict of "L1".."L5" -> decimal 0-100, only levels with live data present).
     """
-    resp = await _CLIENT.get("/api/journey/state")
-    resp.raise_for_status()
+    resp = await _get("/api/journey/state")
     data = resp.json()
     return {
         "current_level": data.get("currentLevel"),
@@ -55,8 +88,7 @@ async def get_cashflow_summary() -> dict:
 
     Returns keys: total_income, total_expenses, net, month.
     """
-    resp = await _CLIENT.get("/api/transactions/aggregated")
-    resp.raise_for_status()
+    resp = await _get("/api/transactions/aggregated")
     data = resp.json()
     summary = data.get("summary", {})
     current_month = data.get("currentMonth", {})
@@ -74,8 +106,7 @@ async def get_spending_by_category() -> dict:
 
     Returns a dict of {category_name: total_idr}, highest first.
     """
-    resp = await _CLIENT.get("/api/transactions/aggregated")
-    resp.raise_for_status()
+    resp = await _get("/api/transactions/aggregated")
     top_categories = resp.json().get("topCategories", [])
     return {row["category"]: row["amount"] for row in top_categories}
 
@@ -88,10 +119,8 @@ async def get_investment_summary() -> dict:
     Returns keys: net_worth_idr, allocation_by_class (dict of class name -> IDR value).
     There is no per-holding investment return % yet — see the plan's Notes section.
     """
-    net_worth_resp = await _CLIENT.get("/api/networth/current")
-    net_worth_resp.raise_for_status()
-    allocation_resp = await _CLIENT.get("/api/networth/allocation")
-    allocation_resp.raise_for_status()
+    net_worth_resp = await _get("/api/networth/current")
+    allocation_resp = await _get("/api/networth/allocation")
     return {
         "net_worth_idr": net_worth_resp.json().get("netWorthIdr"),
         "allocation_by_class": allocation_resp.json(),
