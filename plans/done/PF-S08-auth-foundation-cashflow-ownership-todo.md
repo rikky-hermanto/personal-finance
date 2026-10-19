@@ -1,6 +1,6 @@
 # PF-S08 — Supabase Auth Foundation + Cashflow Ownership
 
-> **Status:** In Progress — pilot live on the local main stack since 2026-10-14 (merged to main, flags on). Open: follow-ups listed in the 2026-10-14 rollout record; remote issues #71/#72 not yet reviewed.
+> **Status:** Done (2026-10-16, accepted by the owner). Was: Ready to review (2026-10-15; owner smoke test: [steps](../ready-to-review/owner-smoke-test-PF-S08-PF-141.md), which stays with PF-141 until that plan closes). Before that: In Progress — pilot live on the local main stack since 2026-10-14 (merged to main, flags on). Open: follow-ups listed in the 2026-10-14 rollout record; remote issues #71/#72 not yet reviewed.
 > **Created:** 2026-10-09 (Asia/Makassar)
 > **Revised:** 2026-10-14 — populated-upgrade rehearsal on a restored copy of main's database, dedup parity matrix (one collation fix), fault/race, event-path and token-expiry checks passed; rollout remains pending
 > **Task:** PF-S08 — backend auth foundation and Cashflow ownership
@@ -451,6 +451,8 @@ Use existing Supabase local services only after inspecting configuration. Applyi
 - Including per-user chat/RAG/Journey would expand this to roughly 8–12 days and a follow-up scope, not this pilot's implicit acceptance.
 - Default design selected now: provisioned users, email/password, private Cashflow pilot, deferred modules denied. Deployment input still needed before real-data backfill: exact owner UUID mapping and target environment. These do not block writing/reviewing the plan.
 
+- **Owner decisions 2026-10-15:** legacy asset-side seed rows and Desk fixture trades stay as demo data under the owner. GitHub issues #71/#72 are no longer used; not reviewed, not a closure condition.
+
 ## Deferred follow-up register (preserved from old Phase 5)
 
 | Follow-up | Prerequisite / required redesign |
@@ -479,7 +481,7 @@ Reviewed 2026-10-09 for this plan. SDK-specific APIs and deployed signing mode r
 - [x] Added architecture, login sequence, target ERD and import sequence diagrams.
 - [x] Preserved old plan history and deferred Goals/tax scope; updated local board only.
 - [x] Council findings 1–2 resolved in plan design (2026-10-09): compatible authoritative dedup, atomic submit/receipt/retry and direct-DML closure; explicit fresh/populated migration paths and valid-owner seeding.
-- [ ] Implementation/runtime isolation checks — disposable real-token PostgREST, GraphQL, Storage, .NET A/B reads/writes, browser login/switch/late-response/Realtime, exposed-grant and two rollback-fault audits, and 1001-row page/export passed. Remaining parity/fault cases, populated upgrade and rollout remain.
+- [x] Implementation/runtime isolation checks — disposable real-token PostgREST, GraphQL, Storage, .NET A/B reads/writes, browser login/switch/late-response/Realtime, exposed-grant and two rollback-fault audits, and 1001-row page/export passed. The remaining parity/fault cases and the populated-upgrade rehearsal passed on 2026-10-14 (checkpoint below), and the rollout ran the same day (STEP 8 rollout record).
 
 ## Execution checkpoint — 2026-10-09
 

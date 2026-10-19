@@ -221,7 +221,36 @@ Write the plan following [ai/build/templates/plan-template.md](../../../ai/build
 - [Non-obvious gotcha or constraint specific to this codebase]
 - [Reference to a related ticket if the sequencing matters]
 - [Cost or performance note if relevant]
+
+## Execution Notes
+
+Model: **[model]** · Effort: **[effort]**. [One line tied to this plan's risk.]
+Before you start: [precondition, or omit this line].
+
 ```
+/execute plans/in-progress/{filename}
+```
+
+### Stop and ask if
+
+- [The 1–2 conditions in this plan that need the owner, e.g. "STEP 1 spike fails", "a migration would drop data".]
+```
+
+**Execution Notes rules (mandatory — every plan ends with this section):**
+- **Prompt:** always its own fenced code block containing only the command, so it can be copied with one click. Never put commentary, bullets or the model line inside the block. Phased plans get one subsection per phase (`### Phase 1 — {name}`, with its own model line, precondition and code block, ending `... phase 1`). Never paste the plan into the prompt.
+- **Model / effort:** pick the cheapest pair that is safe for the plan's riskiest step, using this guide:
+
+| Plan profile | Model | Effort |
+|--------------|-------|--------|
+| Docs, renames, config, mechanical edits, single-file fixes | Haiku 5.5 | low |
+| Standard feature or bug fix with exact code in the steps, single layer, tests included | Sonnet 5.5 | medium |
+| Multi-layer feature (.NET + React or Python), refactor across files, new endpoint with tests | Sonnet 5.5 | high |
+| Marked `Sensitive` (schema, RLS/auth, money, security, cross-service contract), or any step where a wrong guess is silent | Opus 5.5 | high |
+| Open-ended investigation or a plan whose steps say "decide" rather than "do" | Opus 5.5 | xhigh |
+
+- A phased plan may use different pairs per phase. State each.
+- If the plan's header says `Sensitive:`, never recommend below Opus 5.5 / high for the sensitive steps.
+- Do not recommend `max` unless the user asked for maximum rigor.
 
 ---
 
@@ -232,6 +261,7 @@ After outputting the plan, **always** save it automatically — do not ask:
 - Write the file with the Write tool to `plans/backlog/PF-{number}-{short-kebab-slug}-todo.md` (or `plans/backlog/learning/` for PF-AI) using the plan content from Step 6 only (no scoring tables, no verdict — just the plan)
 - **Filename convention is mandatory:** `PF-{number}-{short-kebab-slug}-todo.md` (e.g. `PF-124-bankidentifier-matcher-registry-todo.md`). NEVER omit the slug — `PF-124-todo.md` is wrong. Use the ticket ID resolved/allocated in Step 2.
 - Update `plans/BOARD.md`: add a row under the appropriate backlog section; use **Ready** only as a shortlist flag after prerequisites are checked. The file remains in `plans/backlog/` until work starts.
+- Confirm the saved file ends with an `## Execution Notes` section (Step 6). Missing means the plan is incomplete.
 - Tell the user where the file was saved: `Saved to plans/backlog/{filename}`
 
 ---

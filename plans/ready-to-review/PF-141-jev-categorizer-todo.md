@@ -1,6 +1,6 @@
 # Jev transaction categorizer
 
-Status: Implementation complete; live evaluation and promotion pending (runtime disabled).
+Status: Ready to review (2026-10-15; owner smoke test: owner-smoke-test-PF-S08-PF-141.md). Was: Implementation complete; live evaluation and promotion pending (runtime disabled).
 Date: 2026-09-27
 Tracking: PF-141; local-only, no GitHub issue created/synced.
 Source: User requested planning from `docs/codex/jev-audit.md`.
