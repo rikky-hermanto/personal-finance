@@ -106,7 +106,7 @@ React 18 frontend → .NET 10 API (supabase-csharp) → Supabase (PostgreSQL 17 
 - **API:** ASP.NET Core Web API (REST)
 - **Patterns:** CQRS via MediatR, FluentValidation, Clean Architecture
 - **Database client:** `supabase-csharp` SDK (PostgREST) — replaces EF Core
-- **Auth:** Supabase Auth (JWT validation via `JwtBearer` middleware — planned in PF-S08)
+- **Auth:** Supabase Auth, validated by `JwtBearer` middleware against the Supabase JWKS (PF-S08, live locally since 2026-10-14)
 - **Testing:** xUnit, Moq, Playwright (E2E)
 
 ### Supabase Platform
@@ -130,7 +130,7 @@ React 18 frontend → .NET 10 API (supabase-csharp) → Supabase (PostgreSQL 17 
 - **Framework:** React 18 + TypeScript
 - **Styling:** Tailwind CSS
 - **State:** React Query (TanStack Query) for server state
-- **Supabase client:** `@supabase/supabase-js` — planned for PF-S09 (Auth) and PF-S12 (Realtime); not yet installed
+- **Supabase client:** `@supabase/supabase-js` for sign-in and session (PF-S09) and transaction Realtime; upload-status Realtime (PF-S12) is still planned
 
 ### Infrastructure
 - **Containers:** Docker Compose (local dev), individual Dockerfiles per service
@@ -253,7 +253,8 @@ services/
   - Event-driven webhook pipeline (Storage → Webhook → AI) not yet wired (PF-S11)
 - **Validation Pipeline**: `ITransactionPipelineService` chains 5 stages: DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck. Runs on all parsed output.
 - **Deduplication**: Three-tier — Tier 1 file-hash (`uploaded_files` table), Tier 2/3 composite UNIQUE index on `(date, amount_idr, description, account_name, flow, bank_running_balance)`.
-- **Auth**: Not yet wired — API is wide open. Supabase Auth + JwtBearer middleware planned in PF-S08. RLS policies on tables use permissive `USING (true)` placeholder.
+- **Auth**: Sign-in is required (PF-S08/S09, done 2026-10-16). The API validates the Supabase JWT, requires an authenticated user by default, and talks to PostgREST with a per-request client carrying the caller's token, so owner RLS policies on `user_id` apply. Take the owner from `ICurrentUser`, never from the request body. Public signup is off; the single owner account holds all legacy rows.
+- **AI chat and agents**: The browser calls only `/api/chat/*`. The API forwards to the AI service with the internal API key and a signed 60-second owner token, and the AI service reads as that user under RLS (PF-S15). Flags: `AiChat:Enabled`, `AiChat:AgentsEnabled`, `AI_CHAT_ENABLED`, `AI_AGENTS_ENABLED`, `VITE_AI_CHAT_ENABLED`. Runbook: [docs/runbooks/pf-s08-cashflow-pilot.md](docs/runbooks/pf-s08-cashflow-pilot.md).
 
 ### AI Service (Python FastAPI)
 - **Trigger**: Called directly by the .NET API via typed HttpClients. Webhook-triggered event-driven pipeline planned in PF-S11 (not yet built).
@@ -294,8 +295,9 @@ services/
 ## Known Gotchas
 
 - `src/types/Transaction.ts` uses `id: string` but API returns `id: number` — type mismatch
-- No frontend tests exist yet
-- No authentication — API is wide open
+- Frontend tests are limited to Desk and Macro unit tests plus Playwright specs
+- `apps/frontend/.env` must point `VITE_API_URL` at `http://localhost:7208`; `npm start` serves no HTTPS port, so `https://localhost:7209` makes every page fail to reach the API
+- AI chat totals still travel as JSON numbers, not decimals (FIN-01 follow-up from PF-S15)
 
 ## File Protection
 

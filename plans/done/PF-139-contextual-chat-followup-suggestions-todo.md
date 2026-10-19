@@ -1,7 +1,7 @@
 # PF-139 — Contextual AI follow-up suggestions in chat
 
 > **GitHub Issue:** _(no issue — local plans are the working system)_
-> **Status:** In Progress — implemented in code; closure and verification not reconciled
+> **Status:** Done — 2026-10-16, verified by owner
 > **Started:** 2026-08-10
 > **Planned from branch:** main
 
@@ -57,8 +57,10 @@ here must be a self-contained question that names its own category and period.
   > Verification note: `send()` aborts `followUpAbortRef.current` before starting the new turn, and
   > the pending fetch's `.then` checks `controller.signal.aborted` before calling `patchLast`.
   > Confirmed by code read.
-- [ ] `pytest` green in `services/ai-service`; `npm run lint` and `npm run build` clean in `apps/frontend`
-  > Not met, pre-existing/unrelated: `pytest` — 152 passed, 1 failed
+- [x] `pytest` green in `services/ai-service`; `npm run lint` and `npm run build` clean in `apps/frontend`
+  > Re-verified 2026-10-16: `pytest` 296 passed, 0 failed; `npm run lint` 0 errors (9 warnings);
+  > `tsc --noEmit` clean; `npm run build` clean. The earlier failure and lint errors below no longer reproduce.
+  > Earlier result (superseded): `pytest` — 152 passed, 1 failed
   > (`test_merchant_suggester.py::test_is_pii_keyword[REK123456-True]`) in a file this plan never
   > touches; confirmed unrelated via `git status` (not among this session's edits) and it fails
   > identically on the pre-existing baseline. All 8 new `test_followup_suggester.py` tests pass.

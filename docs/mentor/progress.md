@@ -910,3 +910,83 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 **Remaining for next session:** Start Chapter 9's MCP server/tool integration learning milestone. Keep the above evaluation and environment debt visible for a separately scoped follow-up. Chapter 7's prior smoke gate is not silently marked passed.
 
 **Streak:** 1 logged day; earlier gaps remain historical. This closure records accepted delivery, not completion of every optional/deferred evaluation.
+
+### 2026-09-26 → 2026-10-09 — Days 123–136 *(logged retroactively 2026-10-17 from Codex history + git)*
+
+**Session: Jev/TypeSafe decision support, PF-141 categorizer, repo housekeeping (all in Codex)**
+
+- 2026-09-26: shipped project-scoped Jev decision support in shadow mode (`3da954ad`, `scripts/jev_route.py`), then merged `codex/sandbox` into `main` (`0dd65718`) to start from a clean branch.
+- 2026-10-04: shipped PF-141, the opt-in Jev residual categorizer (`605e1eb1`): `jev_categorizer.py`, wired through the .NET `LlmCategorizationClient`, with a 100-case eval. Off by default. Added the RAG-with-Jev diagram to `docs/mentor/` (`d8d535ae`).
+- 2026-10-07: reviewed Claude and Codex skill usage. The most used were mentor, commit, create-diagram, ci-check and plan.
+- 2026-10-08: moved plans into repo-root status folders (`55153fbd`) and synced the architecture docs, STATUS and sprint plan against the code (`cf1308f1`, 39 files).
+- 2026-10-09: started PF-S08/S09 (Supabase Auth plus Cashflow ownership) in a worktree and ran the app locally with two disposable test users.
+
+**Chapter checklist progress:** none ticked. This period was product and platform work. It feeds the Chapter 9 MCP server, which needs owner-scoped data, but closes no curriculum task.
+
+**Retros (blockers & surprises):**
+- **Logging gap:** about three weeks of work went unlogged because it happened in Codex, outside the `/mentor log` habit. → **Fix:** this retroactive entry. Run `/mentor log` at the end of a session, whichever tool was used.
+
+**Streak:** not counted (retroactive).
+
+### 2026-10-13 → 2026-10-15 — Days 140–142 *(logged retroactively 2026-10-17 from Claude history + git)*
+
+**Session: AI setup audit, auth merged, CI gates, loop engineering**
+
+- 2026-10-13: audited the whole AI setup (Claude plus Codex) and reorganized it into a job-focused `ai/` folder (`e5d157e6`, `87a4a5b2`). Turned the audit prompt into two reusable skills, `ai-setup-audit` and `job-templates`. Learned how branches and worktrees differ: a worktree is a second checkout of a branch, not a separate kind of branch.
+- 2026-10-14: finished PF-S08 (populated-upgrade rehearsal, owner scoping of Journey, Assets, Investment, Desk and Macro Lab) and merged it to `main`. Sign-in is now required and owner RLS is live on the local Supabase stack. Shipped PF-142, a GitHub Actions CI workflow that runs the existing CI-01 gates (`e3141a04`).
+- 2026-10-14: drew system-design diagrams of Supabase and of this project, and extended the `create-diagram` skill with a system-design mode.
+- 2026-10-14: studied Addy Osmani's loop-engineering essays and compared his model with my own. Conclusion: the loop is for feature delivery, not only chores. Design: the owner writes a high-level epic, the loop clarifies it, plans it into backlog specs, executes in a worktree and verifies, with three owner gates.
+- 2026-10-15: configured loop engineering in this repo (`bc1b9b6f`: epics, plan, execute, verify, review, `/loop-standup`). Planned PF-S15 to resume AI chat owner-scoped after auth, reviewed it with `/consult`, and executed phase 1.
+
+**Concept learned:** after PF-S08 the AI service can no longer read the database as a superuser. The .NET API forwards each chat call with an internal API key plus a signed 60-second owner token, and the AI service reads as that user under RLS. The pattern is short-lived, scoped credentials between services, not one shared admin key. This is also groundwork the Chapter 9 MCP server needs.
+
+**Retros (blockers & surprises):**
+- **AI routes ignored ownership:** `/search`, `/ask` and `/embed-transactions` had no owner filter, and the browser called the AI service directly. → **Fix:** PF-S15 moved every chat call behind `/api/chat/*`.
+
+**Streak:** not counted (retroactive).
+
+### 2026-10-16 — Day 143 *(logged retroactively 2026-10-17)*
+
+**Session: PF-S15 done, PF-139 done, PF-AI007 smoke test re-run**
+
+- PF-S15 phase 2 (owner-scoped advisor memory and categorizer agent context) is done. AI chat, RAG, the advisor and the categorizer agent are back on, scoped to the owner. Marked PF-S15 and PF-S08/S09 Done and updated STATUS, the runbook and CLAUDE.md.
+- PF-139 (contextual chat follow-up suggestions) is done: pytest 296 passed, 0 failed. The old `test_is_pii_keyword[REK123456-True]` failure is gone. Lint, `tsc` and the build are clean.
+- PF-AI007 STEP 7 smoke test (the Chapter 7 gate flagged on Day 83): the first run scored 0 of 5 because `test_agent.py` sent no credentials and got 401 after PF-S15. After the fix it scored **2 of 5** (Salary at confidence 1.00, Bill at 0.50). The third call timed out and two rows never ran. **The gate stays open.**
+- PF-AI005-PART2: rewrote the numeric eval questions for the real 2026 data (24 transactions, May to August 2026). The eval itself has not run yet.
+
+**Chapter 7 checklist progress:**
+- [ ] PF-AI007 STEP 7 smoke test, 5 of 5 ← still open (2 of 5 measured)
+
+**Retros (blockers & surprises):**
+- **Gemini free-tier cap (20 requests a day):** blocked both the smoke test and the numeric eval, which needs about 22 calls. → **Fix:** not resolved yet. Options: wait for the daily reset, use an Anthropic key, or turn on Gemini billing.
+- **Stale eval fixtures:** all 10 questions pointed at 2024 data that no longer exists, so they would have scored as zero-row results that prove nothing. → **Fix:** rewrote them against the current data and recorded the change in the plan.
+- **Weak smoke-test rows:** the descriptions nearly spell out the answer ("Food and drinks purchase" maps to Food & Drinks), and the 0.50 confidence looks like the fallback value, not a real score. → **Fix:** add realistic rows such as "GOFOOD JKT" and "PLN PREPAID" on the re-run.
+- **"No transactions" in chat after login:** not an embedding bug. The data covers only May to August 2026, so the question asked about an empty period. A one-off "JWT issued at future" error came from clock skew between Windows and Docker.
+
+**Remaining:** finish the PF-AI007 smoke test (3 rows) and run the PF-AI005-PART2 numeric eval once quota allows.
+
+### 2026-10-17 — Day 144
+
+**Session: learning backlog triage, PF-AI011 replanned and Ready**
+
+- Ran `/loop-standup` on the learning backlog. The order is now **PF-AI011 (AI security and governance) first**, ahead of PF-AI009 (MCP). Reason: AI chat now runs on real transactions with no prompt-injection or PII guard. PF-AI012 (deployment) depends on PF-AI011, and PF-AI006-PART2 waits for a product decision.
+- Audited the PF-AI011 plan against the post-auth code and fixed it before execution:
+  - The baseline no longer writes fake attack rows into the real transactions table.
+  - Blocked input returns 400 `input_flagged` instead of looking like a 502 outage.
+  - The output guard now works on streamed answers.
+  - The guard also covers the follow-up and narration prompts.
+  - Four code samples were corrected (Langfuse v3 API, the `+62` phone regex, a case-insensitive delimiter strip, and the step 10 commands).
+  - Four held-out attacks were added, so the 80% block rate isn't measured only on the attacks the patterns were written for.
+  - Marked Ready for the loop (size L, opus/high).
+- Built sequence diagrams for the six PF-AI011 use cases: [diagram-ai-security-governance-sequence.html](../architecture/sequences/diagram-ai-security-governance-sequence.html).
+- Catch-up: logged Sep 26 to Oct 16 from Claude and Codex history (entries above).
+
+**Retros (blockers & surprises):**
+- **Plans go stale when the platform moves:** PF-AI011 was written on 2026-10-08, before auth landed, and would have broken if run as written. → **Fix:** re-audit any learning plan older than the last platform change before executing it.
+- **Quota again:** one PF-AI011 eval run needs about 24 LLM calls against the free limit of 20 a day. The harness now accounts for this.
+
+**Remaining for tomorrow:**
+- Start PF-AI011 (`/loop-run PF-AI011` or `/execute`). Do STEP 0, the red-team baseline, before any defence code.
+- Settle the LLM quota question (Gemini billing or an Anthropic key). It now blocks three separate evals.
+
+**Streak: 2 days** (2026-10-16 and 2026-10-17)

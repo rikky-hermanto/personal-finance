@@ -21,10 +21,13 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 3. **RAG third** — pgvector is already in your schema. RAG is the #1 applied skill in current AI Eng JDs and the foundation agents will build on.
 4. **Streaming fourth** — production UX pattern; cheap to add once RAG works.
 5. **Agents + MCP fifth** — frameworks make sense only after you have a real retrieval system to wrap. smolagents before LangGraph (smaller surface), MCP after LangGraph.
-6. **Public proof sixth** — a blog post with your benchmark numbers is worth more than a cert alone.
-7. **Certification last** — signal booster, not the foundation. Never cert-first.
+6. **Harden before going public** (added 2026-10-17) — security and guardrails (Ch9.5), then deployment, LLMOps and evals in CI (Ch9.75). Ch9.5 runs *before* Ch9 MCP, because AI chat is live on real data with no guard.
+7. **Public proof next** — a blog post with your benchmark numbers is worth more than a cert alone. Publish the first post early, in parallel with Ch9.5.
+8. **Certification last** — signal booster, not the foundation. Never cert-first.
 
-**Fine-tuning, LoRA/QLoRA, SageMaker, RLHF** → deferred to month 4+. Not in this 12-week plan. Revisit only if a specific JD demands it.
+**Run order from 2026-10-17:** close Ch7 + agent eval → Ch9.5 → Ch9 → Ch9.75 → Ch10–12. Target dates live in the curriculum doc's *Remaining schedule* section.
+
+**Fine-tuning, LoRA/QLoRA, SageMaker, RLHF** → deferred to month 4+. Revisit only if a specific JD demands it. (Guardrails and AI CI/CD are no longer deferred; they are Ch9.5–9.75.)
 
 ---
 
@@ -249,6 +252,53 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 - Anthropic MCP quickstart: https://modelcontextprotocol.io/quickstart
 - Anthropic MCP Series: https://anthropic.skilljar.com/
 - MCP Python SDK: https://github.com/modelcontextprotocol/python-sdk
+
+---
+
+### Chapter 9.5: AI Security + Guardrails *(added 2026-10-17 · runs before Chapter 9)*
+**Theme:** Attack your own AI before anyone else does. Then defend it, and measure the defence.
+
+**Why it matters:** AI chat went live on real transactions on 2026-10-16 with no prompt-injection guard and no PII masking. Guardrails show up in AI Engineer job posts as a core skill. "I red-teamed my own RAG and measured the block rate" is a rare, concrete interview answer.
+
+**Plan:** [PF-AI011](../../../plans/backlog/learning/PF-AI011-ai-security-governance-todo.md) (Ready, replanned 2026-10-17 against the post-auth code)
+
+**Tasks:**
+- Red-team baseline first: direct injection on `/ask`, indirect injection via a poisoned transfer memo, scaffold leaks. Use the in-memory harness; never write attack rows to the real transactions table
+- Spotlight retrieved data in the shared context-formatting function, the follow-up prompt and both system prompts
+- Input scanner returning 400 `input_flagged` end to end (AI service → .NET proxy → chat UI refusal)
+- Output guard that also works on streamed answers (`output_flagged` replaces the streamed text)
+- PII masking (NIK, phone incl. `+62`, account, email) before text reaches the LLM; originals kept in citations
+- Tag flagged requests in Langfuse (v3 API)
+- Injection eval: ≥ 80% blocked, held-out attacks reported separately, 0 false alarms on 20 normal Indonesian queries
+- Threat-model doc
+
+**Definition of done:** The injection eval meets its targets on a live run, and the threat model is written.
+
+**Resources:**
+- OWASP Top 10 for LLM Applications: https://genai.owasp.org/llm-top-10/
+- Sequence diagrams: [diagram-ai-security-governance-sequence.html](../../../docs/architecture/sequences/diagram-ai-security-governance-sequence.html)
+
+---
+
+### Chapter 9.75: Deployment + LLMOps + Evals in CI *(added 2026-10-17)*
+**Theme:** Move from "I built it" to "I run it": public, protected, budgeted and regression-gated.
+
+**Why it matters:** Nothing is deployed yet, so "deployed an AI service" can't be claimed. Cost control and continuous evaluation are the skills recruiters say separate strong AI Engineering candidates from the rest.
+
+**Plan:** [PF-AI012](../../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (depends on PF-AI011). The evals-in-CI task is not in PF-AI012 yet; add it when that plan is re-audited.
+
+**Tasks:**
+- AI service on a public URL: Azure Container Apps + ACR, deployed by GitHub Actions, Supabase Cloud with anonymized data
+- API key, rate limits and a budget alert
+- TTL response cache; measure the hit rate and the calls saved
+- One-page cost write-up (cost per request, per user, per month)
+- **Evals in CI:** a small eval subset (a few extraction fixtures, a few RAG questions, a few injection attacks) as a blocking gate in `.github/workflows/ci.yml`, with a hard call budget per run
+
+**Definition of done:** The public URL serves an authenticated request, the budget alert is set, and a deliberately broken prompt fails CI.
+
+**Resources:**
+- Azure Container Apps: https://learn.microsoft.com/azure/container-apps/
+- Promptfoo CI/CD integration: https://www.promptfoo.dev/docs/integrations/ci-cd/
 
 ---
 
