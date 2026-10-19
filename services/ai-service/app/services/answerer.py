@@ -14,6 +14,7 @@ from __future__ import annotations
 import datetime
 import logging
 import time
+import uuid
 
 from app.config import settings
 from app.models import AskRequest, AskResponse, Citation, SearchResult
@@ -44,13 +45,19 @@ Never estimate or invent amounts.
 cited_transaction_ids, list the numeric value shown after "id=" for each transaction \
 you referenced — NOT the [1]/[2] marker number. Example: for context line \
 "[2] id=24561 | ...", the marker is 2 but the cited id is 24561.
-- Amounts are in IDR. Sum amounts yourself when the question asks for totals.
+- Amounts are in IDR. Never add, average or otherwise compute amounts: list the \
+individual amounts shown. Totals are computed separately by the database.
+- Describe the user's transactions only. Never recommend products, investments, \
+or what the user should do with their money.
 - Answer in the same language as the question (Indonesian or English)."""
 
 NARRATE_PROMPT = """You present a precomputed financial result. The VERIFIED \
-figures below were computed by SQL over the full transaction table. Rules:
+figures below were computed by SQL over all of the user's own transactions that \
+match the question. Rules:
 - State the total EXACTLY as given — never recompute, round, or adjust it.
 - Mention the transaction count. Reference example rows as [1], [2] if helpful.
+- Report the figures only. Never recommend products, investments, or what the \
+user should do with their money.
 - Answer in the question's language. One to three sentences."""
 
 
@@ -89,28 +96,31 @@ class AnswerService:
         provider: LlmProvider,
         planner: QueryPlanner,
         aggregator: AggregationService,
-        categories: list[str] | None = None,
     ) -> None:
         self._retriever = retriever
         self._reranker = reranker
         self._provider = provider
         self._planner = planner
         self._aggregator = aggregator
-        self._categories = categories or []
 
-    async def ask(self, request: AskRequest) -> AskResponse:
+    async def ask(
+        self, request: AskRequest, *, owner_id: uuid.UUID, categories: list[str]
+    ) -> AskResponse:
         # One structured-extraction call classifies intent + extracts typed filters.
+        # `categories` is the caller's own vocabulary (PF-S15 STEP 5), never a global list.
         today = datetime.date.today()
-        plan = await self._planner.plan(request.query, today, self._categories)
+        plan = await self._planner.plan(request.query, today, categories)
 
         if plan.intent == "aggregate":
-            return await self._answer_aggregate(request, plan)
-        return await self._answer_lookup(request, plan)
+            return await self._answer_aggregate(request, plan, owner_id)
+        return await self._answer_lookup(request, plan, owner_id)
 
     # ── aggregate: SQL computes the number, the LLM only narrates it ──────────
-    async def _answer_aggregate(self, request: AskRequest, plan) -> AskResponse:
+    async def _answer_aggregate(
+        self, request: AskRequest, plan, owner_id: uuid.UUID
+    ) -> AskResponse:
         t0 = time.perf_counter()
-        agg = await self._aggregator.aggregate(plan)
+        agg = await self._aggregator.aggregate(plan, owner_id=owner_id)
         retrieval_ms = (time.perf_counter() - t0) * 1000
 
         if agg.count == 0:
@@ -139,7 +149,9 @@ class AnswerService:
         )
 
     # ── lookup: PART 1 funnel, now with planner-extracted filters ────────────
-    async def _answer_lookup(self, request: AskRequest, plan) -> AskResponse:
+    async def _answer_lookup(
+        self, request: AskRequest, plan, owner_id: uuid.UUID
+    ) -> AskResponse:
         # Planner dates/category fill in where the request left them absent
         # (an explicit request filter always wins over an inferred one).
         category = request.category or (plan.categories[0] if plan.categories else None)
@@ -153,6 +165,7 @@ class AnswerService:
             date_from=date_from, date_to=date_to,
             # search_mode intentionally omitted — the Ch6 eval measured "vector"
             # (the default) beating "hybrid" on this corpus; see advanced-rag-notes.md
+            owner_id=owner_id,
         )
         contexts = await self._reranker.rerank(request.query, candidates, top_k=request.top_k)
         retrieval_ms = (time.perf_counter() - t0) * 1000

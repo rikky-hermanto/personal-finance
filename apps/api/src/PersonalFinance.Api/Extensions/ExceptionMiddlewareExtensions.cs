@@ -46,6 +46,15 @@ namespace PersonalFinance.Api.Extensions
                         await context.Response.WriteAsync(JsonSerializer.Serialize(new { Code = code }));
                         return;
                     }
+                    if (ex is AiChatUnavailableException && !context.Response.HasStarted)
+                    {
+                        // The upstream body was already logged by AiChatClient; never echo it (ERR-01).
+                        logger.LogWarning("AI chat call failed");
+                        context.Response.StatusCode = StatusCodes.Status502BadGateway;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new { Code = "ai_unavailable" }));
+                        return;
+                    }
                     if (ex is KeyNotFoundException)
                     {
                         // ERR-03. Also the answer for another owner's id: RLS hides the row.

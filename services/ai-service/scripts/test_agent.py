@@ -3,13 +3,22 @@
 Usage:
     cd services/ai-service && PYTHONPATH=. python scripts/test_agent.py
 
-Requires the AI service running on port 8000.
+Requires the AI service running on port 8000 with AI_AGENTS_ENABLED=true.
+Since PF-S15 the endpoint is owner-scoped: the script signs a 60-second owner
+token with OWNER_SIGNING_SECRET and sends INTERNAL_API_KEY (both read from .env).
+The owner is PF_OWNER_ID if set, else the single user_id found in `transactions`.
 Prints: description | category | confidence | reasoning (truncated) | tool count
 """
 import asyncio
+import hashlib
+import hmac
+import os
 import time
 
+import asyncpg
 import httpx
+
+from app.config import settings
 
 # Each fixture carries the category you expect. "Non-null category" is not a
 # quality bar — five "Other"s would pass it. `expected` values below were
@@ -30,6 +39,29 @@ TEST_TRANSACTIONS = [
 ]
 
 URL = "http://localhost:8000/categorize-agent"
+
+
+async def resolve_owner_id() -> str:
+    if os.environ.get("PF_OWNER_ID"):
+        return os.environ["PF_OWNER_ID"]
+    conn = await asyncpg.connect(settings.database_url)
+    try:
+        rows = await conn.fetch("SELECT DISTINCT user_id FROM transactions")
+    finally:
+        await conn.close()
+    if len(rows) != 1:
+        raise SystemExit(f"Found {len(rows)} owners in transactions; set PF_OWNER_ID.")
+    return str(rows[0]["user_id"])
+
+
+def auth_headers(owner_id: str) -> dict[str, str]:
+    # Format verified by app/owner.py::_verify_owner_token; tokens expire in 60s,
+    # so sign a fresh one per request.
+    ts = str(int(time.time()))
+    sig = hmac.new(settings.owner_signing_secret.encode(),
+                   f"{owner_id}.{ts}".encode(), hashlib.sha256).hexdigest()
+    return {"X-Internal-Api-Key": settings.internal_api_key,
+            "X-Pf-Owner-Token": f"{owner_id}.{ts}.{sig}"}
 
 # gemini-2.5-flash free tier = 5 requests/minute. Each agent run burns ~3-4
 # completions (one per ReAct step + final answer) in a matter of seconds, so
@@ -53,6 +85,7 @@ REQUEST_TIMEOUT_S = 30.0
 
 async def main() -> None:
     passed = 0
+    owner_id = await resolve_owner_id()
     async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT_S) as client:
         for i, tx in enumerate(TEST_TRANSACTIONS):
             if i > 0:
@@ -62,7 +95,7 @@ async def main() -> None:
             t0 = time.perf_counter()
 
             try:
-                resp = await client.post(URL, json=payload)
+                resp = await client.post(URL, json=payload, headers=auth_headers(owner_id))
                 resp.raise_for_status()
             except httpx.TimeoutException:
                 elapsed = time.perf_counter() - t0

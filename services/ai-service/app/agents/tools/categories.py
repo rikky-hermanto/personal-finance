@@ -3,15 +3,14 @@ from __future__ import annotations
 
 from smolagents import tool
 
+from app.agents.owner_context import current_owner_context
 from app.observability import langfuse
 
-# Populated at startup from app.state.categories — the SAME vocabulary the
-# query planner uses. The agent picks from this to avoid inventing names.
-_CATEGORIES: list[str] = []
-
-# Fallback ONLY — used when the DB is unreachable at startup or the transactions
-# table is empty (fresh install). Never the primary source.
-_FALLBACK_CATEGORIES = [
+# Used when the caller has no categorised transactions yet (a new user). It holds no
+# user data, so it is safe to show anyone. The real list is per owner (PF-S15): the
+# SAME vocabulary the query planner uses, so the agent picks from it instead of
+# inventing names.
+FALLBACK_CATEGORIES = [
     "Food & Dining", "Food & Dining (Café)", "Food & Dining (Fast Food)",
     "Transportation", "Transportation (Online)", "Transportation (Fuel)",
     "Shopping", "Shopping (Online)", "Shopping (Groceries)",
@@ -24,18 +23,13 @@ _FALLBACK_CATEGORIES = [
 ]
 
 
-def load_categories(categories: list[str]) -> None:
-    """Called from main.py lifespan. Falls back if the DB load returned nothing."""
-    global _CATEGORIES
-    _CATEGORIES = list(categories) if categories else list(_FALLBACK_CATEGORIES)
-
-
 def get_categories() -> list[str]:
-    """Public accessor for the loaded vocabulary — used by the result parser's
-    prose-scan fallback in categorizer_agent.py when the model narrates instead
-    of emitting a literal `CATEGORY: <name>` line.
+    """The current caller's vocabulary — also used by the result parser's prose-scan
+    fallback in categorizer_agent.py when the model narrates instead of emitting a
+    literal `CATEGORY: <name>` line. Empty when no owner context is bound.
     """
-    return list(_CATEGORIES)
+    context = current_owner_context()
+    return list(context.categories) if context else []
 
 
 @tool
@@ -49,6 +43,10 @@ def list_all_categories() -> str:
     with langfuse.start_as_current_observation(
         name="list_all_categories", as_type="tool", input={}
     ) as obs:
-        result = "Valid categories:\n" + "\n".join(f"  - {c}" for c in _CATEGORIES)
+        categories = get_categories()
+        if not categories:
+            result = "Category list unavailable."
+        else:
+            result = "Valid categories:\n" + "\n".join(f"  - {c}" for c in categories)
         obs.update(output=result)
         return result
