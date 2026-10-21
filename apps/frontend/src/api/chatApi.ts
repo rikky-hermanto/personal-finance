@@ -34,6 +34,28 @@ export interface AskStreamParams {
   top_k?: number;
 }
 
+export type ChatRefusalReason = "input_flagged" | "output_flagged";
+
+/** The AI service refused the question (input) or withheld the answer (output) — not an outage. */
+export class ChatRefusalError extends Error {
+  constructor(readonly reason: ChatRefusalReason) {
+    super(reason);
+    this.name = "ChatRefusalError";
+  }
+}
+
+function errorDetail(data: string): string | undefined {
+  try {
+    const parsed: unknown = JSON.parse(data);
+    if (parsed && typeof parsed === "object" && "detail" in parsed && typeof parsed.detail === "string") {
+      return parsed.detail;
+    }
+  } catch {
+    // not JSON: fall through to the generic error
+  }
+  return undefined;
+}
+
 // PF-S15: the browser never calls the AI service. Chat goes through the .NET API,
 // which verifies the Supabase token and forwards for that user only.
 const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:7209";
@@ -71,6 +93,16 @@ async function openAskStream(
     body: JSON.stringify(params),
     signal: controller.signal,
     openWhenHidden: true,   // don't pause when tab is hidden
+    async onopen(response) {
+      if (response.ok && response.headers.get("content-type")?.startsWith("text/event-stream")) return;
+      // The API answers a flagged question with 400 {"code":"input_flagged"} (the .NET proxy
+      // writes the key in lower case; read both spellings so a casing change cannot break this).
+      if (response.status === 400) {
+        const body = (await response.json().catch(() => null)) as Record<string, unknown> | null;
+        if ((body?.code ?? body?.Code) === "input_flagged") throw new ChatRefusalError("input_flagged");
+      }
+      throw new Error(`Unexpected response ${response.status}`);
+    },
     onmessage(msg) {
       if (msg.event === "metadata") {
         const data = JSON.parse(msg.data) as AskMetadata;
@@ -90,7 +122,11 @@ async function openAskStream(
         controller.abort();   // stream finished — kill the connection so the
                               // library can't reconnect and re-POST the query
       } else if (msg.event === "error") {
-        handlers.onError(new Error(msg.data));
+        handlers.onError(
+          errorDetail(msg.data) === "output_flagged"
+            ? new ChatRefusalError("output_flagged")
+            : new Error(msg.data)
+        );
         controller.abort();
       }
     },

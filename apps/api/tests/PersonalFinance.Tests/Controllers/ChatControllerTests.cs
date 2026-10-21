@@ -25,10 +25,12 @@ public sealed class ChatControllerTests
     {
         public AskChatRequest? LastAsk { get; private set; }
         public bool Throw { get; init; }
+        public bool Reject { get; init; }
 
         public async Task StreamAskAsync(AskChatRequest request, Stream destination, CancellationToken ct)
         {
             if (Throw) throw new AiChatUnavailableException();
+            if (Reject) throw new AiChatInputRejectedException();
             LastAsk = request;
             await destination.WriteAsync(Encoding.UTF8.GetBytes("event: done\ndata: {}\n\n"), ct);
         }
@@ -156,6 +158,21 @@ public sealed class ChatControllerTests
         // Assert
         Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
         Assert.Equal("{\"Code\":\"ai_unavailable\"}", await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task AskStream_InputFlagged_ReturnsBadRequestWithCode()
+    {
+        // Arrange
+        using var factory = CreateFactory(chatEnabled: true, new FakeChatClient { Reject = true });
+
+        // Act
+        var response = await Client(factory, signedIn: true)
+            .PostAsJsonAsync("/api/chat/ask/stream", new { query = "q" });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal("{\"code\":\"input_flagged\"}", await response.Content.ReadAsStringAsync());
     }
 
     [Fact]

@@ -19,6 +19,7 @@ from app.agents.tools.category_rules import search_category_rules
 from app.agents.tools.similarity import find_similar_transactions
 from app.config import settings
 from app.observability import langfuse
+from app.services.pii_masker import mask_pii
 
 logger = logging.getLogger(__name__)
 
@@ -175,9 +176,12 @@ class CategorizerAgent:
         """Run the agent for one transaction. Synchronous — call via asyncio.to_thread,
         inside a bound OwnerContext (app/agents/owner_context.py)."""
         agent = self._new_agent()
+        # PF-AI011: identifiers (NIK, phone, account, email) never reach the provider, the Langfuse
+        # trace or the logs. Merchant names pass through, so categorization keeps its signal.
+        masked = mask_pii(description)
         task = (
             f"Categorize this bank transaction:\n"
-            f"  Description: {description}\n"
+            f"  Description: {masked}\n"
             f"  Bank: {wallet}\n"
             f"  Amount (IDR): {amount_idr:,.0f}"
         )
@@ -195,7 +199,7 @@ class CategorizerAgent:
                 result = _parse_result(str(raw), tool_calls_count=tool_calls)
                 logger.info(
                     "agent_categorized description=%r category=%r confidence=%s tool_calls=%d",
-                    description, result.category, result.confidence, result.tool_calls_count,
+                    masked, result.category, result.confidence, result.tool_calls_count,
                 )
                 span.update(
                     output=str(raw),
@@ -213,12 +217,12 @@ class CategorizerAgent:
                     # provider quota, not a transient blip worth retrying again here.
                     logger.warning(
                         "agent categorization rate-limited by provider description=%r — %s",
-                        description, exc,
+                        masked, exc,
                     )
                     span.update(level="ERROR", status_message="provider rate limit exhausted")
                     raise AgentRateLimitedError(
                         f"LLM provider rate limit exhausted after internal retries: {exc}"
                     ) from exc
-                logger.exception("agent categorization failed description=%r", description)
+                logger.exception("agent categorization failed description=%r", masked)
                 span.update(level="ERROR", status_message="agent categorization failed")
                 raise
