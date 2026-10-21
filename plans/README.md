@@ -15,6 +15,10 @@ The first folder below `plans/` is the **local status** of a task:
 
 `BOARD.md` remains the local index. GitHub Project #4 is the source of truth for GitHub-linked issues; a local folder move does not change a remote issue. For local-only tasks, keep the folder, plan status, and board row aligned. When moving a plan, update its links and the board in the same task. Preserve completed and cancelled history.
 
+## Status lives in the main checkout
+
+Work may happen in a worktree (`.worktrees/<id>`, branch `loop/<id>`), but the owner tracks tasks from the main checkout: its `plans/` folders and `BOARD.md` are the status. `/loop-run` moves tickets there automatically. A hand-run `/execute` in a worktree starts with `run.mjs start --hand` and ends with `run.mjs sync` (see the execute skill), so the ticket shows `in-progress` while it is worked and stays there until a verifier or the owner moves it. Do not hand-edit plan folders or the generated board block for this.
+
 ## Loop
 
 Tickets in `epics/` and `ready-to-review/` are moved by the loop skills; the folder is the status and flags live in the ticket frontmatter.
