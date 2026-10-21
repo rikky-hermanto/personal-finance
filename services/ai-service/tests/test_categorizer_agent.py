@@ -146,3 +146,36 @@ def test_categorize_raises_agent_rate_limited_error_on_quota_exhaustion(mock_mod
     agent = CategorizerAgent()
     with pytest.raises(AgentRateLimitedError):
         agent.categorize("Monthly salary payment", "BCA", 8000000)
+
+
+@patch("app.agents.categorizer_agent.ToolCallingAgent")
+@patch("app.agents.categorizer_agent.LiteLLMModel")
+def test_categorize_task_carries_masked_identifiers_not_the_digits(mock_model_cls, mock_agent_cls, caplog):
+    # PF-AI011: NIK, phone, account and email never reach the provider or the logs.
+    import logging
+
+    mock_agent = MagicMock()
+    mock_agent.run.return_value = "CATEGORY: Salary\nCONFIDENCE: 0.9\nREASONING: Rule matched."
+    mock_agent.memory.steps = []
+    mock_agent_cls.return_value = mock_agent
+
+    with caplog.at_level(logging.INFO):
+        CategorizerAgent().categorize("GAJI a.n. BUDI NIK 3174012345678901 hp 081234567890", "BCA", 9000000)
+
+    task = mock_agent.run.call_args.args[0]
+    assert "[NIK]" in task and "[PHONE]" in task
+    assert "3174012345678901" not in task and "081234567890" not in task
+    assert "3174012345678901" not in caplog.text and "081234567890" not in caplog.text
+
+
+@patch("app.agents.categorizer_agent.ToolCallingAgent")
+@patch("app.agents.categorizer_agent.LiteLLMModel")
+def test_categorize_merchant_name_still_reaches_the_task(mock_model_cls, mock_agent_cls):
+    mock_agent = MagicMock()
+    mock_agent.run.return_value = "CATEGORY: Food\nCONFIDENCE: 0.9\nREASONING: Rule matched."
+    mock_agent.memory.steps = []
+    mock_agent_cls.return_value = mock_agent
+
+    CategorizerAgent().categorize("ALFAMART TEBET", "BCA", 50000)
+
+    assert "ALFAMART TEBET" in mock_agent.run.call_args.args[0]
