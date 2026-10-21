@@ -990,3 +990,48 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - Settle the LLM quota question (Gemini billing or an Anthropic key). It now blocks three separate evals.
 
 **Streak: 2 days** (2026-10-16 and 2026-10-17)
+
+### 2026-10-19 → 2026-10-21 — Days 146–148 *(10-19 and 10-20 logged from the plan, run logs and git)*
+
+**Session: PF-AI011 (Chapter 9.5, AI security and guardrails) built, verified and merged**
+
+- 2026-10-19: red-teamed my own chat before writing any defence. Wrote 12 attack fixtures, 4 hold-out attacks (written before any scanner pattern existed) and 20 normal Indonesian queries. The live baseline ran through a stub-retriever harness, so no attack row touched the real transactions table.
+- 2026-10-19 to 10-20: shipped the controls in the AI service, the .NET proxy and the chat UI:
+  - Retrieved descriptions now reach the model as quoted `<data>` blocks, and the system prompts say quoted data is never an instruction.
+  - A regex input scanner rejects a flagged question with 400 `input_flagged` before any LLM call. The .NET proxy passes it on as 400, not as a 502 outage, and the chat shows a refusal.
+  - An output guard replaces an answer that leaks the prompt scaffold. On a streamed answer it sends `output_flagged`, and the UI drops the text it already showed.
+  - PII masking (NIK, phone incl. `+62`, cue-worded account numbers, email) runs before text reaches the LLM, in chat, follow-ups and the categorizer agent. Citations keep the original text.
+  - Flagged requests get a `security.flagged` tag in Langfuse (v3 API).
+  - Wrote the threat model: [ai-threat-model.md](../security/ai-threat-model.md).
+- 2026-10-21: closed STEP 7 (secrets). Installed gitleaks 8.30.1; the full history (650 commits) and the new files scan clean. The first run found 6 false positives from before this chapter (Supabase CLI demo JWTs and an env var name), now allowlisted by narrow regexes.
+- 2026-10-21: committed `1ad33dbd`, ran every gate (pytest 351, dotnet 431 with 9 skipped, frontend unit tests 38, lint, tsc), and ran the separate loop verifier: **12 of 12 acceptance criteria passed**. Merged to `main` as `4c760832` through `/loop-accept`.
+
+**Numbers to quote:**
+- Live run, 16 attacks on `gemini-3.5-flash-lite`: **2 of 16 landed** on the unprotected prompt (both direct role-play), **0 of 16** after the controls. Honest caveat: the scanner doesn't run in that harness, so the two direct hits most likely held through ordinary run-to-run variation, not a control.
+- Offline scanner: **7 of 8** direct attacks blocked (88%, target 80%), **0 of 4** hold-out attacks, **0 of 20** false alarms on normal Indonesian queries.
+
+**Concept learned:** a guardrail needs two numbers, the block rate and the false-alarm rate, and the block rate means little on the attacks the patterns were written for. The 0 of 4 hold-out result is the real answer to "did you just write regexes for your own test set?". The regex scanner is a thin first layer; spotlighting carries most of the defence against text other people wrote.
+
+**Chapter 9.5 checklist progress:**
+- [x] Red-team baseline (in-memory harness, no writes to real data)
+- [x] Spotlighting in the shared context formatter, the follow-up prompt and both system prompts
+- [x] Input scanner, 400 `input_flagged` end to end (AI service → .NET proxy → chat UI)
+- [x] Output guard, including streamed answers
+- [x] PII masking before the LLM, originals kept in citations
+- [x] Langfuse `security.flagged` tag (v3 API)
+- [x] Injection eval: 88% blocked, hold-out reported separately, 0 false alarms
+- [x] Threat-model doc
+- [ ] STEP 0 theory recall (the three OWASP questions) ← still open
+
+**Retros (blockers & surprises):**
+- **The loop's child processes never started:** `loop-run` launches `claude -p` with `--permission-prompts none`, which Claude Code 2.1.207 rejects. Every executor and verifier exited 1 within seconds with no cost, which looks like a failed ticket. That's most likely the earlier loop failure on 10-19. → **Fix:** ran the verifier by hand without the flag. The skill itself still needs the one-line fix.
+- **gitleaks was missing locally,** so the secrets criterion stayed open for two days. → **Fix:** installed it with winget. Note that gitleaks 8.19+ renamed `detect` to `git` and `dir`.
+- **Hold-out block rate is 0 of 4:** the scanner doesn't generalize beyond its own fixtures. → **Fix:** none yet, by design. It's documented as a residual risk, and it matters before PF-AI012 puts `/ask` on a public URL.
+- **A judge regex matched the Indonesian word "dan"** as the DAN persona and over-counted a landed attack. → **Fix:** made that pattern case-sensitive and recomputed the saved flags.
+
+**Remaining for tomorrow:**
+- Answer the STEP 0 recall questions: why indirect injection is harder to defend, why false alarms must be measured on Indonesian queries, and which controls are probabilistic vs deterministic.
+- Commit the plan and docs updates in main, then push.
+- Fix `--permission-prompts` in the `loop-run` skill before the next loop run.
+
+**Streak: 3 days** (2026-10-19 to 2026-10-21)

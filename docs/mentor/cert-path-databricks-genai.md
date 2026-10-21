@@ -49,7 +49,7 @@ melakukannya* (Vector Search, MLflow, Model Serving, Unity Catalog).
 - ✅ Agents & tool calling (PF-AI007 smolagents, PF-AI008 LangGraph) → Domain 1, 3
 - ✅ Evaluation harness, F1 metrics, LLM-as-judge concept (PF-AI002, PF-AI010) → Domain 6
 - ✅ Observability: cost/latency/token per call via Langfuse (PF-AI001) → Domain 6
-- ✅ AI security & governance concepts (PF-AI011 in progress) → Domain 5
+- ✅ AI security & governance concepts (PF-AI011 done 2026-10-21) → Domain 5
 
 > Catatan: structured output adalah satu-satunya item di daftar ini yang datang dari track produk
 > (Sprint 1), bukan track belajar PF-AI. Nilainya justru tinggi untuk Domain 3 — bobot terbesar

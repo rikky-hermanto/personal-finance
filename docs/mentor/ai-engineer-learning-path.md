@@ -37,7 +37,7 @@ The entire path on one screen. Follow the numbers. The build + positioning layer
 | 7 | Ch7 | 🔄 | **Tool-calling agents** (smolagents) — code shipped, smoke gate at 2 of 5 | Smallest agent surface — grok the Thought-Action-Observation loop first | Hugging Face: *Agents Course* |
 | 8 | Ch8 | ✅ | **Stateful orchestration** (LangGraph) | State, routing, memory, error handling — "industrial smolagents" | LangGraph docs · Coursera (IBM): *RAG & Agentic AI* |
 | 9 | Ch8 | 🔄 | **Agent evaluation** — scenarios written, **never run** (deferred at PF-AI008 close) | Tool-call accuracy + trajectory — closes the "how do you eval an agent?" gap | RAGAS · HF Agents Course (eval units) |
-| 12 | Ch9.5 | ⏳ Ready | **AI security + guardrails**: prompt injection, PII masking, input/output guards, threat model (PF-AI011) | AI chat runs on real data with no guard; guardrails appear in AI Eng JDs. **Runs before Ch9** | OWASP Top 10 for LLM Applications · Langfuse docs |
+| 12 | Ch9.5 | ✅ | **AI security + guardrails**: prompt injection, PII masking, input/output guards, threat model (PF-AI011) | AI chat runs on real data with no guard; guardrails appear in AI Eng JDs. **Runs before Ch9** | OWASP Top 10 for LLM Applications · Langfuse docs |
 | 10 | Ch9 | ⏳ | **Model Context Protocol (MCP)** (PF-AI009) | Interop frontier signal; server + client | Anthropic Academy: *The MCP Series* |
 | 11 | Ch9 | ⏳ | Multi-agent over MCP (stretch) | Orchestration over a standard protocol | Anthropic *MCP Series* |
 | 13 | Ch9.75 | ⏳ | **Deployment + LLMOps**: public URL, auth, rate limits, budget alert, response cache, cost write-up (PF-AI012) | Turns "deployed" from a claim into a fact; cost control is a hiring signal | Azure Container Apps docs · GitHub Actions docs |
@@ -172,7 +172,7 @@ Building specialists/sub-agents, state machines for long-running workflows, MCP 
 
 ## The Production Hardening Layer (Security, Deployment, Evals in CI) — Chapters 9.5–9.75
 
-**Status:** 🎯 Critical path, added 2026-10-17. Ch9.5 ⏳ Ready (PF-AI011, replanned against the post-auth code). Ch9.75 ⏳ (PF-AI012, depends on PF-AI011).
+**Status:** 🎯 Critical path, added 2026-10-17. Ch9.5 ✅ (PF-AI011, merged 2026-10-21). Ch9.75 ⏳ (PF-AI012, depends on PF-AI011).
 
 Until now everything ran locally, and you were the only user. This layer covers what changes when an AI system faces untrusted input and a public network. It was missing from the original path because guardrails had been filed under "deferred MLOps". That was the wrong shelf. Current AI Engineer job posts list guardrails, cost control and continuous evaluation as core skills, not specializations. The order follows the same "measure first" rule as Chapters 1–2: attack your own system before you build defences, deploy before you optimize cost, and gate on evals before you call it production.
 
@@ -241,7 +241,7 @@ The original 90-day clock ran out at Day 90 (~2026-08-24). This replaces it. The
 | Order | Chapter | Work | Plan | Target finish |
 |---|---|---|---|---|
 | 1 | Ch7 + #9 | Close the smoke test (5 of 5) and run the five agent scenarios; finish the PF-AI005-PART2 numeric eval | PF-AI007, PF-AI008 follow-up, PF-AI005-PART2 | 2026-10-24 |
-| 2 | Ch9.5 | AI security + guardrails | PF-AI011 (Ready) | 2026-11-07 |
+| 2 | Ch9.5 | AI security + guardrails | PF-AI011 (Done 2026-10-21) | 2026-11-07 |
 | — | Ch10 (early) | Publish the eval-harness blog post, in parallel | `docs/ideas/blogs/` | 2026-11-07 |
 | 3 | Ch9 | MCP server + client (+ multi-agent stretch) | PF-AI009 | 2026-11-21 |
 | 4 | Ch9.75 | Deployment + LLMOps + evals in CI | PF-AI012 | 2026-12-05 |

@@ -103,7 +103,7 @@ Domain judgment routes to `/cio` (is the finance sound), `/risk-officer` (limits
 | RAG + agents roadmap | [ideas/rag-and-agents-roadmap.md](ideas/rag-and-agents-roadmap.md) | PF-AI003/004 design thinking |
 | Loop engineering (interactive) | [mentor/diagram-loop-engineering.html](mentor/diagram-loop-engineering.html) | Node-graph of Addy Osmani's "Loop Engineering": the five primitives + memory, the reference loop, and the three risks; click a group to drill in, open in a browser |
 | PF-AI008 — LangGraph advisor sequence | [architecture/sequences/diagram-journey-advisor-sequence.html](architecture/sequences/diagram-journey-advisor-sequence.html) | Implemented graph/tool flow; user acceptance and deferred checks documented separately |
-| PF-AI011 — AI security use-case sequences | [architecture/sequences/diagram-ai-security-governance-sequence.html](architecture/sequences/diagram-ai-security-governance-sequence.html) | Planned design (plan To Do): six sequences — direct injection, indirect via transfer memo, output guard, PII masking, red-team eval, secrets check |
+| PF-AI011 — AI security use-case sequences | [architecture/sequences/diagram-ai-security-governance-sequence.html](architecture/sequences/diagram-ai-security-governance-sequence.html) | Design for PF-AI011 (merged 2026-10-21): six sequences — direct injection, indirect via transfer memo, output guard, PII masking, red-team eval, secrets check |
 
 ---
 

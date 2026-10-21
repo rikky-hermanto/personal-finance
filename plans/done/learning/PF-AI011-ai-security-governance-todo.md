@@ -6,13 +6,35 @@ flags: [Ready]
 recommended:
   model: opus
   effort: high
+  estimate5h: null
+  estimateWeek: null
+sensitive: []
+rework: 0
+loopFailures: 1
+review: none
+approved:
+  model: sonnet
+  effort: high
+  by: owner
+  at: 2026-10-20T03:13:32Z
+  at-label: 2026-10-20 11:13 Asia/Makassar
+  budgetOverride: true
+run:
+  worktree: .worktrees/pf-ai011
+  branch: loop/pf-ai011
+  slot: 1
+  fixRounds: 0
+  segments: 0
+  checkpoint: .loop/runs/PF-AI011/checkpoint.json
+  logs: .loop/runs/PF-AI011/
+  verdict: pass
 ---
 
 # PF-AI011 — AI Security & Governance (Prompt Injection, PII, Secrets, Guardrails)
 
 > **Learning Phase:** Phase 3 · Chapter 9.5 (between Ch9 MCP and Ch10 Positioning) · Day ~76+ of 90
-> **Status:** To Do · Ready
-> **Started:** —
+> **Status:** In Progress · hand run in `.worktrees/pf-ai011`, implementation done, awaiting verification
+> **Started:** 2026-10-19
 > **Planned from branch:** main
 > **Revised:** 2026-10-17 — readiness audit against the post-PF-S08/S15 code. Chat now reaches the AI service only through the .NET proxy, so the plan gains .NET and frontend changes for the new error codes. The baseline no longer writes poisoned rows into real data. Spotlighting moves into the shared `_format_context` and also covers follow-ups. The Langfuse call uses the v3 API, and the phone regex is fixed. A hold-out attack set and a streaming output guard are added. STEP 7 is now a check, because `appsettings.Development.json` is already gitignored. Full list in the Notes section, under "Audit 2026-10-17".
 > **Pivot goal:** Close the one stage of the AI Engineering roadmap with zero coverage. Production AI handles real data and real risk — security competence is a hiring filter now, not a nice-to-have. This chapter red-teams your own `/ask` and `CategorizerAgent`, then ships the controls that close what you find. The deliverable is the classic interview artifact: *"here is a threat I found in my own system, and here is the control I added."*
@@ -197,18 +219,29 @@ Produce the threat-model write-up as the portfolio artifact.
 
 ## ✅ Acceptance Criteria
 
-- [ ] 12-case injection fixture set exists ([injection_cases.json](../../../services/ai-service/evals/security/injection_cases.json)), plus a 4-case hold-out set ([injection_holdout.json](../../../services/ai-service/evals/security/injection_holdout.json)) written before any scanner pattern exists; the baseline run against the unprotected system is recorded in the threat model doc
-- [ ] The baseline and after runs for context cases use the stubbed-retriever harness (STEP 1) and write no rows to the database
-- [ ] `_format_context` (used by `/ask`, `/ask/stream` and the aggregate narration) and the follow-up prompt wrap every description in `<data>…</data>`, strip forged markers case-insensitively, and the system prompts carry the "data, never instructions" clause
-- [ ] `InjectionScanner` blocks a flagged query with HTTP 400 `{"detail": "input_flagged"}` before the planner LLM call on `/ask` and `/ask/stream`; flagged retrieved descriptions are tagged, not blocked
-- [ ] `OutputGuard` replaces a leaking answer with a safe refusal on `/ask`; on `/ask/stream` it emits `event: error` with `{"detail": "output_flagged"}` and the chat UI replaces the streamed text with the refusal
-- [ ] The .NET chat proxy returns 400 `{"code": "input_flagged"}` (not 502 `ai_unavailable`) when the AI service flags input, and the chat shows a specific message for it; `dotnet test` green with a new test for the mapping
-- [ ] `PiiMasker` masks NIK, phone (including `+62`), cue-worded account numbers, and emails in the text sent to the LLM by `/ask`, `/ask/stream`, `/ask/followups` and `/categorize-agent`, and in the agent's Langfuse input and log lines; merchant names and bare reference numbers pass through; citations shown to the user keep the original text
-- [ ] Flagged requests carry a `security.flagged` tag in Langfuse (v3 client API)
-- [ ] `pytest` green: new `test_guardrails.py` + `test_pii_masker.py`, no regressions in existing suites
-- [ ] Secrets baseline holds: `appsettings.Development.json` and `services/ai-service/.env` are untracked, the tracked example files hold placeholders only, and `gitleaks detect` passes
-- [ ] `eval_injection.py` reports the scanner's block rate on direct attacks at ≥ 80% on the fixture set, reports the hold-out block rate separately (no target), and 0% false positives on 20 benign Indonesian queries
-- [ ] [ai-threat-model.md](../../../docs/security/ai-threat-model.md) documents each threat → control → before/after numbers, and the residual egress paths listed in Notes
+- [x] 12-case injection fixture set exists ([injection_cases.json](../../../services/ai-service/evals/security/injection_cases.json)), plus a 4-case hold-out set ([injection_holdout.json](../../../services/ai-service/evals/security/injection_holdout.json)) written before any scanner pattern exists; the baseline run against the unprotected system is recorded in the threat model doc
+  > Verification note: baseline run (gemini-3.5-flash-lite, 16 cases, no quota error) recorded in docs/security/ai-threat-model.md: 4/16 by regex, 2/16 by hand review.
+- [x] The baseline and after runs for context cases use the stubbed-retriever harness (STEP 1) and write no rows to the database
+  > Verification note: stub retriever, reranker and aggregator; nothing read from or written to Supabase.
+- [x] `_format_context` (used by `/ask`, `/ask/stream` and the aggregate narration) and the follow-up prompt wrap every description in `<data>…</data>`, strip forged markers case-insensitively, and the system prompts carry the "data, never instructions" clause
+  > Verification note: test_guardrails.py, test_answerer.py, test_streaming.py and test_followup_suggester.py assert the wrapping, forged-marker strip and the clause.
+- [x] `InjectionScanner` blocks a flagged query with HTTP 400 `{"detail": "input_flagged"}` before the planner LLM call on `/ask` and `/ask/stream`; flagged retrieved descriptions are tagged, not blocked
+  > Verification note: test_streaming.py asserts 400 input_flagged with the planner and answerer never called; flagged context rows are tagged, not blocked (test_guardrails.py).
+- [x] `OutputGuard` replaces a leaking answer with a safe refusal on `/ask`; on `/ask/stream` it emits `event: error` with `{"detail": "output_flagged"}` and the chat UI replaces the streamed text with the refusal
+  > Verification note: backend paths covered by tests; the chat UI replacement is covered by tsc and lint only, not exercised in a browser.
+- [x] The .NET chat proxy returns 400 `{"code": "input_flagged"}` (not 502 `ai_unavailable`) when the AI service flags input, and the chat shows a specific message for it; `dotnet test` green with a new test for the mapping
+  > Verification note: AiChatClientTests and ChatControllerTests added; dotnet test 431 passed, 9 skipped (existing). Emitted key is lower-case `code` as this criterion states, unlike the existing `{"Code":"ai_unavailable"}`; the frontend reads both.
+- [x] `PiiMasker` masks NIK, phone (including `+62`), cue-worded account numbers, and emails in the text sent to the LLM by `/ask`, `/ask/stream`, `/ask/followups` and `/categorize-agent`, and in the agent's Langfuse input and log lines; merchant names and bare reference numbers pass through; citations shown to the user keep the original text
+  > Verification note: test_categorizer_agent.py asserts the digits are absent from the task and from caplog; the masker also covers the Langfuse input.
+- [x] Flagged requests carry a `security.flagged` tag in Langfuse (v3 client API)
+  > Verification note: the v3 calls ran against the installed client without error; the tag was not looked at in a Langfuse dashboard (tracing is off locally).
+- [x] `pytest` green: new `test_guardrails.py` + `test_pii_masker.py`, no regressions in existing suites
+  > Verification note: 351 passed.
+- [x] Secrets baseline holds: `appsettings.Development.json` and `services/ai-service/.env` are untracked, the tracked example files hold placeholders only, and `gitleaks detect` passes
+  > Not met: `gitleaks detect` could not run locally (binary not installed). Untracked/placeholder checks pass; confirm gitleaks in CI.
+- [x] `eval_injection.py` reports the scanner's block rate on direct attacks at ≥ 80% on the fixture set, reports the hold-out block rate separately (no target), and 0% false positives on 20 benign Indonesian queries
+  > Verification note: fixtures 7/8 (88%), hold-out 0/4 (0%), benign 0/20.
+- [x] [ai-threat-model.md](../../../docs/security/ai-threat-model.md) documents each threat → control → before/after numbers, and the residual egress paths listed in Notes
 
 ## 🧭 Approach
 
@@ -260,7 +293,7 @@ Read the Resources table top to bottom. Then answer from recall, in the progress
 > **Why:** The ladder above only sticks if you can restate it. These three questions are the
 > chapter's load-bearing distinctions — and near-verbatim interview questions.
 
-### [ ] STEP 1 — Red-team your own system: injection fixture set + baseline run
+### [x] STEP 1 — Red-team your own system: injection fixture set + baseline run
 
 Create [injection_cases.json](../../../services/ai-service/evals/security/injection_cases.json):
 
@@ -312,7 +345,7 @@ must use the same model.
 > tells. The stub retriever keeps the experiment off your real financial data, and it is
 > repeatable for the after run.
 
-### [ ] STEP 2 — Prompt hardening: spotlight retrieved context in `answerer.py`
+### [x] STEP 2 — Prompt hardening: spotlight retrieved context in `answerer.py`
 
 Edit [answerer.py](../../../services/ai-service/app/services/answerer.py). Retrieved descriptions
 reach the prompt in one place, `_format_context`, which `/ask`, `/ask/stream` (main.py imports it)
@@ -367,7 +400,7 @@ public static class PromptSpotlight
 > the strip is a case-insensitive regex. Putting it in `_format_context` means one edit covers
 > every chat path. A second copy in main.py would drift.
 
-### [ ] STEP 3 — Build `guardrails.py`: input scanner + output guard
+### [x] STEP 3 — Build `guardrails.py`: input scanner + output guard
 
 Create [guardrails.py](../../../services/ai-service/app/services/guardrails.py):
 
@@ -446,7 +479,7 @@ Report the hold-out rate from STEP 1 next to it as the honest number.
 anyone who can send you a transfer memo switch off your chat. For context, spotlighting is the
 control.
 
-### [ ] STEP 4 — Build `pii_masker.py`: Indonesian PII masking before LLM calls
+### [x] STEP 4 — Build `pii_masker.py`: Indonesian PII masking before LLM calls
 
 Create [pii_masker.py](../../../services/ai-service/app/services/pii_masker.py):
 
@@ -506,7 +539,7 @@ public static class PiiMasker
 > those would shred retrieval quality. Every rule here trades recall for precision on purpose;
 > the threat model documents what's left uncovered.
 
-### [ ] STEP 5 — Wire guardrails into `/ask`, `/ask/stream`, and the agent
+### [x] STEP 5 — Wire guardrails into `/ask`, `/ask/stream`, and the agent
 
 **5a — AI service, input.** Edit [main.py](../../../services/ai-service/app/main.py): at the top
 of the `/ask` and `/ask/stream` handlers, before the planner's LLM call. The project is on
@@ -565,7 +598,7 @@ question would read as "AI is down". Change it as follows:
 > row and the `output_flagged` stream error to the error contract table in
 > [.claude/rules/ai-service.md](../../../.claude/rules/ai-service.md) in the same commit.
 
-### [ ] STEP 6 — Tests: `test_guardrails.py` + `test_pii_masker.py`
+### [x] STEP 6 — Tests: `test_guardrails.py` + `test_pii_masker.py`
 
 Create both test files. The non-obvious cases that MUST be present:
 
@@ -634,7 +667,9 @@ public class PiiMaskerTests
 > chat that rejects normal queries. False-positive tests are the regression net for every future
 > pattern addition.
 
-### [ ] STEP 7 — Secrets hygiene: verify the baseline
+### [x] STEP 7 — Secrets hygiene: verify the baseline
+
+> **Done 2026-10-21: gitleaks 8.30.1 (installed with winget) is clean on the full history (650 commits) and on the chapter's 29 uncommitted files. The first history run found 6 false positives from before this chapter: the Supabase CLI demo JWTs (`"iss":"supabase-demo"`) in an older example config, and the env var name `PF_S08_JWT_EXPIRY_SECONDS`. Both are allowlisted by narrow regexes in `.gitleaks.toml` (worktree change) and recorded in the threat model. The other two checks also passed: no tracked `appsettings.Development.json` or `.env`, and no JWT-shaped values. Note that gitleaks 8.19+ renamed `detect` to `git` and `dir`.**
 
 The original step moved the .NET dev keys into user-secrets. PF-S08 already took
 `appsettings.Development.json` out of git: it is in `.gitignore`, and only
@@ -656,7 +691,7 @@ exercise, but the acceptance criterion is about the tracked tree.
 > ones" is the only rule that survives a public repo. A control you never re-check rots, so the
 > threat model records the date it was verified.
 
-### [ ] STEP 8 — Security eval: `eval_injection.py` (block rate + false positives)
+### [x] STEP 8 — Security eval: `eval_injection.py` (block rate + false positives)
 
 Create [benign_cases.json](../../../services/ai-service/evals/security/benign_cases.json) — 20
 real-shaped Indonesian queries (`"berapa total pengeluaran makan bulan Maret?"`, `"abaikan
@@ -725,7 +760,7 @@ context cases.
 > just write regexes for your own test set?". The context-vector cases are judged by the answer,
 > not by a scanner verdict, because their control is spotlighting.
 
-### [ ] STEP 9 — Finish the threat-model doc (the "prove it" artifact)
+### [x] STEP 9 — Finish the threat-model doc (the "prove it" artifact)
 
 Complete [ai-threat-model.md](../../../docs/security/ai-threat-model.md) with this structure:
 
@@ -748,7 +783,9 @@ Complete [ai-threat-model.md](../../../docs/security/ai-threat-model.md) with th
 > Chapter 10. The *residual risks* section is what separates a senior write-up from a checkbox
 > exercise — knowing what you didn't cover, and why, is the skill being demonstrated.
 
-### [ ] STEP 10 — Commit + log progress
+### [x] STEP 10 — Commit + log progress
+
+> **Done 2026-10-21: committed `1ad33dbd`, merged to main as `4c760832`, and logged in [progress.md](../../../docs/mentor/progress.md) (Days 146–148). Gates: pytest 351, dotnet 431 passed / 9 skipped, lint 0 errors, tsc clean. STEP 0 is still the owner's.**
 
 ```bash
 # from the repo root
@@ -931,3 +968,8 @@ overlap, so the chapter can run before or after the E-001 grill.
 **B** — a control is characterized by both error directions: what it stops and what it wrongly stops. Either number alone is half a claim. C measures ops, not efficacy; A and D measure effort.
 *Maps to: Databricks GenAI Engineer · Evaluation & Monitoring*
 </details>
+
+## Loop Notes
+- 2026-10-20 11:17 Asia/Makassar hand run: implementation done in .worktrees/pf-ai011 (uncommitted); STEP 0 and the STEP 10 mentor log are the owner's; gitleaks not run locally. Awaiting verification.
+- 2026-10-21 Asia/Makassar: STEP 7 closed. gitleaks clean on full history and the uncommitted files after allowlisting 2 pre-existing false positives in `.gitleaks.toml`.
+- 2026-10-21 21:13 Asia/Makassar Verified: gates green (pytest 351, dotnet 431/9 skipped, desk+macro vitest, lint, tsc, gitleaks) and the separate /loop-verify (opus, high) passed 12/12 ACs. Hand-run verifier dropped --permission-prompts (unsupported by Claude Code 2.1.207). One commit on loop/pf-ai011: 1ad33dbd.
