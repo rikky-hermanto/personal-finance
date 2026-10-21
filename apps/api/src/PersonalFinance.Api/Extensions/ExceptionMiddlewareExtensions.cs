@@ -46,6 +46,15 @@ namespace PersonalFinance.Api.Extensions
                         await context.Response.WriteAsync(JsonSerializer.Serialize(new { Code = code }));
                         return;
                     }
+                    if (ex is AiChatInputRejectedException && !context.Response.HasStarted)
+                    {
+                        // The AI service refused the question; log the fact, not the body (ERR-01).
+                        logger.LogWarning("AI chat question was flagged by the input guard");
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new { code = "input_flagged" }));
+                        return;
+                    }
                     if (ex is AiChatUnavailableException && !context.Response.HasStarted)
                     {
                         // The upstream body was already logged by AiChatClient; never echo it (ERR-01).

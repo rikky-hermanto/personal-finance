@@ -5,7 +5,7 @@
 useDefault = true
 
 [allowlist]
-description = "Fake secrets used only as test fixtures, and the public local-Supabase default URL"
+description = "Fake secrets used only as test fixtures, and the public local-Supabase defaults"
 paths = [
   '''apps/api/tests/PersonalFinance\.Tests/Infrastructure/AiChatClientTests\.cs''',
   '''services/ai-service/tests/test_owner_scope\.py''',
@@ -13,5 +13,10 @@ paths = [
 ]
 regexes = [
   '''pf-s15-fixture-secret''',
-  '''postgresql://postgres:postgres@127\.0\.0\.1:54322/postgres''',
+  '''postgresql://postgres:postgres@127\.0\.0\.1:54322/postgres''',  # commit-skill:allow (public Supabase CLI default)
+  # Supabase CLI demo keys: the JWT payload starts {"iss":"supabase-demo", and every local
+  # install ships the same pair. A real project key carries "iss":"supabase" and is still flagged.
+  '''eyJpc3MiOiJzdXBhYmFzZS1kZW1vIi''',
+  # An env var name, not a value (scripts/pf_s08_session_expiry.py).
+  '''^PF_S08_JWT_EXPIRY_SECONDS$''',
 ]
