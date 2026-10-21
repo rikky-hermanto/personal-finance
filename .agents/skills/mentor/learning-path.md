@@ -260,7 +260,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 **Why it matters:** AI chat went live on real transactions on 2026-10-16 with no prompt-injection guard and no PII masking. Guardrails show up in AI Engineer job posts as a core skill. "I red-teamed my own RAG and measured the block rate" is a rare, concrete interview answer.
 
-**Plan:** [PF-AI011](../../../plans/backlog/learning/PF-AI011-ai-security-governance-todo.md) (Ready, replanned 2026-10-17 against the post-auth code)
+**Plan:** [PF-AI011](../../../plans/done/learning/PF-AI011-ai-security-governance-todo.md) (Done: merged to main 2026-10-21; only the STEP 0 recall is still open)
 
 **Tasks:**
 - Red-team baseline first: direct injection on `/ask`, indirect injection via a poisoned transfer memo, scaffold leaks. Use the in-memory harness; never write attack rows to the real transactions table
