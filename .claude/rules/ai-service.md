@@ -109,6 +109,7 @@ The .NET API maps these HTTP status codes to user-visible errors:
 | Scenario                        | Status | Response body key         |
 |---------------------------------|--------|---------------------------|
 | Invalid request (missing fields) | 422   | Pydantic validation detail |
+| Chat question flagged by the injection scanner (`/ask`, `/ask/stream`) | 400 | `"input_flagged"` — the .NET proxy maps it to 400 `{"code": "input_flagged"}`, never 502 |
 | LLM returned malformed output   | 502    | `"llm_parse_error"`       |
 | Anthropic API unreachable       | 502    | `"provider_unavailable"`  |
 | max_tokens truncation           | 502    | `"response_truncated"`    |
@@ -116,6 +117,11 @@ The .NET API maps these HTTP status codes to user-visible errors:
 | Unexpected server error         | 500    | `"internal_error"`        |
 
 Never return HTTP 200 with an empty transactions list when parsing fails — use 502.
+
+`/ask/stream` cannot change its status once tokens are flowing. When the finished answer leaks the
+prompt scaffold (OutputGuard) it ends with `event: error` and `{"detail": "output_flagged"}` instead of
+`done`; the client must discard the streamed text and show a refusal. Add error codes here in the same
+commit as the code that emits them.
 
 ## Pydantic Model Rules
 

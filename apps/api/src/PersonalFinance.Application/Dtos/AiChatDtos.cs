@@ -42,3 +42,6 @@ public sealed record AdvisorChatResponse(
 
 /// <summary>The AI service failed or refused a chat call. Mapped to 502 without the upstream body (ERR-01).</summary>
 public sealed class AiChatUnavailableException() : Exception("The AI chat service is unavailable.");
+
+/// <summary>The AI service's input guard flagged the question (400 <c>input_flagged</c>). Mapped to 400, never 502.</summary>
+public sealed class AiChatInputRejectedException() : Exception("The AI chat service rejected the question.");

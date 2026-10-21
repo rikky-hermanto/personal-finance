@@ -89,6 +89,34 @@ public class AiChatClientTests
     }
 
     [Fact]
+    public async Task StreamAskAsync_BadRequestInputFlagged_ThrowsInputRejectedException()
+    {
+        // Arrange
+        var client = BuildClient(new FakeHttpHandler(HttpStatusCode.BadRequest, "{\"detail\":\"input_flagged\"}"));
+
+        // Act
+        var ex = await Assert.ThrowsAsync<AiChatInputRejectedException>(() =>
+            client.StreamAskAsync(new AskChatRequest("q"), new MemoryStream(), CancellationToken.None));
+
+        // Assert
+        Assert.DoesNotContain("input_flagged", ex.Message);
+    }
+
+    [Theory]
+    [InlineData("{\"detail\":\"something_else\"}")]
+    [InlineData("not json at all")]
+    [InlineData("[]")]
+    public async Task StreamAskAsync_BadRequestOtherBody_ThrowsUnavailableException(string body)
+    {
+        // Arrange
+        var client = BuildClient(new FakeHttpHandler(HttpStatusCode.BadRequest, body));
+
+        // Act + Assert
+        await Assert.ThrowsAsync<AiChatUnavailableException>(() =>
+            client.StreamAskAsync(new AskChatRequest("q"), new MemoryStream(), CancellationToken.None));
+    }
+
+    [Fact]
     public async Task FollowUpsAsync_UpstreamError_ReturnsEmptyList()
     {
         // Arrange

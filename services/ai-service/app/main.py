@@ -25,6 +25,7 @@ from app.services.answerer import AnswerService, SYSTEM_PROMPT, NARRATE_PROMPT, 
 from app.services.query_planner import QueryPlanner
 from app.services.aggregator import AggregationService
 from app.services.followup_suggester import FollowUpSuggester
+from app.services.guardrails import flag_context_rows, injection_scanner, output_guard, record_flag
 from app.services.vocabulary import CategoryVocabulary
 from app.providers.factory import ProviderFactory
 from app.providers.embedding_factory import create_embedding_provider
@@ -420,9 +421,23 @@ async def search_transactions(
     )
 
 
+def _reject_flagged_query(query: str) -> None:
+    """PF-AI011 input guard: scan the raw query before any LLM call (the planner is one).
+
+    Runs on the raw text so the scanner sees the attack before masking can mangle it, and
+    outside the handlers' broad `except Exception` so the 400 is not turned into a 502.
+    """
+    scan = injection_scanner.scan(query)
+    if scan.flagged:
+        record_flag("input_guard", "security.flagged", scan.matched_rules)
+        logger.warning("chat query rejected by the input guard rules=%s", scan.matched_rules)
+        raise HTTPException(status_code=400, detail="input_flagged")
+
+
 @app.post("/ask", response_model=AskResponse)
 async def ask(request: AskRequest, owner_id: uuid.UUID = Depends(require_owner)) -> AskResponse:
     """Grounded Q&A over the user's transactions (retrieve → rerank → synthesize)."""
+    _reject_flagged_query(request.query)
     try:
         categories = await app.state.vocabulary.for_owner(owner_id)
         return await app.state.answerer.ask(request, owner_id=owner_id, categories=categories)
@@ -476,7 +491,11 @@ async def ask_stream(
       metadata  → JSON: {contexts:[...], intent, total_idr?, count?}
       token     → string: one text chunk from the LLM
       done      → JSON: {confident, verified, intent, total_idr?}
+      error     → JSON: {detail}; `output_flagged` means the finished answer leaked the prompt
+                  scaffold and the client must drop the tokens it already received.
     """
+    _reject_flagged_query(request.query)
+
     async def event_generator():
         today = datetime.date.today()
         try:
@@ -503,19 +522,27 @@ async def ask_stream(
                 {"contexts": _context_payload(agg.rows), "intent": "aggregate",
                  "total_idr": total_idr, "count": agg.count})}
 
+            flag_context_rows(agg.rows)
             user_prompt = (
                 f"VERIFIED TOTAL: Rp {agg.total_idr:,.0f} from {agg.count} transactions\n"
                 f"Filters: categories={plan.categories} {plan.date_from}..{plan.date_to} flow={plan.flow}\n"
                 f"Largest rows:\n{_format_context(agg.rows)}\n\nQuestion: {request.query}"
             )
+            narration: list[str] = []
             try:
                 async for token in app.state.provider.stream_generate(NARRATE_PROMPT, user_prompt):
                     if await req.is_disconnected():
                         break
+                    narration.append(token)
                     yield {"event": "token", "data": token}
             except Exception:
                 logger.exception("stream_generate failed (aggregate)")
                 yield {"event": "error", "data": json.dumps({"detail": "generation_failed"})}
+                return
+
+            if output_guard.check("".join(narration)).flagged:
+                logger.warning("aggregate stream leaked the prompt scaffold: ending with output_flagged")
+                yield {"event": "error", "data": json.dumps({"detail": "output_flagged"})}
                 return
 
             # verified=True by construction: total_idr came from SQL, not the prose.
@@ -549,6 +576,7 @@ async def ask_stream(
         yield {"event": "metadata", "data": json.dumps(
             {"contexts": _context_payload(contexts), "intent": "lookup"})}
 
+        flag_context_rows(contexts)
         user_prompt = (
             f"Context transactions:\n{_format_context(contexts)}\n\n"
             f"Question: {request.query}"
@@ -570,6 +598,11 @@ async def ask_stream(
         # Post-stream guard: every [n] marker must map to a context we sent. An
         # answer that cites nothing is unverifiable by definition (verified=False).
         text = "".join(buffer)
+        if output_guard.check(text).flagged:
+            # Tokens already reached the client; the error event tells it to discard them.
+            logger.warning("lookup stream leaked the prompt scaffold: ending with output_flagged")
+            yield {"event": "error", "data": json.dumps({"detail": "output_flagged"})}
+            return
         markers = {int(m) for m in re.findall(r"\[(\d+)\]", text)}
         valid = set(range(1, len(contexts) + 1))
         verified = bool(markers) and markers <= valid

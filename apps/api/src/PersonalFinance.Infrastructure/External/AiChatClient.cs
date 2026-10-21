@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -49,7 +50,7 @@ public sealed class AiChatClient(
             var body = await response.Content.ReadFromJsonAsync<FollowUpsResponse>(Json, ct);
             return body?.Questions ?? [];
         }
-        catch (Exception ex) when (ex is AiChatUnavailableException or HttpRequestException or JsonException)
+        catch (Exception ex) when (ex is AiChatUnavailableException or AiChatInputRejectedException or HttpRequestException or JsonException)
         {
             // Suggestions are decorative; the browser falls back to its static chips.
             return [];
@@ -89,8 +90,31 @@ public sealed class AiChatClient(
     {
         if (response.IsSuccessStatusCode) return;
         var body = await response.Content.ReadAsStringAsync(ct);
+        if (response.StatusCode == HttpStatusCode.BadRequest && IsInputFlagged(body))
+        {
+            // A refusal, not an outage: the question tripped the injection scanner. The body holds
+            // only the rule-free code, and is not logged.
+            logger.LogWarning("ai-service {Path} flagged the question as input_flagged", path);
+            throw new AiChatInputRejectedException();
+        }
         logger.LogError("ai-service {Path} returned {Status}: {Body}", path, (int)response.StatusCode, body);
         throw new AiChatUnavailableException();
+    }
+
+    private static bool IsInputFlagged(string body)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("detail", out var detail)
+                && detail.ValueKind == JsonValueKind.String
+                && detail.GetString() == "input_flagged";
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
     }
 
     private sealed record FollowUpsResponse([property: JsonPropertyName("questions")] IReadOnlyList<string>? Questions);

@@ -14,6 +14,8 @@ import logging
 
 from app.models import FollowUpRequest
 from app.providers.base import LlmProvider
+from app.services.answerer import SPOTLIGHT_CLAUSE, _spotlight
+from app.services.pii_masker import mask_pii
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +50,8 @@ descriptions, amounts, categories, accounts. Never ask about investments, \
 assets, net worth, or for advice.
 - Prefer category names from the provided list, verbatim.
 - Never repeat the question the user just asked.
-- Maximum 80 characters each. Write in the same language as the question."""
+- Maximum 80 characters each. Write in the same language as the question.
+""" + SPOTLIGHT_CLAUSE
 
 
 def _clean(raw: object, original: str) -> list[str]:
@@ -108,7 +111,7 @@ class FollowUpSuggester:
             lines.append(f"Verified total: Rp {request.total_idr:,.0f}")
         if request.contexts:
             rows = "\n".join(
-                f"- {c.date} | {c.description} | {c.flow} | Rp {c.amount_idr:,.0f}"
+                f"- {c.date} | {_spotlight(mask_pii(c.description))} | {c.flow} | Rp {c.amount_idr:,.0f}"
                 for c in request.contexts
             )
             lines.append(f"Transactions cited in the answer:\n{rows}")
