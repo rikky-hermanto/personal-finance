@@ -26,6 +26,25 @@ If no argument given, ask which plan to execute.
 
 ## Pre-Flight
 
+### Step 0a — Worktree status sync (when the work happens in a worktree)
+
+Status is tracked in the **main checkout**, even when the code is written in a worktree: the owner watches `plans/` and `plans/BOARD.md` there. Never move a plan file or edit the board by hand; use the loop engine:
+
+```bash
+RUN="$HOME/.claude/skills/loop-run/scripts/run.mjs"
+MAIN=$(git worktree list --porcelain | head -1 | sed 's/^worktree //')   # first entry = the main checkout
+```
+
+- **Isolation requested** ("in isolated worktree", "in a worktree"), or you are in the main checkout and the plan is in `backlog/`: run `node "$RUN" start --hand --id <ID> --root "$MAIN"` first. It creates (or reuses) `.worktrees/<id>` on branch `loop/<id>`, moves the ticket to `in-progress/` in the main checkout, refreshes the board, and puts a plan copy in the worktree. Then do all work in that worktree.
+- **Plan to read and update:** the copy at `<worktree>/plans/in-progress/**/<ID>-*-todo.md`, not the `backlog/` file that is still tracked in the worktree.
+- **Already in `.worktrees/<id>` and the ticket is already `in-progress` in the main checkout:** nothing to start.
+- **In a different worktree** (not `.worktrees/<id-lowercase>`): tracking is unavailable. Say so in the final summary; do not fake it.
+- If `start --hand` refuses (slot held, ticket Blocked, not `Ready`), report the reasons and stop tracking. Do not work around them.
+
+After the single batch plan Write at the end, run `node "$RUN" sync --id <ID> --root "$MAIN" --note "<one line: steps done, gates, what is open>"`. It copies the checkboxes to the main checkout and refreshes the board.
+
+A hand run has no independent verifier, so the ticket **stays `in-progress`** ("implementation awaiting verification", see `plans/README.md`). Only `/loop-run` moves a ticket to `ready-to-review`. Report the ticket's folder in the final summary.
+
 ### Step 0 — Orient yourself
 
 Read these in parallel before touching a single file:
@@ -158,6 +177,8 @@ Steps skipped/failed: [list with reasons, or "none"]
 Acceptance Criteria:
 ✅ [criterion]
 ❌ [criterion] — [why not met]
+
+Ticket status: [folder in the main checkout, and whether `sync` ran]
 
 Next steps:
 - Review changes in your git client
