@@ -7,7 +7,7 @@ The full writing spec lives in the mentor skill (`.agents/skills/mentor/SKILL.md
 
 | Artifact | Spec |
 |---|---|
-| PF-AIxxx plan file | Plan anatomy: TOC → Introduction → Implementation → Knowledge Check |
+| PF-AIxxx plan file | Plan anatomy: TOC → Introduction → Implementation → Knowledge Check → Owner Review Checklist (G3, before Loop Notes) |
 | `-id` companion ("versi belajar") | The 8 fixed Indonesian headings below |
 | `docs/mentor/{topic}.md` topic doc | Define first (see "Topic docs") |
 | Blog draft | Blog rules. "No preamble, first sentence is the hook" applies to blog posts **only** |

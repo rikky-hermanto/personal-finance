@@ -7,7 +7,7 @@ The first folder below `plans/` is the **local status** of a task:
 | `epics/` | Draft and planned epics, written by the owner and clarified at G1 (loop) |
 | `backlog/` | Proposed or deferred work, including items tagged Ready that have not started. |
 | `in-progress/` | Work started or implementation awaiting required verification or acceptance. Note blockers in the plan and board. |
-| `ready-to-review/` | Tickets that passed the gates and wait for the owner's review at G3 (loop) |
+| `ready-to-review/` | Tickets that passed the gates and wait for the owner's review at G3 (loop). Each plan carries a `## ✅ Owner Review Checklist (G3)` section just before `## Loop Notes`, written by `/execute`. |
 | `done/` | Accepted or closed scope. Historical unchecked follow-ups stay recorded in the plan. |
 | `cancelled/` | Explicitly cancelled or superseded plans kept for history. |
 

@@ -26,12 +26,13 @@ run:
   segments: 0
   checkpoint: .loop/runs/PF-AI009/checkpoint.json
   logs: .loop/runs/PF-AI009/
+  verdict: pass
 ---
 
 # PF-AI009 — Model Context Protocol (MCP) Server
 
 > **Learning Phase:** Phase 3 · Chapter 9 of 12 · Day ~60 of 90
-> **Status:** To Do
+> **Status:** Ready to review (merged in PR #87; manual Claude Desktop test pending)
 > **Started:** —
 > **Planned from branch:** main
 > **Revised:** 2026-07-07 — mentor-skill audit revisions applied (ladder-first Introduction + Table of Contents added, Implementation wrapped under one H1, C# equivalents added for every tool/test code block, Knowledge Check answers reshuffled off all-B, `---` dividers removed)
@@ -64,6 +65,7 @@ run:
   - [📚 Resources / Theory to Learn](#-resources--theory-to-learn)
   - [🧠 Learning Strategy](#-learning-strategy)
   - [📝 Knowledge Check](#-knowledge-check)
+  - [✅ Owner Review Checklist](#-owner-review-checklist-g3)
 
 # 📖 Introduction
 
@@ -1557,6 +1559,98 @@ Organized by concept — read when building the relevant step, not all upfront.
 **A** — single responsibility applied to agents: the Analyst handles tool calls (data access); the Advisor handles synthesis (reasoning over the report). Giving both MCP access doubles retrieval calls, adds latency at every synthesis step, and couples the Advisor to the data schema. The hand-off pattern (Analyst produces structured report → Advisor receives it as a text message) is the building block of every multi-agent pipeline — and the answer to "how do you design a system that needs multiple AI capabilities?"
 *Maps to: Databricks GenAI Engineer Associate · Application Development (multi-agent design); AWS Certified ML Engineer – Associate · Model deployment*
 </details>
+
+## ✅ Owner Review Checklist (G3)
+
+> **State at review time (2026-10-22):** code merged to `main` through PR #87 (`d412d87c`). The separate verifier passed 9/9 acceptance criteria, but every tool was tested with mocks, so nothing here has run against the live stack, a real MCP client, or the .NET API yet. This checklist is that live check. Work top to bottom and stop at the first failure; each step says what a pass looks like. Tick the boxes as you go.
+
+**Known defect to confirm in Step 7.** `get_pyramid_scores` calls `GET /api/journey/scores`, but `JourneyController` has no `scores` route (it has `state`, `recalculate` and `quests`), and the API now requires a signed-in user by default (`FallbackPolicy` in `Program.cs`). Expect that tool to fail with 404 or 401 until a follow-up ticket fixes it. The mocked test could not catch this.
+
+### A. Before you start
+
+- ☐ `git branch --show-current` in `c:\workspaces\personal-finance` shows `main`, and `git log --oneline -1` shows `d412d87c` or later.
+- ☐ Supabase is running with your real data (the owner account has transactions for 2026-05-01 to 2026-08-03). "This month" prompts will return nothing for October; use the date range in the prompts below.
+- ☐ You have a spare terminal for the stack and Claude Desktop installed.
+
+### B. Read the code (about 10 minutes)
+
+Open `services/ai-service/app/mcp_server.py` and `services/ai-service/app/main.py` (the `/mcp` mount and `pilot_access_gate` bypass).
+
+- ☐ Every SQL filter in `get_transactions` goes through a `$n` placeholder, never string-formatted values. The row cap is `min(limit, 100)`.
+- ☐ `get_cashflow_summary` only interpolates the fixed `_PERIOD_SQL` expressions, never the `period` text you pass in.
+- ☐ `search_transactions_semantic` caps `top_k` at 20 and passes `owner_id` to the retriever.
+- ☐ No credential, token or `claude_desktop_config.json` is in the PR diff (`git show --stat d412d87c`).
+- ☐ You accept that `/mcp` has no auth and skips the pilot-access gate (local-only, as the plan scoped it).
+
+### C. Run the tests
+
+```bash
+cd services/ai-service
+.venv/Scripts/python.exe -m pytest tests/test_mcp_server.py -v     # expect 7 passed
+.venv/Scripts/python.exe -m pytest -q                              # expect 358 passed
+```
+
+- ☐ 7 passed for `test_mcp_server.py`.
+- ☐ Full suite green (358 passed at the time of the verifier run).
+
+### D. Start the stack and check the endpoint
+
+```bash
+npm start
+```
+
+- ☐ `http://localhost:8000/health` returns OK, `http://localhost:7208/health` returns OK (the .NET API is needed for Step 7).
+- ☐ The AI service log shows no traceback at startup (a failure creating the MCP asyncpg pool would show here).
+- ☐ `curl -i --max-time 3 http://localhost:8000/mcp` is not a 404. A redirect or an open `text/event-stream` response is fine; if you get a redirect, repeat with `http://localhost:8000/mcp/`. The command timing out after 3 seconds on an open stream is normal.
+- ☐ `netstat -ano | findstr :8000` shows `127.0.0.1:8000`, not `0.0.0.0:8000` (the endpoint has no auth, so it must stay local).
+
+### E. Test the server alone with MCP Inspector
+
+This separates "server bug" from "Claude Desktop config problem".
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+- ☐ Choose the SSE transport, URL from Step D, click Connect; it connects without error.
+- ☐ The Tools tab lists exactly four tools: `get_transactions`, `get_cashflow_summary`, `get_pyramid_scores`, `search_transactions_semantic`.
+- ☐ Each tool's schema shows named, typed parameters (not an empty `{}`).
+- ☐ `get_transactions` with `date_from=2026-05-01`, `date_to=2026-08-03`, `limit=5` returns 5 rows with `date, description, category, amount_idr, flow, account`.
+- ☐ `get_transactions` with `limit=9999` returns at most 100 rows.
+- ☐ `get_cashflow_summary` with `period=this_year` returns category rows with numeric totals (it may be empty or small if the year has little data; an error is a failure).
+- ☐ `search_transactions_semantic` with `query=kopi`, `top_k=3` returns results with a `similarity` value, or an empty list with no error.
+
+### F. Connect Claude Desktop
+
+Config file: `%APPDATA%\Claude\claude_desktop_config.json` (do not commit it).
+
+```json
+{ "mcpServers": { "personal-finance": { "url": "http://localhost:8000/mcp" } } }
+```
+
+- ☐ Saved the config and fully restarted Claude Desktop (it only reads the file at startup).
+- ☐ All four tools appear in the tools panel. If not, follow the debugging box under the Manual follow-up step (DevTools console, then the stdio fallback). If you end up on stdio, note it under Notes: that means SSE was not usable in your Claude Desktop version.
+
+### G. Run the demo prompts
+
+For each prompt, check the tool Claude chose, the parameters it passed, and that the numbers match what you see in the app's Cashflow page.
+
+- ☐ "Apa saja transaksi BCA-ku antara 1 Juli dan 3 Agustus 2026?" calls `get_transactions` with `account` containing BCA and the date range.
+- ☐ "Berapa total pengeluaran per kategori tahun ini?" calls `get_cashflow_summary("this_year")`; the food total matches the app.
+- ☐ "Cari transaksi kopi" calls `search_transactions_semantic`.
+- ☐ "Seberapa sehat keuanganku sekarang?" calls `get_pyramid_scores`. **Expected to fail today (see the known defect above).** Write down the exact error Claude shows.
+
+### H. Optional stretch
+
+- ☐ Run the 2-agent demo: it lives in `.worktrees/pf-ai009/services/ai-service/scratch/mcp_agent_demo.py` (gitignored, so it is not on `main`). Copy it somewhere safe before the worktree is removed, then run `PYTHONPATH=. python scratch/mcp_agent_demo.py` with a real `ANTHROPIC_API_KEY`.
+- ☐ Anthropic MCP quickstart and Academy series (Chapter 9 checklist items in `docs/mentor/progress.md`).
+
+### I. Decide and close
+
+- ☐ Tools 1, 2 and 3 work end to end. Tool 4 failure is recorded.
+- ☐ Decide on `get_pyramid_scores`: either accept the ticket with a follow-up ticket (fix the route to `/api/journey/state` and give the MCP server a way to authenticate as the owner), or hold the ticket until it is fixed.
+- ☐ Tick the matching items in `docs/mentor/progress.md` (Chapter 9: "Test from Claude Desktop").
+- ☐ **Do not run `/loop-accept PF-AI009`.** It would try to merge `loop/pf-ai009`, which already went to `main` through PR #87. Tell Claude "PF-AI009 passed review": it will move the plan to `plans/done/learning/`, update the board, and remove the `loop/pf-ai009` branch and `.worktrees/pf-ai009` worktree.
 
 ## Loop Notes
 - 2026-10-21 22:27 Asia/Makassar Loop-Failed: executor exited 1 after 0 min. Worktree and branch kept (.worktrees/pf-ai009).

@@ -152,6 +152,19 @@ Do this by actually checking — read files, run commands, inspect output. Do no
 
 ---
 
+## Owner Review Checklist (write it with the final plan Write)
+
+Every plan this skill runs can end up in `ready-to-review/`, where the owner reviews it by hand (loop gate G3). Give the owner a step-by-step way to do that: add one section to the plan, inside the same single batch `Write` as the checkbox updates.
+
+- **Where:** a `## ✅ Owner Review Checklist (G3)` section near the end of the plan, immediately before `## Loop Notes` (at the very end if there is no Loop Notes). Same heading level as `## 📝 Knowledge Check`; its parts are `###` headings lettered A, B, C. If the plan has a Table of Contents, add an entry for it after the last entry. If the section already exists (rework), update it instead of adding a second one.
+- **What it covers, in this order:** (A) before you start: branch, services and data needed; (B) read the code: the specific files and what to look for; (C) run the tests, with the exact commands and expected counts; (D) start the stack and check it; (E) one live check per acceptance criterion that was only proven with mocks, or that the plan moved to a manual follow-up; (F) optional stretch work; (G) decide and close: what "accepted" means, and what to tell Claude so it moves the plan to `done/`.
+- **Open with a state line** (what is merged or verified, and what the verifier could not check) and, if you found defects while executing, a **Known defects to confirm** paragraph naming each one with its file and why a mocked test could not catch it. Never leave a known defect out of the checklist.
+- **Every item** names the command, URL or file, and what a pass looks like. No "verify it works".
+- **Checkbox glyph:** write items as `- ☐`, never `- [ ]`. The loop executor gate counts `- [ ]` lines in the plan and fails the run while any are open, so real checkboxes here would fail the run. The owner ticks an item by changing `☐` to `☑`.
+- **Closing step:** if the branch is merged through a pull request, tell the owner not to run `/loop-accept` (it would try to merge again) and to ask Claude to move the plan to `done/` and remove the branch and worktree instead.
+
+---
+
 ## Cross-File Wiring Check
 
 Before writing the final summary, verify that anything new the plan introduced is actually wired up — a class that compiles but is never referenced is a silent failure:
@@ -192,7 +205,7 @@ Next steps:
 
 - **Never ask permission mid-execution.** You have pre-approval to implement everything in the plan.
 - **Never skip a step silently.** If you can't do it, document why.
-- **Never modify the plan's content** (Objective, Approach, Acceptance Criteria wording) — only update `[ ]` → `[x]` checkboxes.
+- **Never modify the plan's content** (Objective, Approach, Acceptance Criteria wording) — only update `[ ]` → `[x]` checkboxes and add the Owner Review Checklist section.
 - **Mark all steps done in a single batch at the very end** — use ONE `Write` call to rewrite the entire plan file with all checkboxes updated. Never use multiple Edit calls (one per checkbox) and never edit the plan file mid-execution.
 - **If a step produces a compilation error or test failure**, fix it before moving on. The plan is your spec; the code must match it.
 - **Commit nothing.** Leave all changes uncommitted for the user to review.
