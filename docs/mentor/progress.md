@@ -114,7 +114,7 @@
 ### Chapter 9: Model Context Protocol (MCP)
 - [ ] Complete Anthropic MCP quickstart (~30 min, server up first, spec later)
 - [ ] Complete Anthropic Academy MCP Series
-- [ ] Build personal-finance MCP server exposing: `get_transactions`, `get_pyramid_scores`, `search_transactions_semantic`, `get_cashflow_summary`
+- [x] Build personal-finance MCP server exposing: `get_transactions`, `get_pyramid_scores`, `search_transactions_semantic`, `get_cashflow_summary`
 - [ ] Test from Claude Desktop or another MCP client
 - [ ] Stretch: build a 2-agent workflow where one agent calls your MCP server as a tool
 
@@ -1035,3 +1035,28 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - Fix `--permission-prompts` in the `loop-run` skill before the next loop run.
 
 **Streak: 3 days** (2026-10-19 to 2026-10-21)
+
+### 2026-10-21 — Day 148 — Chapter 9 MCP server built (PF-AI009)
+
+**Session: PF-AI009 (Chapter 9, Model Context Protocol) built through the loop**
+
+- Built the personal-finance MCP server: `app/mcp_server.py` exposing four typed tools over FastMCP — `get_transactions` (filtered SQL with parametrized WHERE + a hard 100-row cap), `get_cashflow_summary` (totals grouped by category in SQL for this_month/last_month/this_year), `get_pyramid_scores` (httpx call to the .NET `GET /api/journey/scores`, so .NET keeps owning the scoring logic), and `search_transactions_semantic` (reuses the PF-AI003 `RetrievalService`, capped at top_k=20).
+- Mounted it on the existing FastAPI app at `/mcp` over SSE so Claude Desktop connects to the already-running service and shares its asyncpg pool — no second process.
+- Wrote 7 unit tests (`tests/test_mcp_server.py`), all external calls mocked (asyncpg + httpx + retriever). Prior segment reported the full AI-service suite green at 358 passed; this worktree has no venv, so the suite was not re-run this segment.
+- Stretch (STEP 10): wrote the 2-agent Analyst→Advisor demo at `services/ai-service/scratch/mcp_agent_demo.py` (gitignored, needs a real `ANTHROPIC_API_KEY` to run).
+
+**Concept learned:** a `dict` return annotation gives an MCP client an opaque `{}` schema, so the model guesses field names; a typed `list[dict[str, Any]]` plus a field-listing docstring generates named, typed fields the client reads before it ever calls the tool. SSE beats stdio here because stdio would spawn a fresh process (cold pool, cold retriever) per connection, while SSE reuses the warm service on port 8000.
+
+**Reconciled stale-plan drift (the plan predates auth):** fastmcp 4.1.3 has no `sse_app()` — mounted via `mcp.http_app(path="/", transport="sse")` with its session-manager lifespan driven from the main lifespan; `httpx`/`net_api_base_url` were already present from Chapter 8; PF-S15 made `RetrievalService.search()` owner-scoped, so the semantic tool now resolves and passes a local `owner_id`.
+
+**Remaining (manual, cannot run headless):**
+- STEP 8 — install/configure Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, SSE URL `http://localhost:8000/mcp`), start the full stack with real data, and run the four demo prompts end-to-end. This is a GUI + live-data step with no automatable path in the loop.
+- Run the Anthropic MCP quickstart / Academy series and the stretch demo interactively (need an API key and the MCP Inspector).
+
+**Chapter 9 checklist progress:**
+- [x] Build the MCP server exposing the four tools (code + tests + SSE mount)
+- [ ] Test from Claude Desktop (manual, STEP 8)
+- [ ] Anthropic MCP quickstart + Academy series (manual)
+- [~] Stretch 2-agent workflow — demo file written; run needs an API key
+
+**Streak: 4 days** (2026-10-19 to 2026-10-21)

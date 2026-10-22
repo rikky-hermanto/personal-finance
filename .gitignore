@@ -120,3 +120,6 @@ docs/architecture/quartext-tech-alignment-matrix.md
 /tools/jev-router/
 /.jev-local/
 .loop/
+
+# Learning scratch files (PF-AI chapters) — hands-on aids, never committed
+services/ai-service/scratch/
