@@ -445,7 +445,7 @@ test('assets flow: add institution → account → valuation → verify headline
 | `real_estate` | Plot Land (Silangit) | Tanah, Rumah |
 | `tangibles` | Gold (Tokopedia, Bulaklak) | Emas batangan |
 | `vehicles` | (not in Excel yet) | Mobil, Motor |
-| `receivables` | Piutang (Melda/Lae, Nelly, Roga, Pesta, Ucok) | Pinjaman ke orang |
+| `receivables` | Piutang (PERSON_W, PERSON_V, PERSON_X, PERSON_A, PERSON_Y) | Pinjaman ke orang |
 | `retirement` | Jamsostek | BPJS, DPLK |
 
 ## Notes

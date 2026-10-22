@@ -4,16 +4,16 @@ BI-FAST CR TRANSFER   DR 562 ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
 BI-FAST CR TRANSFER   DR 490 ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
 TRANSFER IN TRANSFER MASUK ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
 TRANSFER OUT ACCOUNT_HOLDER 000000001;Saving;
-Transfer dari Pesta Horas Situmora;Asset Transfer;Loan Repayment
-TRANSFER OUT MUHAMMAD IZUDDIN HAN;Expense;Bill
-Transfer ke Pesta Horas Situmora;Asset Transfer;Loan Given
+Transfer dari PERSON_A;Asset Transfer;Loan Repayment
+TRANSFER OUT PERSON_B;Expense;Bill
+Transfer ke PERSON_A;Asset Transfer;Loan Given
 Sent money to Account Holder;Asset Transfer;Bank Transfer
 Transfer dari ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
 TRANSFER OUT ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
 Transfer ke Account Holder;Asset Transfer;Bank Transfer
 TRANSFER IN ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
 Incoming ACCOUNT_HOLDER;Asset Transfer;Bank Transfer
-Putu Astri Wulandari Ern;Expense;Vet and Dog Supply
+PERSON_C;Expense;Vet and Dog Supply
 Top up ACCOUNT_HOLDER;Expense;E-Wallet
 Dnid 08000000000 Top Up;Expense;E-Wallet
 TRANSFER IN SYAFTRACO;Asset Transfer;Bank Transfer
@@ -21,26 +21,26 @@ SWITCHING WITHDRAWAL;Expense;Withdrawing
 Yayasan Bali Rescue;Expense;Vet and Dog Supply
 SWITCHING BIAYA TXN;Expense;Transfer/Admin Fee
 BERKAT LISAN MULIA;Expense;Vet and Dog Supply
-KADEK KRISNA CHAND;Expense;Self-Care
-Priwitri Sanjiwani;Expense;Self-Care
-I DEWA GEDE RADITY;Expense;Service Fee
-LIDYA EVANGELISTA;Expense;Bill
+PERSON_D;Expense;Self-Care
+PERSON_E;Expense;Self-Care
+PERSON_F;Expense;Service Fee
+PERSON_G;Expense;Bill
  SS LIVING WORLD;Expense;Clothing
 BALI RESCUE DOG;Expense;Vet and Dog Supply
-NI MADE CHRISTA;Expense;Vet and Dog Supply
+PERSON_H;Expense;Vet and Dog Supply
 Withholding Tax;Expense;Tax
-Nyoman Sunita;Expense;Vet and Dog Supply
+PERSON_I;Expense;Vet and Dog Supply
 Bunga Didapat;Income;Saving Interest
 Token Listrik;Expense;Electricity
-Saepul Anwar;Expense;Self-Care
+PERSON_J;Expense;Self-Care
 Housekeeping;Expense;Housekeeping
- Alison Gray;Expense;Charitable Donations
-Saka Wiryana;Expense;Vet and Dog Supply
+ PERSON_K;Expense;Charitable Donations
+PERSON_L;Expense;Vet and Dog Supply
 Klinik Hewan;Expense;Vet and Dog Supply
-Edi Susanto ;Expense;Entertainment
+PERSON_M ;Expense;Entertainment
 SUPER GEDGET;Expense;Gadget
-SARIF DAHLAN;Expense;Service Fee
-KETUT CATRA;Expense;Bill
+PERSON_N;Expense;Service Fee
+PERSON_O;Expense;Bill
 Olahan Laut;Expense;Food
 Nook Umala;Expense;Food
 BALI BOOZY;Expense;Food
@@ -71,7 +71,7 @@ PUTRA BANG;Expense;Food
 COCOSUPERM;Expense;Groceries
 JOHNNY ROC;Expense;Food
 GULALI DON;Expense;Food
-Dika Mahen;Expense;Medical
+PERSON_P;Expense;Medical
 GOLDEN LAM;Expense;Food
 ORLENALYCI;Expense;Food
 RAMEN 1 IC;Expense;Food
@@ -81,7 +81,7 @@ HO CIAK SA;Expense;Food
 KULIDANCOF;Expense;Food
 translator;Expense;Service Fee
 Gold Massa;Expense;Entertainment
-MERRY WATI;Expense;Service Fee
+PERSON_Q;Expense;Service Fee
 Ubi Cilemb;Expense;Food
 WR. JOBLAR;Expense;Food
 Ayam Gepre;Expense;Food
@@ -99,12 +99,12 @@ EKA PRINT;Expense;Vet and Dog Supply
 Biaya Adm;Expense;Transfer/Admin Fee
 UBI BAKAR;Expense;Food
 MOTO KOPI;Expense;Food
- DIPTA SA;Expense;Self-Care
-LISTRIANI;Expense;Vet and Dog Supply
+ PERSON_R;Expense;Self-Care
+PERSON_S;Expense;Vet and Dog Supply
 Ovo Topup;Expense;E-Wallet
 Golden Li;Expense;Food
 ACK Celuk;Expense;Food
-YURISTINA;Expense;Service Fee
+PERSON_T;Expense;Service Fee
 GL-LIVING;Expense;Food
 NOOK BALI;Expense;Food
 AMAN JAYA;Expense;Groceries
@@ -125,7 +125,7 @@ APOTEKKU;Expense;Medical
 MISANTO;Expense;Food
 KYOUDAI;Expense;Food
 1310013;Saving;Stock
-IZUDDIN;Expense;Bill
+PERSON_B;Expense;Bill
 Netflix;Expense;Bill
 chatGPT;Expense;Bill
 Tarikan;Expense;Withdrawing
@@ -136,7 +136,7 @@ The Ong;Expense;Food
 HB BATU;Expense;Food
 Clandy;Expense;Groceries
 LAKLAK;Expense;Food
-WIGUNA;Expense;Bill
+PERSON_U;Expense;Bill
 Conato;Expense;Food
 Pepito;Expense;Food
 PT MNC;Expense;Entertainment
@@ -166,7 +166,7 @@ Donat;Expense;Food
 FORE ;Expense;Food
 ADHIS;Expense;Groceries
 padel;Expense;Sport and Game Activities
-Nelly;Asset Transfer;Loan Given
+PERSON_V;Asset Transfer;Loan Given
 KYOTO;Expense;Food
 BPJS;Expense;Bill
 Roti;Expense;Food

@@ -8,7 +8,7 @@
 
 ## Context
 
-User currently tracks net worth in an Excel **Balance Sheet** with monthly snapshot columns (Sep 2025 → Apr 2026), covering Hard Cash (BCA, Bank Jago, Neo Bank, Seabank, Superbank, Wise — incl. AUD/SGD/USD sub-balances), Stock/Mutual Fund (Mansek, Bibit, Stockbit), Crypto (Binance, Pluang), Gold, Plot Land, Piutang (receivables: Melda/Lae, Nelly, Roga, Pesta, Ucok), and a Liabilities row (Kartu Kredit BCA). The bottom rows compute **NET WORTH + monthly growth %**, with red/green conditional formatting and event annotations ("BTC CL happening", "AUD naik tajam", "Bleeding MSCI + IRAN").
+User currently tracks net worth in an Excel **Balance Sheet** with monthly snapshot columns (Sep 2025 → Apr 2026), covering Hard Cash (BCA, Bank Jago, Neo Bank, Seabank, Superbank, Wise — incl. AUD/SGD/USD sub-balances), Stock/Mutual Fund (Mansek, Bibit, Stockbit), Crypto (Binance, Pluang), Gold, Plot Land, Piutang (receivables: PERSON_W, PERSON_V, PERSON_X, PERSON_A, PERSON_Y), and a Liabilities row (Kartu Kredit BCA). The bottom rows compute **NET WORTH + monthly growth %**, with red/green conditional formatting and event annotations ("BTC CL happening", "AUD naik tajam", "Bleeding MSCI + IRAN").
 
 The product today solves *cashflow* — the **transaction stream** ("where did my money go"). PF-107 introduces a separate second pillar — the **balance sheet** ("what do I own and what is it worth right now") — to replace this Excel workflow inside the app.
 
@@ -23,7 +23,7 @@ Two teams pitched proposals. **My job: pick which ideas come in, ruthlessly.**
 Both teams proposed varying degrees of tight coupling (Team B most aggressively — `transactions.account_id` FK, dual-write `wallet`/`Account`, statement-upload auto-writes `Valuation`, Cashflow↔NetWorth reconciliation widget). This is rejected. Rationale:
 
 - **Different mental models.** Cashflow is an *event stream* of transactions. Assets is *point-in-time snapshots* of value. Forcing them into one schema forces compromises in both.
-- **Assets records data cashflow never sees.** Gold bought in 2020, a plot of land, piutang to Ucok, depreciation of a car, market revaluation of Mansek — none of these are transactions. Manual entry is not a fallback, it is *the* primary input for half of the balance sheet.
+- **Assets records data cashflow never sees.** Gold bought in 2020, a plot of land, piutang to PERSON_Y, depreciation of a car, market revaluation of Mansek — none of these are transactions. Manual entry is not a fallback, it is *the* primary input for half of the balance sheet.
 - **Coupling blocks shipping.** If `Valuation` rows depend on `bank_running_balance` quality across 5 parsers, Phase 1 inherits 5 banks' worth of edge cases before user sees any value.
 - **Convergence point is not yet obvious.** When we find the right reconciliation seam (likely: monthly statement balance auto-becoming a candidate `Valuation` after user confirms), we add it as a feature. Not as a foundation.
 
