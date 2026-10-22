@@ -56,6 +56,14 @@ rtk proxy npx supabase db push --local
 
 API startup does not apply migrations. Database reset removes data; remote push is separate from local setup. No startup/migration/reset was performed by this documentation sync. See [setup](../SETUP.md).
 
+## Supabase Cloud go-live checklist
+
+`supabase/config.toml` configures only the local stack and never reaches the hosted project. Before go-live, set these in the Supabase Cloud dashboard (Authentication, then Policies/Providers) so the password policy from PF-146 applies in production:
+
+- [ ] Minimum password length 12.
+- [ ] Password requirements: lower and upper case letters, digits and symbols.
+- [ ] Secure password change enabled (a recent sign-in is required to change a password).
+
 ## Verification still required
 
 | Scope | Needed evidence |
