@@ -31,14 +31,17 @@ dependencies = [
     # Jev categorization is an opt-in backend. Keep the pre-1.0 SDK bounded so
     # response-model or retry-default changes require an explicit review.
     "typesafe-sdk>=0.7.2,<0.8",
-    # Upper-bounded below 1.0: unbounded ">=0.2" resolves to langgraph 1.x, which
-    # requires langchain-core>=1.4.7 — that upgrade cascades and breaks the pinned
-    # ragas/langchain-openai/langchain-community stack below (same class of issue
-    # as the ragas pin's comment). langgraph 0.6.11 is the last pre-1.0 release and
-    # resolves against the langchain-core 0.3.x line already required here.
+    # Upper-bounded below 1.0. Every langgraph/langchain-core advisory is fixed only on
+    # the 1.x line, but 1.x needs langchain-google-genai 4.x, which no longer ships
+    # google.api_core; app/agents/chat_model_factory.py patches that client directly, so
+    # moving means rewriting the agent model factory. Accepted in
+    # docs/reference/accepted-risks.md (PF-147); revisit as its own ticket.
     "langgraph>=0.2,<1.0",
     "langchain-anthropic>=0.3,<1.0",
-    # Runtime advisor adapter; 3.x+ would break the bounded eval stack below.
+    # app/services/advisor.py imports langfuse.langchain, which needs the langchain
+    # package itself. It used to arrive only through the eval stack; declare it.
+    "langchain>=0.3,<1.0",
+    # Runtime advisor adapter; 3.x+ drops the client chat_model_factory.py relies on.
     "langchain-google-genai>=2.0,<3.0",
     "httpx>=0.27",
     # PF-AI009: MCP server (FastMCP over SSE) co-located on the AI service.
@@ -53,6 +56,10 @@ dev = [
     "pytest-asyncio>=0.25.0",
     "httpx>=0.28.0",
     "anyio>=4.8.0",
+]
+
+# PF-147: eval-only stack, kept out of the production image and the dev install.
+eval = [
     # Pinned to the 0.2 line with an upper bound: unbounded ">=0.2" resolves to
     # ragas 0.4.x + langchain 1.x, which are mutually incompatible (ragas 0.4.3
     # imports ChatVertexAI from a langchain_community path deleted in langchain 1.x).
