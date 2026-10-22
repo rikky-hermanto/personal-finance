@@ -1,3 +1,33 @@
+---
+id: PF-AI009
+size: L
+flags: [Ready]
+sensitive: []
+rework: 0
+loopFailures: 2
+review: none
+recommended:
+  model: opus
+  effort: high
+  estimate5h: null
+  estimateWeek: null
+approved:
+  model: opus
+  effort: high
+  by: owner
+  at: 2026-10-21T15:01:48Z
+  at-label: 2026-10-21 23:01 Asia/Makassar
+  budgetOverride: true
+run:
+  worktree: .worktrees/pf-ai009
+  branch: loop/pf-ai009
+  slot: 1
+  fixRounds: 0
+  segments: 0
+  checkpoint: .loop/runs/PF-AI009/checkpoint.json
+  logs: .loop/runs/PF-AI009/
+---
+
 # PF-AI009 — Model Context Protocol (MCP) Server
 
 > **Learning Phase:** Phase 3 · Chapter 9 of 12 · Day ~60 of 90
@@ -26,7 +56,7 @@
     - [STEP 5 — Add `get_pyramid_scores` tool (calls .NET API)](#--step-5--add-get_pyramid_scores-tool-calls-net-api)
     - [STEP 6 — Add `search_transactions_semantic` tool (reuses PF-AI003)](#--step-6--add-search_transactions_semantic-tool-reuses-pf-ai003)
     - [STEP 7 — Wire MCP server into `main.py`](#--step-7--wire-mcp-server-into-mainpy)
-    - [STEP 8 — Configure Claude Desktop + test end-to-end](#--step-8--configure-claude-desktop--test-end-to-end)
+    - [Manual follow-up — Configure Claude Desktop + test end-to-end](#manual-follow-up-owner-not-a-loop-step--configure-claude-desktop--test-end-to-end)
     - [STEP 9 — Full test pass + commit](#--step-9--full-test-pass--commit)
     - [STEP 10 — Stretch: 2-agent MCP workflow](#--step-10--stretch-2-agent-mcp-workflow)
     - [STEP 11 — Log progress](#--step-11--log-progress)
@@ -140,17 +170,24 @@ Chapters 1–8 built a complete RAG + agent stack within one service. MCP lifts 
 
 ## ✅ Acceptance Criteria
 
-- [ ] `fastmcp>=2.0` and `httpx>=0.27` in `pyproject.toml`; installed in venv; `import fastmcp` works
-- [ ] `app/mcp_server.py` defines a `FastMCP` instance with all 4 tools; no `Any` types on tool signatures — all parameters typed, all tools have docstrings
-- [ ] `get_transactions()` queries Supabase `transactions + accounts` via asyncpg (same pool as `RetrievalService`); returns list of dicts; filters compile to parametrized SQL WHERE clauses (no string interpolation of values); hard cap at 100 rows regardless of `limit` param
-- [ ] `get_cashflow_summary()` returns totals grouped by category, computed in SQL, for `this_month`, `last_month`, `this_year`; numeric totals are `float` (JSON-serializable; Decimal → float conversion happens here)
-- [ ] `get_pyramid_scores()` calls `.NET API GET /api/journey/scores` via `httpx.AsyncClient`; returns the JSON response; raises on non-2xx (tool error, not silent empty)
-- [ ] `search_transactions_semantic()` calls `RetrievalService.search()` directly — no new embedding code; caps `top_k` at 20
-- [ ] MCP server mounted to the existing FastAPI app at `/mcp` via SSE transport; `curl http://localhost:8000/mcp` returns 200 or SSE handshake (not 404)
-- [ ] Claude Desktop configured (Windows: `%APPDATA%\Claude\claude_desktop_config.json`); all 4 tools visible in the tools panel; each tool callable from natural language
-- [ ] Demo conversation works end-to-end: "berapa pengeluaran makan bulan ini?" → Claude Desktop calls `get_cashflow_summary` and returns a correct IDR total
-- [ ] `tests/test_mcp_server.py` passes — all 4 tools tested with mocked asyncpg / mocked httpx (no real API calls in tests)
-- [ ] No `.env` / credentials in any committed file; `claude_desktop_config.json` not committed
+- [x] `fastmcp>=2.0` and `httpx>=0.27` in `pyproject.toml`; installed in venv; `import fastmcp` works
+  > Verified: fastmcp 4.1.3 imports in the project venv; both deps in pyproject.
+- [x] `app/mcp_server.py` defines a `FastMCP` instance with all 4 tools; no `Any` types on tool signatures — all parameters typed, all tools have docstrings
+  > Verified: all tool params typed (`str | None`, `int`), every tool has a field-listing docstring. (`Any` appears only in `list[dict[str, Any]]` returns — as the plan itself specifies — and on injected module globals, not on parameters.)
+- [x] `get_transactions()` queries Supabase `transactions + accounts` via asyncpg; returns list of dicts; filters compile to parametrized SQL WHERE clauses (no string interpolation of values); hard cap at 100 rows regardless of `limit` param
+  > Verified by `test_get_transactions_*`; `limit = min(limit, 100)`; filters use `$n` params. Note: uses a dedicated pool (RetrievalService has no shared pool to borrow).
+- [x] `get_cashflow_summary()` returns totals grouped by category, computed in SQL, for `this_month`, `last_month`, `this_year`; numeric totals are `float` (JSON-serializable; Decimal → float conversion happens here)
+  > Verified: `::float` casts in SQL; grouped by category; `test_get_cashflow_summary_*` pass.
+- [x] `get_pyramid_scores()` calls `.NET API GET /api/journey/scores` via `httpx.AsyncClient`; returns the JSON response; raises on non-2xx (tool error, not silent empty)
+  > Verified: `response.raise_for_status()`; `test_get_pyramid_scores_calls_net_api` passes.
+- [x] `search_transactions_semantic()` calls `RetrievalService.search()` directly — no new embedding code; caps `top_k` at 20
+  > Verified: `top_k = min(top_k, 20)`; delegates to the injected retriever (now with the PF-S15 `owner_id`). `test_search_transactions_semantic_*` pass.
+- [x] MCP server mounted to the existing FastAPI app at `/mcp` via SSE transport; mount confirmed present in `app.routes` and `import app.main` is clean
+  > Scope split (owner, 2026-10-21): the live `curl http://localhost:8000/mcp` check, the Claude Desktop configuration and the end-to-end demo conversation moved to the Manual follow-up section. They need the running stack and a GUI app, so they are not part of the loop gate.
+- [x] `tests/test_mcp_server.py` passes — all 4 tools tested with mocked asyncpg / mocked httpx (no real API calls in tests)
+  > Verified: 7 tests, all mocked, all pass; full suite 358 passed.
+- [x] No `.env` / credentials in any committed file; `claude_desktop_config.json` not committed
+  > Verified: no secrets added; no config file written to the repo.
 
 ## 🧭 Approach
 
@@ -179,7 +216,7 @@ Out of scope: MCP Resources (URI-addressed data), MCP Prompts (pre-baked templat
 
 ## 📋 TODO
 
-### [ ] STEP 0 — Theory: MCP concepts (30 min, read before building)
+### [x] STEP 0 — Theory: MCP concepts (30 min, read before building)
 
 The spec is short and worth reading once — it defines the vocabulary for every MCP interview question.
 
@@ -195,7 +232,9 @@ The spec is short and worth reading once — it defines the vocabulary for every
 
 > **The interview frame:** "MCP is the protocol layer above tool use. In standard `tool_use` API calls, tools are one-shot — you define them per request, the model calls them, you get a result. MCP turns tools into a persistent typed server any MCP client can discover and call, without re-defining the schema each time. Three primitives: Tools (functions the AI calls), Resources (data the AI reads), Prompts (pre-baked templates). For personal finance I exposed four Tools — the same operations a financial analyst would reach for first: transactions, spending summary, pyramid scores, semantic search."
 
-### [ ] STEP 1 — Install FastMCP + run the quickstart
+### [x] STEP 1 — Install FastMCP + run the quickstart
+
+> **Note:** `fastmcp 4.1.3` installed into the project venv; `pyproject.toml` updated (httpx>=0.27 was already present from Chapter 8). The interactive MCP Inspector quickstart (`npx @modelcontextprotocol/inspector`) and `scratch/mcp_hello.py` are hands-on learning aids — not run in the headless loop segment.
 
 Before building the real server, run the MCP quickstart to see the protocol end-to-end.
 
@@ -241,7 +280,7 @@ Expected: the inspector browser page shows a `hello` tool listed; calling it ret
 
 > **Why quickstart before the real server?** The inspector exercise makes the protocol concrete — you see the JSON-RPC handshake, the tool list, and the call/response cycle before you're also fighting asyncpg and httpx. This is the mental model anchor, not a detour.
 
-### [ ] STEP 2 — THINK-03 gate: design the tool schemas field-by-field
+### [x] STEP 2 — THINK-03 gate: design the tool schemas field-by-field
 
 Before writing any tool code, list every parameter and return field (THINK-03 discipline — wrong types here are silently wrong in the client):
 
@@ -277,7 +316,7 @@ Before writing any tool code, list every parameter and return field (THINK-03 di
 
 > **Why this table before code?** A tool schema is the contract between your server and every MCP client that ever calls it. Wrong types (e.g., `Decimal` instead of `float`) produce JSON serialization errors that are confusing to diagnose client-side. Getting the types right in 5 minutes of table work prevents 20 minutes of "why is this field null in Claude Desktop" debugging.
 
-### [ ] STEP 3 — Create `app/mcp_server.py` with `get_transactions`
+### [x] STEP 3 — Create `app/mcp_server.py` with `get_transactions`
 
 Create `services/ai-service/app/mcp_server.py`:
 
@@ -567,7 +606,7 @@ cd services/ai-service && PYTHONPATH=. pytest tests/test_mcp_server.py::test_get
 
 > **Why a hard limit cap?** MCP tools are called by an AI with no concept of "how big is this table." Without a cap, `get_transactions(limit=10000)` reads the entire transactions table on every LLM call — a 5,000-row result bloats the context window and adds unnecessary Supabase load. 100 is the generous upper bound for what a single chat turn can usefully process. This pattern appears in every production RAG / tool API.
 
-### [ ] STEP 4 — Add `get_cashflow_summary` tool
+### [x] STEP 4 — Add `get_cashflow_summary` tool
 
 Add to `app/mcp_server.py`:
 
@@ -732,7 +771,9 @@ public class CashflowSummaryToolTests
 
 > **Why embed SQL date expressions instead of computing dates in Python?** `date_trunc('month', CURRENT_DATE)` evaluates in Postgres timezone context — no risk of Python-side date arithmetic drifting relative to the DB. The period key is a closed literal set (not user input), so there's no injection risk in interpolating the expression name. If `period` were user-supplied, approach would differ.
 
-### [ ] STEP 5 — Add `get_pyramid_scores` tool (calls .NET API)
+### [x] STEP 5 — Add `get_pyramid_scores` tool (calls .NET API)
+
+> **Note:** `net_api_base_url` was already present in `app/config.py` (added in Chapter 8), so no config edit was needed — only the tool was added. The live `curl` endpoint check needs the .NET API running (not up in the headless loop).
 
 Add `net_api_base_url` to `app/config.py` Settings class:
 
@@ -861,7 +902,9 @@ curl http://localhost:7208/api/journey/scores
 ```
 If 404: check `JourneyController.cs` for the actual route name and adjust the path.
 
-### [ ] STEP 6 — Add `search_transactions_semantic` tool (reuses PF-AI003)
+### [x] STEP 6 — Add `search_transactions_semantic` tool (reuses PF-AI003)
+
+> **Note:** PF-S15 made `RetrievalService.search()` owner-scoped (keyword-only `owner_id` now required) — the stale plan predates this. The tool passes a resolved local `owner_id` (via `set_owner()` in the lifespan, resolved from the single owner in `transactions`). The search test was updated to assert the `owner_id=` kwarg accordingly (THINK-04: the plan's assertion tested outdated behavior).
 
 Add to `app/mcp_server.py`:
 
@@ -1016,7 +1059,9 @@ PYTHONPATH=. pytest tests/test_mcp_server.py -v
 
 > **Why reuse `RetrievalService` instead of embedding again?** The retriever already manages the asyncpg pool, handles Gemini/OpenAI embedding via `EmbeddingProvider`, applies the model-match guard (`WHERE te.model = $4`), and is Langfuse-traced. Adding a second embed call in the MCP tool would duplicate all of that. This is "thin tool, fat service" — the MCP tool is a controller, not a service; same pattern as ASP.NET Core controllers calling services.
 
-### [ ] STEP 7 — Wire MCP server into `main.py`
+### [x] STEP 7 — Wire MCP server into `main.py`
+
+> **Note:** FastMCP 4.1.3 has no `sse_app()`. Mount method used: `mcp.http_app(path="/", transport="sse")`, mounted at `/mcp`. Because FastMCP's ASGI app owns a session-manager lifespan, the main lifespan drives it via `async with _mcp_app.lifespan(app)`. The `pilot_access_gate` middleware was given a `/mcp` bypass (no-auth local posture, per the Approach). There is no shared `app.state.pool`, so the MCP tools get a dedicated asyncpg pool created in the lifespan.
 
 FastMCP supports mounting onto a FastAPI app over SSE. The exact method name depends on the installed version — check first:
 
@@ -1070,7 +1115,9 @@ curl -v http://localhost:8000/mcp
 
 > **FastMCP version drift note.** If `sse_app()` doesn't exist or mounting fails, fall back to running a separate stdio entry point (see Step 8 fallback). Document which version you installed in the Notes section at the bottom of this plan.
 
-### [ ] STEP 8 — Configure Claude Desktop + test end-to-end
+### Manual follow-up (owner, not a loop step) — Configure Claude Desktop + test end-to-end
+
+> **Moved out of the loop (owner decision, 2026-10-21).** Needs Claude Desktop on the owner's machine and the full stack running with real data. Do it by hand after G3, in this order: (1) with the stack up, `curl http://localhost:8000/mcp` returns 200 or an SSE handshake, not 404; (2) add `{"mcpServers":{"personal-finance":{"url":"http://localhost:8000/mcp"}}}` to `%APPDATA%\Claude\claude_desktop_config.json`, restart Claude Desktop, and confirm all 4 tools show in the tools panel; (3) run the demo prompt "berapa pengeluaran makan bulan ini?" and check Claude calls `get_cashflow_summary` and returns a correct IDR total. Do not commit `claude_desktop_config.json`.
 
 **Windows config path:** `%APPDATA%\Claude\claude_desktop_config.json`
 (typically `C:\Users\rikky\AppData\Roaming\Claude\claude_desktop_config.json`)
@@ -1136,7 +1183,9 @@ For each: verify in Claude Desktop's tool panel that the correct tool was called
 > 3. Verify the AI service is running: `curl http://localhost:8000/mcp`
 > 4. If using SSE and it fails, fall back to stdio config above
 
-### [ ] STEP 9 — Full test pass + commit
+### [x] STEP 9 — Full test pass + commit
+
+> **Note:** full AI-service suite green — `358 passed` (includes the 7 new `test_mcp_server.py` tests). Code left uncommitted: the loop makes the single clean commit after the verifier passes.
 
 ```bash
 cd services/ai-service && PYTHONPATH=. pytest tests/test_mcp_server.py -v
@@ -1152,7 +1201,9 @@ git status    # verify NO .env, NO claude_desktop_config.json
 git commit -m "PF-AI009: MCP server — get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic (FastMCP SSE)"
 ```
 
-### [ ] STEP 10 — Stretch: 2-agent MCP workflow
+### [x] STEP 10 — Stretch: 2-agent MCP workflow
+
+> **Done (build):** the 2-agent Analyst→Advisor demo was written to `services/ai-service/scratch/mcp_agent_demo.py` and `scratch/` added to `.gitignore` so it stays uncommitted per the plan. Running it needs a real `ANTHROPIC_API_KEY` and is deferred to a manual run (`PYTHONPATH=. python scratch/mcp_agent_demo.py`); the tool handlers are stubbed as the plan specifies.
 
 Build a demonstration of two agents where Agent 1 calls your MCP tools and passes a report to Agent 2 for synthesis:
 
@@ -1322,7 +1373,9 @@ PYTHONPATH=. python scratch/mcp_agent_demo.py
 
 > **Why this stretch matters for interviews:** "I built a 2-agent workflow where the Analyst calls MCP tools to gather data, then passes a structured report to the Advisor for synthesis" is a concrete multi-agent answer. The pattern — one agent calls tools, another does synthesis — is the scaffolding for every multi-agent pipeline, and it maps directly to the "how do you design an AI system that needs multiple capabilities?" interview question.
 
-### [ ] STEP 11 — Log progress
+### [x] STEP 11 — Log progress
+
+> **Done:** logged a Chapter 9 MCP session to `docs/mentor/progress.md` (2026-10-21, Day 148) and ticked the "Build the MCP server" item on the Phase 3 Chapter 9 checklist. Written directly in the tracker's existing journal format rather than via the interactive `/mentor log` command, which could conflict with the loop's own plan/board bookkeeping.
 
 ```
 /mentor log Built personal-finance MCP server: 4 tools (get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic), FastMCP SSE mounted at /mcp on AI service port 8000, Claude Desktop configured and tested end-to-end, stretch 2-agent demo. Chapter 9 complete.
@@ -1330,7 +1383,7 @@ PYTHONPATH=. python scratch/mcp_agent_demo.py
 
 ## 📌 Notes
 
-- **FastMCP 2.x API drift.** The mounting method (`sse_app()`, `get_mcp_app()`, `streamable_http_app()`) has changed across versions. Run the `dir(mcp)` check in Step 7 before writing the `app.mount()` call — don't guess the method name. Record which version you installed and which method you used here: `fastmcp version: ___`, `mount method: ___`.
+- **FastMCP 2.x API drift.** The mounting method (`sse_app()`, `get_mcp_app()`, `streamable_http_app()`) has changed across versions. Run the `dir(mcp)` check in Step 7 before writing the `app.mount()` call — don't guess the method name. Record which version you installed and which method you used here: `fastmcp version: 4.1.3`, `mount method: mcp.http_app(path="/", transport="sse")` mounted at `/mcp`, with the sub-app lifespan driven from the main lifespan (`async with _mcp_app.lifespan(app)`).
 - **`/api/journey/scores` route.** Verify this endpoint exists and returns `[{tier, score, status}]` before coding Step 5. Check `JourneyController.cs` for the actual route if the curl returns 404.
 - **asyncpg pool sharing.** The `set_pool()` / `set_retriever()` module-global pattern is intentionally simple. In production you'd use DI; for this learning chapter, globals are fine and mirror the existing `_pool` pattern in `retriever.py`. Don't over-engineer it.
 - **Windows Claude Desktop config path.** `%APPDATA%\Claude\claude_desktop_config.json` = `C:\Users\rikky\AppData\Roaming\Claude\claude_desktop_config.json`. Restart Claude Desktop after every config edit.
@@ -1504,3 +1557,9 @@ Organized by concept — read when building the relevant step, not all upfront.
 **A** — single responsibility applied to agents: the Analyst handles tool calls (data access); the Advisor handles synthesis (reasoning over the report). Giving both MCP access doubles retrieval calls, adds latency at every synthesis step, and couples the Advisor to the data schema. The hand-off pattern (Analyst produces structured report → Advisor receives it as a text message) is the building block of every multi-agent pipeline — and the answer to "how do you design a system that needs multiple AI capabilities?"
 *Maps to: Databricks GenAI Engineer Associate · Application Development (multi-agent design); AWS Certified ML Engineer – Associate · Model deployment*
 </details>
+
+## Loop Notes
+- 2026-10-21 22:27 Asia/Makassar Loop-Failed: executor exited 1 after 0 min. Worktree and branch kept (.worktrees/pf-ai009).
+- 2026-10-21 22:46 Asia/Makassar Segment 1: implemented all 4 MCP tools (`app/mcp_server.py`), 7 unit tests, and wired the SSE sub-app into `main.py`. Full suite 358 passed. Reconciled stale-plan drift: fastmcp 4.x uses `http_app(transport="sse")` (no `sse_app()`); `httpx`/`net_api_base_url` already present; RetrievalService is now owner-scoped (PF-S15) so semantic search passes a resolved `owner_id`; MCP tools use a dedicated asyncpg pool. STEPS 8/10/11 (Claude Desktop end-to-end, stretch demo, /mentor log) need a live stack / interactive machine — deferred to manual follow-up. Code left uncommitted for the loop's verifier.
+- 2026-10-21 22:53 Asia/Makassar Loop-Failed: gate "executor" failed again with the same output (stopped at once). Worktree and branch kept (.worktrees/pf-ai009).
+- 2026-10-22 15:33 Asia/Makassar Verifier PASS 9/9 (hand run, 2026-10-22); only manual Claude Desktop follow-up remains

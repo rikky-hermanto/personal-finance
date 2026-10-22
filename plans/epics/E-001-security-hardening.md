@@ -1,11 +1,11 @@
 ---
 id: E-001
 title: Close the gaps from the October security audit
-status: draft
+status: planned
 priority-hint: high
 created: 2026-10-15T10:09:27Z
 created-label: 2026-10-15 18:09 Asia/Makassar
-tickets: []
+tickets: [PF-143, PF-144, PF-145, PF-146, PF-147, PF-148, PF-149, PF-150]
 ---
 
 # Close the gaps from the October security audit
@@ -83,11 +83,34 @@ Findings from the audit in the terminal session on 2026-10-15, ranked by severit
 
 <!-- Everything below is written by loop-grill. Do not edit while status is grilling. -->
 ## Clarified Understanding
+Close the audit findings that still matter, in small independent pieces, and write down the ones that are consciously accepted. Finding 2 (the AI service reading as a superuser) was already closed by PF-S15, accepted 2026-10-16, so it needs no work here, only a note in the final re-audit. Everything else stays open: the names in the public file, upload error leaks and weak upload checks, services open on the network, weak sign-in rules, vulnerable libraries in shipped code, and the low-severity items.
 
 ## Decisions (from G1)
+- Q: Names in git history? A: Scrub the current file only. History is not rewritten; the old exposure is accepted and recorded in writing.
+- Q: Sign-in strictness? A: Strong password rules only (longer minimum, password requirements, secure password change on). No MFA.
+- Q: Local services? A: Bind Grafana, Loki, Tempo, Postgres, the AI service and Alloy to 127.0.0.1, and turn off anonymous admin in Grafana.
+- Q: Dependencies? A: Fix what ships (.NET OpenApi, react-router-dom, Python AI libraries with tests). Build-time-only npm advisories are accepted in writing, one reason each.
+- Q: Third parties? A: Owner confirms the Gemini key is on a paid tier. No Langfuse masking; the exposure is accepted in writing.
+- Q: Low items? A: Fix all in one slice.
 
 ## Out of Scope
+- Rewriting git history or force-pushing.
+- MFA.
+- Masking prompts in Langfuse.
+- Clearing build-time-only npm advisories.
+- Finding 2 (AI service bypassing RLS): already done in PF-S15.
 
 ## Open Items
+- Owner must confirm the Gemini key tier (owner action, not code).
+- Python library upgrades may break the chat agents; the slice needs a fallback of accepting the advisory if tests cannot be made green.
+- Whether the demo keys in history really are Supabase demo keys is unverified; the low-items slice checks this.
 
 ## Proposed Slices
+1. Scrub real names from `docs/data/category-rules-2026-05-07.csv` and record the accepted history exposure.
+2. Upload hardening: no exception text in responses with correlation ID and logging (ERR-01), magic-byte file check, PDF timeout and size cap in .NET and the AI service (SEC-02).
+3. Local network: 127.0.0.1 binding and Grafana login in `docker-compose.yml`.
+4. Sign-in password rules in `supabase/config.toml`, applied before the Supabase Cloud move.
+5. Dependency fixes for shipped code, plus a written list of accepted build-time advisories.
+6. Low-severity items in one ticket (upload-preview-new, `transaction_embeddings` RLS, `/health`, non-root container, pinned image tags, demo key check).
+7. Third-party data note: record the Gemini tier confirmation and the accepted Langfuse exposure.
+8. Final re-audit; passes when nothing new appears at medium or above.
