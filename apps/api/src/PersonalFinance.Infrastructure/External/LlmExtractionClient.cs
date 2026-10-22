@@ -50,7 +50,9 @@ public class LlmExtractionClient : ILlmExtractionClient
             _logger.LogError("AI service returned {StatusCode}: {Body}", (int)response.StatusCode, body);
             var detail = ExtractDetail(body);
 
-            if (detail.Contains("UNAVAILABLE", StringComparison.OrdinalIgnoreCase) ||
+            if (detail.Contains("provider_unavailable", StringComparison.Ordinal) ||
+                detail.Contains("llm_rate_limited", StringComparison.Ordinal) ||
+                detail.Contains("UNAVAILABLE", StringComparison.OrdinalIgnoreCase) ||
                 detail.Contains("high demand", StringComparison.OrdinalIgnoreCase) ||
                 detail.Contains("503", StringComparison.Ordinal))
             {

@@ -195,6 +195,10 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IBankSignature, NeoBankPdfSignature>();
             builder.Services.AddScoped<IBankSignature, SuperbankPdfSignature>();
             builder.Services.AddScoped<IBankIdentifier, BankIdentifier>();
+            // PF-144 (SEC-02): magic-byte check before parsing, and a time budget around parsing.
+            builder.Services.AddScoped<IUploadFileValidator, UploadFileValidator>();
+            builder.Services.Configure<PersonalFinance.Api.Models.UploadOptions>(
+                builder.Configuration.GetSection(PersonalFinance.Api.Models.UploadOptions.SectionName));
             builder.Services.AddScoped<ITransactionService, TransactionService>();
             builder.Services.AddScoped<ITransactionPipelineService, PersonalFinance.Application.Services.TransactionPipelineService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();

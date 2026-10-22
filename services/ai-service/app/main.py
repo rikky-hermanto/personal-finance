@@ -62,6 +62,8 @@ from opentelemetry.instrumentation.logging import LoggingInstrumentor
 
 _ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp"}
 _MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+_MAX_PDF_BYTES = 10 * 1024 * 1024  # 10 MB, SEC-02 (same cap as the .NET upload limit)
+_PDF_EXTRACT_TIMEOUT_SECONDS = 60.0  # SEC-02: a crafted PDF must not hold a worker forever
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level),
@@ -237,6 +239,21 @@ app.mount("/mcp", _mcp_app)
 _advisor = AdvisorService()
 
 
+def _llm_error_code(exc: BaseException) -> str:
+    """Map a provider failure to one of the documented error codes (ai-service.md).
+
+    The raw text is for the log only; callers must never put it in a response (ERR-01).
+    """
+    text = str(exc.__cause__ or exc).lower()
+    if "truncated" in text or "max_tokens" in text:
+        return "response_truncated"
+    if "429" in text or "rate limit" in text or "quota" in text:
+        return "llm_rate_limited"
+    if any(marker in text for marker in ("unavailable", "high demand", "503", "overloaded", "timed out", "timeout")):
+        return "provider_unavailable"
+    return "llm_parse_error"
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     return HealthResponse(status="healthy", version="0.1.0")
@@ -247,7 +264,8 @@ async def parse_transactions(request: ParseRequest) -> ParseResponse:
     try:
         return await app.state.parser.parse(request)
     except LlmParseError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        logger.error("parse failed: %s", e)
+        raise HTTPException(status_code=502, detail=_llm_error_code(e)) from e
 
 
 @app.post("/parse-pdf", response_model=PdfParseResponse)
@@ -262,20 +280,31 @@ async def parse_pdf(
             detail=f"Expected application/pdf, got {file.content_type}",
         )
 
-    pdf_bytes = await file.read()
+    pdf_bytes = await file.read(_MAX_PDF_BYTES + 1)
+    if len(pdf_bytes) > _MAX_PDF_BYTES:
+        raise HTTPException(status_code=413, detail="file_too_large")
     logger.info("PDF upload received | filename=%s | size=%d bytes", file.filename, len(pdf_bytes))
 
     try:
-        text, page_count = app.state.pdf_extractor.extract(pdf_bytes, password=password)
+        # PyMuPDF is synchronous; run it off the event loop so the timeout can fire.
+        text, page_count = await asyncio.wait_for(
+            asyncio.to_thread(app.state.pdf_extractor.extract, pdf_bytes, password=password),
+            timeout=_PDF_EXTRACT_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError as e:
+        logger.error("PDF extraction exceeded %.0f seconds | filename=%s", _PDF_EXTRACT_TIMEOUT_SECONDS, file.filename)
+        raise HTTPException(status_code=502, detail="internal_error") from e
     except PdfExtractionError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        logger.warning("PDF extraction failed: %s", e)
+        raise HTTPException(status_code=422, detail="pdf_unreadable") from e
 
     try:
         parse_result = await app.state.parser.parse(
             ParseRequest(text=text, bank_hint=bank_hint)
         )
     except LlmParseError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        logger.error("parse-pdf LLM extraction failed: %s", e)
+        raise HTTPException(status_code=502, detail=_llm_error_code(e)) from e
 
     return PdfParseResponse(**parse_result.model_dump(), pages_processed=page_count)
 
@@ -310,7 +339,8 @@ async def parse_image(
             request=ParseImageRequest(bank_hint=bank_hint),
         )
     except LlmParseError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        logger.error("parse-image LLM extraction failed: %s", e)
+        raise HTTPException(status_code=502, detail=_llm_error_code(e)) from e
 
 @app.post("/categorize", response_model=CategorizeResponse)
 async def categorize_transaction(request: CategorizeRequest) -> CategorizeResponse:
@@ -384,10 +414,11 @@ async def portfolio_review(req: PortfolioReviewRequest) -> PortfolioReviewRespon
     try:
         return await app.state.portfolio_reviewer.review(req)
     except LlmParseError as e:
-        raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": str(e)})
-    except Exception as e:
+        logger.error("portfolio_review LLM failure: %s", e)
+        raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": "The AI could not produce a valid review."})
+    except Exception:
         logger.exception("Unexpected error in portfolio_review")
-        raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": str(e)})
+        raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": "The AI provider is unavailable."})
 
 
 @app.post("/journey/advise", response_model=JourneyAdviseResponse)
@@ -395,10 +426,11 @@ async def journey_advise_endpoint(req: JourneyAdviseRequest) -> JourneyAdviseRes
     try:
         return await app.state.journey_advisor.advise(req)
     except RuntimeError as e:
-        raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": str(e)})
-    except Exception as e:
+        logger.error("journey_advise LLM failure: %s", e)
+        raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": "The AI could not produce valid advice."})
+    except Exception:
         logger.exception("Unexpected error in journey_advise")
-        raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": str(e)})
+        raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": "The AI provider is unavailable."})
 
 
 @app.post("/suggest-categories", response_model=SuggestCategoriesResponse)

@@ -115,6 +115,11 @@ The .NET API maps these HTTP status codes to user-visible errors:
 | max_tokens truncation           | 502    | `"response_truncated"`    |
 | LLM provider rate limit exhausted (after internal retries) | 502 | `"llm_rate_limited"` |
 | Unexpected server error         | 500    | `"internal_error"`        |
+| `/parse-pdf` upload over 10 MB  | 413    | `"file_too_large"`        |
+| `/parse-pdf` file unreadable (corrupt, wrong or missing password) | 422 | `"pdf_unreadable"` |
+| `/parse-pdf` text extraction exceeded 60 s | 502 | `"internal_error"` |
+
+`detail` is always one of these codes (or a fixed sentence beside a code), never `str(e)`; the real exception goes to the log (ERR-01).
 
 Never return HTTP 200 with an empty transactions list when parsing fails — use 502.
 

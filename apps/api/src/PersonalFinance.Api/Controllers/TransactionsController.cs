@@ -2,10 +2,14 @@ using System.Globalization;
 using CsvHelper;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using PersonalFinance.Api.Extensions;
+using PersonalFinance.Api.Models;
 using PersonalFinance.Application.Commands;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
+using PersonalFinance.Infrastructure.External;
 using static Supabase.Postgrest.Constants;
 
 namespace PersonalFinance.Api.Controllers;
@@ -32,6 +36,8 @@ public class TransactionsController : ControllerBase
     private readonly ICashflowMutationService _cashflowMutations;
     private readonly ILlmSearchClient _searchClient;
     private readonly IConfiguration _configuration;
+    private readonly IUploadFileValidator _uploadFileValidator;
+    private readonly TimeSpan _parseTimeout;
 
     public TransactionsController(
         ILogger<TransactionsController> logger,
@@ -48,7 +54,9 @@ public class TransactionsController : ControllerBase
         ICurrentUser caller,
         ICashflowMutationService cashflowMutations,
         ILlmSearchClient searchClient,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IUploadFileValidator uploadFileValidator,
+        IOptions<UploadOptions> uploadOptions)
     {
         _logger = logger;
         _statementImportService = statementImportService;
@@ -65,6 +73,8 @@ public class TransactionsController : ControllerBase
         _cashflowMutations = cashflowMutations;
         _searchClient = searchClient;
         _configuration = configuration;
+        _uploadFileValidator = uploadFileValidator;
+        _parseTimeout = TimeSpan.FromSeconds(Math.Max(1, uploadOptions.Value.ParseTimeoutSeconds));
     }
 
     [HttpGet("health")]
@@ -118,6 +128,10 @@ public class TransactionsController : ControllerBase
             await file.CopyToAsync(mainStream);
             mainStream.Position = 0;
 
+            if (!await _uploadFileValidator.ValidateAsync(mainStream, file.ContentType))
+                return BadRequest(new { Message = FileContentMismatchMessage });
+            mainStream.Position = 0;
+
             var hash = CalculateFileHash(mainStream);
             mainStream.Position = 0;
 
@@ -137,12 +151,15 @@ public class TransactionsController : ControllerBase
             }
             else
             {
-                var bank = await _bankIdentifier.IdentifyAsync(mainStream, file.ContentType, pdfPassword);
+                using var parseBudget = StartParseBudget();
+                var bank = await WithinParseBudgetAsync(
+                    () => _bankIdentifier.IdentifyAsync(mainStream, file.ContentType, pdfPassword), parseBudget.Token);
                 if (bank == null)
                     return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
 
                 mainStream.Position = 0;
-                transactions = await _statementImportService.ImportAsync(mainStream, bank, pdfPassword, dateFormat);
+                transactions = await WithinParseBudgetAsync(
+                    () => _statementImportService.ImportAsync(mainStream, bank, pdfPassword, dateFormat), parseBudget.Token);
             }
 
             await ResolveAccountIdsAsync(transactions);
@@ -150,22 +167,9 @@ public class TransactionsController : ControllerBase
             var allTransactions = await _transactionService.IdentifyDuplicatesAsync(transactions);
             return Ok(new { Transactions = allTransactions, Hash = hash });
         }
-        catch (NotSupportedException ex)
-        {
-            return BadRequest(new { Message = ex.Message });
-        }
-        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex) when (ex.IsTransient)
-        {
-            Response.Headers.Append("Retry-After", "30");
-            return StatusCode(503, new { Message = ex.Message });
-        }
-        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex)
-        {
-            return StatusCode(422, new { Message = "The AI service could not read this file.", Detail = ex.Message });
-        }
         catch (Exception ex)
         {
-            return StatusCode(500, new { Message = "File processing failed. Check the file is a valid bank statement and try again.", Detail = ex.Message });
+            return UploadFailure(ex);
         }
     }
 
@@ -205,10 +209,16 @@ public class TransactionsController : ControllerBase
             await file.CopyToAsync(fileStream);
             fileStream.Position = 0;
 
+            if (!await _uploadFileValidator.ValidateAsync(fileStream, file.ContentType))
+                return BadRequest(new { Message = FileContentMismatchMessage });
+            fileStream.Position = 0;
+
+            using var parseBudget = StartParseBudget();
             string bank = "UNKNOWN";
             if (!isImageOrPdf)
             {
-                var idBank = await _bankIdentifier.IdentifyAsync(fileStream, file.ContentType, pdfPassword);
+                var idBank = await WithinParseBudgetAsync(
+                    () => _bankIdentifier.IdentifyAsync(fileStream, file.ContentType, pdfPassword), parseBudget.Token);
                 if (idBank == null)
                     return BadRequest(new { Message = "Bank format not recognised. Supported: BCA, NeoBank, Superbank, Wise." });
                 bank = idBank;
@@ -230,31 +240,69 @@ public class TransactionsController : ControllerBase
             if (downloadedStream == null)
                 return StatusCode(500, new { Message = "Failed to retrieve file from storage." });
 
-            var transactions = await _statementImportService.ImportAsync(downloadedStream, bank, pdfPassword, dateFormat);
+            var transactions = await WithinParseBudgetAsync(
+                () => _statementImportService.ImportAsync(downloadedStream, bank, pdfPassword, dateFormat), parseBudget.Token);
             var processedTransactions = await _pipelineService.ProcessAsync(transactions);
 
             await ResolveAccountIdsAsync(processedTransactions);
 
             return Ok(processedTransactions);
         }
-        catch (NotSupportedException ex)
+        catch (Exception ex)
         {
-            return BadRequest(new { Message = ex.Message });
-        }
-        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex) when (ex.IsTransient)
-        {
-            Response.Headers.Append("Retry-After", "30");
-            return StatusCode(503, new { Message = ex.Message });
-        }
-        catch (PersonalFinance.Infrastructure.External.LlmExtractionException ex)
-        {
-            return StatusCode(422, new { Message = "The AI service could not read this file.", Detail = ex.Message });
-        }
-        catch (Exception)
-        {
-            return StatusCode(500, new { Message = "File processing failed. Check the file is a valid bank statement and try again." });
+            return UploadFailure(ex);
         }
     }
+
+    private const string FileContentMismatchMessage =
+        "The file content does not match its type. Upload a CSV, PDF, or screenshot (PNG/JPEG/WEBP).";
+
+    // PF-144: one failure mapping for both upload actions. Status codes follow ERR-03 and
+    // stay as they were; bodies carry a fixed message and correlation ID, never exception text (ERR-01).
+    private ObjectResult UploadFailure(Exception exception)
+    {
+        switch (exception)
+        {
+            case NotSupportedException:
+                return this.LoggedError(_logger, exception, 400, "This file type or format is not supported.");
+            case LlmExtractionException { IsTransient: true }:
+                Response.Headers.Append("Retry-After", "30");
+                return this.LoggedError(_logger, exception, 503, "The AI reading service is temporarily busy.");
+            case LlmExtractionException:
+                return this.LoggedError(_logger, exception, 422, "The AI service could not read this file.");
+            case ParseTimeoutException:
+                return this.LoggedError(_logger, exception, 422,
+                    "Reading this file took too long. Check the file is a valid bank statement and try again.");
+            default:
+                return this.LoggedError(_logger, exception, 500,
+                    "File processing failed. Check the file is a valid bank statement and try again.");
+        }
+    }
+
+    private CancellationTokenSource StartParseBudget()
+    {
+        var budget = CancellationTokenSource.CreateLinkedTokenSource(HttpContext.RequestAborted);
+        budget.CancelAfter(_parseTimeout);
+        return budget;
+    }
+
+    // SEC-02: identification and import take no cancellation token, and PDF parsing is
+    // synchronous CPU work, so it runs on the thread pool and the request stops waiting
+    // when the budget runs out. The abandoned parse finishes in the background.
+    private async Task<T> WithinParseBudgetAsync<T>(Func<Task<T>> work, CancellationToken budget)
+    {
+        try
+        {
+            return await Task.Run(work, budget).WaitAsync(budget);
+        }
+        catch (OperationCanceledException ex) when (budget.IsCancellationRequested && !HttpContext.RequestAborted.IsCancellationRequested)
+        {
+            throw new ParseTimeoutException(_parseTimeout, ex);
+        }
+    }
+
+    private sealed class ParseTimeoutException(TimeSpan timeout, Exception inner)
+        : TimeoutException($"Statement parsing exceeded {timeout.TotalSeconds:0} seconds.", inner);
 
     [HttpPost("submit")]
     public async Task<IActionResult> SubmitTransactions([FromBody] SubmitTransactionsRequest request)

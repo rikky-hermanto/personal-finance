@@ -72,3 +72,88 @@ async def test_parse_pdf_corrupted_bytes_returns_422():
             files={"file": ("bad.pdf", b"this is not a pdf", "application/pdf")},
         )
     assert response.status_code == 422
+
+
+def _client():
+    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test", headers={"X-Internal-Api-Key": "test-internal-key"})
+
+
+@pytest.mark.anyio
+async def test_parse_pdf_over_10mb_returns_413():
+    app.state.pdf_extractor = PdfExtractor()
+    oversized = b"%PDF-1.4\n" + b"0" * (10 * 1024 * 1024)
+    async with _client() as client:
+        response = await client.post("/parse-pdf", files={"file": ("big.pdf", oversized, "application/pdf")})
+    assert response.status_code == 413
+    assert response.json()["detail"] == "file_too_large"
+
+
+@pytest.mark.anyio
+async def test_parse_pdf_extraction_timeout_returns_502_internal_error(monkeypatch):
+    import threading
+    import app.main as main_module
+
+    release = threading.Event()
+
+    class HangingExtractor:
+        def extract(self, pdf_bytes, password=None):
+            release.wait(5)
+            return "", 0
+
+    monkeypatch.setattr(main_module, "_PDF_EXTRACT_TIMEOUT_SECONDS", 0.2)
+    app.state.pdf_extractor = HangingExtractor()
+    try:
+        async with _client() as client:
+            response = await client.post("/parse-pdf", files={"file": ("slow.pdf", _make_pdf_bytes(), "application/pdf")})
+    finally:
+        release.set()
+    assert response.status_code == 502
+    assert response.json()["detail"] == "internal_error"
+
+
+@pytest.mark.anyio
+async def test_parse_pdf_corrupt_detail_does_not_echo_exception_text():
+    app.state.pdf_extractor = PdfExtractor()
+    async with _client() as client:
+        response = await client.post("/parse-pdf", files={"file": ("bad.pdf", b"this is not a pdf", "application/pdf")})
+    assert response.status_code == 422
+    assert response.json()["detail"] == "pdf_unreadable"
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "cause, code",
+    [
+        ("Response truncated — statement too long", "response_truncated"),
+        ("503 UNAVAILABLE: model is overloaded", "provider_unavailable"),
+        ("429 rate limit exceeded", "llm_rate_limited"),
+        ("bad json SECRET-INTERNAL-PATH", "llm_parse_error"),
+    ],
+)
+async def test_parse_pdf_llm_failure_returns_documented_code_not_exception_text(cause, code):
+    from app.services.llm_parser import LlmParseError
+
+    mock_parser = AsyncMock(spec=LlmParser)
+    mock_parser.parse = AsyncMock(side_effect=LlmParseError(f"LLM extraction error: {cause}"))
+    app.state.parser = mock_parser
+    app.state.pdf_extractor = PdfExtractor()
+    async with _client() as client:
+        response = await client.post("/parse-pdf", files={"file": ("s.pdf", _make_pdf_bytes(), "application/pdf")})
+    assert response.status_code == 502
+    assert response.json()["detail"] == code
+    assert "SECRET-INTERNAL-PATH" not in response.text
+
+
+@pytest.mark.anyio
+async def test_parse_endpoint_llm_failure_is_sanitized():
+    from app.models import ParseRequest  # noqa: F401
+    from app.services.llm_parser import LlmParseError
+
+    mock_parser = AsyncMock(spec=LlmParser)
+    mock_parser.parse = AsyncMock(side_effect=LlmParseError("LLM extraction error: SECRET-INTERNAL-PATH"))
+    app.state.parser = mock_parser
+    async with _client() as client:
+        response = await client.post("/parse", json={"text": "14/03/2024 GOFOOD 85000"})
+    assert response.status_code == 502
+    assert response.json()["detail"] == "llm_parse_error"
+    assert "SECRET-INTERNAL-PATH" not in response.text
