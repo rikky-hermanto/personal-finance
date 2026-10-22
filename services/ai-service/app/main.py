@@ -8,6 +8,7 @@ import re
 import secrets
 import uuid
 
+import asyncpg
 from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
@@ -40,6 +41,12 @@ from app.agents.categorizer_agent import CategorizerAgent, AgentRateLimitedError
 from app.agents.owner_context import OwnerContext, bind_owner_context
 from app.agents.tools.categories import FALLBACK_CATEGORIES
 from app.services.owner_rules import load_owner_rules
+from app.mcp_server import (
+    mcp as mcp_server,
+    set_pool as mcp_set_pool,
+    set_retriever as mcp_set_retriever,
+    set_owner as mcp_set_owner,
+)
 
 from opentelemetry import trace, metrics
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
@@ -61,6 +68,10 @@ logging.basicConfig(
     format='{"time":"%(asctime)s","level":"%(levelname)s","logger":"%(name)s","msg":"%(message)s"}',
 )
 logger = logging.getLogger(__name__)
+
+# PF-AI009 — the MCP server mounted at /mcp over SSE. Built once at import so its
+# session-manager lifespan can be driven from the main FastAPI lifespan below.
+_mcp_app = mcp_server.http_app(path="/", transport="sse")
 
 
 @asynccontextmanager
@@ -105,10 +116,34 @@ async def lifespan(app: FastAPI):
         settings.jev_model if settings.categorization_backend == "jev" else settings.ai_model,
         settings.embedding_provider, embed_provider.model,
     )
+
+    # PF-AI009 — wire the MCP tools. RetrievalService opens per-request owner
+    # connections, so there is no single pool to borrow; the MCP tools get a
+    # dedicated asyncpg pool. Resolve the one local owner for semantic search
+    # (PF-S15 made the retriever owner-scoped).
+    mcp_pool = await asyncpg.create_pool(settings.database_url)
+    app.state.mcp_pool = mcp_pool
+    mcp_set_pool(mcp_pool)
+    mcp_set_retriever(app.state.retriever)
+    async with mcp_pool.acquire() as conn:
+        owner_row = await conn.fetchrow(
+            "SELECT user_id FROM transactions WHERE user_id IS NOT NULL LIMIT 1"
+        )
+    if owner_row is not None:
+        mcp_set_owner(owner_row["user_id"])
+    else:
+        logger.warning(
+            "MCP: no owner found in transactions — search_transactions_semantic "
+            "will error until transaction data exists"
+        )
+
     try:
-        yield
+        # Drive the MCP SSE sub-app's lifespan so its session manager starts.
+        async with _mcp_app.lifespan(app):
+            yield
     finally:
         logger.info("AI service shutting down")
+        await mcp_pool.close()
         if jev_client is not None:
             await jev_client.aclose()
         langfuse.flush()   # drain buffered traces before process exits
@@ -163,7 +198,9 @@ _OWNER_AGENT_ROUTES = {"/advisor", "/categorize-agent"}
 
 @app.middleware("http")
 async def pilot_access_gate(request: Request, call_next):
-    if request.url.path == "/health":
+    if request.url.path == "/health" or request.url.path.startswith("/mcp"):
+        # PF-AI009: the MCP SSE sub-app mounted at /mcp inherits the service's
+        # no-auth local posture (a bearer guard is deferred to PF-S08).
         return await call_next(request)
     if request.url.path in _OWNER_CHAT_ROUTES:
         if not settings.ai_chat_enabled:
@@ -190,6 +227,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# PF-AI009 — mount the MCP SSE sub-app. Its lifespan is driven from the main
+# lifespan above (async with _mcp_app.lifespan(app)).
+app.mount("/mcp", _mcp_app)
 
 # Chapter 8 — advisor_graph (app/agents/financial_advisor.py) is a module-level
 # singleton compiled at import time; no lifespan wiring needed.
