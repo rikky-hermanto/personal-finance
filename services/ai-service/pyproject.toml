@@ -41,6 +41,8 @@ dependencies = [
     # Runtime advisor adapter; 3.x+ would break the bounded eval stack below.
     "langchain-google-genai>=2.0,<3.0",
     "httpx>=0.27",
+    # PF-AI009: MCP server (FastMCP over SSE) co-located on the AI service.
+    "fastmcp>=2.0",
 ]
 
 
