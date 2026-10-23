@@ -15,7 +15,7 @@
     "e2e:ui": "cd apps/frontend && npx playwright test --ui"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^9.2.5",
     "supabase": "^2.98.2"
   }
 }
