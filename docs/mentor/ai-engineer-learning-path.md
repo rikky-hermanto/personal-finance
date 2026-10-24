@@ -38,16 +38,19 @@ The entire path on one screen. Follow the numbers. The build + positioning layer
 | 8 | Ch8 | ✅ | **Stateful orchestration** (LangGraph) | State, routing, memory, error handling — "industrial smolagents" | LangGraph docs · Coursera (IBM): *RAG & Agentic AI* |
 | 9 | Ch8 | 🔄 | **Agent evaluation** — scenarios written, **never run** (deferred at PF-AI008 close) | Tool-call accuracy + trajectory — closes the "how do you eval an agent?" gap | RAGAS · HF Agents Course (eval units) |
 | 12 | Ch9.5 | ✅ | **AI security + guardrails**: prompt injection, PII masking, input/output guards, threat model (PF-AI011) | AI chat runs on real data with no guard; guardrails appear in AI Eng JDs. **Runs before Ch9** | OWASP Top 10 for LLM Applications · Langfuse docs |
-| 10 | Ch9 | ⏳ | **Model Context Protocol (MCP)** (PF-AI009) | Interop frontier signal; server + client | Anthropic Academy: *The MCP Series* |
+| 10 | Ch9 | ✅ | **Model Context Protocol (MCP)** (PF-AI009) — server shipped; `get_pyramid_scores` route fix is a follow-up | Interop frontier signal; server + client | Anthropic Academy: *The MCP Series* |
 | 11 | Ch9 | ⏳ | Multi-agent over MCP (stretch) | Orchestration over a standard protocol | Anthropic *MCP Series* |
+| 15 | Ch9 | ⏳ | **Tool design**: descriptions, typed schemas, errors the model can recover from, how many tools to expose. Done as a tool-selection pass on the four MCP tools | The model only sees the tool description, and mocked tests can't tell you it picked the wrong tool | Anthropic: *Writing effective tools for AI agents* · Anthropic *MCP Series* |
+| 16 | Ch9 | ⏳ | **Human-in-the-loop**: a LangGraph `interrupt` that asks for approval before the categorizer agent writes, plus a read-only vs write split for MCP tools | An agent that writes to real data needs a point where you say yes or no | LangGraph docs (human-in-the-loop) |
 | 13 | Ch9.75 | ⏳ | **Deployment + LLMOps**: public URL, auth, rate limits, budget alert, response cache, cost write-up (PF-AI012) | Turns "deployed" from a claim into a fact; cost control is a hiring signal | Azure Container Apps docs · GitHub Actions docs |
 | 14 | Ch9.75 | ⏳ | **Evals in CI**: a small, cheap eval subset as a blocking CI gate | Eval engineering is the most-cited AI Eng skill; turns one-off evals into regression protection | Promptfoo CI docs · the Chapter 2 harness |
+| 17 | Ch10 | ⏳ | **Agent-design write-ups**: harness engineering, memory architecture, orchestration patterns, one page each | All three are already built or practiced here but never named. The named version is the interview answer | Anthropic: *Building effective agents* · *Effective context engineering for AI agents* |
 | — | Ch10 | ⏳ | Public presence + certification | Make the work findable; add the credential if ROI is there | Databricks GenAI Eng Associate / Azure AI-102 |
 | — | Ch11 | ⏳ | Interview prep (STAR stories + deep-dives) | Translate the build into interview-ready narratives | self-authored — see task file |
 | — | Ch12 | ⏳ | Active applications | Ship applications like code — deliberate, not spam | career-ops — handled separately |
 | ⏸ | — | ⏸ | Fine-tuning / training-side MLOps | Deferred to month 4+ unless a JD demands it | see the Fine-Tuning layer below |
 
-> **Topic numbers vs run order.** Topics 12–14 were added on 2026-10-17, so their numbers are higher than their position. The run order is the table order: Ch7/agent-eval close-out → **Ch9.5** → Ch9 → Ch9.75 → Ch10–12. Ch9.5 jumps ahead of Ch9 because chat went live on real transactions on 2026-10-16 with no injection or PII guard.
+> **Topic numbers vs run order.** Topics 12–14 were added on 2026-10-17, so their numbers are higher than their position. The run order is the table order: Ch7/agent-eval close-out → **Ch9.5** → Ch9 → Ch9.75 → Ch10–12. Ch9.5 jumps ahead of Ch9 because chat went live on real transactions on 2026-10-16 with no injection or PII guard. Topics 15–17 were added on 2026-10-24 after checking the path against a list of ten agentic AI concepts (see [Concept coverage check](#concept-coverage-check-2026-10-24)). They add no new chapters: 15 and 16 ride inside Ch9, and 17 is writing for Ch10.
 
 ---
 
@@ -142,6 +145,7 @@ Move from reactive apps (answer a question) to agentic apps (take an action). Th
 
 **7. Tool-calling agents (smolagents)** — *Chapter 7.*
 The Thought-Action-Observation loop on the smallest possible API surface. Build one agent with 2–3 tools and a visible reasoning trace before touching anything heavier.
+Also decide how the loop ends: a maximum number of steps, a stop condition, and what the agent does when a tool keeps failing. Add these to the smoke test so a stuck agent fails loudly instead of burning quota.
 → *Resource:* **Hugging Face** — *Agents Course* (smolagents units).
 
 **8. Stateful orchestration (LangGraph)** — *Chapter 8.*
@@ -161,8 +165,16 @@ Anthropic's tool/agent interop standard, adopted across the industry. Build a se
 Wire one LangGraph tool to call the MCP server; a second sub-agent handles the MCP interaction. Multi-agent orchestration over a standard protocol — the interop boundary is explicit and inspectable in Langfuse.
 → *Resource:* **Anthropic** — *The MCP Series*.
 
+**15. Tool design** — *Chapter 9, added 2026-10-24 (PF-AI009 review checklist, section G2).*
+The model never sees your code. It sees the tool name, the description and the parameter schema, and picks a tool from those alone. Mocked tests prove the wiring but can't show that the model chose the right tool. So do one pass on the four MCP tools, from the model's side: connect a client, ask the four demo questions, and check which tool it chose and which arguments it passed. Then rewrite whatever misled it. Three things to check on each tool: the description says when to use it and when not to; the parameters are named and typed (already done in PF-AI009); and an error tells the model what to do next, instead of a bare status code. Also ask whether four tools is the right number or whether two overlap.
+→ *Resources:* **Anthropic** — *Writing effective tools for AI agents* (engineering blog) · MCP Inspector for testing a server without a client.
+
+**16. Human-in-the-loop** — *Chapter 9, added 2026-10-24. Runs after the MCP server works.*
+Today no agent in this project asks before acting. The categorizer agent can propose a category, so the first approval point goes there: a LangGraph `interrupt` before the write, so you see the suggestion with its confidence and reasoning, then accept, edit or reject it. The checkpointer from Chapter 8 already holds the paused state. The same chapter decides the split for MCP tools: the four existing tools are read-only and stay that way, and any future write tool needs an approval step on the client side. The point to be able to explain: where an approval is worth its friction (writes, money moving, hard to undo) and where it only slows things down (reads).
+→ *Resources:* **LangGraph docs** — human-in-the-loop and `interrupt` · the Chapter 8 checkpointer.
+
 ### Key skills
-Building specialists/sub-agents, state machines for long-running workflows, MCP servers/clients, frameworks (LangGraph, CrewAI, AutoGen, smolagents), agent observability and replay.
+Building specialists/sub-agents, state machines for long-running workflows, MCP servers/clients, frameworks (LangGraph, CrewAI, AutoGen, smolagents), agent observability and replay, tool design, approval points for agent writes.
 
 ### Suggested cadence
 - **Chapters 7–8** — Topics #7–#9: smolagents → LangGraph → agent eval. First agent shipped.
@@ -213,10 +225,34 @@ The lifecycle of deploying, scaling, evaluating, and fine-tuning models securely
 
 ### Chapters 10–12 (instead of starting this layer): Positioning & proof
 - **Publish one blog post now, not at Chapter 10.** As of 2026-10-17, 2 drafts have sat since 2026-06-24 and nothing is published. Ship the eval-harness post in parallel with Chapter 9.5. The full blog post + demo video come after Chapter 9.75.
+- **Agent-design write-ups (topic 17).** One page each on harness engineering, memory architecture and orchestration patterns. They describe what is already built, so this is writing, not study.
+  - *Harness engineering:* the instructions, tools, context and rules an agent runs inside. The evidence is in this repo: `.claude/rules`, the skills, the `ai/` folder, the loop engine and its deny list.
+  - *Memory architecture:* short-term (the checkpointer), long-term (owner-scoped memory per user, PF-S15) and the knowledge base (the transaction embeddings), and what writes to each.
+  - *Orchestration patterns:* a short comparison of orchestrator-worker, sequential, parallel and handoff, and which one the Advisor and the 2-agent MCP demo actually use.
+  - These feed the full blog post below.
 - Blog post + demo video on the RAG + Agent + security system shipped in Chapters 1–9.75.
 - CV update with new proof points.
 - Certification, if ROI is there (Databricks GenAI Engineer Associate or Azure AI-102).
 - Apply to roles in the pipeline (Datadog, Grafana, Anthropic, GitLab, Intercom).
+
+---
+
+## Concept coverage check (2026-10-24)
+
+The path was checked against a list of ten agentic AI concepts ("10 Essential Agentic AI Concepts to Know in 2026"). Four were covered, three partly, and three were missing as named topics. This table shows where each one lives now.
+
+| Concept | Where it lives | State |
+|---|---|---|
+| Harness engineering | Topic 17 write-up, built in this repo | ⏳ write-up |
+| Loop engineering | Topic 7 (stop conditions added) | ⏳ add to smoke test |
+| Context engineering | Skim section, topic 2 | ✅ one-page write-up still open |
+| Tool design | Topic 15 | ⏳ |
+| Memory architecture | Topic 8 (checkpointer) + topic 17 write-up | 🟡 practiced, not written |
+| Orchestration patterns | Topics 8 and 11 + topic 17 write-up | 🟡 |
+| Guardrails & permissions | Topic 12 (Ch9.5). Permissions: RLS and the signed owner token (PF-S15) | ✅ |
+| Evals for agents | Topic 9 | 🔄 scenarios never run |
+| Human-in-the-loop | Topic 16 | ⏳ |
+| Observability & tracing | Topic 1 | ✅ |
 
 ---
 
@@ -243,7 +279,7 @@ The original 90-day clock ran out at Day 90 (~2026-08-24). This replaces it. The
 | 1 | Ch7 + #9 | Close the smoke test (5 of 5) and run the five agent scenarios; finish the PF-AI005-PART2 numeric eval | PF-AI007, PF-AI008 follow-up, PF-AI005-PART2 | 2026-10-24 |
 | 2 | Ch9.5 | AI security + guardrails | PF-AI011 (Done 2026-10-21) | 2026-11-07 |
 | — | Ch10 (early) | Publish the eval-harness blog post, in parallel | `docs/ideas/blogs/` | 2026-11-07 |
-| 3 | Ch9 | MCP server + client (+ multi-agent stretch) | PF-AI009 | 2026-11-21 |
+| 3 | Ch9 | MCP server + client, with the tool-design pass (#15) and the human-in-the-loop approval step on the categorizer agent (#16). Multi-agent stays a stretch | PF-AI009 (checklist section G2) + a follow-up plan for #16 | 2026-11-21 |
 | 4 | Ch9.75 | Deployment + LLMOps + evals in CI | PF-AI012 | 2026-12-05 |
-| 5 | Ch10–11 | Full blog + demo, certification decision, STAR stories | — | 2026-12-19 |
+| 5 | Ch10–11 | Full blog + demo (with the three agent-design write-ups, #17), certification decision, STAR stories | — | 2026-12-19 |
 | 6 | Ch12 | Active applications | career-ops | from 2026-12 |

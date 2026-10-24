@@ -1060,3 +1060,24 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - [~] Stretch 2-agent workflow — demo file written; run needs an API key
 
 **Streak: 4 days** (2026-10-19 to 2026-10-21)
+
+### 2026-10-24 — Day 151
+
+**Session: checked the learning path against ten agentic AI concepts and updated the curriculum**
+
+- Compared the "10 Essential Agentic AI Concepts to Know in 2026" PDF with [ai-engineer-learning-path.md](../mentor/ai-engineer-learning-path.md). Result: 4 concepts covered (context engineering, guardrails and permissions, agent evals, observability), 3 partly covered (loop design, memory architecture, orchestration patterns), 3 missing as named topics (harness engineering, tool design, human-in-the-loop).
+- Added topics 15 (tool design) and 16 (human-in-the-loop) to Chapter 9, and topic 17 (three agent-design write-ups) to Chapter 10. Added a stop condition and max-steps item to topic 7, a concept coverage table, and updated the remaining schedule.
+- Added a tool-design pass (section G2) to the PF-AI009 owner review checklist, and matching lines to the mentor task file for Chapters 7, 9 and 10.
+- Confirmed the `loop-run` fix from 2026-10-21 is in place: the child processes use `--permission-mode auto` with the engine deny list, and the 23 loop tests pass.
+
+**Concept learned:** the model never sees tool code, only the name, description and parameter schema. Mocked tests prove the wiring, but only a real client shows whether the model picks the right tool, so tool design needs its own pass.
+
+**Retros (blockers & surprises):**
+- **Stale memory note about `loop-run`:** it said the `--permission-prompts` fix was still pending, but the fix had landed on 2026-10-21 after the note was written. → **Fix:** checked the code and the tests, then corrected the note.
+
+**Remaining for tomorrow:**
+- Get the PF-AI007 smoke test from 2 of 5 to 5 of 5, then run the five agent scenarios (needs paid LLM quota).
+- Finish the PF-AI009 owner review checklist (Claude Desktop, demo prompts, then section G2).
+- Answer the PF-AI011 STEP 0 recall questions.
+
+**Streak: 1 day** (no log entries between 2026-10-22 and 2026-10-23)

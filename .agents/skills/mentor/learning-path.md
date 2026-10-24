@@ -192,6 +192,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
   - Output: suggested category + confidence + reasoning trace
 - Wire as an optional endpoint in personal-finance AI service
 - Log every tool call and decision to Langfuse — your traces become demo material
+- Decide how the loop ends: a maximum step count, a stop condition, and what happens when a tool keeps failing. Put it in the smoke test *(added 2026-10-24)*
 - Stretch: complete DeepLearning.AI *Functions, Tools and Agents with LangChain* (free, ~3h)
 
 **Definition of done:** Agent runs end-to-end on 5 test transactions, traces are visible in Langfuse, reasoning is inspectable.
@@ -244,6 +245,8 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
   - `search_transactions_semantic` (uses your Chapter 3-4 RAG retriever)
   - `get_cashflow_summary`
 - Test from Claude Desktop or another MCP client
+- Tool-design pass *(added 2026-10-24)*: ask the demo questions, check which tool the model chose, rewrite any description that misled it, and make every error say what to do next (PF-AI009 checklist section G2). Resource: Anthropic, *Writing effective tools for AI agents*
+- Human-in-the-loop *(added 2026-10-24)*: add a LangGraph `interrupt` so the categorizer agent asks for approval before it writes a category. Keep the MCP tools read-only. Resource: LangGraph human-in-the-loop docs
 - Stretch: build a 2-agent workflow where one agent calls your MCP server as a tool
 
 **Definition of done:** Claude Desktop (or any MCP client) can connect to your server, list tools, and successfully invoke them against your real finance data.
@@ -311,6 +314,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
   - Platform: dev.to (free, good SEO) or personal blog
   - Content: tool_use vs JSON mode decision, three-tier dedup, PyMuPDF cost optimization, eval results, RAG architecture, MCP server
   - Include: benchmark table (Gemini vs Claude, accuracy vs cost), architecture diagram
+- Write three one-page agent-design notes *(added 2026-10-24)*: harness engineering (rules, skills, loop deny list), memory architecture (checkpointer, owner-scoped memory, embeddings) and orchestration patterns (which one the Advisor and the 2-agent MCP demo use). Resources: Anthropic, *Building effective agents* and *Effective context engineering for AI agents*
 - Record a 3-minute demo Loom:
   - (0:00–0:30) Upload BCA PDF → transactions appear with categories
   - (0:30–1:00) Financial Journey page: pyramid scores, Living Garden
