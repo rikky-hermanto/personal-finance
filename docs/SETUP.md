@@ -92,8 +92,10 @@ rtk proxy services/ai-service/.venv/Scripts/python.exe -m uvicorn app.main:app -
 | Supabase API / PostgREST | http://127.0.0.1:54321 |
 | Supabase database | 127.0.0.1:54322, database postgres |
 | Supabase Studio | http://127.0.0.1:54323 |
-| Grafana | http://localhost:3000 |
+| Grafana | http://localhost:3000 (log in as `admin` / `GRAFANA_ADMIN_PASSWORD`) |
 | Compose standalone database | localhost:5432; separate from Supabase |
+
+All Compose supporting services (`db`, `ai-service`, and the monitoring stack `alloy`, `prometheus`, `loki`, `tempo`, `grafana`) publish their ports on `127.0.0.1` only, so they are reachable from this machine but not from other devices on the network. `api` (7208) and `frontend` (8080) are left on all interfaces. Grafana no longer allows anonymous access: set `GRAFANA_ADMIN_PASSWORD` in `.env` and log in as `admin`. Compose also requires `POSTGRES_PASSWORD` to be set (there is no default fallback) and stops with a clear error if either variable is missing.
 
 The standalone `db` service remains in Compose and the root startup script. Application entities use Supabase/PostgREST; AI retrieval uses Supabase's direct Postgres URL. The .NET health probe uses its separately configured connection string, so a green standalone database probe alone does not prove application persistence works.
 
