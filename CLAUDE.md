@@ -230,7 +230,7 @@ services/
 - Start everything: `npm start` (Supabase, monitoring containers, then API + frontend + AI service). Skill: `docker-up`.
 - Before a push: skill `ci-check` (all gates) or `ci-check quick` (tests + lint).
 - Per-service commands, ports, environment variables, and migrations: [docs/SETUP.md](docs/SETUP.md). Variable names: `.env.example`.
-- Key ports: frontend 8080 · API 7208 (`/health`) · AI service 8000 (`/health`) · Supabase Studio 54323 · Grafana 3000.
+- Key ports: frontend 8080 · API 7208 (`/health`) · AI service 8000 (`/health`) · Supabase Studio 54323 · Grafana 3000 (loopback-only, log in as `admin` / `GRAFANA_ADMIN_PASSWORD`). Compose supporting services (`db`, `ai-service`, monitoring stack) bind to `127.0.0.1` only; `api` and `frontend` stay on all interfaces.
 
 ## Key Patterns
 

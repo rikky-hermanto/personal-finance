@@ -3,11 +3,11 @@ services:
     image: postgres:16-alpine
     container_name: personalfinance-db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-personal_finance}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_password_here}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
       dockerfile: Dockerfile
     container_name: personalfinance-ai
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - AI_PROVIDER=${AI_PROVIDER:-gemini}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
@@ -45,7 +45,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:7208
-      - ConnectionStrings__Default=Host=db;Port=5432;Database=${POSTGRES_DB:-personal_finance};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-postgres_password_here}
+      - ConnectionStrings__Default=Host=db;Port=5432;Database=${POSTGRES_DB:-personal_finance};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       - AiService__BaseUrl=http://ai-service:8000
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://alloy:4317
       - OTEL_SERVICE_NAME=api
@@ -75,9 +75,9 @@ services:
       - ./monitoring/alloy/config.alloy:/etc/alloy/config.alloy
     command: run --server.http.listen-addr=0.0.0.0:12345 /etc/alloy/config.alloy
     ports:
-      - "4317:4317" # OTLP gRPC
-      - "4318:4318" # OTLP HTTP
-      - "12345:12345" # Alloy UI
+      - "127.0.0.1:4317:4317" # OTLP gRPC
+      - "127.0.0.1:4318:4318" # OTLP HTTP
+      - "127.0.0.1:12345:12345" # Alloy UI
 
   prometheus:
     image: prom/prometheus:latest
@@ -89,7 +89,7 @@ services:
     volumes:
       - ./monitoring/prometheus/prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
 
   loki:
     image: grafana/loki:latest
@@ -98,7 +98,7 @@ services:
     volumes:
       - ./monitoring/loki/loki-config.yaml:/etc/loki/local-config.yaml
     ports:
-      - "3100:3100"
+      - "127.0.0.1:3100:3100"
 
   tempo:
     image: grafana/tempo:latest
@@ -107,8 +107,8 @@ services:
     volumes:
       - ./monitoring/tempo/tempo.yaml:/etc/tempo.yaml
     ports:
-      - "3200:3200" # tempo
-      - "4319:4317" # otlp grpc
+      - "127.0.0.1:3200:3200" # tempo
+      - "127.0.0.1:4319:4317" # otlp grpc
 
   grafana:
     image: grafana/grafana:latest
@@ -116,11 +116,10 @@ services:
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     environment:
-      - GF_AUTH_ANONYMOUS_ENABLED=true
-      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in .env}
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - prometheus
       - loki
