@@ -17,6 +17,7 @@ export const TierCard = ({ level, state }: Props) => {
   const meta = TIER_META[level];
   const levelScore = state.levelScores[level] ?? 0;
   const liveIndicators = state.indicators.filter((i) => i.level === level && i.status !== 'no_data');
+  const hasLiveIndicators = liveIndicators.length > 0;
   const isGraduated = liveIndicators.length > 0 && liveIndicators.every((i) => i.score >= 70);
   const isActive = level === `L${state.currentLevel}`;
   const isLocked = !isGraduated && !isActive && parseInt(level[1]) > state.currentLevel;
@@ -48,7 +49,7 @@ export const TierCard = ({ level, state }: Props) => {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono text-muted-foreground/60 tabular-nums">
-            {levelScore.toFixed(0)}/100
+            {hasLiveIndicators ? `${levelScore.toFixed(0)}/100` : 'Not evaluated'}
           </span>
           {isGraduated && (
             <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-emerald-300 text-emerald-700">
@@ -77,7 +78,7 @@ export const TierCard = ({ level, state }: Props) => {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-muted-foreground tabular-nums">
-              {levelScore.toFixed(0)} / 100
+              {hasLiveIndicators ? `${levelScore.toFixed(0)} / 100` : 'Not evaluated'}
             </span>
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
               {statusLabel}

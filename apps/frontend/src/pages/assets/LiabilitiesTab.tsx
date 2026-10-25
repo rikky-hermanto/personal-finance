@@ -4,6 +4,7 @@ import { formatCurrency } from '@/lib/format';
 import { getLiabilities } from '@/api/liabilitiesApi';
 import { LtvBadge } from '@/components/assets/LtvBadge';
 import { AddLiabilityDialog } from '@/components/assets/AddLiabilityDialog';
+import { NoDebtsPrompt } from '@/components/assets/NoDebtsPrompt';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const TYPE_LABELS = { revolving: 'Revolving', installment: 'Installment', personal: 'Personal' };
@@ -46,7 +47,7 @@ export default function LiabilitiesTab() {
       </div>
 
       {liabilities.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-12">No liabilities yet. Add one to get started.</p>
+        <NoDebtsPrompt />
       ) : (
         <div className="border border-border rounded-lg overflow-hidden">
           <table className="w-full text-sm">

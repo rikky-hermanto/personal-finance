@@ -229,6 +229,90 @@ public class JourneyScoringServiceTests
         Assert.Equal(1, level);
     }
 
+    // ─── Level aggregation with unevaluated indicators (PF-151) ─────────────────
+
+    [Fact]
+    public void ComputeLevelScores_DtiNotEvaluated_IsLeftOutOfTheL2Average()
+    {
+        var indicators = new List<IndicatorScoreDto>
+        {
+            new("liquid_savings_ratio", "L2", 80m, null, "achieved", "Liquid savings", ""),
+            new("manageable_dti", "L2", 0m, null, "no_data", "DTI", ""),
+        };
+
+        var scores = JourneyScoringService.ComputeLevelScores(indicators);
+
+        Assert.Equal(80m, scores["L2"]);
+    }
+
+    [Fact]
+    public void ComputeLevelScores_LevelWithNoLiveIndicator_HasNoScore()
+    {
+        var indicators = new List<IndicatorScoreDto>
+        {
+            new("manageable_dti", "L2", 0m, null, "no_data", "DTI", ""),
+        };
+
+        var scores = JourneyScoringService.ComputeLevelScores(indicators);
+
+        Assert.False(scores.ContainsKey("L2"));
+    }
+
+    [Fact]
+    public void DetermineCurrentLevel_WhenL2HasNoLiveIndicators_DoesNotSkipToL3()
+    {
+        var indicators = new List<IndicatorScoreDto>
+        {
+            new("spend_lt_income", "L1", 90m, null, "achieved", "Spend", ""),
+            new("manageable_dti", "L2", 0m, null, "no_data", "DTI", ""),
+            new("savings_rate", "L3", 95m, null, "achieved", "Savings rate", ""),
+        };
+        var levelScores = new Dictionary<string, decimal> { ["L1"] = 90m, ["L3"] = 95m };
+
+        var level = InvokeDetermineCurrentLevel(levelScores, indicators);
+
+        Assert.Equal(1, level);
+    }
+
+    // ─── "Not evaluated" survives a reload (PF-151) ─────────────────────────────
+
+    [Fact]
+    public void BuildIndicatorDtos_UnevaluatedDtiStoredThroughLiveScoreMap_ComesBackAsNoData()
+    {
+        // Arrange — a fresh recalculation where DTI is not evaluated
+        var fresh = new List<IndicatorScoreDto>
+        {
+            new("spend_lt_income", "L1", 80m, 0.9m, "achieved", "Spend", ""),
+            new("manageable_dti", "L2", 0m, null, "no_data", "DTI", ""),
+        };
+
+        // Act — what GET /state rebuilds from storage
+        var rebuilt = JourneyScoringService.BuildIndicatorDtos(JourneyScoringRules.LiveScoreMap(fresh));
+
+        // Assert — "not evaluated" must not turn into a score of 0
+        var dti = rebuilt.Single(i => i.Code == "manageable_dti");
+        Assert.Equal("no_data", dti.Status);
+        Assert.Equal("achieved", rebuilt.Single(i => i.Code == "spend_lt_income").Status);
+    }
+
+    [Fact]
+    public void BuildIndicatorDtos_AppropriateInsurance_ReportsLevelL2AndNoData()
+    {
+        var rebuilt = JourneyScoringService.BuildIndicatorDtos(new Dictionary<string, decimal>());
+
+        var insurance = rebuilt.Single(i => i.Code == "appropriate_insurance");
+        Assert.Equal("L2", insurance.Level);
+        Assert.Equal("no_data", insurance.Status);
+    }
+
+    [Fact]
+    public void Definitions_EveryIndicatorCodeAppearsOnce()
+    {
+        var codes = JourneyScoringRules.Definitions.Select(d => d.Code).ToList();
+
+        Assert.Equal(codes.Count, codes.Distinct().Count());
+    }
+
     // ─── Reflection Helpers ────────────────────────────────────────────────────
 
     private static decimal InvokeScoreSpendRatio(decimal ratio)

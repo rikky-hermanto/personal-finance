@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { NOT_EVALUATED_ACTIONS } from '@/utils/journeyLabels';
 import type { IndicatorScore } from '@/types/Journey';
 
 interface Props {
@@ -18,12 +20,22 @@ const STATUS_COLORS: Record<string, string> = {
 
 export const IndicatorScoreBar = ({ indicator, compact, headline, subtext }: Props) => {
   if (indicator.status === 'no_data') {
+    const needsInput = NOT_EVALUATED_ACTIONS[indicator.code];
     return (
       <div className={cn('flex items-center gap-2', compact ? 'py-0.5' : 'py-1')}>
         <span className="text-xs text-muted-foreground flex-1 truncate">
           {headline ?? indicator.displayName}
         </span>
-        <span className="text-[10px] text-muted-foreground/60 italic">Coming soon</span>
+        {needsInput ? (
+          <Link
+            to={needsInput.href}
+            className="text-[10px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Not evaluated · {needsInput.action}
+          </Link>
+        ) : (
+          <span className="text-[10px] text-muted-foreground/60 italic">Coming soon</span>
+        )}
       </div>
     );
   }

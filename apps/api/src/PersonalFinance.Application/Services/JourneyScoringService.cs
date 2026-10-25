@@ -9,6 +9,7 @@ namespace PersonalFinance.Application.Services;
 
 public class JourneyScoringService(
     Supabase.Client supabase,
+    IJourneyConfirmationService confirmation,
     ILogger<JourneyScoringService> logger
 ) : IJourneyScoringService
 {
@@ -49,24 +50,20 @@ public class JourneyScoringService(
 
         var spendLtIncome = await ComputeSpendLtIncomeAsync(ct);
         indicators.Add(spendLtIncome);
-        indicators.Add(NotAvailable("pay_bills_on_time", "L1", "Pay bills on time",
-            "Bill due-date tracking not yet available"));
+        indicators.Add(Unavailable("pay_bills_on_time", "Bill due-date tracking not yet available"));
 
         var liquidSavings = await ComputeLiquidSavingsAsync(ct);
         indicators.Add(liquidSavings);
 
-        var dti = await ComputeDtiAsync(ct);
+        var dti = await ComputeDtiAsync(userId, ct);
         indicators.Add(dti);
 
         var savingsRate = await ComputeSavingsRateAsync(ct);
         indicators.Add(savingsRate);
 
-        indicators.Add(NotAvailable("appropriate_insurance", "L3", "Appropriate insurance",
-            "Insurance module not yet available"));
-        indicators.Add(NotAvailable("prime_credit", "L3", "Prime credit score",
-            "Credit bureau integration not yet available"));
-        indicators.Add(NotAvailable("passive_income", "L4", "Passive income coverage",
-            "Dividend/yield tracker not yet available"));
+        indicators.Add(Unavailable("appropriate_insurance", "Insurance module not yet available"));
+        indicators.Add(Unavailable("prime_credit", "Credit bureau integration not yet available"));
+        indicators.Add(Unavailable("passive_income", "Dividend/yield tracker not yet available"));
 
         var levelScores = ComputeLevelScores(indicators);
         var totalScore = levelScores.Values.Any() ? Math.Round(levelScores.Values.Average(), 2) : 0m;
@@ -88,7 +85,7 @@ public class JourneyScoringService(
         const string code = "spend_lt_income";
         const string level = "L1";
         const string displayName = "Spend less than income";
-        const string description = "3-month rolling average of expense vs. income ratio";
+        const string description = "3-month rolling average of spending (excluding money you saved or invested) vs. income";
 
         try
         {
@@ -100,22 +97,7 @@ public class JourneyScoringService(
                 .Select(i => today.AddMonths(-i))
                 .ToList();
 
-            var ratios = months
-                .Select(m =>
-                {
-                    var income = transactions
-                        .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month
-                                 && t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
-                        .Sum(t => t.AmountIdr);
-                    var expense = transactions
-                        .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month
-                                 && t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-                        .Sum(t => t.AmountIdr);
-                    return income > 0 ? (decimal?)(expense / income) : null;
-                })
-                .Where(r => r.HasValue)
-                .Select(r => r!.Value)
-                .ToList();
+            var ratios = JourneyScoringRules.MonthlyConsumptionRatios(transactions, months);
 
             if (!ratios.Any())
                 return NotAvailable(code, level, displayName, "No income data in last 3 months");
@@ -138,13 +120,13 @@ public class JourneyScoringService(
         const string code = "liquid_savings_ratio";
         const string level = "L2";
         const string displayName = "Liquid savings ratio";
-        const string description = "Emergency fund in months of average monthly expense";
+        const string description = "Emergency fund in months of average monthly spending (excluding money you saved or invested)";
 
         try
         {
             // Get savings accounts
             var accounts = await supabase.From<Account>()
-                .Filter("account_type", Operator.Equals, "Savings")
+                .Filter("account_type", Operator.Equals, JourneyScoringRules.SavingsAccountType)
                 .Get();
 
             if (!accounts.Models.Any())
@@ -155,7 +137,7 @@ public class JourneyScoringService(
             foreach (var account in accounts.Models)
             {
                 var valuation = await supabase.From<Valuation>()
-                    .Filter("subject_type", Operator.Equals, "Account")
+                    .Filter("subject_type", Operator.Equals, JourneyScoringRules.AccountValuationSubjectType)
                     .Filter("subject_id", Operator.Equals, account.Id.ToString())
                     .Order("valued_at", Ordering.Descending)
                     .Limit(1)
@@ -165,19 +147,13 @@ public class JourneyScoringService(
                     totalLiquidIdr += valuation.Models[0].ValueIdr;
             }
 
-            // Avg monthly expense (last 3 months)
+            // Avg monthly consumption (last 3 months)
             var today = DateTime.Today;
             var start = new DateTime(today.Year, today.Month, 1).AddMonths(-3);
             var transactions = await FetchTransactionsAsync(start, today);
 
             var months = Enumerable.Range(1, 3).Select(i => today.AddMonths(-i)).ToList();
-            var avgMonthlyExpense = months
-                .Select(m => transactions
-                    .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month
-                             && t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-                    .Sum(t => t.AmountIdr))
-                .DefaultIfEmpty(0m)
-                .Average();
+            var avgMonthlyExpense = JourneyScoringRules.AverageMonthlyConsumption(transactions, months);
 
             if (avgMonthlyExpense <= 0)
                 return NotAvailable(code, level, displayName, "No expense data to compute ratio");
@@ -195,37 +171,31 @@ public class JourneyScoringService(
         }
     }
 
-    private async Task<IndicatorScoreDto> ComputeDtiAsync(CancellationToken ct)
+    private async Task<IndicatorScoreDto> ComputeDtiAsync(Guid userId, CancellationToken ct)
     {
         const string code = "manageable_dti";
         const string level = "L2";
         const string displayName = "Manageable debt (DTI)";
-        const string description = "Monthly debt payment as % of monthly income";
+        const string description = "Monthly debt payments as % of take-home income";
 
         try
         {
+            // Read inside the try: if the confirmation cannot be read, the indicator fails closed
+            // as "not evaluated" instead of guessing.
+            var confirmedAt = await confirmation.GetNoDebtsConfirmedAtAsync(userId, ct);
             var liabilities = await supabase.From<Liability>().Get();
-            var totalMonthlyPayment = liabilities.Models
-                .Where(l => l.MonthlyPayment.HasValue)
-                .Sum(l => l.MonthlyPayment!.Value);
 
             var today = DateTime.Today;
             var start = new DateTime(today.Year, today.Month, 1).AddMonths(-3);
             var transactions = await FetchTransactionsAsync(start, today);
 
             var months = Enumerable.Range(1, 3).Select(i => today.AddMonths(-i)).ToList();
-            var avgMonthlyIncome = months
-                .Select(m => transactions
-                    .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month
-                             && t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
-                    .Sum(t => t.AmountIdr))
-                .DefaultIfEmpty(0m)
-                .Average();
+            var avgMonthlyIncome = JourneyScoringRules.AverageMonthlyIncome(transactions, months);
 
-            if (avgMonthlyIncome <= 0)
-                return NotAvailable(code, level, displayName, "No income data to compute DTI");
+            var outcome = JourneyScoringRules.EvaluateDti(liabilities.Models, confirmedAt, avgMonthlyIncome);
+            if (outcome.Dti is not { } dti)
+                return NotAvailable(code, level, displayName, outcome.NotEvaluatedReason!);
 
-            var dti = totalMonthlyPayment / avgMonthlyIncome;
             var score = ScoreDti(dti);
             var status = DeriveStatus(score);
 
@@ -253,29 +223,12 @@ public class JourneyScoringService(
 
             var months = Enumerable.Range(1, 3).Select(i => today.AddMonths(-i)).ToList();
 
-            var investmentCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "Investment", "Savings Transfer", "Investasi", "Tabungan"
-            };
-
-            var avgMonthlyIncome = months
-                .Select(m => transactions
-                    .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month
-                             && t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
-                    .Sum(t => t.AmountIdr))
-                .DefaultIfEmpty(0m)
-                .Average();
+            var avgMonthlyIncome = JourneyScoringRules.AverageMonthlyIncome(transactions, months);
 
             if (avgMonthlyIncome <= 0)
                 return NotAvailable(code, level, displayName, "No income data to compute savings rate");
 
-            var avgMonthlyContribution = months
-                .Select(m => transactions
-                    .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month
-                             && investmentCategories.Contains(t.Category))
-                    .Sum(t => t.AmountIdr))
-                .DefaultIfEmpty(0m)
-                .Average();
+            var avgMonthlyContribution = JourneyScoringRules.AverageMonthlySavingsOutflow(transactions, months);
 
             var savingsRate = avgMonthlyContribution / avgMonthlyIncome;
             var score = ScoreSavingsRate(savingsRate);
@@ -292,7 +245,7 @@ public class JourneyScoringService(
 
     // ─── Scoring Formulas (from specs/scoring-rubric.md) ───────────────────────
 
-    private static decimal ScoreSpendRatio(decimal ratio)
+    internal static decimal ScoreSpendRatio(decimal ratio)
     {
         if (ratio >= 1.00m) return 0m;
         if (ratio <= 0.80m) return 100m;
@@ -301,7 +254,7 @@ public class JourneyScoringService(
         return (1.00m - ratio) / (1.00m - 0.95m) * 50m;
     }
 
-    private static decimal ScoreLiquidSavings(decimal months)
+    internal static decimal ScoreLiquidSavings(decimal months)
     {
         if (months <= 0.5m) return 0m;
         if (months >= 3.0m) return 100m;
@@ -310,7 +263,7 @@ public class JourneyScoringService(
         return 50m + (months - 1.5m) / (3.0m - 1.5m) * 50m;
     }
 
-    private static decimal ScoreDti(decimal dti)
+    internal static decimal ScoreDti(decimal dti)
     {
         if (dti >= 0.50m) return 0m;
         if (dti <= 0.20m) return 100m;
@@ -319,7 +272,7 @@ public class JourneyScoringService(
         return (0.50m - dti) / (0.50m - 0.36m) * 50m;
     }
 
-    private static decimal ScoreSavingsRate(decimal rate)
+    internal static decimal ScoreSavingsRate(decimal rate)
     {
         if (rate <= 0m) return 0m;
         if (rate >= 0.15m) return 100m;
@@ -330,7 +283,7 @@ public class JourneyScoringService(
 
     // ─── Level Aggregation ─────────────────────────────────────────────────────
 
-    private static Dictionary<string, decimal> ComputeLevelScores(List<IndicatorScoreDto> indicators)
+    internal static Dictionary<string, decimal> ComputeLevelScores(List<IndicatorScoreDto> indicators)
     {
         var result = new Dictionary<string, decimal>();
         foreach (var level in new[] { "L1", "L2", "L3", "L4", "L5" })
@@ -345,7 +298,7 @@ public class JourneyScoringService(
         return result;
     }
 
-    private static int DetermineCurrentLevel(
+    internal static int DetermineCurrentLevel(
         Dictionary<string, decimal> levelScores,
         List<IndicatorScoreDto> indicators)
     {
@@ -372,29 +325,18 @@ public class JourneyScoringService(
         List<IndicatorScoreDto> indicators,
         CancellationToken ct)
     {
-        var toUnlock = new List<string>();
-        Func<string, IndicatorScoreDto?> get = indicator => indicators.FirstOrDefault(i => i.Code == indicator);
+        var toUnlock = JourneyScoringRules.AchievementsEarned(indicators);
+        var unlocked = (await LoadAchievementsAsync(userId, ct)).Select(a => a.Code).ToHashSet();
 
-        if (get("spend_lt_income")?.Score >= 70) toUnlock.Add("positive_cashflow_3mo");
-        if (get("liquid_savings_ratio")?.Score >= 100) toUnlock.Add("emergency_ready");
-        if (get("manageable_dti")?.Score >= 100) toUnlock.Add("debt_free");
-        if (get("savings_rate")?.Score >= 70) toUnlock.Add("consistent_investor");
-
-        var l1Indicators = indicators.Where(i => i.Level == "L1" && i.Status != "no_data").ToList();
-        if (l1Indicators.Any() && l1Indicators.All(i => i.Score >= 70)) toUnlock.Add("graduated_l1");
-
-        var l2Indicators = indicators.Where(i => i.Level == "L2" && i.Status != "no_data").ToList();
-        if (l2Indicators.Any() && l2Indicators.All(i => i.Score >= 70)) toUnlock.Add("graduated_l2");
-
-        var l3Indicators = indicators.Where(i => i.Level == "L3" && i.Status != "no_data").ToList();
-        if (l3Indicators.Any() && l3Indicators.All(i => i.Score >= 70)) toUnlock.Add("graduated_l3");
-
-        foreach (var code in toUnlock)
+        // Insert, never Upsert: postgrest-csharp serializes the primary key on Upsert even with
+        // shouldInsert: false, so every upsert wrote id 0 and a new unlock overwrote the previous
+        // one. Inserting only new codes also keeps the original unlocked_at.
+        foreach (var code in toUnlock.Where(c => !unlocked.Contains(c)))
         {
             try
             {
                 await supabase.From<JourneyAchievement>()
-                    .Upsert(new JourneyAchievement
+                    .Insert(new JourneyAchievement
                     {
                         UserId = userId,
                         AchievementCode = code,
@@ -403,7 +345,7 @@ public class JourneyScoringService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Failed to upsert achievement {Code}", code);
+                logger.LogError(ex, "Failed to insert achievement {Code}", code);
             }
         }
 
@@ -429,7 +371,7 @@ public class JourneyScoringService(
         Dictionary<string, decimal> levelScores, List<IndicatorScoreDto> indicators,
         CancellationToken ct)
     {
-        var indicatorMap = indicators.ToDictionary(i => i.Code, i => i.Score);
+        var indicatorMap = JourneyScoringRules.LiveScoreMap(indicators);
 
         await supabase.From<UserJourneyState>()
             .Upsert(new UserJourneyState
@@ -448,24 +390,38 @@ public class JourneyScoringService(
         Guid userId, List<IndicatorScoreDto> indicators, CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(DateTime.Today);
-        foreach (var indicator in indicators.Where(i => i.Status != "no_data"))
+
+        // Today's rows become exactly the live indicators: clear today's rows, then insert the live
+        // ones. This also removes today's row for an indicator that is not evaluated, so state and
+        // snapshot cannot disagree on the same day (e.g. "I have no debts" then Undo). Earlier days
+        // are never touched. Insert, never Upsert: postgrest-csharp serializes the primary key on
+        // Upsert even with shouldInsert: false, so every upsert wrote id 0 over one shared row.
+        try
         {
-            try
-            {
-                await supabase.From<JourneyIndicatorSnapshot>()
-                    .Upsert(new JourneyIndicatorSnapshot
-                    {
-                        UserId = userId,
-                        SnapshotDate = today,
-                        IndicatorCode = indicator.Code,
-                        Score = indicator.Score,
-                        RawValue = indicator.RawValue,
-                    });
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to persist snapshot for {Indicator}", indicator.Code);
-            }
+            await supabase.From<JourneyIndicatorSnapshot>()
+                .Filter("user_id", Operator.Equals, userId.ToString())
+                .Filter("snapshot_date", Operator.Equals, today.ToString("yyyy-MM-dd"))
+                .Delete();
+
+            var rows = indicators
+                .Where(i => i.Status != "no_data")
+                .Select(i => new JourneyIndicatorSnapshot
+                {
+                    UserId = userId,
+                    SnapshotDate = today,
+                    IndicatorCode = i.Code,
+                    Score = i.Score,
+                    RawValue = i.RawValue,
+                    CreatedAt = DateTime.UtcNow,
+                })
+                .ToList();
+
+            if (rows.Count > 0)
+                await supabase.From<JourneyIndicatorSnapshot>().Insert(rows);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to persist today's indicator snapshots");
         }
     }
 
@@ -498,37 +454,20 @@ public class JourneyScoringService(
     private static IndicatorScoreDto NotAvailable(string code, string level, string displayName, string description) =>
         new(code, level, 0m, null, "no_data", displayName, description);
 
+    private static IndicatorScoreDto Unavailable(string code, string reason)
+    {
+        var definition = JourneyScoringRules.Definitions.First(d => d.Code == code);
+        return NotAvailable(code, definition.Level, definition.DisplayName, reason);
+    }
+
     private static string DeriveStatus(decimal score) =>
         score >= 70 ? "achieved" : score > 0 ? "in_progress" : "not_started";
 
-    private static List<IndicatorScoreDto> BuildIndicatorDtos(Dictionary<string, decimal> map)
-    {
-        // Rebuild full indicator list from persisted scores — N/A indicators get no_data
-        var definitions = new[]
-        {
-            (code: "spend_lt_income",          level: "L1", name: "Spend less than income",        desc: "3-month rolling average of expense vs. income ratio"),
-            (code: "pay_bills_on_time",         level: "L1", name: "Pay bills on time",             desc: "Bill due-date tracking not yet available"),
-            (code: "liquid_savings_ratio",      level: "L2", name: "Liquid savings ratio",          desc: "Emergency fund in months of average monthly expense"),
-            (code: "manageable_dti",            level: "L2", name: "Manageable debt (DTI)",         desc: "Monthly debt payment as % of monthly income"),
-            (code: "savings_rate",              level: "L3", name: "Long-term savings rate",        desc: "Investment contributions as % of monthly income"),
-            (code: "appropriate_insurance",     level: "L3", name: "Appropriate insurance",         desc: "Insurance module not yet available"),
-            (code: "prime_credit",              level: "L3", name: "Prime credit score",            desc: "Credit bureau integration not yet available"),
-            (code: "passive_income",            level: "L4", name: "Passive income coverage",       desc: "Dividend/yield tracker not yet available"),
-        };
-
-        var naSet = new HashSet<string> { "pay_bills_on_time", "appropriate_insurance", "prime_credit", "passive_income" };
-
-        return definitions.Select(d =>
-        {
-            if (naSet.Contains(d.code))
-                return new IndicatorScoreDto(d.code, d.level, 0m, null, "no_data", d.name, d.desc);
-
-            if (map.TryGetValue(d.code, out var score))
-                return new IndicatorScoreDto(d.code, d.level, score, null, DeriveStatus(score), d.name, d.desc);
-
-            return new IndicatorScoreDto(d.code, d.level, 0m, null, "not_started", d.name, d.desc);
-        }).ToList();
-    }
+    internal static List<IndicatorScoreDto> BuildIndicatorDtos(Dictionary<string, decimal> liveScores) =>
+        JourneyScoringRules.Definitions.Select(d =>
+            d.HasDataSource && liveScores.TryGetValue(d.Code, out var score)
+                ? new IndicatorScoreDto(d.Code, d.Level, score, null, DeriveStatus(score), d.DisplayName, d.Description)
+                : new IndicatorScoreDto(d.Code, d.Level, 0m, null, "no_data", d.DisplayName, d.Description)).ToList();
 
     private static Dictionary<string, decimal> ParseJsonDecimalMap(string json)
     {

@@ -24,12 +24,14 @@ The result: someone maxing out investments while carrying high-interest debt. So
 
 ```
                  ▲
-               ████             L5 · Legacy       — Estate planning, succession, tax
-             ████████           L4 · Freedom      — FIRE, passive income
-           ████████████         L3 · Growth       — Investing ≥15%, savings goals
-         ████████████████       L2 · Defense      — Emergency fund, debt-to-income < 20%
-       ████████████████████     L1 · Foundations  — Spending < income, bills paid
+               ████             L5 · Legacy       — Estate planning, succession, tax · no indicator yet
+             ████████           L4 · Freedom      — FIRE, passive income · not scored yet (rubric: 35% cleared, 50% mastered of expenses)
+           ████████████         L3 · Growth       — Cleared: savings rate ≥ 9% · Mastered: ≥ 15%
+         ████████████████       L2 · Defense      — Cleared: cover ≥ 2.1 months and DTI ≤ 29.6% · Mastered: 3 months and ≤ 20%
+       ████████████████████     L1 · Foundations  — Cleared: spending ≤ 89% of income · Mastered: ≤ 80%
 ```
+
+Cleared = every live indicator scores ≥ 70; Mastered = score 100 (per indicator). Spending excludes money you invest or save. DTI is judged once debts are recorded or confirmed. Source: [scoring-rubric.md](docs/ideas/scoring-rubric.md).
 
 A `JourneyScoringService` reads across all data sources — transactions, assets, investments — and computes indicator scores per tier. Score recalculation is event-driven: `TransactionCreatedEvent` and asset mutations auto-trigger recalculation via MediatR domain event handlers. This scoring engine is the product's core, not a feature.
 

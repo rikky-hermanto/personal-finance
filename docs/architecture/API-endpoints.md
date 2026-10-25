@@ -71,6 +71,9 @@ Route constraints below (`:guid` / `:int`) describe parameter types; omit the co
 | GET | `/api/journey/state` | GetState |
 | POST | `/api/journey/recalculate` | Recalculate |
 | GET | `/api/journey/quests` | GetQuests |
+| GET | `/api/journey/no-debts` | GetNoDebts |
+| PUT | `/api/journey/no-debts` | ConfirmNoDebts |
+| DELETE | `/api/journey/no-debts` | ClearNoDebts |
 | GET | `/api/liabilities` | GetAll |
 | POST | `/api/liabilities` | Create |
 | PUT | `/api/liabilities/{id:guid}` | Update |

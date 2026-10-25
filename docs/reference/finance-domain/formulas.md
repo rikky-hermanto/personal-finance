@@ -6,7 +6,7 @@
 > Governed by [FIN-02](../../../.claude/rules/finance-domain.md) (no magic thresholds) and
 > [FIN-03](../../../.claude/rules/finance-domain.md) (return figures state their method).
 >
-> Last updated: 2026-07-30
+> Last updated: 2026-10-25
 
 ## Contents
 
@@ -28,11 +28,11 @@ month is noise — irregular income, annual premiums, and one-off purchases all 
 
 | Metric | Formula | Notes |
 |--------|---------|-------|
-| Savings rate | `(income − expense) / income` | Income is take-home (post-tax). Gross-income savings rate is a different, higher number — don't mix the two across screens. |
-| Expense ratio | `expense / income` | The inverse framing of savings rate; the L1 indicator uses this direction. |
+| Savings rate | `(income − expense) / income` | Income is take-home (post-tax). Gross-income savings rate is a different, higher number — don't mix the two across screens. In the Journey indicators, expense = consumption: money moved to saving or investing is excluded (rubric v2). |
+| Expense ratio | `expense / income` | The inverse framing of savings rate; the L1 indicator uses this direction. expense = consumption: money moved to saving or investing is excluded (rubric v2). |
 | Emergency fund months | `liquid_assets / avg_monthly_essential_expense` | **Essential** expense, not total. Including discretionary spend inflates the requirement and makes the target feel unreachable. Liquid = cash, savings, deposits redeemable ≤ 7 days at par. Not: stocks, mutual funds with T+ settlement risk, crypto, property. |
-| Debt-to-income (DTI) | `monthly_debt_service / monthly_gross_income` | **Debt *service*** (required payments), not outstanding balance. This is the lending-industry definition and the one the L2 indicator uses. A "total debt / annual income" ratio is a different metric — if both are ever shown, label them distinctly. |
-| Liquid savings ratio | `liquid_assets / monthly_expense` | Same numerator as emergency fund months but denominator is total (not essential) expense — a stricter, more conservative reading. |
+| Debt-to-income (DTI) | `monthly_debt_service / monthly_gross_income` | **Debt *service*** (required payments), not outstanding balance. This is the lending-industry definition and the one the L2 indicator uses. A "total debt / annual income" ratio is a different metric — if both are ever shown, label them distinctly. The Journey indicator divides by take-home income from bank statements, not gross; it reads higher (conservative). |
+| Liquid savings ratio | `liquid_assets / monthly_expense` | Same numerator as emergency fund months. In the Journey indicator the denominator is consumption (money moved to saving or investing excluded, rubric v2). |
 | Net worth | `Σ assets − Σ liabilities` | Assets at current fair value, not purchase price. Illiquid assets (property, vehicles) need a stated valuation date; a 3-year-old appraisal presented as "current" is misinformation. |
 | Solvency ratio | `net_worth / total_assets` | Fraction of the balance sheet actually owned. Falls as leverage rises. |
 
@@ -51,14 +51,16 @@ breakpoints; a level's score is the mean of its non-N/A indicators; a level grad
 every non-N/A indicator.
 
 Implemented in [JourneyScoringService.cs](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs).
-These are the breakpoints actually in the code as of 2026-07-30:
+These are the breakpoints actually in the code as of 2026-10-25:
 
-| Indicator | 0 points | 50 points | 100 points | Code |
-|-----------|----------|-----------|-----------|------|
-| `spend_lt_income` (expense/income) | ≥ 1.00 | 0.95 | ≤ 0.80 | [:299](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs#L299) |
-| `emergency_ready` (months covered) | ≤ 0.5 | 1.5 | ≥ 3.0 | [:308](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs#L308) |
-| `manageable_dti` (debt service/income) | ≥ 0.50 | 0.36 | ≤ 0.20 | [:317](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs#L317) |
-| `savings_rate` | ≤ 0 | 0.05 | ≥ 0.15 | [:326](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs#L326) |
+| Indicator | 0 points | 50 points | 70 points (cleared) | 100 points (mastered) | Code |
+|-----------|----------|-----------|--------------------|----------------------|------|
+| `spend_lt_income` (consumption/income) | ≥ 1.00 | 0.95 | 0.89 | ≤ 0.80 | [ScoreSpendRatio](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs) |
+| `liquid_savings_ratio` (months of cover) | ≤ 0.5 | 1.5 | 2.1 | ≥ 3.0 | [ScoreLiquidSavings](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs) |
+| `manageable_dti` (debt service/income) | ≥ 0.50 | 0.36 | 0.296 | ≤ 0.20 | [ScoreDti](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs) |
+| `savings_rate` | ≤ 0 | 0.05 | 0.09 | ≥ 0.15 | [ScoreSavingsRate](../../../apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs) |
+
+`manageable_dti` is *not evaluated* without debt data (rubric v2). The row label was `emergency_ready` (an achievement code) in v1; the indicator is `liquid_savings_ratio`.
 
 Other declared indicators: `pay_bills_on_time`, `liquid_savings_ratio`, `consistent_investor`,
 `appropriate_insurance`, `prime_credit`, `passive_income`, `debt_free`.
