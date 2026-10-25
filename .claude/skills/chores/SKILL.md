@@ -77,7 +77,7 @@ For each VERIFIED COMPLETE plan (and POSSIBLY COMPLETE where issue is CLOSED):
 Move-Item "plans/in-progress/<file>.md" "plans/done/<file>.md"
 ```
 
-After moving, update the local `plans/BOARD.md` status and links in the same task. The board's source-of-truth rules still apply.
+After moving, update the local `plans/BOARD.md` status and links in the same task. The loop block is generated: run `node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write` instead of editing it, and edit only the hand-written sections below it. While you are there, list any plan in `backlog/`, `in-progress/` or `ready-to-review/` that has no `> **Board objective:**` line (a plain-English sentence the board shows in its Objectives column); report them, and add the line only when the owner asks. The board's source-of-truth rules still apply.
 
 ### Step 4 — Report stale plans
 

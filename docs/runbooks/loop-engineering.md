@@ -66,7 +66,7 @@ Where things show up:
 
 | You want to see… | Look at |
 |---|---|
-| What's in flight | `plans/BOARD.md`, the block between `<!-- loop:begin -->` and `<!-- loop:end -->` |
+| What's in flight, and what each ticket is for | `plans/BOARD.md`, the block between `<!-- loop:begin -->` and `<!-- loop:end -->`. The Objectives column comes from each ticket's `> **Board objective:**` line |
 | The code being written | `.worktrees/PF-<n>/` on branch `loop/PF-<n>` |
 | The running app for that ticket | http://localhost:8180 |
 | Logs of a run | `.loop/runs/PF-<n>/` (`tests.log`, `ci.log`, `verdict.json`, `segment-N.out.json`) |

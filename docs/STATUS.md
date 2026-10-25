@@ -82,6 +82,11 @@ Development uses Supabase CLI (Postgres 17, API 54321, DB 54322, Studio 54323). 
 - CI: `.github/workflows/ci.yml` (PF-142) runs the local gates on every push and PR to `main`; Playwright e2e is excluded.
 - This sync inspected source, migrations, manifests, tests and plans. Shell execution was unavailable (process helper initialization failed; Node spawning returned EPERM), so no build/test/live checks or GitHub reconciliation ran today.
 
+## Product Decisions
+
+- **2026-10-24 — Cash reconciliation (ATM withdrawal breakdown via Telegram photos):** No-Go for now (11/25, pain severity 2/5 fails the gate). The withdrawal is already counted once; only attribution is missing, and the per-purchase capture habit is the cost. Revisit when `Withdrawing` is at least 15% of monthly expense in 3 of 6 months and a 30-day cash diary reaches 20 of 30 days. If built, scope is Cash wallet + manual quick-add (shares `is_transfer` with money-tracing), not parent/child or Telegram. Analysis: [pm-cash-reconciliation-analysis.md](../plans/brainstorms/pm-cash-reconciliation-analysis.md).
+- **2026-10-25 — Journey quests, level by level:** Go, phased (21/25); CIO: build with guardrails. MVP = deterministic L1/L2 quests that complete themselves at recalculation, stay completed, and show stars at rubric scores 50/70/100; quest points never touch the health score. Prerequisites: count investing as saving, not spending, in `spend_lt_income` (G3) and score DTI "not evaluated" without debt data (G4). L3 quests wait for G3. Analysis: [pm-journey-quests-analysis.md](../plans/brainstorms/pm-journey-quests-analysis.md).
+
 ## References
 
 - [Architecture](architecture/architecture-diagram.md), [REST/AI routes](architecture/API-endpoints.md), [backend](architecture/API-backend.md), [frontend](architecture/Front-End.md)

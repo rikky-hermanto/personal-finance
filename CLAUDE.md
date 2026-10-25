@@ -313,10 +313,10 @@ services/
 Plans are managed in shared local files. GitHub Project #4 remains the source of truth for GitHub-linked issue status; local-only tasks use the plan folder and board:
 
 - **Plans:** `plans/backlog/`, `plans/in-progress/`, `plans/done/`, and `plans/cancelled/` — one canonical plan per task; learning plans use each status folder's `learning/` subfolder. See `plans/README.md`.
-- **Status board:** `plans/BOARD.md` — kanban snapshot, updated after every task operation
+- **Status board:** `plans/BOARD.md` — visual kanban overview; the block between `<!-- loop:begin -->` and `<!-- loop:end -->` is generated from the plan files and shows a plain-English Objectives column
 
 ### Creating a new task
-Create a plan file in `plans/backlog/` (or `plans/backlog/learning/` for PF-AI) using `/plan`, then add or update its row in `plans/BOARD.md`.
+Create a plan file in `plans/backlog/` (or `plans/backlog/learning/` for PF-AI) using `/plan`. Give it a `> **Board objective:** ...` header line (one plain-English sentence; see `plans/README.md`), then regenerate the board with `node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write`. Do not hand-edit the generated block.
 
 ### Moving / closing a task
 - Move the plan to its status folder and update its header, links, and board row together. `Ready` and `Blocked` are flags, not folders.

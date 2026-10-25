@@ -29,6 +29,12 @@ Learning plans go in plans/backlog/learning/ and follow mentor's ladder-first an
 analogies, study references, experiments, C# equivalents, and knowledge checks.
 Plan artifact creation does not execute its steps or authorize a commit.
 
-Update the shared `plans/BOARD.md` for the new/revised task without claiming
+Put one `> **Board objective:** ...` line in the plan header (next to `> **Status:**`):
+a single plain-English sentence, about 25 words max, saying what the user gets or what
+problem goes away, with no file names or jargon. The loop block of the shared
+`plans/BOARD.md` is generated from plan files and shows this line in an Objectives
+column, so do not hand-add rows there; run
+`node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write` instead.
+Update the hand-written board sections for the new/revised task without claiming
 unperformed GitHub synchronization. Never hardcode the next ticket number. End with the
 saved file and material open questions; use execute only when implementation is requested.

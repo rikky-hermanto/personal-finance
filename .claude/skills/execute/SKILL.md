@@ -28,7 +28,7 @@ If no argument given, ask which plan to execute.
 
 ### Step 0a — Worktree status sync (when the work happens in a worktree)
 
-Status is tracked in the **main checkout**, even when the code is written in a worktree: the owner watches `plans/` and `plans/BOARD.md` there. Never move a plan file or edit the board by hand; use the loop engine:
+Status is tracked in the **main checkout**, even when the code is written in a worktree: the owner watches `plans/` and `plans/BOARD.md` there. Never move a plan file or edit the board by hand; use the loop engine. The board's Objectives column is read from the plan's `> **Board objective:**` line: if the scope changes while you work, update that line (one plain-English sentence), and add it if the plan has none.
 
 ```bash
 RUN="$HOME/.claude/skills/loop-run/scripts/run.mjs"
