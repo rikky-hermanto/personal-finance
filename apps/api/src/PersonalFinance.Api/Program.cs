@@ -221,6 +221,7 @@ namespace PersonalFinance.Api
             // Journey module
             builder.Services.AddScoped<IInsightService, InsightService>();
             builder.Services.AddScoped<IJourneyScoringService, JourneyScoringService>();
+            builder.Services.AddScoped<IJourneyConfirmationService, JourneyConfirmationService>();
             builder.Services.AddHttpClient<IJourneyAdvisorClient, JourneyAdvisorClient>(client =>
             {
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");

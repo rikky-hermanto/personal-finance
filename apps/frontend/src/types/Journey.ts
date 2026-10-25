@@ -23,6 +23,10 @@ export interface Achievement {
   unlockedAt: string;
 }
 
+export interface NoDebtsConfirmation {
+  confirmedAt: string | null;
+}
+
 export interface Quest {
   title: string;
   description: string;

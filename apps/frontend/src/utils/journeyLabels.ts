@@ -58,3 +58,11 @@ export function getJourneyLabel(code: string): LabelEntry {
     subtext: (i) => `Score ${i.score.toFixed(0)}/100`,
   };
 }
+
+// Indicators that stay blank until the user gives the app something. They say "Not evaluated"
+// and point to where (FIN-04: unevaluated is neutral, never a score and never green).
+export const NOT_EVALUATED_ACTIONS: Record<string, { action: string; href: string }> = {
+  // Generic on purpose: after a reload only the stored score survives, not the reason. The reason
+  // ("Add the monthly payment for X", "No debts recorded and none confirmed") is in the recalculate response.
+  manageable_dti: { action: 'update your debts', href: '/assets/liabilities' },
+};

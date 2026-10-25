@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 const ALL_ACHIEVEMENTS = [
   { code: 'positive_cashflow_3mo', name: 'Positive Cashflow Streak', desc: '3 consecutive months spending less than income' },
   { code: 'emergency_ready',       name: 'Emergency Ready',           desc: '3 months of expenses saved in liquid accounts' },
-  { code: 'debt_free',             name: 'Light Footprint',           desc: 'Debt-to-income ratio below 20%' },
+  { code: 'debt_free',             name: 'Light Footprint',           desc: 'Debts recorded (or none confirmed) and payments at most 20% of income' },
   { code: 'consistent_investor',   name: 'Steady Builder',            desc: 'Investing ≥15% of income for 3 months' },
   { code: 'graduated_l1',          name: 'Level 1 Cleared',           desc: 'All Cashflow indicators scored ≥70' },
   { code: 'graduated_l2',          name: 'Level 2 Cleared',           desc: 'All Defense indicators scored ≥70' },
