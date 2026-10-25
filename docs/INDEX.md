@@ -118,7 +118,9 @@ Domain judgment routes to `/cio` (is the finance sound), `/risk-officer` (limits
 | Buckets budgeting | [features/budgeting/README.md](features/budgeting/README.md) | Implemented module plus historical prototype/spec boundaries |
 | Jev residual categorization | [../services/ai-service/README.md#residual-transaction-categorization](../services/ai-service/README.md#residual-transaction-categorization) | Opt-in implementation; live evaluation/promotion pending |
 | Trading Desk / Macro Lab | [STATUS.md#implemented-product-surface](STATUS.md#implemented-product-surface) | Coded scope and deferred screens/verification |
-| Journey quest ideas | [ideas/journey-quest-ideas.md](ideas/journey-quest-ideas.md) | Brainstorm backlog |
+| Cash reconciliation (ATM breakdown) | [../plans/brainstorms/pm-cash-reconciliation-analysis.md](../plans/brainstorms/pm-cash-reconciliation-analysis.md) · [prerequisites graph (interactive)](../plans/brainstorms/diagram-cash-reconciliation-prerequisites.html) | No-Go for now (2026-10-24); prerequisites mapped, open the graph in a browser |
+| Journey quests, level by level | [../plans/brainstorms/pm-journey-quests-analysis.md](../plans/brainstorms/pm-journey-quests-analysis.md) · [new-user journey (interactive)](../plans/brainstorms/diagram-journey-quests-new-user.html) · [Quest Engine v1 design](../plans/brainstorms/quest-engine-v1-design.md) · [engine HLD (interactive)](../plans/brainstorms/diagram-quest-engine-v1.html) | Go, phased (2026-10-25), CIO guardrails; the diagram walks a new user from day 1 through the monthly loop to a level boss, open it in a browser |
+| Journey quest ideas | [ideas/journey-quest-ideas.md](ideas/journey-quest-ideas.md) | Brainstorm backlog (raw pool; superseded as a design source by the analysis above) |
 | Hybrid AI BYOK plan | [ideas/hybrid-ai-byok-plan.md](ideas/hybrid-ai-byok-plan.md) | Cost strategy design |
 
 ---

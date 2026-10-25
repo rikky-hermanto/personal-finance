@@ -47,7 +47,7 @@ From the repository root, frontend checks are `npm run lint` and `npm run build`
 
 `npm start` launches Supabase, monitoring containers, API, frontend, and AI service; use it when the task needs the full stack, not for instruction-only edits. Playwright starts the frontend itself; relevant backend services must still be available.
 
-Use `plans/` and `BOARD.md` as the shared plan workspace for both agents. Plans live under `backlog/`, `in-progress/`, `done/`, or `cancelled/`; see `plans/README.md` for status rules and learning resources. Edit the original plan directly; do not create a second Codex plan tree or board. Re-read before writing, preserve concurrent edits, and keep plan/board status consistent. Read the board's source-of-truth declaration for GitHub-linked tasks; local plan management does not itself authorize remote issue mutations. See `.agents/WORKFLOWS.md`.
+Use `plans/` and `BOARD.md` as the shared plan workspace for both agents. Plans live under `backlog/`, `in-progress/`, `done/`, or `cancelled/`; see `plans/README.md` for status rules and learning resources. Edit the original plan directly; do not create a second Codex plan tree or board. Re-read before writing, preserve concurrent edits, and keep plan/board status consistent. Every plan header carries a plain-English `> **Board objective:**` line that the board's generated block shows in its Objectives column (see `plans/README.md`). Read the board's source-of-truth declaration for GitHub-linked tasks; local plan management does not itself authorize remote issue mutations. See `.agents/WORKFLOWS.md`.
 
 ## Codex workflows
 

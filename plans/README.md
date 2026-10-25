@@ -15,6 +15,18 @@ The first folder below `plans/` is the **local status** of a task:
 
 `BOARD.md` remains the local index. GitHub Project #4 is the source of truth for GitHub-linked issues; a local folder move does not change a remote issue. For local-only tasks, keep the folder, plan status, and board row aligned. When moving a plan, update its links and the board in the same task. Preserve completed and cancelled history.
 
+## Board format (visual overview)
+
+`BOARD.md` is meant to be read like a board, without opening tickets one by one. The Backlog, In progress and Ready to review tables in the generated block show an **Objectives** column right after the title.
+
+Each plan carries one header line, next to `> **Status:**`:
+
+```markdown
+> **Board objective:** Show which of your subscriptions got more expensive and which ones you forgot about.
+```
+
+Write it as one sentence of about 25 words at most, in plain everyday English, for someone who has never seen the code: what the user gets, or what problem goes away. No file names, class names, ticket ids or jargon. If something blocks the ticket, say so in the same sentence. Add or update the line whenever you write or re-scope a plan, then run `node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write` (moves through the loop engine do this for you). A plan without the line shows `—`.
+
 ## Status lives in the main checkout
 
 Work may happen in a worktree (`.worktrees/<id>`, branch `loop/<id>`), but the owner tracks tasks from the main checkout: its `plans/` folders and `BOARD.md` are the status. `/loop-run` moves tickets there automatically. A hand-run `/execute` in a worktree starts with `run.mjs start --hand` and ends with `run.mjs sync` (see the execute skill), so the ticket shows `in-progress` while it is worked and stays there until a verifier or the owner moves it. Do not hand-edit plan folders or the generated board block for this.

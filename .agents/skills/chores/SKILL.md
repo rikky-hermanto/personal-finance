@@ -15,8 +15,10 @@ criteria, checked steps, and actual implementation evidence. Empty checklists do
 prove completion. Report stale feature plans (~30 days) and learning plans (~90 days)
 as review candidates, not permission to delete. Archive authorized completed feature
 plans to `plans/done/`, including learning plans with their companions. Keep
-shared learning assets in `plans/resources/learning/`. Reconcile the shared board;
-preserve non-plan configuration.
+shared learning assets in `plans/resources/learning/`. Reconcile the shared board:
+regenerate its loop block with `node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write`
+(never hand-edit that block) and report active plans that lack a `> **Board objective:**`
+line; preserve non-plan configuration.
 
 Cleanliness: inspect tracked/untracked artifacts, TODO/FIXME/HACK, production debug
 output, skipped tests, abandoned experiments, and unused code with caller evidence.

@@ -167,6 +167,7 @@ Write the plan following [ai/build/templates/plan-template.md](../../../ai/build
 > **Status:** To Do
 > **Started:** [YYYY-MM-DD]
 > **Planned from branch:** [branch]
+> **Board objective:** [One plain-English sentence, about 25 words max: what the user gets or what problem goes away. No file names, class names or jargon. It is shown in the Objectives column of plans/BOARD.md.]
 
 ## Objective
 
@@ -260,7 +261,7 @@ After outputting the plan, **always** save it automatically — do not ask:
 
 - Write the file with the Write tool to `plans/backlog/PF-{number}-{short-kebab-slug}-todo.md` (or `plans/backlog/learning/` for PF-AI) using the plan content from Step 6 only (no scoring tables, no verdict — just the plan)
 - **Filename convention is mandatory:** `PF-{number}-{short-kebab-slug}-todo.md` (e.g. `PF-124-bankidentifier-matcher-registry-todo.md`). NEVER omit the slug — `PF-124-todo.md` is wrong. Use the ticket ID resolved/allocated in Step 2.
-- Update `plans/BOARD.md`: add a row under the appropriate backlog section; use **Ready** only as a shortlist flag after prerequisites are checked. The file remains in `plans/backlog/` until work starts.
+- Update the board: the loop block in `plans/BOARD.md` is generated from the plan files, so never hand-add a row there. Check the plan has its `> **Board objective:**` line (also for PF-AI learning plans and their Versi Belajar rewrite), then run `node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write`. The line is what the owner reads on the board instead of opening the plan: one sentence in plain everyday English, about 25 words max, saying what the user gets or what problem goes away, with no file names, class names or jargon. Hand-written sections below the block (shortlists, series tables) stay hand-edited. Use **Ready** only as a shortlist flag after prerequisites are checked. The file remains in `plans/backlog/` until work starts.
 - Confirm the saved file ends with an `## Execution Notes` section (Step 6). Missing means the plan is incomplete.
 - Tell the user where the file was saved: `Saved to plans/backlog/{filename}`
 

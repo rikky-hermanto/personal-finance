@@ -226,7 +226,7 @@ includes the one extra small planner call.
 
 **Re-scope note (2026-07-23):** this chapter was cut down to hybrid search only. Sentence-window
 retrieval and auto-merging (the other two techniques originally planned) are deferred to
-[PF-AI006-PART2](../../plans/backlog/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) —
+[PF-AI006-PART2](../../plans/cancelled/learning/PF-AI006-PART2-sentence-window-automerging-todo.md) —
 they need a new data source (statement PDF narrative text) that isn't yet a product requirement.
 
 **What shipped:** `RetrievalService.search()` gained `bm25` (PostgreSQL `tsvector` + `ts_rank`,

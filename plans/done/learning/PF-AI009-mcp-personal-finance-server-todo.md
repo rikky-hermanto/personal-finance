@@ -1640,6 +1640,16 @@ For each prompt, check the tool Claude chose, the parameters it passed, and that
 - ☐ "Cari transaksi kopi" calls `search_transactions_semantic`.
 - ☐ "Seberapa sehat keuanganku sekarang?" calls `get_pyramid_scores`. **Expected to fail today (see the known defect above).** Write down the exact error Claude shows.
 
+### G2. Tool-design pass (added 2026-10-24)
+
+Mocks can't tell you whether the model picks the right tool. Use the same demo prompts, but judge the tool descriptions, not the data. Read each tool's description as if it were the only thing you knew.
+
+- ☐ For each of the four prompts in section G, write down which tool Claude chose and the arguments it passed. Any wrong tool or wrong argument means the description misled it, so rewrite the description and retry.
+- ☐ Each description says when to use the tool and when not to (for example, `get_transactions` for individual rows and `get_cashflow_summary` for totals, so the model doesn't add rows up itself).
+- ☐ Every error a tool can return says what to do next. The `get_pyramid_scores` failure from the known defect should say that the scores service is unavailable and that the model should tell the user, not retry.
+- ☐ Decide whether four tools is the right number. If two overlap, note which one you would merge. No change is also a valid answer.
+- ☐ Record the before and after wording of one rewritten description under Notes. That is the interview story for tool design.
+
 ### H. Optional stretch
 
 - ☐ Run the 2-agent demo: it lives in `.worktrees/pf-ai009/services/ai-service/scratch/mcp_agent_demo.py` (gitignored, so it is not on `main`). Copy it somewhere safe before the worktree is removed, then run `PYTHONPATH=. python scratch/mcp_agent_demo.py` with a real `ANTHROPIC_API_KEY`.
