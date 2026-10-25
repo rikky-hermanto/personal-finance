@@ -365,8 +365,8 @@ Tests (`tests/PersonalFinance.Tests/Behaviors/PublishAssetUpdatedBehaviorTests.c
 
 ---
 
-### [ ] STEP 6 — Controller publishers: `SubmitTransactions` and `SetCashflowFlag`
-> **In progress (segment 1):** Production code done and verified (SubmitTransactions folds post-commit work into `AfterImportAsync`, publishes `TransactionsSubmittedEvent` when `InsertedCount > 0`; `SetCashflowFlag` publishes `AssetUpdatedEvent`). 3 of 5 tests written and passing (the SubmitTransactions trio in `TransactionsUploadErrorTests`, Harness extended with Mediator/CurrentUser/CashflowMutations mocks). **Remaining:** `AccountsControllerJourneyTriggerTests` (`SetCashflowFlag_Succeeds_PublishesAssetUpdated`, `SetCashflowFlag_NotFound_PublishesNothing`) — the success path reads the account back through a live `Supabase.Client`, so the test needs that readback handled.
+### [x] STEP 6 — Controller publishers: `SubmitTransactions` and `SetCashflowFlag`
+> **Done (segment 2):** Production code done and verified (SubmitTransactions folds post-commit work into `AfterImportAsync`, publishes `TransactionsSubmittedEvent` when `InsertedCount > 0`; `SetCashflowFlag` publishes `AssetUpdatedEvent`). 4 of the 5 listed tests written and passing: the SubmitTransactions trio in `TransactionsUploadErrorTests` and `SetCashflowFlag_NotFound_PublishesNothing` in the new `AccountsControllerJourneyTriggerTests`. The 5th, `SetCashflowFlag_Succeeds_PublishesAssetUpdated`, is **not unit-testable** — the success path reads the account back through the concrete `Supabase.Client` (no interface to mock, same limitation as `JourneyScoringService`), so it is a live check (Owner Review Checklist section E). The publish happens before the readback in `SetCashflowFlag`, so a live PATCH proves it.
 In `TransactionsController.SubmitTransactions`, after `QueueEmbeddingAsync` and before `return Ok(result)`:
 ```csharp
             await QueueEmbeddingAsync(result.InsertedIds);
@@ -390,6 +390,7 @@ Tests, extending `TransactionsUploadErrorTests`' `Harness` with a `Mock<IMediato
 ---
 
 ### [ ] STEP 7 — Scoring: load once, compute from the snapshot (a pure refactor, scores must not change)
+> **Groundwork landed (segment 2):** `Application/Services/AppTimeProvider.cs` is created (un-sealed from the plan snippet so the clock test can subclass it and override `GetUtcNow()`), and `tests/.../Services/AppTimeProviderTests.cs` (3 tests, passing) covers the Jakarta crossing at 2026-10-31 18:00 UTC and the +7 offset. **Not yet done:** `ScoringSnapshot.cs`, the `JourneyScoringService` refactor (constructor `TimeProvider`, `LoadInputsAsync`, the four synchronous snapshot-based compute methods, `RecalculateWithSnapshotAsync`), the `IJourneyScoringService` addition, the `TimeProvider` registration in `Program.cs`, and `JourneyScoringSnapshotTests`. The refactor must land as one build-safe unit and its parity check needs the STEP 2 migration applied + the stack running.
 Edit `JourneyScoringService.cs`. Create `Application/Quests/ScoringSnapshot.cs`:
 ```csharp
 using PersonalFinance.Application.Dtos;
