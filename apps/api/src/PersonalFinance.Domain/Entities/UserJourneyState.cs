@@ -21,6 +21,10 @@ public class UserJourneyState : BaseModel
     [Column("indicator_scores")]
     public string IndicatorScoresJson { get; set; } = "{}";
 
+    // Raw value per LIVE indicator (months of cover, spend ratio...). A real jsonb object.
+    [Column("indicator_raw")]
+    public Dictionary<string, decimal> IndicatorRaw { get; set; } = new();
+
     [Column("last_computed_at")]
     public DateTime LastComputedAt { get; set; }
 

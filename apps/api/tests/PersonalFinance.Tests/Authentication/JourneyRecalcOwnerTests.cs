@@ -69,4 +69,52 @@ public sealed class JourneyRecalcOwnerTests
         // Assert
         mediator.Verify(m => m.Send(It.IsAny<RecalculateJourneyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
     }
+
+    [Fact]
+    public async Task TransactionsSubmittedHandler_OwnedBatch_RecalculatesForThatOwner()
+    {
+        // Arrange
+        var mediator = new Mock<IMediator>();
+        var handler = new JourneyRecalcOnTransactionsSubmittedHandler(
+            mediator.Object, NullLogger<JourneyRecalcOnTransactionsSubmittedHandler>.Instance);
+
+        // Act
+        await handler.Handle(new TransactionsSubmittedEvent(Owner, 3), CancellationToken.None);
+
+        // Assert
+        mediator.Verify(m => m.Send(It.Is<RecalculateJourneyCommand>(c => c.UserId == Owner),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task TransactionsSubmittedHandler_OwnerlessBatch_SkipsRecalc()
+    {
+        // Arrange
+        var mediator = new Mock<IMediator>();
+        var handler = new JourneyRecalcOnTransactionsSubmittedHandler(
+            mediator.Object, NullLogger<JourneyRecalcOnTransactionsSubmittedHandler>.Instance);
+
+        // Act
+        await handler.Handle(new TransactionsSubmittedEvent(Guid.Empty, 3), CancellationToken.None);
+
+        // Assert
+        mediator.Verify(m => m.Send(It.IsAny<RecalculateJourneyCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task TransactionsSubmittedHandler_RecalcThrows_DoesNotThrow()
+    {
+        // Arrange
+        var mediator = new Mock<IMediator>();
+        mediator.Setup(m => m.Send(It.IsAny<RecalculateJourneyCommand>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidOperationException("boom"));
+        var handler = new JourneyRecalcOnTransactionsSubmittedHandler(
+            mediator.Object, NullLogger<JourneyRecalcOnTransactionsSubmittedHandler>.Instance);
+
+        // Act
+        var act = () => handler.Handle(new TransactionsSubmittedEvent(Owner, 3), CancellationToken.None);
+
+        // Assert
+        await act();  // completes without throwing
+    }
 }

@@ -1,4 +1,5 @@
 using PersonalFinance.Api.Extensions;
+using PersonalFinance.Application.Behaviors;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Services;
 using PersonalFinance.Application.Services.Desk;
@@ -250,6 +251,7 @@ namespace PersonalFinance.Api
             {
                 cfg.RegisterServicesFromAssemblyContaining<Program>();
                 cfg.RegisterServicesFromAssemblyContaining<CreateTransactionCommandHandler>();
+                cfg.AddOpenBehavior(typeof(PublishAssetUpdatedBehavior<,>));
             });
 
             // Register FluentValidation

@@ -314,13 +314,24 @@ public class TransactionsController : ControllerBase
         {
             var result = await _cashflowMutations.SubmitAsync(request.RequestId,
                 request.Transactions, request.FileHash, request.FileName, HttpContext.RequestAborted);
-            await QueueEmbeddingAsync(result.InsertedIds);
+            await AfterImportAsync(result);
             return Ok(result);
         }
         catch (CashflowMutationException ex)
         {
             return MutationError(ex);
         }
+    }
+
+    /// <summary>Post-commit work for a successful import: embedding enrichment and, once per batch that
+    /// inserted rows, the Journey recalculation trigger (PF-152). CancellationToken.None so a closed
+    /// tab cannot leave scores stale.</summary>
+    private async Task AfterImportAsync(CashflowImportResult result)
+    {
+        await QueueEmbeddingAsync(result.InsertedIds);
+        if (result.InsertedCount > 0)
+            await _mediator.Publish(new TransactionsSubmittedEvent(_caller.UserId, result.InsertedCount),
+                CancellationToken.None);
     }
     /// <summary>
     /// PF-S15: embed newly imported rows for chat search, for the importing user only.

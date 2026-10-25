@@ -1,4 +1,5 @@
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Application.Commands.Liabilities;
@@ -13,4 +14,4 @@ public record CreateLiabilityCommand(
     decimal? InterestRate = null,
     DateOnly? EndDate = null,
     decimal? MonthlyPayment = null
-) : IRequest<Liability>;
+) : IRequest<Liability>, IAffectsJourney;

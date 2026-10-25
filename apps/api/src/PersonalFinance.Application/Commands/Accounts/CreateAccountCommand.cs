@@ -1,4 +1,5 @@
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Application.Commands.Accounts;
@@ -12,4 +13,4 @@ public record CreateAccountCommand(
     DateOnly OpeningDate,
     string? Color = null,
     string? Icon = null
-) : IRequest<Account>;
+) : IRequest<Account>, IAffectsJourney;
