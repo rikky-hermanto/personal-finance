@@ -9,7 +9,7 @@ flags: [Blocked]
 > **Status:** To Do
 > **Started:** —
 > **Board objective:** Journey quests finish by themselves when your uploaded data shows you did them, and you see a short note. Starts after the score fixes.
-> **Blocked by:** [PF-151](PF-151-journey-score-fixes-before-quests-todo.md), plan 1 of 3, "Journey score fixes before quests" (G3 investing is not spending, G4 DTI "not evaluated" plus the "I have no debts" flag, G11 insurance to L2). It must be executed and accepted first. This plan reuses its names, read from the plan on 2026-10-25: column `user_journey_state.no_debts_confirmed_at`, narrow entity `JourneyDebtConfirmation`, `IJourneyConfirmationService.GetNoDebtsConfirmedAtAsync`, `JourneyScoringRules` (`IsConsumption`, `IsSavingsOutflow`, `LiveScoreMap`, `Definitions`, `EvaluateDti`) and `BuildIndicatorDtos(liveScores)`. STEP 1 re-checks them against the code as executed.
+> **Blocked by:** [PF-151](../done/PF-151-journey-score-fixes-before-quests-todo.md), plan 1 of 3, "Journey score fixes before quests" (G3 investing is not spending, G4 DTI "not evaluated" plus the "I have no debts" flag, G11 insurance to L2). It must be executed and accepted first. This plan reuses its names, read from the plan on 2026-10-25: column `user_journey_state.no_debts_confirmed_at`, narrow entity `JourneyDebtConfirmation`, `IJourneyConfirmationService.GetNoDebtsConfirmedAtAsync`, `JourneyScoringRules` (`IsConsumption`, `IsSavingsOutflow`, `LiveScoreMap`, `Definitions`, `EvaluateDti`) and `BuildIndicatorDtos(liveScores)`. STEP 1 re-checks them against the code as executed.
 > **Sensitive:** Phase 1 only. Schema and RLS (new table, owner policy) and scoring code that feeds money decisions (G1: scores must not change because of quests). Phase 2 is not sensitive.
 > **Planned from branch:** main
 > **Spec:** [quest-engine-v1-design.md](../brainstorms/quest-engine-v1-design.md) is the design and is not re-opened here. [diagram-quest-engine-v1.html](../brainstorms/diagram-quest-engine-v1.html) is its high-level design. Product rules and guardrails G1, G2, G6, G7, G8: [pm-journey-quests-analysis.md](../brainstorms/pm-journey-quests-analysis.md).
@@ -1267,7 +1267,7 @@ If the harness cannot run, do the same checks by hand against the local stack wi
 ### Phase 1 — Trigger, snapshot and engine (STEPS 1 to 17)
 
 Model: **Opus 5.5** · Effort: **high**. It adds a table with RLS, refactors the scoring code behind every number on the home page, and a wrong guess in either is silent (a score that moves, or a double-encoded column that looks fine).
-Before you start: [PF-151](PF-151-journey-score-fixes-before-quests-todo.md) (score fixes) is executed, accepted and its post-deploy recalculation is done; the local Supabase stack is up; write down the owner's current Journey numbers (STEP 1).
+Before you start: [PF-151](../done/PF-151-journey-score-fixes-before-quests-todo.md) (score fixes) is executed, accepted and its post-deploy recalculation is done; the local Supabase stack is up; write down the owner's current Journey numbers (STEP 1).
 
 ```
 /execute plans/in-progress/PF-152-quest-engine-v1-todo.md phase 1

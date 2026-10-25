@@ -9,7 +9,7 @@ flags: [Blocked]
 > **Status:** To Do
 > **Started:** —
 > **Board objective:** After each monthly upload, Journey shows that month's wins one at a time, and an overspent month still counts. Waits for the quest engine.
-> **Depends on (blocking):** [PF-152](PF-152-quest-engine-v1-todo.md) (plan 2, Quest Engine v1: `quest_completions`, `seen_at`, the board, the toast this plan replaces), which itself waits for [PF-151](PF-151-journey-score-fixes-before-quests-todo.md) (plan 1, score fixes: investing is not spending, so "green" and "red" are true). Both must be executed and accepted first. Names below were reconciled with PF-152's plan text on 2026-10-25; STEP 0 re-checks them against the code as shipped.
+> **Depends on (blocking):** [PF-152](PF-152-quest-engine-v1-todo.md) (plan 2, Quest Engine v1: `quest_completions`, `seen_at`, the board, the toast this plan replaces), which itself waits for [PF-151](../done/PF-151-journey-score-fixes-before-quests-todo.md) (plan 1, score fixes: investing is not spending, so "green" and "red" are true). Both must be executed and accepted first. Names below were reconciled with PF-152's plan text on 2026-10-25; STEP 0 re-checks them against the code as shipped.
 > **Sensitive:** schema and row-level security (one new table, two database functions) and a seen flag whose failure is silent. Phase 1 runs on the stronger model.
 > **Planned from branch:** main
 

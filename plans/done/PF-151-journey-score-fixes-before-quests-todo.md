@@ -1,8 +1,39 @@
+---
+id: PF-151
+size: L
+flags: []
+sensitive: [money, schema]
+rework: 0
+loopFailures: 1
+review: none
+recommended:
+  model: opus
+  effort: high
+  estimate5h: null
+  estimateWeek: null
+approved:
+  model: sonnet
+  effort: high
+  by: owner
+  at: 2026-10-25T13:34:26Z
+  at-label: 2026-10-25 21:34 Asia/Makassar
+  budgetOverride: true
+run:
+  worktree: .worktrees/pf-151
+  branch: loop/pf-151
+  slot: 1
+  fixRounds: 0
+  segments: 0
+  checkpoint: .loop/runs/PF-151/checkpoint.json
+  logs: .loop/runs/PF-151/
+  dbSnapshot: .loop/runs/PF-151/db-before.dump
+---
+
 # PF-151 — Journey score fixes before quests: investing is not spending, no debt data is not a perfect score
 
 > **GitHub Issue:** _(none — issues are no longer used, owner decision 2026-10-15)_
-> **Status:** To Do
-> **Started:** 2026-10-25
+> **Status:** Done
+> **Started:** 2026-10-25 (accepted and merged 2026-10-25)
 > **Planned from branch:** main
 > **Sensitive:** yes — schema change and scoring methodology (a wrong number here is silent, FIN-04)
 > **Board objective:** Journey scores stop penalizing you for investing and stop showing a perfect debt score when no debts have been recorded.
@@ -16,32 +47,52 @@ Quests will celebrate Journey scores, so the scores must be true first. Today in
 ## Acceptance Criteria
 
 Scoring
-- [ ] Income 10 jt, consumption 8 jt and investing 1.5 jt (category `Investment`) give a spend ratio of 0.80 and a `spend_lt_income` score of 100 (it was 0.95 and 50).
-- [ ] A dividend credit (type `Income`, category `Investment`) stays income. It is not subtracted from spending and not counted as a contribution.
-- [ ] `liquid_savings_ratio` divides by average monthly consumption (savings-category outflows excluded), not total expense (CIO ruling Q1).
-- [ ] `liquid_savings_ratio` finds the owner's `savings` accounts (lowercase, as the CHECK constraint stores them) and evaluates instead of staying "not evaluated"; the before and after values are recorded separately from the G3 change.
-- [ ] `savings_rate` counts only `Expense` rows in the savings categories (CIO ruling Q2).
-- [ ] With no liabilities and no confirmation, `manageable_dti` is `no_data`, is left out of the L2 average and of graduation, and `debt_free` does not unlock.
-- [ ] With the confirmation set and no liabilities, DTI is 0 and scores 100. A liability added afterwards makes DTI compute from that liability (the recorded liability overrides the confirmation).
-- [ ] A liability with no monthly payment means the debt service is unknown: `manageable_dti` is `no_data` (also when "no debts" is confirmed), and the reason names the liability that needs a payment. A payment of 0 that the owner entered counts as known.
-- [ ] Recalculating on the owner's current data (one liability, no payment) unlocks neither `debt_free` nor `graduated_l2`.
-- [ ] `no_data` survives a page reload: `GET /api/journey/state` reports `manageable_dti` as `no_data`, not as score 0.
-- [ ] `appropriate_insurance` reports level `L2` from both `POST /recalculate` and `GET /state`.
-- [ ] A level with zero live indicators is "Not evaluated": no score average, never cleared, and it blocks progression to the next level.
+- [x] Income 10 jt, consumption 8 jt and investing 1.5 jt (category `Investment`) give a spend ratio of 0.80 and a `spend_lt_income` score of 100 (it was 0.95 and 50).
+  > Proven by `MonthlyConsumptionRatios_InvestingOnTopOfConsumption_RatioIs080AndScoreIs100` (passes).
+- [x] A dividend credit (type `Income`, category `Investment`) stays income. It is not subtracted from spending and not counted as a contribution.
+  > Proven by `MonthlyConsumptionRatios_DividendCredit_StaysIncomeAndLowersTheRatio` and `AverageMonthlySavingsOutflow_DividendCredit_IsNotCountedAsContribution` (pass).
+- [x] `liquid_savings_ratio` divides by average monthly consumption (savings-category outflows excluded), not total expense (CIO ruling Q1).
+  > `ComputeLiquidSavingsAsync` now calls `AverageMonthlyConsumption`; proven by `AverageMonthlyConsumption_InvestingOutflowPresent_ExcludesIt` (passes).
+- [x] `liquid_savings_ratio` finds the owner's `savings` accounts (lowercase, as the CHECK constraint stores them) and evaluates instead of staying "not evaluated"; the before and after values are recorded separately from the G3 change.
+  > Live 2026-10-25: before = not evaluated; after = live, 0.34 months (Rp 900,000 across 4 accounts ÷ ≈ Rp 2.67 m consumption), score 0. Needed a second casing fix found during STEP 12: the valuation lookup filtered `subject_type = "Account"` while the CHECK allows only `account`, so the total was always 0. Fixed via `JourneyScoringRules.AccountValuationSubjectType`, pinned by `AccountValuationSubjectType_MatchesTheLowercaseValueAllowedByTheCheckConstraint`.
+- [x] `savings_rate` counts only `Expense` rows in the savings categories (CIO ruling Q2).
+  > Proven by `AverageMonthlySavingsOutflow_*` tests.
+- [x] With no liabilities and no confirmation, `manageable_dti` is `no_data`, is left out of the L2 average and of graduation, and `debt_free` does not unlock.
+  > Proven by `EvaluateDti_NoLiabilitiesAndNoConfirmation_IsNotEvaluated`, `ComputeLevelScores_DtiNotEvaluated_IsLeftOutOfTheL2Average`, `AchievementsEarned_DtiNotEvaluated_DoesNotUnlockDebtFree`.
+- [x] With the confirmation set and no liabilities, DTI is 0 and scores 100. A liability added afterwards makes DTI compute from that liability (the recorded liability overrides the confirmation).
+  > Proven by `EvaluateDti_NoLiabilitiesButConfirmed_IsZeroAndScores100` and `EvaluateDti_LiabilityAddedAfterConfirmation_LiabilityOverridesConfirmation`.
+- [x] A liability with no monthly payment means the debt service is unknown: `manageable_dti` is `no_data` (also when "no debts" is confirmed), and the reason names the liability that needs a payment. A payment of 0 that the owner entered counts as known.
+  > Proven by `EvaluateDti_LiabilityWithoutMonthlyPayment_IsNotEvaluatedAndNamesTheLiability`, `EvaluateDti_ConfirmedButLiabilityWithoutPayment_IsNotEvaluated`, `EvaluateDti_PaymentEnteredAsZero_CountsAsKnown`.
+- [x] Recalculating on the owner's current data (one liability, no payment) unlocks neither `debt_free` nor `graduated_l2`.
+  > Live 2026-10-25 on the owner (1 card, no payment): `manageable_dti` = `no_data`; unlocked = `graduated_l1`, `positive_cashflow_3mo` only. `debt_free` and `graduated_l2` stay locked (L2 = cover 0).
+- [x] `no_data` survives a page reload: `GET /api/journey/state` reports `manageable_dti` as `no_data`, not as score 0.
+  > Rebuild mechanism proven by `BuildIndicatorDtos_UnevaluatedDtiStoredThroughLiveScoreMap_ComesBackAsNoData` (live scores stored via `LiveScoreMap`, rebuilt as `no_data`). Live reload confirm in STEP 12.
+- [x] `appropriate_insurance` reports level `L2` from both `POST /recalculate` and `GET /state`.
+  > `Definitions` table (recalc) and `BuildIndicatorDtos_AppropriateInsurance_ReportsLevelL2AndNoData` (GET /state) both place it at L2.
+- [x] A level with zero live indicators is "Not evaluated": no score average, never cleared, and it blocks progression to the next level.
+  > Proven by `ComputeLevelScores_LevelWithNoLiveIndicator_HasNoScore` and `DetermineCurrentLevel_WhenL2HasNoLiveIndicators_DoesNotSkipToL3`; UI shows "Not evaluated" in `TierCard`.
 
 Confirmation flag
-- [ ] `GET`, `PUT` and `DELETE /api/journey/no-debts` read, set and clear the confirmation. `PUT` and `DELETE` recalculate the Journey before returning.
-- [ ] A recalculation never clears or changes the confirmation, and setting it never changes scores except through the recalculation.
-- [ ] Assets > Liabilities, when empty, shows "I have no debts" (and, once confirmed, the date and an "Undo").
-- [ ] An unevaluated debt indicator renders neutral text ("Not evaluated"), never green and never a score (FIN-04).
+- [x] `GET`, `PUT` and `DELETE /api/journey/no-debts` read, set and clear the confirmation. `PUT` and `DELETE` recalculate the Journey before returning.
+  > Endpoints added to `JourneyController`; handler stores then sends `RecalculateJourneyCommand`. Proven by the 4 `JourneyControllerNoDebtsTests` and 2 `SetNoDebtsConfirmationCommandHandlerTests` (store-then-recalculate order asserted).
+- [x] A recalculation never clears or changes the confirmation, and setting it never changes scores except through the recalculation.
+  > Live 2026-10-25 (owner): PUT set 14:00:40.50Z, POST /recalculate left the stored value unchanged, DELETE wrote null, scores row intact; repeated 14:36 after the UTC fix. `GET` now returns UTC (`...Z`) like `PUT`; it returned local time without an offset before (`JourneyConfirmationService`).
+- [x] Assets > Liabilities, when empty, shows "I have no debts" (and, once confirmed, the date and an "Undo").
+  > Live 2026-10-25 with a throwaway local user (headless Playwright on slot 1, user deleted afterwards): "I have no debts" shown; after pressing it "You confirmed on 25 Oct 2026 that you have no debts." and "Undo"; Journey then showed `dti 100`; after "Undo" the prompt returned and the flag was null.
+- [x] An unevaluated debt indicator renders neutral text ("Not evaluated"), never green and never a score (FIN-04).
+  > `IndicatorScoreBar` `no_data` branch renders grey "Not evaluated · update your debts" (link), never a bar/colour (code read). Live 2026-10-25: after "Undo" the L2 card reads a neutral grey "Not evaluated" with no score. The row itself is not reachable live while L2 is locked (`TierCard` hides rows when level > currentLevel; follow-up 5).
 
 Docs and history
-- [ ] Rubric bumped to version 2 with a changelog entry; Audit Trail amended; take-home-income note for DTI; `formulas.md` breakpoint table updated; CLAUDE.md pyramid headlines show the Cleared (70) and Mastered (100) bars.
-- [ ] No `journey_indicator_snapshots` row from an earlier day is touched, and no achievement is deleted. Today's own row for an indicator that is not evaluated is removed, so state and snapshot never disagree on the same day.
-- [ ] Before and after scores, the owner's `debt_free` and `graduated_l2` state, and the date are recorded in the Execution Notes.
+- [x] Rubric bumped to version 2 with a changelog entry; Audit Trail amended; take-home-income note for DTI; `formulas.md` breakpoint table updated; CLAUDE.md pyramid headlines show the Cleared (70) and Mastered (100) bars.
+  > All done; the rubric changelog deploy-date is a `{fill in}` placeholder until STEP 12.
+- [x] No `journey_indicator_snapshots` row from an earlier day is touched, and no achievement is deleted. Today's own row for an indicator that is not evaluated is removed, so state and snapshot never disagree on the same day.
+  > Live 2026-10-25. Found and fixed during STEP 12: postgrest-csharp sends the primary key on `Upsert` even with `shouldInsert: false`, so every snapshot and every achievement was written as `id 0` over one shared row (a new achievement overwrote the previous one; the snapshot of any day overwrote all others). Now: snapshots delete only today's rows for the user, then insert the live ones; achievements insert only codes not yet unlocked (keeps the original `unlocked_at`). Verified: today holds exactly the 3 live indicators after 4 recalculations, DTI row appears when confirmed and is gone after Undo, `unlocked_at` unchanged across recalculations, no achievement deleted.
+- [x] Before and after scores, the owner's `debt_free` and `graduated_l2` state, and the date are recorded in the Execution Notes.
+  > Recorded 2026-10-25 in "Before / after" below.
 
 Tests
-- [ ] Existing tests pass. New tests cover every case above (TEST-01) and are named `MethodName_Condition_ExpectedResult` (TEST-02).
+- [x] Existing tests pass. New tests cover every case above (TEST-01) and are named `MethodName_Condition_ExpectedResult` (TEST-02).
+  > `dotnet test` = 511 passed, 0 failed, 9 skipped (known CategoryRuleService integration skips). Frontend: `npm run lint` 0 errors (9 warnings, none in PF-151 files), `tsc --noEmit` clean, `npm run build` succeeds.
 
 ## CIO rulings (methodology review, `/cio` on 2026-10-25)
 
@@ -114,7 +165,7 @@ Deliberately not done: quests, the recalculation trigger after uploads (plan 2),
 
 ## TODO
 
-### [ ] STEP 1 — Record the "before" state (read-only, plus one recalculation on the old code)
+### [x] STEP 1 — Record the "before" state (read-only, plus one recalculation on the old code)
 
 Do this **before changing any code**. The local Supabase must be running (`npm start`, or `docker ps` shows `supabase_db_personal-finance`).
 
@@ -152,7 +203,9 @@ Optional and the owner's call: if Rikky enters the credit card's minimum payment
 
 ---
 
-### [ ] STEP 2 — Add the confirmation column (`/db-migrate`)
+### [x] STEP 2 — Add the confirmation column (`/db-migrate`)
+
+> **Applied 2026-10-25** to the local stack with `npx supabase migration up --local` (the loop cannot run `supabase db push`). Verified: `no_debts_confirmed_at` is a nullable `timestamp with time zone`; the only policy is `user_journey_state_owner` (ALL, authenticated). The worktree needed a copy of the gitignored `20260516000001_assets_seed.sql` for the CLI history check; it stays untracked.
 
 Run `/db-migrate` with this file:
 
@@ -189,7 +242,7 @@ Expected: one `timestamp with time zone`, nullable column; exactly one policy, `
 
 ---
 
-### [ ] STEP 3 — G3: one definition of consumption and savings, and use it in three indicators
+### [x] STEP 3 — G3: one definition of consumption and savings, and use it in three indicators
 
 **3a. Create the rules class** `apps/api/src/PersonalFinance.Application/Services/JourneyScoringRules.cs` (later steps add to it):
 
@@ -451,7 +504,7 @@ Run `dotnet test --filter "FullyQualifiedName~Journey"` from `apps/api/`. All ex
 
 ---
 
-### [ ] STEP 4 — G4: DTI is "not evaluated" without debt data; `debt_free` needs an evaluated DTI
+### [x] STEP 4 — G4: DTI is "not evaluated" without debt data; `debt_free` needs an evaluated DTI
 
 **4a. Narrow entity** `apps/api/src/PersonalFinance.Domain/Entities/JourneyDebtConfirmation.cs`:
 
@@ -849,7 +902,7 @@ Also add to `JourneyScoringServiceTests.cs` (it already has the `InvokeDetermine
 
 ---
 
-### [ ] STEP 5 — "Not evaluated" survives a reload; insurance moves to L2 (G11); one definitions table
+### [x] STEP 5 — "Not evaluated" survives a reload; insurance moves to L2 (G11); one definitions table
 
 **5a. Add the definitions to `JourneyScoringRules.cs`:**
 
@@ -980,7 +1033,9 @@ This is Supabase-bound, so it has no unit test (same exception as `JourneyConfir
 
 ---
 
-### [ ] STEP 6 — Command, DTO, endpoints, registration
+### [x] STEP 6 — Command, DTO, endpoints, registration
+
+> **Note:** Code, DI registration, and tests done (4 controller + 2 handler tests pass). Sub-step 6g (live narrow-entity upsert proof) is pending the migration apply + API restart — see STEP 2 / STEP 12.
 
 **6a.** `apps/api/src/PersonalFinance.Application/Dtos/NoDebtsConfirmationDto.cs`:
 
@@ -1230,7 +1285,7 @@ With the new rules the owner's DTI is `no_data`, so this check cannot unlock `de
 
 ---
 
-### [ ] STEP 7 — Frontend: API calls and the Liabilities empty state
+### [x] STEP 7 — Frontend: API calls and the Liabilities empty state
 
 **7a.** `apps/frontend/src/types/Journey.ts`, add:
 
@@ -1342,7 +1397,7 @@ with
 
 ---
 
-### [ ] STEP 8 — Frontend: "Not evaluated" is neutral text, never a score or green
+### [x] STEP 8 — Frontend: "Not evaluated" is neutral text, never a score or green
 
 1. `apps/frontend/src/utils/journeyLabels.ts`, append:
 
@@ -1392,7 +1447,7 @@ export const NOT_EVALUATED_ACTIONS: Record<string, { action: string; href: strin
 
 ---
 
-### [ ] STEP 9 — Docs: `docs/ideas/scoring-rubric.md` (version 2)
+### [x] STEP 9 — Docs: `docs/ideas/scoring-rubric.md` (version 2)
 
 Make surgical edits (Edit tool). Leave every breakpoint table as is.
 
@@ -1463,7 +1518,9 @@ Everything before the date above.
 
 ---
 
-### [ ] STEP 10 — Docs: `formulas.md`, CLAUDE.md headlines, API endpoints
+### [x] STEP 10 — Docs: `formulas.md`, CLAUDE.md headlines, API endpoints
+
+> **Note:** formulas.md (§1 notes + §2 table, dated 2026-10-25), CLAUDE.md pyramid headlines, and API-endpoints.md done. README.md pyramid block carries no indicator headline text, so no change there. The rubric changelog deploy-date fill-in and the STATUS.md line are STEP 12 items (deploy day).
 
 1. **`docs/reference/finance-domain/formulas.md`**
    - §1: in the Savings rate and Expense ratio rows, add "expense = consumption: money moved to saving or investing is excluded (rubric v2)"; in the DTI row, add "the Journey indicator divides by take-home income from bank statements, not gross; it reads higher (conservative)"; in the Liquid savings ratio row, say the denominator is consumption.
@@ -1499,7 +1556,9 @@ Everything before the date above.
 
 ---
 
-### [ ] STEP 11 — Run the gates
+### [x] STEP 11 — Run the gates
+
+> **Gates green (2026-10-25):** `dotnet build` clean; `dotnet test` = **511 passed, 0 failed, 9 skipped**. Frontend (after `npm ci` in the main checkout, whose `node_modules` was empty): lint 0 errors, `tsc` clean, build succeeds.
 
 ```bash
 cd apps/api && dotnet build && dotnet test
@@ -1512,7 +1571,9 @@ cd ../frontend && npm run lint && npx tsc --noEmit -p tsconfig.app.json && npm r
 
 ---
 
-### [ ] STEP 12 — Apply, recalculate, verify, record
+### [x] STEP 12 — Apply, recalculate, verify, record
+
+> **Done 2026-10-25 (hand run after the loop).** Checks ran against slot 1 (API :7308, frontend :8180) with an owner session minted through the local GoTrue admin API instead of the browser console, and the empty-state UI with headless Playwright as a throwaway user. Two defects found and fixed here: the snapshot/achievement `id 0` upsert and the valuation `subject_type` casing (see the acceptance notes). Rubric changelog date and the STATUS line filled in; the board is refreshed by `run.mjs sync`.
 
 1. Apply the migration if STEP 2 only created the file (the stack uses `supabase db push` / `npx supabase migration up`), restart the API, and sign in as the owner.
 2. **Pre-recalculation check (read-only).** Run the STEP 1 SQL again. Expect the owner's card to still have no payment, so the recalculation below must leave `manageable_dti` as `no_data` and must not unlock `debt_free`. If the owner entered a payment since, DTI is computed from it and `debt_free` may unlock legitimately.
@@ -1570,14 +1631,66 @@ Before you start: local Supabase running (`npm start`); optionally ask Rikky to 
 
 ### Before / after (fill in during STEP 1 and STEP 12)
 
-| | Before (old rules) | After (new rules) |
+**Before recorded 2026-10-25 (read-only; STEP 1).** Window = Sep/Aug/Jul 2026 (owner's transactions span 2026-05-01…2026-08-03; 24 rows). Stored state row is stale: `current_level 1, total 0.00, level_scores {}, indicator_scores all 0, last_computed 2026-07-30`. No achievements unlocked; snapshot table empty; no transactions in the savings categories. Old-rule scores below are **computed by hand, not persisted** (STEP 1 forbids recalculating on old code — the old DTI of 100 would unlock `debt_free` + `graduated_l2` on unknown debt). "After" fills in on the deploy-day recalculation (STEP 12).
+
+| | Before (old rules, hand-computed) | After (new rules) |
 |---|---|---|
-| Date | | |
-| `spend_lt_income` (score, ratio) | | |
-| `liquid_savings_ratio` | | |
-| `manageable_dti` (score or `no_data`) | | |
-| `savings_rate` | | |
-| `appropriate_insurance` (level) | L3 | L2 |
-| L1 / L2 / L3 level scores, total, current level | | |
-| Achievements unlocked | | |
-| Owner liabilities (count, with payment) | | |
+| Date | 2026-10-25 | 2026-10-25 (recalculated 13:49 and 14:00 UTC, after the fixes) |
+| `spend_lt_income` (score, ratio) | 100, ratio 0.50 (Jul 0.756, Aug 0.244; Sep no income) | 100, ratio 0.50 (unchanged) |
+| `liquid_savings_ratio` | not evaluated (casing bug: filter `Savings` ≠ stored `savings`) | live: 0.34 months (Rp 900,000 ÷ ≈ Rp 2.67 m), score 0 |
+| `manageable_dti` (score or `no_data`) | 100 (fake: card has no payment → debt service read as 0) | `no_data` (card has no monthly payment); survives reload |
+| `savings_rate` | 0 (no savings outflows) | 0 (unchanged) |
+| `appropriate_insurance` (level) | L3 | L2 (recalculate and GET /state) |
+| L1 / L2 / L3 level scores, total, current level | L1 100, L2 100 (dti only), L3 0; total 66.67; current level 2 | L1 100, L2 0 (cover only), L3 0; total 33.33; current level 1 |
+| Achievements unlocked | none persisted (old recalc *would* unlock positive_cashflow_3mo, debt_free, graduated_l1, graduated_l2) | `graduated_l1`, `positive_cashflow_3mo`. Not `debt_free`, not `graduated_l2`, not `consistent_investor`. None earned on unknown debt; `positive_cashflow_3mo` rests on two months of income (Jul, Aug), see follow-up 4 |
+| Owner liabilities (count, with payment) | 1, with payment 0 | unchanged (1 card, no payment); "no debts" flag left cleared |
+
+### Hand-run additions (2026-10-25, after the loop run)
+
+- **Snapshot and achievement writes (`JourneyScoringService`).** Both used `Upsert`, which in postgrest-csharp serializes the primary key even with `shouldInsert: false`, so every row was `id 0`. Existing on main, unnoticed because both tables were empty. Snapshots now delete today's rows for the user and insert the live ones (one delete, one batch insert); achievements insert only new codes. This also settles follow-up 8.
+- **Valuation casing (`ComputeLiquidSavingsAsync`).** `subject_type` is now `account`, as the CHECK constraint stores it. Without it cover was live but always computed from Rp 0.
+- **UTC on `GET /api/journey/no-debts`** (`JourneyConfirmationService`).
+- **Not fixed, new follow-ups:** (10) the full-row `UserJourneyState` upsert also sends `created_at`, so the state row's `created_at` is `0001-01-01`; (11) a savings account with no valuation counts as Rp 0 rather than unknown; (12) `scripts/loop-env.mjs` waits for `/health` < 500, but the API reports 503 whenever the compose `db` on 5432 is down, so `up` fails although the API is serving.
+
+## ✅ Owner Review Checklist (G3)
+
+**State:** Code, docs and the local migration are done; backend (511/0/9) and frontend gates are green; every live check in STEP 12 passed on 2026-10-25 (hand run, no independent verifier). What is left for you: read the diff, and optionally repeat one live check in your own browser session.
+
+**Known defects to confirm (fixed during the hand run, still only proven live, not by a unit test):**
+- **Snapshot/achievement writes.** `PersistSnapshotsAsync` and `EvaluateAchievementsAsync` in `JourneyScoringService.cs` now use `Insert` (see Hand-run additions). Supabase-bound, so no unit test can catch a regression; check with the SQL in E.
+- **Narrow-entity upsert.** Verified live (recalculation keeps the flag, DELETE writes null). Re-check once in your own session if you want a second pair of eyes.
+
+### A. Before you start
+- ☐ Branch `loop/pf-151`, worktree `.worktrees/pf-151`. Local Supabase up (`docker ps` shows `supabase_db_personal-finance`).
+- ☐ The owner's data is intact: 1 credit-card liability (no monthly payment), 4 `savings` accounts, 0 achievements, stale state row (2026-07-30). Do **not** delete the owner's liability.
+
+### B. Read the code
+- ☐ `JourneyScoringRules.cs` — one savings-category set (FIN-02 source comment), `EvaluateDti` (unknown payment → not evaluated, names the liability), `AchievementsEarned` (no_data earns nothing; level needs ≥1 live indicator), `Definitions` (insurance at L2), `SavingsAccountType = "savings"`.
+- ☐ `JourneyScoringService.cs` — DTI reads the confirmation inside the try (fails closed); `PersistStateAsync` stores via `LiveScoreMap`; `BuildIndicatorDtos` rebuilds `no_data` from `Definitions`; `PersistSnapshotsAsync` deletes today's `no_data` rows; account filter now `savings`.
+- ☐ `JourneyDebtConfirmation.cs` maps only `user_id` + `no_debts_confirmed_at` (narrow entity). `JourneyController` takes the owner from `ICurrentUser`, never the body.
+
+### C. Run the tests
+- ☐ Backend: from `apps/api`, `dotnet build PersonalFinance.slnx && dotnet test` → expect **511 passed, 0 failed, 9 skipped**. (Stop the slot-1 API first so the bin is not locked: `node scripts/loop-env.mjs down 1`.)
+- ☐ Frontend: from `apps/frontend`, `npm run lint && npx tsc --noEmit -p tsconfig.app.json && npm run build` → 0 lint errors, clean. (Passed in the hand run; `node_modules` is now installed in the main checkout.)
+
+### D. Apply the migration and start the stack
+- ☑ Migration applied locally 2026-10-25 and verified (STEP 2).
+- ☐ Rebuild and start the API (**only after** the column exists — the new entity queries it), then sign in as the owner.
+
+### E. Live checks (one per criterion proven only with mocks)
+- ☐ **Narrow-entity (STEP 6g / 12):** in the signed-in console run the GET→PUT→recalculate→GET→DELETE→GET snippet (STEP 12 item 3). Pass = the second `GET` returns the same timestamp as `PUT` (recalc did not clear it) and the last `GET` returns `null`. Leave the flag cleared.
+- ☐ **Owner recalculation (STEP 12):** press Recalculate, then `GET /api/journey/state`. Pass = `manageable_dti` is `no_data` (not score 0) and `debt_free` is **not** unlocked; `appropriate_insurance` is level `L2`; reload keeps `manageable_dti` as `no_data`. Record the `after` column and whether `graduated_l2`/`consistent_investor` unlocked (cover may now score ≥ 70). Never delete an achievement.
+- ☐ **Cover is now live:** record `liquid_savings_ratio` before (not evaluated) → after (a score), and the L2 average, in Before/after.
+- ☐ **Snapshot and achievement rows (SQL):** `select id, snapshot_date, indicator_code from journey_indicator_snapshots order by id` → no `id 0` rows beyond the pre-fix history, today lists only live indicators (no `manageable_dti`); `select id, achievement_code, unlocked_at from journey_achievements` → `graduated_l1` (id 0, written before the fix) and `positive_cashflow_3mo`, timestamps unchanged by a further Recalculate.
+- ☐ **Empty-state UI:** as a user with no liabilities (the PF-S08 empty test user), confirm the "I have no debts" prompt, the date + "Undo" after confirming, the Journey debt row showing a score, and after "Undo" the grey "Not evaluated · update your debts" and today's `manageable_dti` snapshot row gone.
+
+### F. Optional stretch
+- ☐ Enter the credit card's minimum payment and recalculate to see a real `debt_free` decision (owner's call; not required).
+
+### G. Decide and close
+- ☑ Rubric changelog dated 2026-10-25 and a dated `docs/STATUS.md` line added (STEP 12 item 7).
+- ☐ "Accepted" = backend + frontend gates green, the narrow-entity sequence behaves, and the owner recalculation leaves `debt_free` locked with `manageable_dti` = `no_data`. This branch is **not** merged via a PR, so run `/loop-accept` as normal (do not avoid it) — or, if you merge by hand, ask Claude to move the plan to `done/` and remove the branch and worktree. Plans 2 and 3 may start only after this is accepted.
+
+## Loop Notes
+- 2026-10-25 22:38 Asia/Makassar All 12 steps and 20 ACs done in a hand run; migration applied locally; backend 511/0/9 and frontend gates green; live checks passed; fixed id-0 snapshot/achievement upserts and valuation casing. Awaiting owner review.
+- 2026-10-25 23:00 Asia/Makassar Accepted by the owner and merged into main locally (`Merge loop/pf-151: PF-151`). Moved to done by hand: a hand run cannot reach ready-to-review, so there is no loop verifier verdict for this ticket. Worktree and branch removed, slot 1 released. Not pushed.
