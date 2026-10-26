@@ -1,6 +1,6 @@
 ---
 id: PF-153
-flags: []
+flags: [Ready]
 ---
 
 # PF-153 — Monthly Harvest: reveal the month's completed quests one by one on Journey
