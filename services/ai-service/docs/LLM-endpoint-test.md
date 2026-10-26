@@ -37,7 +37,6 @@ pytest tests/ -v
 | `test_categorize.py` | `/categorize` happy path, empty-categories 422, low-confidence passthrough, malformed LLM response fallback | 4 |
 | `test_merchant_suggester.py` | `/suggest-categories` batch, empty input, PII keyword filtering + `_is_pii_keyword` parametrized | 12 |
 | `test_portfolio_reviewer.py` | `PortfolioReviewer` response shape, provider called once, prompt contains setup name, model validation | 5 |
-| `test_journey_advisor.py` | `advise()` quest count, deeplink mapping, `max_tokens` error, missing tool-use block error, `tool_choice` param | 5 |
 | `test_superbank_extractor.py` | Superbank prompt dispatch (case-insensitive), fallback for unknown hints, extraction, positive amounts, error surfacing | 9 |
 | `test_eval_scoring.py` | Scoring harness: perfect score, missed row drops recall, phantom row drops precision, amount tolerance, flow-flip detection | 5 |
 | **Total** | | **52** |
@@ -434,57 +433,9 @@ Response has 7 sections (each a flexible dict):
 
 ---
 
-## Testing `POST /journey/advise` (financial journey advisor)
+## `POST /journey/advise` (removed)
 
-Called by the Journey module to generate personalized quest cards. Uses Claude `tool_use` (Anthropic always, regardless of `AI_PROVIDER`).
-
-### Happy path
-
-```bash
-curl -X POST http://localhost:8000/journey/advise \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "user-abc",
-    "current_level": 1,
-    "total_score": 35,
-    "indicators": [
-      {
-        "code": "spend_lt_income",
-        "level": "L1",
-        "score": 20,
-        "raw_value": 0.98,
-        "status": "in_progress"
-      },
-      {
-        "code": "liquid_savings_ratio",
-        "level": "L2",
-        "score": 5,
-        "raw_value": 0.2,
-        "status": "not_started"
-      }
-    ]
-  }'
-```
-
-Expected:
-
-```json
-{
-  "quests": [
-    {
-      "title": "Audit top 3 expense categories",
-      "description": "Check your biggest spending categories and cut one by Rp 300.000 this month.",
-      "target_indicator": "spend_lt_income",
-      "estimated_score_gain": 12,
-      "difficulty": "easy",
-      "action_deeplink": "/cashflow/analysis"
-    }
-  ]
-}
-```
-
-**Valid `status` values:** `achieved`, `in_progress`, `not_started`, `no_data`  
-**Valid `difficulty` values:** `easy`, `medium`, `hard`
+Removed in PF-152: Journey quests are now deterministic and the AI service is not involved.
 
 ---
 
@@ -503,7 +454,6 @@ No code changes needed. Edit `.env` and restart:
 | Gemini (primary) | `AI_PROVIDER=gemini`, `GEMINI_API_KEY=...`, `AI_MODEL=gemini-2.5-flash` |
 | Anthropic (alternate) | `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY=...`, `AI_MODEL=claude-sonnet-4-6` |
 
-Note: `/journey/advise` always uses Anthropic directly (Claude `tool_use` — not routed through `AI_PROVIDER`).
 
 ---
 
@@ -521,5 +471,4 @@ Note: `/journey/advise` always uses Anthropic directly (Claude `tool_use` — no
 | Categorize transaction | `curl -X POST http://localhost:8000/categorize -H "Content-Type: application/json" -d '{...}'` |
 | Suggest categories (batch) | `curl -X POST http://localhost:8000/suggest-categories -H "Content-Type: application/json" -d '{...}'` |
 | Portfolio review | `curl -X POST http://localhost:8000/portfolio-review -H "Content-Type: application/json" -d '{...}'` |
-| Journey advisor | `curl -X POST http://localhost:8000/journey/advise -H "Content-Type: application/json" -d '{...}'` |
 | Swagger UI | `http://localhost:8000/docs` |

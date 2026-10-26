@@ -22,7 +22,7 @@
 | Spending/Buckets | SpendingAnalysisService, BucketsService, BucketCalculator |
 | Assets | Account/Asset/Holding/Valuation/Liability commands; NetWorthService, ValuationService, JisdorFxRateService |
 | Investment | Investment setup/holdings/review commands, PortfolioReviewClient, stored snapshots |
-| Journey/Insights | JourneyScoringService, InsightService, JourneyAdvisorClient |
+| Journey/Insights | JourneyScoringService, QuestEngine, QuestBoardService, InsightService |
 | Trading Desk | DeskService, DeskMandateService, DeskCalculator, mandate/recon/sleeve operations |
 | Macro Lab | MacroScenarioService, create/delete commands, MacroScenariosController |
 

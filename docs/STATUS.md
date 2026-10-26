@@ -8,13 +8,15 @@
 
 The local finance workspace now includes Journey, Cashflow, Assets, Investment, transaction Q&A, Buckets budgeting, Trading Desk foundations, and Macro Scenario Lab. The API targets **net10.0**, React is **18**, and FastAPI requires **Python >=3.11.9** (Docker uses 3.12). Persistence is Supabase/PostgREST plus direct asyncpg/pgvector queries for retrieval. EF Core/Persistence is removed.
 
-The latest recorded feature is **PF-141 — opt-in Jev residual categorization** (plan dated 2026-09-27). Implementation and evaluator exist; live evaluation and promotion remain pending. The coded default is `CATEGORIZATION_BACKEND=llm`. No Jev cost/latency improvement is established.
+**2026-10-26 — PF-152 (Quest Engine v1):** uploads and asset writes now trigger recalculation; `quest_completions` stores one permanent row per completed rung; `GET /api/journey/quests` is a stored-state board with focus, snooze and seen; the LLM quest path (`/journey/advise`) is removed. Built on branch `loop/pf-152`; awaiting owner review.
+
+The latest recorded feature before that was **PF-141 — opt-in Jev residual categorization** (plan dated 2026-09-27). Implementation and evaluator exist; live evaluation and promotion remain pending. The coded default is `CATEGORIZATION_BACKEND=llm`. No Jev cost/latency improvement is established.
 
 ## Implemented product surface
 
 | Area | Coded behavior | Evidence / boundary |
 |---|---|---|
-| Journey | Home at `/journey`; five-tier presentation, scored indicators, stored snapshots/achievements, generated quests with fallback, Living Garden hero | `JourneyScoringService`, `JourneyController`, Journey pages. Four data-derived indicators: spending/income, liquid savings coverage, DTI, savings rate. Other indicators are unavailable; five tiers do not imply five complete finance products. Scored per signed-in owner since PF-S08. |
+| Journey | Home at `/journey`; five-tier presentation, scored indicators, stored snapshots/achievements, deterministic quest board (PF-152: catalog in code, rules engine inside recalculation, stars, no LLM), Living Garden hero | `JourneyScoringService`, `JourneyController`, Journey pages. Four data-derived indicators: spending/income, liquid savings coverage, DTI, savings rate. Other indicators are unavailable; five tiers do not imply five complete finance products. Scored per signed-in owner since PF-S08. |
 | Cashflow | Upload/review/submit, account linking and alias learning, file-hash/in-memory/database deduplication, server-paged transactions, CSV export, statements, balances, analysis | `TransactionsController`, `TransactionService`, cashflow pages. See ingestion limitations below. |
 | Categorization | User rules, presets, history lookup, bulk preview Suggest; separate normalization/categorization service with merchant batch and residual fallback | `CategoryRuleService`, `TransactionPipelineService`, `CategorizePreviewCommand`. Standard upload does not invoke the full pipeline. |
 | Spending / Buckets | Safe-to-Spend with historical savings outflows, variance, Committed/Future/Free budgeting, persisted Future plan and commitment demotions, month-close and variable-income views | `BucketsService` + pure `BucketCalculator`, `BucketsController`, `BucketsCard` in `/cashflow/analysis`; migration `20260804000001_buckets.sql`. Not every envelope/zero-based/50-30-20 method is implemented. |

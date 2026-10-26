@@ -33,7 +33,7 @@ The result: someone maxing out investments while carrying high-interest debt. So
 
 Cleared = every live indicator scores ≥ 70; Mastered = score 100 (per indicator). Spending excludes money you invest or save. DTI is judged once debts are recorded or confirmed. Source: [scoring-rubric.md](docs/ideas/scoring-rubric.md).
 
-A `JourneyScoringService` reads across all data sources — transactions, assets, investments — and computes indicator scores per tier. Score recalculation is event-driven: `TransactionCreatedEvent` and asset mutations auto-trigger recalculation via MediatR domain event handlers. This scoring engine is the product's core, not a feature.
+A `JourneyScoringService` reads across all data sources — transactions, assets, investments — and computes indicator scores per tier. Score recalculation is event-driven: `TransactionsSubmittedEvent` (once per import batch) and `AssetUpdatedEvent` (account, valuation, liability and asset writes) trigger it via MediatR handlers, and the quest engine runs inside the same pass. This scoring engine is the product's core, not a feature.
 
 **Five modules feed the pyramid:**
 - `/journey` — Home page. 5-tier scoring engine, quest cards, achievements, Living Garden Hero visualization.
@@ -192,7 +192,6 @@ apps/
         LlmCategorizationClient.cs     # Typed HttpClient → Python AI service /categorize
         LlmSuggestionClient.cs         # Typed HttpClient → Python AI service /suggest-categories
         PortfolioReviewClient.cs       # Typed HttpClient → Python AI service /portfolio-review
-        JourneyAdvisorClient.cs        # Typed HttpClient → Python AI service /journey/advise
         LlmExtractionException.cs      # Exception type for LLM failures (transient/non-transient)
       Supabase/
         DependencyInjection.cs         # AddSupabase() extension, registers Supabase.Client + StorageService
@@ -201,14 +200,13 @@ apps/
 services/
   ai-service/                 # Python FastAPI AI service
     app/
-      main.py                 # FastAPI app, 8 endpoints
+      main.py                 # FastAPI app, 7 endpoints
       services/
         llm_parser.py         # Gemini/Anthropic structured output extraction
         pdf_extractor.py      # PyMuPDF text extraction (pre-LLM)
         categorizer.py        # LLM-powered transaction categorization
         merchant_suggester.py # Batch merchant → category suggestion
         portfolio_reviewer.py # Investment portfolio AI review
-        journey_advisor.py    # Financial journey advice endpoint
       providers/
         base.py               # LlmProvider interface
         factory.py            # ProviderFactory
@@ -258,9 +256,11 @@ services/
 - **Auth**: Sign-in is required (PF-S08/S09, done 2026-10-16). The API validates the Supabase JWT, requires an authenticated user by default, and talks to PostgREST with a per-request client carrying the caller's token, so owner RLS policies on `user_id` apply. Take the owner from `ICurrentUser`, never from the request body. Public signup is off; the single owner account holds all legacy rows.
 - **AI chat and agents**: The browser calls only `/api/chat/*`. The API forwards to the AI service with the internal API key and a signed 60-second owner token, and the AI service reads as that user under RLS (PF-S15). Flags: `AiChat:Enabled`, `AiChat:AgentsEnabled`, `AI_CHAT_ENABLED`, `AI_AGENTS_ENABLED`, `VITE_AI_CHAT_ENABLED`. Runbook: [docs/runbooks/pf-s08-cashflow-pilot.md](docs/runbooks/pf-s08-cashflow-pilot.md).
 
+- **Quests (PF-152)**: the catalog lives in code (`Application/Quests/QuestCatalog`), detectors are pure rules, completions are append-only rows in `quest_completions` (never deleted), and the engine runs inside the recalculation pass on the same snapshot as scoring. No LLM and no point values anywhere in the quest path; `GET /api/journey/quests` only reads stored state.
+
 ### AI Service (Python FastAPI)
 - **Trigger**: Called directly by the .NET API via typed HttpClients. Webhook-triggered event-driven pipeline planned in PF-S11 (not yet built).
-- **Endpoints**: `GET /health`, `POST /parse` (text), `POST /parse-pdf` (multipart, optional password), `POST /parse-image` (multipart, 10 MB cap), `POST /categorize` (single-transaction LLM categorization), `POST /suggest-categories` (batch merchant → category), `POST /portfolio-review` (investment AI review), `POST /journey/advise` (journey advisor).
+- **Endpoints**: `GET /health`, `POST /parse` (text), `POST /parse-pdf` (multipart, optional password), `POST /parse-image` (multipart, 10 MB cap), `POST /categorize` (single-transaction LLM categorization), `POST /suggest-categories` (batch merchant → category), `POST /portfolio-review` (investment AI review).
 - **Structured Output**: Gemini uses JSON mode (`response_mime_type="application/json"`); Anthropic uses `tool_use` forced extraction. No regex parsing of free text.
 - **Provider Abstraction**: `ProviderFactory.create(settings)` returns `GeminiProvider` (default) or `AnthropicProvider`. No supabase-py dependency — results returned to .NET API as JSON.
 - **Observability**: OpenTelemetry tracing + metrics via OTLP; `FastAPIInstrumentor` auto-wraps all routes. Langfuse tracing wired into `GeminiProvider` and `AnthropicProvider` — cost, latency, and token counts per LLM call visible in Langfuse dashboard (PF-AI001).

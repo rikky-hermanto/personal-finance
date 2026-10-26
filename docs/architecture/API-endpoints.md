@@ -68,9 +68,12 @@ Route constraints below (`:guid` / `:int`) describe parameter types; omit the co
 | PUT | `/api/investments/setups/{id:guid}/holdings` | UpsertHoldings |
 | POST | `/api/investments/setups/{id:guid}/review` | RunReview |
 | GET | `/api/investments/setups/{id:guid}/snapshots/{snapshotId:guid}` | GetSnapshot |
-| GET | `/api/journey/state` | GetState |
+| GET | `/api/journey/state` | GetState (indicators carry `stars` 0-3 and stored `rawValue`) |
 | POST | `/api/journey/recalculate` | Recalculate |
-| GET | `/api/journey/quests` | GetQuests |
+| GET | `/api/journey/quests` | GetQuests (quest board: focus, offers, unseen completions, level goal) |
+| POST | `/api/journey/quests/{code}/focus` | SetFocus |
+| POST | `/api/journey/quests/{code}/snooze` | Snooze (one month) |
+| POST | `/api/journey/quests/seen` | MarkSeen (`{ ids }`, 204) |
 | GET | `/api/journey/no-debts` | GetNoDebts |
 | PUT | `/api/journey/no-debts` | ConfirmNoDebts |
 | DELETE | `/api/journey/no-debts` | ClearNoDebts |
@@ -155,7 +158,6 @@ Returns message + confirmed inserted transactions (or an empty list when all dup
 | POST | `/categorize` | Closed-vocabulary request, independent llm/jev backend; response category/confidence/rule_seed_allowed |
 | POST | `/suggest-categories` | Merchant batch → suggestion list |
 | POST | `/portfolio-review` | Seven-section analysis; optional provider/model override |
-| POST | `/journey/advise` | Indicator state → generated quest list |
 | POST | `/embed-transactions` | Item batch → embedded/skipped/model; asyncpg upsert |
 | POST | `/search` | Vector/full-text/hybrid retrieval, metadata filters, optional rerank |
 | POST | `/ask` | Routed aggregate/lookup answer + citations/timing/verification |

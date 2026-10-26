@@ -1,6 +1,6 @@
 # Personal Finance — AI Service
 
-FastAPI service for bank extraction, categorization, portfolio/Journey advice, transaction embeddings/retrieval, SQL-routed Q&A/SSE, follow-up suggestions, and separate smolagents/LangGraph endpoints.
+FastAPI service for bank extraction, categorization, portfolio advice, transaction embeddings/retrieval, SQL-routed Q&A/SSE, follow-up suggestions, and separate smolagents/LangGraph endpoints.
 
 > **Source reviewed:** 2026-10-08. Implemented routes are not a claim of live/deployment readiness. See [project status](../../docs/STATUS.md) and the [complete endpoint reference](../../docs/architecture/API-endpoints.md).
 
@@ -60,7 +60,7 @@ separately before rollout; PF-141 does not change deployment configuration.
 |---|---|
 | Extraction | POST /parse, /parse-pdf, /parse-image |
 | Categorization | POST /categorize, /suggest-categories; separate /categorize-agent |
-| Reviews/advice | POST /portfolio-review, /journey/advise; separate /advisor |
+| Reviews/advice | POST /portfolio-review (the old /journey/advise was removed in PF-152); separate /advisor |
 | Retrieval/chat | POST /embed-transactions, /search, /ask, /ask/stream, /ask/followups |
 | Liveness | GET /health |
 

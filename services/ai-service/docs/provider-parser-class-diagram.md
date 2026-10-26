@@ -109,8 +109,7 @@ Scope: `providers/base.py` · `providers/factory.py` · `services/llm_parser.py`
        │         → PortfolioReviewResponse                        │
        └──────────────────────────────────────────────────────────┘
 
-  Note: journey_advise() in services/journey_advisor.py is a module-level
-  async function, not a class — it creates its own LlmProvider at call time.
+  Note: journey_advise() / POST /journey/advise was removed in PF-152 (quests are now deterministic).
 ```
 
 ---
