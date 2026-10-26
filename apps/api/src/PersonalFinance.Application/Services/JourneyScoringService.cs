@@ -37,10 +37,9 @@ public class JourneyScoringService(
 
         var row = state.Models[0];
         var levelScores = ParseJsonDecimalMap(row.LevelScoresJson);
-        var indicatorScores = ParseJsonDecimalMap(row.IndicatorScoresJson);
         var achievements = await LoadAchievementsAsync(userId, ct);
 
-        var indicators = BuildIndicatorDtos(indicatorScores);
+        var indicators = IndicatorsFromRow(row);
         return new JourneyStateDto(row.CurrentLevel, row.TotalScore, levelScores, indicators, achievements, row.LastComputedAt);
     }
 
@@ -71,11 +70,15 @@ public class JourneyScoringService(
             Unavailable("passive_income", "Dividend/yield tracker not yet available"),
         };
 
+        // Stars are recognition on every live indicator, derived from the same rubric breakpoints
+        // as the score (StarRungs). They carry no points (G2).
+        indicators = indicators.Select(i => i with { Stars = StarRungs.StarsFor(i.Code, i.Score, i.Status) }).ToList();
+
         var levelScores = ComputeLevelScores(indicators);
         var totalScore = levelScores.Values.Any() ? Math.Round(levelScores.Values.Average(), 2) : 0m;
         var currentLevel = DetermineCurrentLevel(levelScores, indicators);
 
-        await PersistStateAsync(userId, currentLevel, totalScore, levelScores, indicators, ct);
+        await PersistStateAsync(userId, currentLevel, totalScore, levelScores, indicators, startedAt, ct);
         await PersistSnapshotsAsync(userId, indicators, ct);
         var achievements = await EvaluateAchievementsAsync(userId, indicators, ct);
 
@@ -417,9 +420,25 @@ public class JourneyScoringService(
     private async Task PersistStateAsync(
         Guid userId, int currentLevel, decimal totalScore,
         Dictionary<string, decimal> levelScores, List<IndicatorScoreDto> indicators,
-        CancellationToken ct)
+        DateTime startedAt, CancellationToken ct)
     {
+        // Recalculation now fires on every import and asset write, so two passes can overlap. The
+        // upsert writes the whole row, so a slower (older) pass would clobber a newer one's scores.
+        // Read the stored last_computed_at and skip the write when a newer pass already saved.
+        var existing = await supabase.From<UserJourneyState>()
+            .Filter("user_id", Operator.Equals, userId.ToString())
+            .Get();
+        var storedLastComputedAt = existing.Models.Count > 0 ? existing.Models[0].LastComputedAt : (DateTime?)null;
+        if (!ShouldPersist(storedLastComputedAt, startedAt))
+        {
+            logger.LogInformation("Skipped journey state persist for {UserId}: a newer pass already saved", userId);
+            return;
+        }
+
         var indicatorMap = JourneyScoringRules.LiveScoreMap(indicators);
+        var indicatorRaw = indicators
+            .Where(i => i.Status != "no_data" && i.RawValue.HasValue)
+            .ToDictionary(i => i.Code, i => i.RawValue!.Value);
 
         await supabase.From<UserJourneyState>()
             .Upsert(new UserJourneyState
@@ -429,10 +448,16 @@ public class JourneyScoringService(
                 TotalScore = totalScore,
                 LevelScoresJson = JsonSerializer.Serialize(levelScores),
                 IndicatorScoresJson = JsonSerializer.Serialize(indicatorMap),
-                LastComputedAt = DateTime.UtcNow,
+                IndicatorRaw = indicatorRaw,
+                LastComputedAt = startedAt,
                 UpdatedAt = DateTime.UtcNow,
             });
     }
+
+    // Never let an older pass overwrite a newer one: persist only when no row exists yet or the
+    // stored pass is no newer than this one. A pure helper so the ordering rule is unit-testable.
+    internal static bool ShouldPersist(DateTime? storedLastComputedAt, DateTime passStartedAt) =>
+        storedLastComputedAt is null || storedLastComputedAt <= passStartedAt;
 
     private async Task PersistSnapshotsAsync(
         Guid userId, List<IndicatorScoreDto> indicators, CancellationToken ct)
@@ -511,11 +536,27 @@ public class JourneyScoringService(
     private static string DeriveStatus(decimal score) =>
         score >= 70 ? "achieved" : score > 0 ? "in_progress" : "not_started";
 
-    internal static List<IndicatorScoreDto> BuildIndicatorDtos(Dictionary<string, decimal> liveScores) =>
+    internal static List<IndicatorScoreDto> BuildIndicatorDtos(
+        Dictionary<string, decimal> liveScores,
+        IReadOnlyDictionary<string, decimal>? rawValues = null) =>
         JourneyScoringRules.Definitions.Select(d =>
             d.HasDataSource && liveScores.TryGetValue(d.Code, out var score)
-                ? new IndicatorScoreDto(d.Code, d.Level, score, null, DeriveStatus(score), d.DisplayName, d.Description)
+                ? new IndicatorScoreDto(d.Code, d.Level, score,
+                    rawValues is not null && rawValues.TryGetValue(d.Code, out var raw) ? raw : null,
+                    DeriveStatus(score), d.DisplayName, d.Description)
                 : new IndicatorScoreDto(d.Code, d.Level, 0m, null, "no_data", d.DisplayName, d.Description)).ToList();
+
+    // The single reader for a stored row: rebuild indicators from the score map, hydrate raw values
+    // from indicator_raw, and apply stars. Liveness stays exactly PF-151's rule (code present in the
+    // stored score map); indicator_raw carries values, never liveness.
+    internal static List<IndicatorScoreDto> IndicatorsFromRow(UserJourneyState? row)
+    {
+        var live = row is null ? new Dictionary<string, decimal>() : ParseJsonDecimalMap(row.IndicatorScoresJson);
+        var raw = row?.IndicatorRaw;
+        return BuildIndicatorDtos(live, raw)
+            .Select(i => i with { Stars = StarRungs.StarsFor(i.Code, i.Score, i.Status) })
+            .ToList();
+    }
 
     private static Dictionary<string, decimal> ParseJsonDecimalMap(string json)
     {

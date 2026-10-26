@@ -184,4 +184,82 @@ public class JourneyScoringSnapshotTests
         Assert.Equal(0.1m, result.RawValue);
         Assert.Equal(75m, result.Score);
     }
+
+    // ─── STEP 9: ShouldPersist (older pass never overwrites a newer one) ──────────
+
+    [Fact]
+    public void ShouldPersist_NoStoredRow_True() =>
+        Assert.True(JourneyScoringService.ShouldPersist(null, new DateTime(2026, 10, 26, 10, 0, 0)));
+
+    [Fact]
+    public void ShouldPersist_StoredIsOlder_True() =>
+        Assert.True(JourneyScoringService.ShouldPersist(
+            new DateTime(2026, 10, 26, 9, 0, 0), new DateTime(2026, 10, 26, 10, 0, 0)));
+
+    [Fact]
+    public void ShouldPersist_StoredIsNewer_False() =>
+        Assert.False(JourneyScoringService.ShouldPersist(
+            new DateTime(2026, 10, 26, 11, 0, 0), new DateTime(2026, 10, 26, 10, 0, 0)));
+
+    [Fact]
+    public void ShouldPersist_SameInstant_True()
+    {
+        var instant = new DateTime(2026, 10, 26, 10, 0, 0);
+        Assert.True(JourneyScoringService.ShouldPersist(instant, instant));
+    }
+
+    // ─── STEP 9: BuildIndicatorDtos raw hydration and IndicatorsFromRow ───────────
+
+    [Fact]
+    public void BuildIndicatorDtos_RawValuesGiven_SetsRawValueOnLiveIndicators()
+    {
+        var live = new Dictionary<string, decimal> { ["spend_lt_income"] = 80m };
+        var raw = new Dictionary<string, decimal> { ["spend_lt_income"] = 0.80m };
+
+        var dtos = JourneyScoringService.BuildIndicatorDtos(live, raw);
+
+        var spend = dtos.First(d => d.Code == "spend_lt_income");
+        Assert.Equal(0.80m, spend.RawValue);
+    }
+
+    [Fact]
+    public void BuildIndicatorDtos_NoRawForCode_RawIsNull()
+    {
+        var live = new Dictionary<string, decimal> { ["spend_lt_income"] = 80m };
+
+        var dtos = JourneyScoringService.BuildIndicatorDtos(live, new Dictionary<string, decimal>());
+
+        var spend = dtos.First(d => d.Code == "spend_lt_income");
+        Assert.Null(spend.RawValue);
+    }
+
+    [Fact]
+    public void IndicatorsFromRow_UnevaluatedDti_StaysNoDataWithZeroStars()
+    {
+        // Only spend_lt_income is in the stored score map; manageable_dti is absent → no_data, 0 stars.
+        var row = new UserJourneyState
+        {
+            IndicatorScoresJson = "{\"spend_lt_income\":80}",
+            IndicatorRaw = new Dictionary<string, decimal> { ["spend_lt_income"] = 0.80m },
+        };
+
+        var indicators = JourneyScoringService.IndicatorsFromRow(row);
+
+        var dti = indicators.First(i => i.Code == "manageable_dti");
+        Assert.Equal("no_data", dti.Status);
+        Assert.Equal(0, dti.Stars);
+
+        var spend = indicators.First(i => i.Code == "spend_lt_income");
+        Assert.Equal(0.80m, spend.RawValue);
+        Assert.Equal(2, spend.Stars);  // score 80 ≥ 50 and ≥ 70, but < 100 → 2 stars
+    }
+
+    [Fact]
+    public void IndicatorsFromRow_NullRow_ReturnsAllNoData()
+    {
+        var indicators = JourneyScoringService.IndicatorsFromRow(null);
+
+        Assert.All(indicators, i => Assert.Equal("no_data", i.Status));
+        Assert.All(indicators, i => Assert.Equal(0, i.Stars));
+    }
 }

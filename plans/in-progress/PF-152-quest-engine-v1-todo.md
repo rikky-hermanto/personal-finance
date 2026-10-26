@@ -477,7 +477,8 @@ Expect the constant and its use in the savings load (STEP 7), and no capitalised
 
 ---
 
-### [ ] STEP 9 — Persist raw values, add stars, and make `GetStateAsync` honest
+### [x] STEP 9 — Persist raw values, add stars, and make `GetStateAsync` honest
+> **Done (segment 4):** All six parts landed and build clean. `Application/Quests/StarRungs.cs` created (star thresholds + rung copy, each citing scoring-rubric.md). `IndicatorScoreDto` gains `int Stars = 0` (last positional, default keeps every caller compiling). `PersistStateAsync` now takes `startedAt`, writes `IndicatorRaw` (live indicators with a raw value) and sets `LastComputedAt = startedAt`; a `ShouldPersist(storedLastComputedAt, passStartedAt)` pure guard reads the stored `last_computed_at` and skips the upsert when a newer pass already saved (older pass never overwrites newer). `BuildIndicatorDtos` gains an optional `rawValues` param (liveness unchanged — still "code present in the stored score map"; raw carries values only). New `IndicatorsFromRow(UserJourneyState?)` is the single reader for a stored row (rebuild from score map + hydrate raw + apply stars); `GetStateAsync` now uses it. Stars applied to the live indicators in `RecalculateWithSnapshotAsync` too. **Build:** `dotnet build PersonalFinance.slnx` clean, 0 errors. **Tests:** new `StarRungsTests.cs` (boundaries, no-data/unknown-code zero, the RawAtRung↔Score* invariant across all four indicators, rung copy) + ShouldPersist/BuildIndicatorDtos-raw/IndicatorsFromRow cases in `JourneyScoringSnapshotTests.cs`. Journey+StarRungs filter GREEN: 105 passed / 0 failed / 0 skipped (was 87). **Gated:** the live `indicator_raw` jsonb round-trip still needs the STEP 2 migration applied (same STEP 2 blocker) — carried to Owner Review.
 1. Create `Application/Quests/StarRungs.cs` (this is the single place star thresholds live):
 ```csharp
 using System.Globalization;
