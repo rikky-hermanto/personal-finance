@@ -18,8 +18,9 @@ public class QuestBoardServiceTests
         public override TimeZoneInfo LocalTimeZone => TimeZoneInfo.Utc;
     }
 
-    private static QuestBoardService Service(FakeQuestStore store, string today = "2026-10-25") =>
-        new(store, new FixedTime(DateTimeOffset.Parse(today + "T05:00:00Z")));
+    private static QuestBoardService Service(
+        FakeQuestStore store, string today = "2026-10-25", FakeHarvestLedger? ledger = null) =>
+        new(store, ledger ?? new FakeHarvestLedger(), new FixedTime(DateTimeOffset.Parse(today + "T05:00:00Z")));
 
     private static UserJourneyState Scores(params (string Code, decimal Score)[] live) => new()
     {
@@ -345,9 +346,119 @@ public class QuestBoardServiceTests
         // G2: no points, gain or XP anywhere on the board.
         var bad = new Regex("point|gain|xp|reward", RegexOptions.IgnoreCase);
         Type[] types = [typeof(QuestBoardDto), typeof(QuestCardDto), typeof(QuestProgressDto),
-            typeof(UnseenCompletionDto), typeof(LevelGoalDto), typeof(LevelGoalGapDto)];
+            typeof(UnseenCompletionDto), typeof(LevelGoalDto), typeof(LevelGoalGapDto),
+            typeof(HarvestDto), typeof(HarvestItemDto), typeof(RhythmDto)];
 
         foreach (var type in types)
             Assert.DoesNotContain(type.GetProperties().Select(p => p.Name), bad.IsMatch);
+    }
+
+    private static void CompleteUnseen(FakeQuestStore store, string code, int rung = 0,
+        bool backfill = false, long? id = null)
+    {
+        var evidence = new Dictionary<string, object?>();
+        if (backfill) evidence["backfill"] = true;
+        store.Completions.Add(new QuestCompletion
+        {
+            Id = id ?? store.Completions.Count + 1,
+            UserId = UserId,
+            QuestCode = code,
+            Rung = (short)rung,
+            CompletedAt = new DateTime(2026, 10, 3, 9, 0, 0, DateTimeKind.Utc),
+            Evidence = evidence,
+            SeenAt = null,
+        });
+    }
+
+    private static FakeHarvestLedger LedgerWith(params (string Month, bool Seen)[] months)
+    {
+        var ledger = new FakeHarvestLedger();
+        foreach (var (month, seen) in months)
+            ledger.Rows.Add(new HarvestLedgerRow(
+                new HarvestMonthRecord(DateOnly.Parse(month + "-01"), 10_000_000m, 8_000_000m, "green", 4, 5), seen));
+        return ledger;
+    }
+
+    [Fact]
+    public async Task Board_Harvest_TwoUnseenCompletionsAndAnUnseenMonth_HasExactlyTwoItems()
+    {
+        // Arrange
+        var store = new FakeQuestStore();
+        CompleteUnseen(store, "l1.meet_your_money", id: 41);
+        CompleteUnseen(store, "l1.in_the_green", id: 42);
+        var ledger = LedgerWith(("2026-09", false));
+
+        // Act
+        var board = await Service(store, ledger: ledger).GetBoardAsync(UserId);
+
+        // Assert
+        Assert.NotNull(board.Harvest);
+        Assert.Equal(2, board.Harvest.Items.Count);
+        Assert.Equal("2026-09", board.Harvest.Month);
+    }
+
+    [Fact]
+    public async Task Board_Harvest_AfterMarkedSeen_IsNull()
+    {
+        // Arrange: all completions and months already seen.
+        var store = new FakeQuestStore();
+        Complete(store, "l1.meet_your_money");   // SeenAt set by the helper
+        var ledger = LedgerWith(("2026-09", true));
+
+        // Act
+        var board = await Service(store, ledger: ledger).GetBoardAsync(UserId);
+
+        // Assert
+        Assert.Null(board.Harvest);
+    }
+
+    [Fact]
+    public async Task Board_Harvest_FirstRunFlag_FoldsToOneItemWithEveryId()
+    {
+        // Arrange
+        var store = new FakeQuestStore();
+        CompleteUnseen(store, "l1.meet_your_money", backfill: true, id: 1);
+        CompleteUnseen(store, "l1.in_the_green", backfill: true, id: 2);
+        CompleteUnseen(store, "l2.map_your_debts", backfill: true, id: 3);
+
+        // Act
+        var board = await Service(store).GetBoardAsync(UserId);
+
+        // Assert
+        Assert.NotNull(board.Harvest);
+        var card = Assert.Single(board.Harvest.Items);
+        Assert.True(card.IsBackfill);
+        Assert.Equal([1L, 2L, 3L], card.CompletionIds);
+    }
+
+    [Fact]
+    public async Task Board_Harvest_UnknownCatalogCode_IsSkipped()
+    {
+        // Arrange
+        var store = new FakeQuestStore();
+        CompleteUnseen(store, "l1.meet_your_money", id: 1);
+        CompleteUnseen(store, "retired.code.from.v0", id: 2);
+
+        // Act
+        var board = await Service(store).GetBoardAsync(UserId);
+
+        // Assert
+        Assert.NotNull(board.Harvest);
+        var card = Assert.Single(board.Harvest.Items);
+        Assert.Equal("l1.meet_your_money", card.Code);
+    }
+
+    [Fact]
+    public async Task Board_Rhythm_ReflectsTheLedger()
+    {
+        // Arrange: three consecutive harvested months, last full month is September 2026.
+        var store = new FakeQuestStore();
+        var ledger = LedgerWith(("2026-07", true), ("2026-08", true), ("2026-09", true));
+
+        // Act
+        var board = await Service(store, ledger: ledger).GetBoardAsync(UserId);
+
+        // Assert
+        Assert.Equal(new RhythmDto(3, 3), board.Rhythm);
     }
 }

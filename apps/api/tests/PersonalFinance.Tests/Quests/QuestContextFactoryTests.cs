@@ -81,6 +81,26 @@ public class QuestContextFactoryTests
     }
 
     [Fact]
+    public void FromSnapshot_MonthFacts_CountTransactionsAndAccountsPerMonth()
+    {
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+        var ctx = Build(Snapshot([
+            Tx(2026, 9, "Income", 1000m, "Salary", a),
+            Tx(2026, 9, "Expense", 300m, "Food", b),
+            Tx(2026, 9, "Expense", 50m, "Food", account: null),   // a row with no account still counts
+        ]));
+
+        var september = ctx.Months.Single(m => (m.Year, m.Month) == (2026, 9));
+        Assert.Equal(3, september.TransactionCount);
+        Assert.Equal(new HashSet<Guid> { a, b }, september.AccountIdsWithTransactions);
+
+        var july = ctx.Months.Single(m => (m.Year, m.Month) == (2026, 7));
+        Assert.Equal(0, july.TransactionCount);
+        Assert.Empty(july.AccountIdsWithTransactions!);
+    }
+
+    [Fact]
     public void FromSnapshot_TransactionsLoadFailed_FlagsTransactionsNotLoaded()
     {
         var ctx = Build(Snapshot(transactionsFailed: true));

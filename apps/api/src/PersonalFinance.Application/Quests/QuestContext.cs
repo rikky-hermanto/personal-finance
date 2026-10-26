@@ -4,7 +4,10 @@ namespace PersonalFinance.Application.Quests;
 /// feeds the score, but quests and stars must not treat the resulting cover as an achievement.</summary>
 public sealed record IndicatorFact(string Code, string Level, decimal Score, decimal? Raw, string Status, bool Trusted = true);
 public sealed record ExpenseFact(decimal AmountIdr, string Category);
-public sealed record MonthFacts(int Year, int Month, decimal Income, decimal Expense, IReadOnlyList<ExpenseFact> TopExpenses);
+public sealed record MonthFacts(
+    int Year, int Month, decimal Income, decimal Expense, IReadOnlyList<ExpenseFact> TopExpenses,
+    int TransactionCount = 0,
+    IReadOnlySet<Guid>? AccountIdsWithTransactions = null);
 public sealed record AccountFact(Guid Id, string Name, bool HasTransactionInWindow);
 
 /// <summary>Read-only facts the rules look at. The write path fills everything; the read path

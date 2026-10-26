@@ -111,6 +111,35 @@ public class L2RuleTests
             Empty() with { SavingsAccounts = [Savings(null)] }));
 
     [Fact]
+    public void ValuationExists_CoverIndicatorLive_StoresMonths()
+    {
+        // Arrange: cover is live and trusted, so the reveal line can state the figure.
+        var ctx = Empty().WithIndicator(Cover(1.4m)) with { SavingsAccounts = [Savings(new DateTime(2026, 10, 1))] };
+
+        // Act
+        var evidence = QuestCatalog.Find("l2.count_your_cushion")!.Rule
+            .Evaluate(ctx, QuestCatalog.Find("l2.count_your_cushion")!).Single().Evidence;
+
+        // Assert
+        Assert.Equal(1.4m, evidence["months"]);
+    }
+
+    [Fact]
+    public void ValuationExists_CoverNotEvaluated_StoresNoEvidence()
+    {
+        // Arrange: valued account, but no cover indicator yet.
+        var ctx = Empty() with { SavingsAccounts = [Savings(new DateTime(2026, 10, 1))] };
+
+        // Act
+        var result = QuestCatalog.Find("l2.count_your_cushion")!.Rule
+            .Evaluate(ctx, QuestCatalog.Find("l2.count_your_cushion")!).Single();
+
+        // Assert
+        Assert.True(result.Met);
+        Assert.Empty(result.Evidence);
+    }
+
+    [Fact]
     public void LevelGraduated_Cleared_Met() =>
         Assert.Equal([0], MetRungs(QuestCatalog.Find("l1.boss")!, Empty() with { GraduatedLevels = new HashSet<string> { "L1" } }));
 

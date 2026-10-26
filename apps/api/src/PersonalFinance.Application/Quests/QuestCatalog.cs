@@ -22,6 +22,9 @@ public static class QuestCatalog
             // Source: scoring-rubric.md spend_lt_income, ratio 1.00 is the 0-point breakpoint.
             new("l1.in_the_green", "L1", QuestKind.Ladder, new GreenMonth(), [], false,
                 "In the green", "Spend less than you earn in a single month.", "/cashflow/overview"),
+            // Recognition, so the board never offers or lists it before it happens. The only hidden quest here.
+            new("l1.honest_harvest", "L1", QuestKind.Recognition, new RedMonthRecorded(), [], false,
+                "Honest Harvest", "You harvested a month that ran over. Honest data keeps every score true.", null),
             new("l1.boss", "L1", QuestKind.Boss, new LevelGraduated("L1"), [], false,
                 "Foundations cleared", "Every Foundations indicator has reached the clearing bar.", null),
 
