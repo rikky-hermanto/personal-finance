@@ -208,6 +208,18 @@ public class JourneyScoringSnapshotTests
         Assert.True(JourneyScoringService.ShouldPersist(instant, instant));
     }
 
+    [Fact]
+    public void ShouldPersist_StoredReadBackAsLocalTime_ComparesByInstant()
+    {
+        // Regression (found live, host zone UTC+8): the PostgREST client hands timestamptz back as local
+        // time, and comparing that raw value with a UTC pass start made every later pass look "older".
+        var storedEarlier = new DateTime(2026, 10, 26, 2, 0, 0, DateTimeKind.Utc).ToLocalTime();
+        var passStart = new DateTime(2026, 10, 26, 2, 5, 0, DateTimeKind.Utc);
+
+        Assert.True(JourneyScoringService.ShouldPersist(storedEarlier, passStart));
+        Assert.False(JourneyScoringService.ShouldPersist(passStart.ToLocalTime(), storedEarlier.ToUniversalTime()));
+    }
+
     // ─── STEP 9: BuildIndicatorDtos raw hydration and IndicatorsFromRow ───────────
 
     [Fact]

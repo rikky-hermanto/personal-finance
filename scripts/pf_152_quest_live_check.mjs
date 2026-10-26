@@ -182,6 +182,12 @@ try {
   check("fresh valuation: fence posts and cover stars complete (asset trigger, no Recalculate)",
     fence.length >= 1 && cc.some((c) => c.quest_code === "stars.liquid_savings_ratio"), `fence rungs=${fence.join(",")}`);
 
+  // 8b. Stored scores follow later passes (a stale-write guard once compared local time with UTC and froze them).
+  const after = await http(API, "/api/journey/state", { token: A.token });
+  const cover = (after.json?.indicators ?? []).find((i) => i.code === "liquid_savings_ratio");
+  check("stored state follows the later pass (cover is live with a raw value after the fresh valuation)",
+    cover && cover.status !== "no_data" && cover.rawValue > 1.5, cover ? `raw=${cover.rawValue} stars=${cover.stars}` : "missing");
+
   // 9. AI service not needed.
   const aiBase = process.env.PF_AI ?? "http://localhost:8000";
   const aiUp = await fetch(aiBase + "/health").then((r) => r.status).catch(() => 0);

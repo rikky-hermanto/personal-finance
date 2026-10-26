@@ -456,8 +456,10 @@ public class JourneyScoringService(
 
     // Never let an older pass overwrite a newer one: persist only when no row exists yet or the
     // stored pass is no newer than this one. A pure helper so the ordering rule is unit-testable.
+    // The client reads timestamptz back as local time, so both sides are compared as instants (UTC).
     internal static bool ShouldPersist(DateTime? storedLastComputedAt, DateTime passStartedAt) =>
-        storedLastComputedAt is null || storedLastComputedAt <= passStartedAt;
+        storedLastComputedAt is null
+        || storedLastComputedAt.Value.ToUniversalTime() <= passStartedAt.ToUniversalTime();
 
     private async Task PersistSnapshotsAsync(
         Guid userId, List<IndicatorScoreDto> indicators, CancellationToken ct)
