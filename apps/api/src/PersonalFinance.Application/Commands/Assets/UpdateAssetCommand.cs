@@ -1,4 +1,5 @@
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Application.Commands.Assets;
@@ -10,4 +11,4 @@ public record UpdateAssetCommand(
     string Currency,
     string ValuationStrategy,
     string? Metadata
-) : IRequest<Asset?>;
+) : IRequest<Asset?>, IAffectsJourney;

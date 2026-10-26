@@ -1,4 +1,5 @@
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Application.Commands.Valuations;
@@ -11,4 +12,4 @@ public record CreateValuationCommand(
     DateTime? ValuedAt = null,
     string Source = "manual",
     string? Notes = null
-) : IRequest<Valuation>;
+) : IRequest<Valuation>, IAffectsJourney;

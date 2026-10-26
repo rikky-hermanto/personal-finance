@@ -51,6 +51,7 @@ jobs:
       - run: npx --no-install tsc --noEmit -p tsconfig.node.json
       - run: npm run test:desk
       - run: npm run test:macro
+      - run: npm run test:journey
       - run: npm run build
 
   ai-service:

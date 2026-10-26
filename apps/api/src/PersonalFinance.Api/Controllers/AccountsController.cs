@@ -132,6 +132,8 @@ public class AccountsController(IMediator mediator, Supabase.Client supabase, IC
     {
         if (!await mutations.SetAccountCashflowFlagAsync(id, include, HttpContext.RequestAborted))
             return NotFound();
+        // The flag decides which accounts l1.full_picture waits for, so a change must trigger a pass (PF-152).
+        await mediator.Publish(new AssetUpdatedEvent(caller.UserId), CancellationToken.None);
         var updated = await supabase.From<Account>()
             .Filter("user_id", Operator.Equals, caller.UserId.ToString())
             .Filter("id", Supabase.Postgrest.Constants.Operator.Equals, id.ToString())

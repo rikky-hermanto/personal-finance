@@ -15,7 +15,8 @@ public record IndicatorScoreDto(
     decimal? RawValue,
     string Status,          // "achieved" | "in_progress" | "not_started" | "no_data"
     string DisplayName,
-    string Description);
+    string Description,
+    int Stars = 0);
 
 public record AchievementDto(
     string Code,

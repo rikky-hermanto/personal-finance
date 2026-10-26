@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Application.Quests;
 using PersonalFinance.Domain.Entities;
 using static Supabase.Postgrest.Constants;
 
@@ -10,7 +11,8 @@ namespace PersonalFinance.Application.Services;
 public class JourneyScoringService(
     Supabase.Client supabase,
     IJourneyConfirmationService confirmation,
-    ILogger<JourneyScoringService> logger
+    ILogger<JourneyScoringService> logger,
+    TimeProvider time
 ) : IJourneyScoringService
 {
     private static readonly Dictionary<string, string> AchievementNames = new()
@@ -35,69 +37,137 @@ public class JourneyScoringService(
 
         var row = state.Models[0];
         var levelScores = ParseJsonDecimalMap(row.LevelScoresJson);
-        var indicatorScores = ParseJsonDecimalMap(row.IndicatorScoresJson);
         var achievements = await LoadAchievementsAsync(userId, ct);
 
-        var indicators = BuildIndicatorDtos(indicatorScores);
+        var indicators = IndicatorsFromRow(row);
         return new JourneyStateDto(row.CurrentLevel, row.TotalScore, levelScores, indicators, achievements, row.LastComputedAt);
     }
 
-    public async Task<JourneyStateDto> RecalculateAsync(Guid userId, CancellationToken ct = default)
+    public async Task<JourneyStateDto> RecalculateAsync(Guid userId, CancellationToken ct = default) =>
+        (await RecalculateWithSnapshotAsync(userId, ct)).State;
+
+    public async Task<JourneyRecalculation> RecalculateWithSnapshotAsync(Guid userId, CancellationToken ct = default)
     {
         logger.LogInformation("Recalculating journey scores for user {UserId}", userId);
 
-        var indicators = new List<IndicatorScoreDto>();
+        // The moment the data was read: the honest meaning of "computed at", and the ordering key
+        // a newer pass compares against (STEP 9). "Today" is the owner's calendar day (Asia/Jakarta),
+        // never the host's, so month windows and freshness do not flip hours late on a UTC host.
+        var startedAt = time.GetUtcNow().UtcDateTime;
+        var today = DateOnly.FromDateTime(time.GetLocalNow().DateTime);
 
-        var spendLtIncome = await ComputeSpendLtIncomeAsync(ct);
-        indicators.Add(spendLtIncome);
-        indicators.Add(Unavailable("pay_bills_on_time", "Bill due-date tracking not yet available"));
+        var inputs = await LoadInputsAsync(userId, today, ct);
 
-        var liquidSavings = await ComputeLiquidSavingsAsync(ct);
-        indicators.Add(liquidSavings);
+        var indicators = new List<IndicatorScoreDto>
+        {
+            ComputeSpendLtIncome(inputs),
+            Unavailable("pay_bills_on_time", "Bill due-date tracking not yet available"),
+            ComputeLiquidSavings(inputs),
+            ComputeDti(inputs),
+            ComputeSavingsRate(inputs),
+            Unavailable("appropriate_insurance", "Insurance module not yet available"),
+            Unavailable("prime_credit", "Credit bureau integration not yet available"),
+            Unavailable("passive_income", "Dividend/yield tracker not yet available"),
+        };
 
-        var dti = await ComputeDtiAsync(userId, ct);
-        indicators.Add(dti);
-
-        var savingsRate = await ComputeSavingsRateAsync(ct);
-        indicators.Add(savingsRate);
-
-        indicators.Add(Unavailable("appropriate_insurance", "Insurance module not yet available"));
-        indicators.Add(Unavailable("prime_credit", "Credit bureau integration not yet available"));
-        indicators.Add(Unavailable("passive_income", "Dividend/yield tracker not yet available"));
+        // Stars are recognition on every live indicator, derived from the same rubric breakpoints
+        // as the score (StarRungs). They carry no points (G2).
+        indicators = indicators.Select(i => i with { Stars = StarRungs.StarsFor(i.Code, i.Score, i.Status) }).ToList();
 
         var levelScores = ComputeLevelScores(indicators);
         var totalScore = levelScores.Values.Any() ? Math.Round(levelScores.Values.Average(), 2) : 0m;
         var currentLevel = DetermineCurrentLevel(levelScores, indicators);
 
-        await PersistStateAsync(userId, currentLevel, totalScore, levelScores, indicators, ct);
+        await PersistStateAsync(userId, currentLevel, totalScore, levelScores, indicators, startedAt, ct);
         await PersistSnapshotsAsync(userId, indicators, ct);
         var achievements = await EvaluateAchievementsAsync(userId, indicators, ct);
 
         logger.LogInformation("Journey recalculated: level={Level} score={Score}", currentLevel, totalScore);
 
-        return new JourneyStateDto(currentLevel, totalScore, levelScores, indicators, achievements, DateTime.UtcNow);
+        var state = new JourneyStateDto(currentLevel, totalScore, levelScores, indicators, achievements, startedAt);
+        return new JourneyRecalculation(state, inputs with { Indicators = indicators });
     }
 
-    // ─── Indicators ────────────────────────────────────────────────────────────
+    // ─── Load once ───────────────────────────────────────────────────────────────
 
-    private async Task<IndicatorScoreDto> ComputeSpendLtIncomeAsync(CancellationToken ct)
+    // Everything a scoring pass needs, loaded once. Each source is read in its own try/catch and
+    // left null on failure, so a dependent indicator reports "Computation error" instead of guessing.
+    private async Task<ScoringSnapshot> LoadInputsAsync(Guid userId, DateOnly today, CancellationToken ct)
+    {
+        var start = new DateTime(today.Year, today.Month, 1).AddMonths(-3);
+        var end = today.ToDateTime(TimeOnly.MinValue);
+
+        IReadOnlyList<Transaction>? transactions = null;
+        try { transactions = await FetchTransactionsAsync(start, end); }
+        catch (Exception ex) { logger.LogError(ex, "Failed to load transactions for scoring"); }
+
+        IReadOnlyList<SavingsAccountFact>? savings = null;
+        try { savings = await LoadSavingsAccountsAsync(); }
+        catch (Exception ex) { logger.LogError(ex, "Failed to load savings accounts for scoring"); }
+
+        IReadOnlyList<Liability>? liabilities = null;
+        try { liabilities = (await supabase.From<Liability>().Get()).Models; }
+        catch (Exception ex) { logger.LogError(ex, "Failed to load liabilities for scoring"); }
+
+        DateTime? confirmedAt = null;
+        var confirmationLoaded = false;
+        try
+        {
+            confirmedAt = await confirmation.GetNoDebtsConfirmedAtAsync(userId, ct);
+            confirmationLoaded = true;
+        }
+        catch (Exception ex) { logger.LogError(ex, "Failed to read no-debts confirmation for scoring"); }
+
+        return new ScoringSnapshot(today, transactions, savings, liabilities, confirmedAt, confirmationLoaded,
+            Array.Empty<IndicatorScoreDto>());
+    }
+
+    // Savings accounts plus their latest valuation, loaded with one valuations query (not one per
+    // account): fetch all valuations for the savings accounts ordered newest-first, then take the
+    // first row per account in memory.
+    private async Task<IReadOnlyList<SavingsAccountFact>> LoadSavingsAccountsAsync()
+    {
+        var accounts = await supabase.From<Account>()
+            .Filter("account_type", Operator.Equals, JourneyScoringRules.SavingsAccountType)
+            .Get();
+
+        if (accounts.Models.Count == 0)
+            return Array.Empty<SavingsAccountFact>();
+
+        var ids = accounts.Models.Select(a => (object)a.Id.ToString()).ToList();
+        var valuations = await supabase.From<Valuation>()
+            .Filter("subject_type", Operator.Equals, JourneyScoringRules.AccountValuationSubjectType)
+            .Filter("subject_id", Operator.In, ids)
+            .Order("valued_at", Ordering.Descending)
+            .Get();
+
+        var latestByAccount = valuations.Models
+            .GroupBy(v => v.SubjectId)
+            .ToDictionary(g => g.Key, g => g.First());  // ordered descending, so first is latest
+
+        return accounts.Models.Select(a =>
+        {
+            latestByAccount.TryGetValue(a.Id, out var v);
+            return new SavingsAccountFact(a.Id, a.Name, v?.ValueIdr, v?.ValuedAt);
+        }).ToList();
+    }
+
+    // ─── Indicators (computed from the snapshot, no I/O) ─────────────────────────
+
+    internal IndicatorScoreDto ComputeSpendLtIncome(ScoringSnapshot s)
     {
         const string code = "spend_lt_income";
         const string level = "L1";
         const string displayName = "Spend less than income";
         const string description = "3-month rolling average of spending (excluding money you saved or invested) vs. income";
 
+        if (s.Transactions is null)
+            return NotAvailable(code, level, displayName, "Computation error");
+
         try
         {
-            var today = DateTime.Today;
-            var start = new DateTime(today.Year, today.Month, 1).AddMonths(-3);
-            var transactions = await FetchTransactionsAsync(start, today);
-
-            var months = Enumerable.Range(1, 3)
-                .Select(i => today.AddMonths(-i))
-                .ToList();
-
-            var ratios = JourneyScoringRules.MonthlyConsumptionRatios(transactions, months);
+            var months = MonthsBack(s.Today);
+            var ratios = JourneyScoringRules.MonthlyConsumptionRatios(s.Transactions, months);
 
             if (!ratios.Any())
                 return NotAvailable(code, level, displayName, "No income data in last 3 months");
@@ -115,45 +185,25 @@ public class JourneyScoringService(
         }
     }
 
-    private async Task<IndicatorScoreDto> ComputeLiquidSavingsAsync(CancellationToken ct)
+    internal IndicatorScoreDto ComputeLiquidSavings(ScoringSnapshot s)
     {
         const string code = "liquid_savings_ratio";
         const string level = "L2";
         const string displayName = "Liquid savings ratio";
         const string description = "Emergency fund in months of average monthly spending (excluding money you saved or invested)";
 
+        if (s.SavingsAccounts is null || s.Transactions is null)
+            return NotAvailable(code, level, displayName, "Computation error");
+
         try
         {
-            // Get savings accounts
-            var accounts = await supabase.From<Account>()
-                .Filter("account_type", Operator.Equals, JourneyScoringRules.SavingsAccountType)
-                .Get();
-
-            if (!accounts.Models.Any())
+            if (s.SavingsAccounts.Count == 0)
                 return NotAvailable(code, level, displayName, "No savings accounts found");
 
-            // Get latest valuations for each savings account
-            decimal totalLiquidIdr = 0m;
-            foreach (var account in accounts.Models)
-            {
-                var valuation = await supabase.From<Valuation>()
-                    .Filter("subject_type", Operator.Equals, JourneyScoringRules.AccountValuationSubjectType)
-                    .Filter("subject_id", Operator.Equals, account.Id.ToString())
-                    .Order("valued_at", Ordering.Descending)
-                    .Limit(1)
-                    .Get();
+            var totalLiquidIdr = s.SavingsAccounts.Sum(a => a.LatestValueIdr ?? 0m);
 
-                if (valuation.Models.Count > 0)
-                    totalLiquidIdr += valuation.Models[0].ValueIdr;
-            }
-
-            // Avg monthly consumption (last 3 months)
-            var today = DateTime.Today;
-            var start = new DateTime(today.Year, today.Month, 1).AddMonths(-3);
-            var transactions = await FetchTransactionsAsync(start, today);
-
-            var months = Enumerable.Range(1, 3).Select(i => today.AddMonths(-i)).ToList();
-            var avgMonthlyExpense = JourneyScoringRules.AverageMonthlyConsumption(transactions, months);
+            var months = MonthsBack(s.Today);
+            var avgMonthlyExpense = JourneyScoringRules.AverageMonthlyConsumption(s.Transactions, months);
 
             if (avgMonthlyExpense <= 0)
                 return NotAvailable(code, level, displayName, "No expense data to compute ratio");
@@ -171,28 +221,23 @@ public class JourneyScoringService(
         }
     }
 
-    private async Task<IndicatorScoreDto> ComputeDtiAsync(Guid userId, CancellationToken ct)
+    internal IndicatorScoreDto ComputeDti(ScoringSnapshot s)
     {
         const string code = "manageable_dti";
         const string level = "L2";
         const string displayName = "Manageable debt (DTI)";
         const string description = "Monthly debt payments as % of take-home income";
 
+        // Fail closed if debt data or the confirmation could not be read (PF-151's rule): never guess.
+        if (s.Liabilities is null || !s.ConfirmationLoaded)
+            return NotAvailable(code, level, displayName, "Computation error");
+
         try
         {
-            // Read inside the try: if the confirmation cannot be read, the indicator fails closed
-            // as "not evaluated" instead of guessing.
-            var confirmedAt = await confirmation.GetNoDebtsConfirmedAtAsync(userId, ct);
-            var liabilities = await supabase.From<Liability>().Get();
+            var months = MonthsBack(s.Today);
+            var avgMonthlyIncome = JourneyScoringRules.AverageMonthlyIncome(s.Transactions ?? Array.Empty<Transaction>(), months);
 
-            var today = DateTime.Today;
-            var start = new DateTime(today.Year, today.Month, 1).AddMonths(-3);
-            var transactions = await FetchTransactionsAsync(start, today);
-
-            var months = Enumerable.Range(1, 3).Select(i => today.AddMonths(-i)).ToList();
-            var avgMonthlyIncome = JourneyScoringRules.AverageMonthlyIncome(transactions, months);
-
-            var outcome = JourneyScoringRules.EvaluateDti(liabilities.Models, confirmedAt, avgMonthlyIncome);
+            var outcome = JourneyScoringRules.EvaluateDti(s.Liabilities, s.NoDebtsConfirmedAt, avgMonthlyIncome);
             if (outcome.Dti is not { } dti)
                 return NotAvailable(code, level, displayName, outcome.NotEvaluatedReason!);
 
@@ -208,27 +253,26 @@ public class JourneyScoringService(
         }
     }
 
-    private async Task<IndicatorScoreDto> ComputeSavingsRateAsync(CancellationToken ct)
+    internal IndicatorScoreDto ComputeSavingsRate(ScoringSnapshot s)
     {
         const string code = "savings_rate";
         const string level = "L3";
         const string displayName = "Long-term savings rate";
         const string description = "Investment contributions as % of monthly income (3-month avg)";
 
+        if (s.Transactions is null)
+            return NotAvailable(code, level, displayName, "Computation error");
+
         try
         {
-            var today = DateTime.Today;
-            var start = new DateTime(today.Year, today.Month, 1).AddMonths(-3);
-            var transactions = await FetchTransactionsAsync(start, today);
+            var months = MonthsBack(s.Today);
 
-            var months = Enumerable.Range(1, 3).Select(i => today.AddMonths(-i)).ToList();
-
-            var avgMonthlyIncome = JourneyScoringRules.AverageMonthlyIncome(transactions, months);
+            var avgMonthlyIncome = JourneyScoringRules.AverageMonthlyIncome(s.Transactions, months);
 
             if (avgMonthlyIncome <= 0)
                 return NotAvailable(code, level, displayName, "No income data to compute savings rate");
 
-            var avgMonthlyContribution = JourneyScoringRules.AverageMonthlySavingsOutflow(transactions, months);
+            var avgMonthlyContribution = JourneyScoringRules.AverageMonthlySavingsOutflow(s.Transactions, months);
 
             var savingsRate = avgMonthlyContribution / avgMonthlyIncome;
             var score = ScoreSavingsRate(savingsRate);
@@ -241,6 +285,13 @@ public class JourneyScoringService(
             logger.LogError(ex, "Failed to compute {Indicator}", code);
             return NotAvailable(code, level, displayName, "Computation error");
         }
+    }
+
+    // The three months before "today", exactly as the service used (today.AddMonths(-1..-3)).
+    private static List<DateTime> MonthsBack(DateOnly today)
+    {
+        var anchor = today.ToDateTime(TimeOnly.MinValue);
+        return Enumerable.Range(1, 3).Select(i => anchor.AddMonths(-i)).ToList();
     }
 
     // ─── Scoring Formulas (from specs/scoring-rubric.md) ───────────────────────
@@ -369,9 +420,25 @@ public class JourneyScoringService(
     private async Task PersistStateAsync(
         Guid userId, int currentLevel, decimal totalScore,
         Dictionary<string, decimal> levelScores, List<IndicatorScoreDto> indicators,
-        CancellationToken ct)
+        DateTime startedAt, CancellationToken ct)
     {
+        // Recalculation now fires on every import and asset write, so two passes can overlap. The
+        // upsert writes the whole row, so a slower (older) pass would clobber a newer one's scores.
+        // Read the stored last_computed_at and skip the write when a newer pass already saved.
+        var existing = await supabase.From<UserJourneyState>()
+            .Filter("user_id", Operator.Equals, userId.ToString())
+            .Get();
+        var storedLastComputedAt = existing.Models.Count > 0 ? existing.Models[0].LastComputedAt : (DateTime?)null;
+        if (!ShouldPersist(storedLastComputedAt, startedAt))
+        {
+            logger.LogInformation("Skipped journey state persist for {UserId}: a newer pass already saved", userId);
+            return;
+        }
+
         var indicatorMap = JourneyScoringRules.LiveScoreMap(indicators);
+        var indicatorRaw = indicators
+            .Where(i => i.Status != "no_data" && i.RawValue.HasValue)
+            .ToDictionary(i => i.Code, i => i.RawValue!.Value);
 
         await supabase.From<UserJourneyState>()
             .Upsert(new UserJourneyState
@@ -381,10 +448,18 @@ public class JourneyScoringService(
                 TotalScore = totalScore,
                 LevelScoresJson = JsonSerializer.Serialize(levelScores),
                 IndicatorScoresJson = JsonSerializer.Serialize(indicatorMap),
-                LastComputedAt = DateTime.UtcNow,
+                IndicatorRaw = indicatorRaw,
+                LastComputedAt = startedAt,
                 UpdatedAt = DateTime.UtcNow,
             });
     }
+
+    // Never let an older pass overwrite a newer one: persist only when no row exists yet or the
+    // stored pass is no newer than this one. A pure helper so the ordering rule is unit-testable.
+    // The client reads timestamptz back as local time, so both sides are compared as instants (UTC).
+    internal static bool ShouldPersist(DateTime? storedLastComputedAt, DateTime passStartedAt) =>
+        storedLastComputedAt is null
+        || storedLastComputedAt.Value.ToUniversalTime() <= passStartedAt.ToUniversalTime();
 
     private async Task PersistSnapshotsAsync(
         Guid userId, List<IndicatorScoreDto> indicators, CancellationToken ct)
@@ -463,11 +538,27 @@ public class JourneyScoringService(
     private static string DeriveStatus(decimal score) =>
         score >= 70 ? "achieved" : score > 0 ? "in_progress" : "not_started";
 
-    internal static List<IndicatorScoreDto> BuildIndicatorDtos(Dictionary<string, decimal> liveScores) =>
+    internal static List<IndicatorScoreDto> BuildIndicatorDtos(
+        Dictionary<string, decimal> liveScores,
+        IReadOnlyDictionary<string, decimal>? rawValues = null) =>
         JourneyScoringRules.Definitions.Select(d =>
             d.HasDataSource && liveScores.TryGetValue(d.Code, out var score)
-                ? new IndicatorScoreDto(d.Code, d.Level, score, null, DeriveStatus(score), d.DisplayName, d.Description)
+                ? new IndicatorScoreDto(d.Code, d.Level, score,
+                    rawValues is not null && rawValues.TryGetValue(d.Code, out var raw) ? raw : null,
+                    DeriveStatus(score), d.DisplayName, d.Description)
                 : new IndicatorScoreDto(d.Code, d.Level, 0m, null, "no_data", d.DisplayName, d.Description)).ToList();
+
+    // The single reader for a stored row: rebuild indicators from the score map, hydrate raw values
+    // from indicator_raw, and apply stars. Liveness stays exactly PF-151's rule (code present in the
+    // stored score map); indicator_raw carries values, never liveness.
+    internal static List<IndicatorScoreDto> IndicatorsFromRow(UserJourneyState? row)
+    {
+        var live = row is null ? new Dictionary<string, decimal>() : ParseJsonDecimalMap(row.IndicatorScoresJson);
+        var raw = row?.IndicatorRaw;
+        return BuildIndicatorDtos(live, raw)
+            .Select(i => i with { Stars = StarRungs.StarsFor(i.Code, i.Score, i.Status) })
+            .ToList();
+    }
 
     private static Dictionary<string, decimal> ParseJsonDecimalMap(string json)
     {

@@ -64,6 +64,17 @@ namespace PersonalFinance.Api.Extensions
                         await context.Response.WriteAsync(JsonSerializer.Serialize(new { Code = "ai_unavailable" }));
                         return;
                     }
+                    if (ex is FluentValidation.ValidationException validation && !context.Response.HasStarted)
+                    {
+                        // ERR-03: validation failures are the caller's mistake. The messages are the validators' own
+                        // fixed sentences, never an exception message from server code (ERR-01).
+                        logger.LogInformation("Request failed validation: {Path}", context.Request.Path);
+                        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+                        context.Response.ContentType = "application/json";
+                        var message = string.Join(" ", validation.Errors.Select(e => e.ErrorMessage).Distinct());
+                        await context.Response.WriteAsync(JsonSerializer.Serialize(new ApiError { Message = message }));
+                        return;
+                    }
                     if (ex is KeyNotFoundException)
                     {
                         // ERR-03. Also the answer for another owner's id: RLS hides the row.

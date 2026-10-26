@@ -1,4 +1,5 @@
 using PersonalFinance.Api.Extensions;
+using PersonalFinance.Application.Behaviors;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Services;
 using PersonalFinance.Application.Services.Desk;
@@ -219,16 +220,14 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IMacroScenarioService, MacroScenarioService>();
 
             // Journey module
+            // "Today" and "this month" are the owner's calendar (Asia/Jakarta), not the host's UTC.
+            builder.Services.AddSingleton<TimeProvider>(AppTimeProvider.Jakarta());
             builder.Services.AddScoped<IInsightService, InsightService>();
             builder.Services.AddScoped<IJourneyScoringService, JourneyScoringService>();
             builder.Services.AddScoped<IJourneyConfirmationService, JourneyConfirmationService>();
-            builder.Services.AddHttpClient<IJourneyAdvisorClient, JourneyAdvisorClient>(client =>
-            {
-                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
-                client.Timeout = TimeSpan.FromSeconds(120);
-                var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
-                if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
-            });
+            builder.Services.AddScoped<IQuestStore, PersonalFinance.Infrastructure.Supabase.SupabaseQuestStore>();
+            builder.Services.AddScoped<IQuestEngine, QuestEngine>();
+            builder.Services.AddScoped<IQuestBoardService, QuestBoardService>();
             // PF-S15: owner-scoped AI routes need the internal key AND a signed owner token.
             builder.Services.AddSingleton(new OwnerTokenSigner(
                 builder.Configuration["AiChat:OwnerSigningSecret"], TimeProvider.System));
@@ -250,6 +249,7 @@ namespace PersonalFinance.Api
             {
                 cfg.RegisterServicesFromAssemblyContaining<Program>();
                 cfg.RegisterServicesFromAssemblyContaining<CreateTransactionCommandHandler>();
+                cfg.AddOpenBehavior(typeof(PublishAssetUpdatedBehavior<,>));
             });
 
             // Register FluentValidation

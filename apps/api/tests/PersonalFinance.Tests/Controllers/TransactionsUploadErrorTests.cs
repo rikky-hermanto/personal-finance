@@ -49,6 +49,9 @@ public class TransactionsUploadErrorTests
         public Mock<ILlmExtractionClient> Llm { get; } = new();
         public Mock<IFileStorageService> Storage { get; } = new();
         public Mock<ITransactionPipelineService> Pipeline { get; } = new();
+        public Mock<IMediator> Mediator { get; } = new();
+        public Mock<ICurrentUser> CurrentUser { get; } = new();
+        public Mock<ICashflowMutationService> CashflowMutations { get; } = new();
         public CapturingLogger<TransactionsController> Logger { get; } = new();
         public Dictionary<string, string?> Settings { get; } = [];
         public UploadOptions Upload { get; } = new();
@@ -76,12 +79,12 @@ public class TransactionsUploadErrorTests
                 Mock.Of<ICategoryRuleService>(),
                 Mock.Of<IDashboardService>(),
                 Llm.Object,
-                Mock.Of<IMediator>(),
+                Mediator.Object,
                 Storage.Object,
                 Pipeline.Object,
                 new Supabase.Client("http://127.0.0.1:54321", "test-anon-key"),
-                Mock.Of<ICurrentUser>(),
-                Mock.Of<ICashflowMutationService>(),
+                CurrentUser.Object,
+                CashflowMutations.Object,
                 Mock.Of<ILlmSearchClient>(),
                 configuration,
                 new UploadFileValidator(NullLogger<UploadFileValidator>.Instance),
@@ -131,6 +134,74 @@ public class TransactionsUploadErrorTests
         Assert.Contains($"\"correlationId\":\"{controller.HttpContext.TraceIdentifier}\"", body);
         Assert.Contains(harness.Logger.Entries, e =>
             e.Level == LogLevel.Error && e.Exception?.Message == Marker);
+    }
+
+    // PF-152 STEP 6: a successful import publishes exactly one TransactionsSubmittedEvent with the count;
+    // an all-duplicates submit and a failed submit publish nothing.
+    private static readonly Guid Owner = Guid.Parse("8d2f5a61-1c3b-4e7a-b9d0-6e4f2a1c7b35");
+
+    private static TransactionsController.SubmitTransactionsRequest SubmitRequest() => new()
+    {
+        RequestId = Guid.NewGuid(),
+        Transactions = [new TransactionDto { AmountIdr = 1000, Description = "x" }],
+    };
+
+    [Fact]
+    public async Task SubmitTransactions_InsertsRows_PublishesOneEventWithCount()
+    {
+        // Arrange
+        var harness = new Harness();
+        harness.CurrentUser.SetupGet(c => c.UserId).Returns(Owner);
+        harness.CashflowMutations.Setup(m => m.SubmitAsync(It.IsAny<Guid>(), It.IsAny<List<TransactionDto>>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CashflowImportResult([1, 2, 3], InsertedCount: 3, DuplicateCount: 0));
+        var controller = harness.Build();
+
+        // Act
+        await controller.SubmitTransactions(SubmitRequest());
+
+        // Assert
+        harness.Mediator.Verify(m => m.Publish(
+            It.Is<TransactionsSubmittedEvent>(e => e.UserId == Owner && e.InsertedCount == 3),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task SubmitTransactions_AllDuplicates_PublishesNothing()
+    {
+        // Arrange
+        var harness = new Harness();
+        harness.CurrentUser.SetupGet(c => c.UserId).Returns(Owner);
+        harness.CashflowMutations.Setup(m => m.SubmitAsync(It.IsAny<Guid>(), It.IsAny<List<TransactionDto>>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new CashflowImportResult([], InsertedCount: 0, DuplicateCount: 5));
+        var controller = harness.Build();
+
+        // Act
+        await controller.SubmitTransactions(SubmitRequest());
+
+        // Assert
+        harness.Mediator.Verify(m => m.Publish(It.IsAny<TransactionsSubmittedEvent>(),
+            It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SubmitTransactions_MutationFails_PublishesNothing()
+    {
+        // Arrange
+        var harness = new Harness();
+        harness.CurrentUser.SetupGet(c => c.UserId).Returns(Owner);
+        harness.CashflowMutations.Setup(m => m.SubmitAsync(It.IsAny<Guid>(), It.IsAny<List<TransactionDto>>(),
+                It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new CashflowMutationException(CashflowMutationFailure.BackendFailure));
+        var controller = harness.Build();
+
+        // Act
+        await controller.SubmitTransactions(SubmitRequest());
+
+        // Assert
+        harness.Mediator.Verify(m => m.Publish(It.IsAny<TransactionsSubmittedEvent>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Theory]

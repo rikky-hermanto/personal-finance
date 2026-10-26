@@ -1,4 +1,5 @@
 using MediatR;
+using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Application.Commands.Assets;
@@ -12,4 +13,4 @@ public record CreateAssetCommand(
     string Currency,
     string ValuationStrategy = "Manual",
     string? Metadata = null
-) : IRequest<Asset>;
+) : IRequest<Asset>, IAffectsJourney;

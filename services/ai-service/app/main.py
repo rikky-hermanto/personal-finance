@@ -18,7 +18,7 @@ from sse_starlette.sse import EventSourceResponse
 from app.observability import langfuse
 from app.config import settings
 from app.owner import require_owner, require_user_token
-from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, JourneyAdviseRequest, JourneyAdviseResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse, FollowUpRequest, FollowUpResponse, AdvisorRequest, AdvisorResponse
+from app.models import HealthResponse, ParseImageRequest, ParseRequest, ParseResponse, PdfParseResponse, CategorizeRequest, CategorizeResponse, SuggestCategoriesRequest, SuggestCategoriesResponse, MerchantSuggestion, PortfolioReviewRequest, PortfolioReviewResponse, EmbedTransactionsRequest, EmbedTransactionsResponse, SearchRequest, SearchResponse, AskRequest, AskResponse, CategorizeAgentRequest, CategorizeAgentResponse, FollowUpRequest, FollowUpResponse, AdvisorRequest, AdvisorResponse
 from app.services.embedder import EmbeddingService, EmbedItem as EmbedItemInternal
 from app.services.retriever import RetrievalService
 from app.services.reranker import RerankerService
@@ -35,7 +35,6 @@ from app.services.pdf_extractor import PdfExtractor, PdfExtractionError
 from app.services.categorization_factory import create_categorizer
 from app.services.merchant_suggester import MerchantSuggester
 from app.services.portfolio_reviewer import PortfolioReviewer
-from app.services.journey_advisor import JourneyAdvisor
 from app.services.advisor import AdvisorService
 from app.agents.categorizer_agent import CategorizerAgent, AgentRateLimitedError
 from app.agents.owner_context import OwnerContext, bind_owner_context
@@ -84,7 +83,6 @@ async def lifespan(app: FastAPI):
     app.state.categorizer, jev_client = create_categorizer(settings, provider)
     app.state.suggester = MerchantSuggester(provider=provider)
     app.state.portfolio_reviewer = PortfolioReviewer(provider=provider)
-    app.state.journey_advisor = JourneyAdvisor(provider=provider)
     embed_provider = create_embedding_provider(settings)
     app.state.embedder = EmbeddingService(provider=embed_provider, db_url=settings.database_url)
     app.state.retriever = RetrievalService(provider=embed_provider, db_url=settings.database_url)
@@ -180,12 +178,11 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Internal routes the .NET API calls with scoped input. /journey/advise and
-# /portfolio-review only see the caller's data sent in the request body; they
-# never query the database.
+# Internal routes the .NET API calls with scoped input. /portfolio-review only sees
+# the caller's data sent in the request body; it never queries the database.
 _PILOT_INTERNAL_ROUTES = {
     "/parse", "/parse-pdf", "/parse-image", "/categorize", "/suggest-categories",
-    "/journey/advise", "/portfolio-review",
+    "/portfolio-review",
 }
 
 # PF-S15: routes that read or write transactions. They reopen only behind
@@ -418,18 +415,6 @@ async def portfolio_review(req: PortfolioReviewRequest) -> PortfolioReviewRespon
         raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": "The AI could not produce a valid review."})
     except Exception:
         logger.exception("Unexpected error in portfolio_review")
-        raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": "The AI provider is unavailable."})
-
-
-@app.post("/journey/advise", response_model=JourneyAdviseResponse)
-async def journey_advise_endpoint(req: JourneyAdviseRequest) -> JourneyAdviseResponse:
-    try:
-        return await app.state.journey_advisor.advise(req)
-    except RuntimeError as e:
-        logger.error("journey_advise LLM failure: %s", e)
-        raise HTTPException(status_code=502, detail={"code": "llm_parse_error", "message": "The AI could not produce valid advice."})
-    except Exception:
-        logger.exception("Unexpected error in journey_advise")
         raise HTTPException(status_code=502, detail={"code": "provider_unavailable", "message": "The AI provider is unavailable."})
 
 
