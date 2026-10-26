@@ -143,6 +143,7 @@ namespace PersonalFinance.Api
 
             builder.Services.AddSupabase(builder.Configuration);
             builder.Services.AddHttpClient<ICashflowMutationService, SupabaseCashflowMutationService>();
+            builder.Services.AddHttpClient<IHarvestLedger, SupabaseHarvestLedger>();
             builder.Services.AddHttpClient<ILlmExtractionClient, LlmExtractionClient>(client =>
             {
                 client.BaseAddress = new Uri(
