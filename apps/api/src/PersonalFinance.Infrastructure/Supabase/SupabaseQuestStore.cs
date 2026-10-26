@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using Supabase.Postgrest;
+using Supabase.Postgrest.Exceptions;
 using static Supabase.Postgrest.Constants;
 
 namespace PersonalFinance.Infrastructure.Supabase;
@@ -66,15 +67,23 @@ public sealed class SupabaseQuestStore(
         if (rows.Count == 0) return;
         try
         {
-            // Insert-or-ignore, never a merging upsert: a merge would overwrite seen_at and make two
-            // concurrent passes fight over the same rung.
-            await supabase.From<QuestCompletion>().Insert(rows.ToList(), new QueryOptions
+            // One plain insert per row, never an upsert: an upsert serializes the primary key (id = 0 for every
+            // row, so the batch collides with itself), and a merge would overwrite seen_at. A row that already
+            // exists on the unique key is simply already stored (two concurrent passes, or a re-run).
+            foreach (var row in rows)
             {
-                Upsert = true,
-                OnConflict = "user_id,quest_code,rung",
-                DuplicateResolution = QueryOptions.DuplicateResolutionType.IgnoreDuplicates,
-                Returning = QueryOptions.ReturnType.Minimal,
-            });
+                try
+                {
+                    await supabase.From<QuestCompletion>().Insert(row, new QueryOptions
+                    {
+                        Returning = QueryOptions.ReturnType.Minimal,
+                    });
+                }
+                catch (PostgrestException ex) when (IsAlreadyStored(ex))
+                {
+                    logger.LogDebug("Quest completion {Code}#{Rung} was already stored", row.QuestCode, row.Rung);
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -82,6 +91,11 @@ public sealed class SupabaseQuestStore(
             throw;
         }
     }
+
+    // 23505 on the (user_id, quest_code, rung) key only; a primary-key clash is a real bug and must surface.
+    private static bool IsAlreadyStored(PostgrestException ex) =>
+        ex.Message.Contains("23505", StringComparison.Ordinal)
+        && ex.Message.Contains("quest_completions_user_id_quest_code_rung_key", StringComparison.Ordinal);
 
     public async Task SetFocusAsync(Guid userId, string? questCode, CancellationToken ct = default)
     {
