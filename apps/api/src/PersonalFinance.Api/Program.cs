@@ -225,6 +225,8 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IInsightService, InsightService>();
             builder.Services.AddScoped<IJourneyScoringService, JourneyScoringService>();
             builder.Services.AddScoped<IJourneyConfirmationService, JourneyConfirmationService>();
+            builder.Services.AddScoped<IQuestStore, PersonalFinance.Infrastructure.Supabase.SupabaseQuestStore>();
+            builder.Services.AddScoped<IQuestEngine, QuestEngine>();
             builder.Services.AddHttpClient<IJourneyAdvisorClient, JourneyAdvisorClient>(client =>
             {
                 client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
