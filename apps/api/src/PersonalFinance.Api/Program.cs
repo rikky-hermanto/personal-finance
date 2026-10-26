@@ -220,6 +220,8 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IMacroScenarioService, MacroScenarioService>();
 
             // Journey module
+            // "Today" and "this month" are the owner's calendar (Asia/Jakarta), not the host's UTC.
+            builder.Services.AddSingleton<TimeProvider>(AppTimeProvider.Jakarta());
             builder.Services.AddScoped<IInsightService, InsightService>();
             builder.Services.AddScoped<IJourneyScoringService, JourneyScoringService>();
             builder.Services.AddScoped<IJourneyConfirmationService, JourneyConfirmationService>();

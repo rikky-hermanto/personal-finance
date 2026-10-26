@@ -4,7 +4,7 @@ flags: [Ready]
 size: L
 sensitive: [money, schema]
 rework: 0
-loopFailures: 0
+loopFailures: 1
 review: none
 recommended:
   model: opus
@@ -15,8 +15,8 @@ approved:
   model: opus
   effort: high
   by: owner
-  at: 2026-10-25T16:17:44Z
-  at-label: 2026-10-26 00:17 Asia/Makassar
+  at: 2026-10-26T01:40:12Z
+  at-label: 2026-10-26 09:40 Asia/Makassar
   budgetOverride: true
 run:
   worktree: .worktrees/pf-152
@@ -389,8 +389,8 @@ Tests, extending `TransactionsUploadErrorTests`' `Harness` with a `Mock<IMediato
 
 ---
 
-### [ ] STEP 7 — Scoring: load once, compute from the snapshot (a pure refactor, scores must not change)
-> **Groundwork landed (segment 2):** `Application/Services/AppTimeProvider.cs` is created (un-sealed from the plan snippet so the clock test can subclass it and override `GetUtcNow()`), and `tests/.../Services/AppTimeProviderTests.cs` (3 tests, passing) covers the Jakarta crossing at 2026-10-31 18:00 UTC and the +7 offset. **Not yet done:** `ScoringSnapshot.cs`, the `JourneyScoringService` refactor (constructor `TimeProvider`, `LoadInputsAsync`, the four synchronous snapshot-based compute methods, `RecalculateWithSnapshotAsync`), the `IJourneyScoringService` addition, the `TimeProvider` registration in `Program.cs`, and `JourneyScoringSnapshotTests`. The refactor must land as one build-safe unit and its parity check needs the STEP 2 migration applied + the stack running.
+### [x] STEP 7 — Scoring: load once, compute from the snapshot (a pure refactor, scores must not change)
+> **Done (segment 3):** The full refactor landed as one build-safe unit. `Application/Quests/ScoringSnapshot.cs` (with `SavingsAccountFact` and `JourneyRecalculation`) created; `JourneyScoringService` now takes `TimeProvider` as its 4th ctor param, loads everything once in `LoadInputsAsync` (transactions, savings+valuations via one `Operator.In` query with in-memory latest-per-account, liabilities, PF-151 confirmation — each in its own try/catch, null on failure), and the four compute methods are now synchronous `internal` methods over the snapshot (`ComputeSpendLtIncome/LiquidSavings/Dti/SavingsRate`) with every formula, threshold and `JourneyScoringRules` call untouched. `RecalculateWithSnapshotAsync` records `startedAt`, pins `today` to Jakarta (`time.GetLocalNow()`), and returns `JourneyRecalculation(state, snapshot)`; `RecalculateAsync` delegates to it. `IJourneyScoringService` gains `RecalculateWithSnapshotAsync`; `Program.cs` registers `AddSingleton<TimeProvider>(AppTimeProvider.Jakarta())`. `PersistStateAsync`/`PersistSnapshotsAsync` left as-is (STEP 9 adds raw/stars/ShouldPersist). Groundwork from segment 2 (`AppTimeProvider` + 3 clock tests) remains. **Build:** full `dotnet build PersonalFinance.slnx` clean (0 errors, 0 warnings). **Tests:** `JourneyScoringSnapshotTests.cs` (12 new tests) added; Journey test filter = 87 passed / 0 failed (new snapshot tests + unchanged reflection/parity tests both green). **Gated:** the live before/after parity check against the STEP 1 owner numbers needs the STEP 2 migration applied + the stack running (same STEP 2 blocker as STEP 9/14/17/24) — carried to Owner Review.
 Edit `JourneyScoringService.cs`. Create `Application/Quests/ScoringSnapshot.cs`:
 ```csharp
 using PersonalFinance.Application.Dtos;
@@ -465,7 +465,8 @@ Parity check: with the stack running, press Recalculate on `/journey` (or `POST 
 
 ---
 
-### [ ] STEP 8 — Verify the savings-account casing fix (it now lives in PF-151)
+### [x] STEP 8 — Verify the savings-account casing fix (it now lives in PF-151)
+> **Verified (segment 3):** `grep -rn "SavingsAccountType\|\"Savings\"" apps/api/src` shows `JourneyScoringRules.SavingsAccountType = "savings"` (PF-151) and its use in the STEP 7 savings load (`JourneyScoringService.cs` line 128). No capitalised `"Savings"` `account_type` filter remains — the only `"Savings"` hit is an `InsightService` *category* name set, not an account filter. PF-151 shipped the fix (item 5); no re-apply needed. Owner's live L2 before/after numbers are gated on the STEP 2 migration + stack.
 The fix itself moved into PF-151 (STEP 3b item 5: `JourneyScoringRules.SavingsAccountType = "savings"`, used as the filter value), so PF-151's before/after record is true. This step only verifies it:
 ```bash
 grep -rn "SavingsAccountType\|\"Savings\"" apps/api/src | grep -v "/obj/"
@@ -1331,3 +1332,6 @@ Size: about 6 to 7 working days in total (Phase 1 about 3.5, Phase 2 about 3). I
 - The STEP 14 round trip shows `jsonb_typeof` is `string`, or the insert-or-ignore cannot be done without a merging upsert.
 - Any step would need the service-role key, a background job, or an AI call in the quest path.
 - A migration would alter existing rows, or applying it anywhere other than the local stack.
+
+## Loop Notes
+- 2026-10-26 00:45 Asia/Makassar Loop-Failed: stuck: no new step completed in segment 2. Worktree and branch kept (.worktrees/pf-152).
