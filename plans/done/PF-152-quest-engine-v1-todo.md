@@ -1,6 +1,33 @@
 ---
 id: PF-152
-flags: [Blocked]
+flags: [Ready]
+size: L
+sensitive: [money, schema]
+rework: 0
+loopFailures: 2
+review: none
+recommended:
+  model: opus
+  effort: high
+  estimate5h: null
+  estimateWeek: null
+approved:
+  model: sonnet
+  effort: high
+  by: owner
+  at: 2026-10-26T02:23:34Z
+  at-label: 2026-10-26 10:23 Asia/Makassar
+  budgetOverride: true
+run:
+  worktree: .worktrees/pf-152
+  branch: loop/pf-152
+  slot: 1
+  fixRounds: 0
+  segments: 0
+  checkpoint: .loop/runs/PF-152/checkpoint.json
+  logs: .loop/runs/PF-152/
+  dbSnapshot: .loop/runs/PF-152/db-before.dump
+  verdict: pass
 ---
 
 # PF-152 — Quest Engine v1: self-completing L1/L2 quests, stars and a quest board
@@ -9,7 +36,7 @@ flags: [Blocked]
 > **Status:** To Do
 > **Started:** —
 > **Board objective:** Journey quests finish by themselves when your uploaded data shows you did them, and you see a short note. Starts after the score fixes.
-> **Blocked by:** [PF-151](../done/PF-151-journey-score-fixes-before-quests-todo.md), plan 1 of 3, "Journey score fixes before quests" (G3 investing is not spending, G4 DTI "not evaluated" plus the "I have no debts" flag, G11 insurance to L2). It must be executed and accepted first. This plan reuses its names, read from the plan on 2026-10-25: column `user_journey_state.no_debts_confirmed_at`, narrow entity `JourneyDebtConfirmation`, `IJourneyConfirmationService.GetNoDebtsConfirmedAtAsync`, `JourneyScoringRules` (`IsConsumption`, `IsSavingsOutflow`, `LiveScoreMap`, `Definitions`, `EvaluateDti`) and `BuildIndicatorDtos(liveScores)`. STEP 1 re-checks them against the code as executed.
+> **Was blocked by (PF-151 done 2026-10-25):** [PF-151](PF-151-journey-score-fixes-before-quests-todo.md), plan 1 of 3, "Journey score fixes before quests" (G3 investing is not spending, G4 DTI "not evaluated" plus the "I have no debts" flag, G11 insurance to L2). It must be executed and accepted first. This plan reuses its names, read from the plan on 2026-10-25: column `user_journey_state.no_debts_confirmed_at`, narrow entity `JourneyDebtConfirmation`, `IJourneyConfirmationService.GetNoDebtsConfirmedAtAsync`, `JourneyScoringRules` (`IsConsumption`, `IsSavingsOutflow`, `LiveScoreMap`, `Definitions`, `EvaluateDti`) and `BuildIndicatorDtos(liveScores)`. STEP 1 re-checks them against the code as executed.
 > **Sensitive:** Phase 1 only. Schema and RLS (new table, owner policy) and scoring code that feeds money decisions (G1: scores must not change because of quests). Phase 2 is not sensitive.
 > **Planned from branch:** main
 > **Spec:** [quest-engine-v1-design.md](../brainstorms/quest-engine-v1-design.md) is the design and is not re-opened here. [diagram-quest-engine-v1.html](../brainstorms/diagram-quest-engine-v1.html) is its high-level design. Product rules and guardrails G1, G2, G6, G7, G8: [pm-journey-quests-analysis.md](../brainstorms/pm-journey-quests-analysis.md).
@@ -21,24 +48,42 @@ Today nothing recalculates the Journey after a statement upload (`POST /api/tran
 
 ## Acceptance Criteria
 
-- [ ] Uploading a statement completes "Meet your money" with no Recalculate click: after `POST /api/transactions/submit` inserts at least one row, `quest_completions` holds `l1.meet_your_money` for that user.
-- [ ] Running recalculation twice stores one row per `(user_id, quest_code, rung)`; the second pass inserts nothing.
-- [ ] A completion toast appears once on the next Journey visit and not again after a reload (`seen_at` is set by `POST /api/journey/quests/seen`).
-- [ ] Scores are identical with and without the engine: the engine has no write path to scores, and a recalculation returns the same state whether the engine succeeds, does nothing, or throws (G1).
-- [ ] A stale savings valuation blocks every quest that celebrates cover (G6): with cover of 1.6 months but a savings valuation dated two calendar months ago, no `l2.fence_posts` rung and no `stars.liquid_savings_ratio` star completes. With the valuation dated this or last month, fence post rungs 1 to 3 and the matching stars complete. The rule lives in the quest context, so a future quest that reads cover inherits it.
-- [ ] Setting a focus never changes the snoozes, and snoozing never changes the focus. Both survive a recalculation (checked through PostgREST, not only in unit tests).
-- [ ] When nothing can be offered but the working level is not cleared, the board still says what is left: `levelGoal` names the level and the live indicators below the clearing bar, with no points.
-- [ ] "Today" is the calendar day in Asia/Jakarta, not the host's: with the clock pinned to 2026-10-31 18:00 UTC (01:00 on 1 November in Jakarta), freshness and the three-month window already use November.
-- [ ] A slower, older recalculation never overwrites the scores of a newer one in `user_journey_state`.
-- [ ] `GET /api/journey/quests` makes no AI service call. `IJourneyAdvisorClient`, `JourneyAdvisorClient`, `JourneyQuestDto`, `POST /journey/advise`, its prompt, models and tests are gone, and nothing references them.
-- [ ] The board never offers more than 3 quests (focus included), and offers follow the working level, not `currentLevel` (G7): with L1 not cleared, `l2.fence_posts` is never offered, and the L2 discovery quests are.
-- [ ] No quest card, board field or toast carries a point value (G2); a reflection test fails on any DTO member named like points, gain or XP.
-- [ ] A catalog lint test fails on product, issuer, asset-class, allocation-percentage or return wording, and it is proven to catch a bad sample (G8). Codes are unique and rungs ascend.
-- [ ] `GET /api/journey/state` returns `stars` (0 to 3) on each indicator and real `rawValue` values read back from the database. Recalculation does not reset the focus quest or the snoozes.
-- [ ] The first pass for a user with no earlier completions that completes more than one quest is folded into a single "You'd already completed N quests" item on the board.
-- [ ] A successful submit that inserts rows publishes exactly one `TransactionsSubmittedEvent`; an all-duplicates submit and a failed submit publish none; a failed recalculation never fails the import. Account, valuation, liability and asset writes publish `AssetUpdatedEvent` after they succeed.
-- [ ] `quest_completions` is owner-only: another signed-in user cannot read, insert or mark another user's rows (checked through the API and directly through PostgREST).
-- [ ] `dotnet build`, `dotnet test`, `pytest`, `npm run lint`, `tsc --noEmit`, `npm run test:journey` and `npm run build` pass; `CLAUDE.md`, `docs/architecture/API-endpoints.md` and the Journey scoring card in `docs/architecture/diagram-system-design.html` are updated.
+- [x] Uploading a statement completes "Meet your money" with no Recalculate click: after `POST /api/transactions/submit` inserts at least one row, `quest_completions` holds `l1.meet_your_money` for that user.
+  > Verification: live script: `POST /api/transactions/submit` with no Recalculate, then `quest_completions` held `l1.meet_your_money` (read with the user's own token).
+- [x] Running recalculation twice stores one row per `(user_id, quest_code, rung)`; the second pass inserts nothing.
+  > Verification: live: nine rows after the upload, nine after two more recalculations; unit test `Evaluate_TwiceOnSameSnapshot_StoresOneRowPerRung`.
+- [x] A completion toast appears once on the next Journey visit and not again after a reload (`seen_at` is set by `POST /api/journey/quests/seen`).
+  > Verification: API half live: unseen item present, `POST /quests/seen` returned 204, next board had none. The toast UI itself is verified by the planner's unit tests and the mocked e2e spec, which was written but not run; not seen in a browser.
+- [x] Scores are identical with and without the engine: the engine has no write path to scores, and a recalculation returns the same state whether the engine succeeds, does nothing, or throws (G1).
+  > Verification: `RecalculateJourneyCommandHandlerTests` (same state instance whether the engine succeeds or throws) and the `IQuestStore` write-surface reflection test; live, a failing quest insert still returned scores.
+- [x] A stale savings valuation blocks every quest that celebrates cover (G6): with cover of 1.6 months but a savings valuation dated two calendar months ago, no `l2.fence_posts` rung and no `stars.liquid_savings_ratio` star completes. With the valuation dated this or last month, fence post rungs 1 to 3 and the matching stars complete. The rule lives in the quest context, so a future quest that reads cover inherits it.
+  > Verification: unit tests (`QuestContextFactoryTests`, `L2RuleTests`, `QuestEngineTests.Evaluate_StaleSavingsValuation_BlocksFencePostsAndCoverStars`) and live: valuation two months old gave no fence post and no cover star, a fresh one gave rungs 1 to 6.
+- [x] Setting a focus never changes the snoozes, and snoozing never changes the focus. Both survive a recalculation (checked through PostgREST, not only in unit tests).
+  > Verification: live, read from `user_journey_state` through PostgREST with the caller's token: focus kept after recalculation, after a snooze of another quest, and the snooze kept after another focus.
+- [x] When nothing can be offered but the working level is not cleared, the board still says what is left: `levelGoal` names the level and the live indicators below the clearing bar, with no points.
+  > Verification: `Board_NothingToOffer_ReturnsLevelGoalListingTheGaps` and `Board_WorkingLevelHasNoLiveIndicator_LevelGoalSaysNotScoredYet`.
+- [x] "Today" is the calendar day in Asia/Jakarta, not the host's: with the clock pinned to 2026-10-31 18:00 UTC (01:00 on 1 November in Jakarta), freshness and the three-month window already use November.
+  > Verification: `AppTimeProviderTests` (clock pinned to 2026-10-31 18:00 UTC reads 1 November in Jakarta); the board and engine read the clock only through `TimeProvider`.
+- [x] A slower, older recalculation never overwrites the scores of a newer one in `user_journey_state`.
+  > Verification: `ShouldPersist` unit tests, including a regression test for a bug found live: the stored time came back as local time and was compared with a UTC pass start, so every later pass looked older and stored scores froze (fixed by comparing instants; the live log no longer shows skips).
+- [x] `GET /api/journey/quests` makes no AI service call. `IJourneyAdvisorClient`, `JourneyAdvisorClient`, `JourneyQuestDto`, `POST /journey/advise`, its prompt, models and tests are gone, and nothing references them.
+  > Verification: board code has no AI client by construction (`GetQuests_DoesNotDependOnAnyAiClient`); the removed files and names no longer appear anywhere in `apps`, `services` or `scripts`.
+- [x] The board never offers more than 3 quests (focus included), and offers follow the working level, not `currentLevel` (G7): with L1 not cleared, `l2.fence_posts` is never offered, and the L2 discovery quests are.
+  > Verification: `Board_NeverOffersMoreThanThree_FocusIncluded`, `Board_WorkingLevelL1_DoesNotOfferFencePosts_ButOffersL2Discovery`, `Board_L1Cleared_OffersFencePosts_AndDropsL1Discovery`, `Board_CurrentLevelOneAfterClearing_StillGatesOnWorkingLevel`.
+- [x] No quest card, board field or toast carries a point value (G2); a reflection test fails on any DTO member named like points, gain or XP.
+  > Verification: `QuestDefinition_HasNoPointsLikeMember` and `BoardDtos_HaveNoPointsLikeMember` reflection tests; live board JSON scanned for point-like names.
+- [x] A catalog lint test fails on product, issuer, asset-class, allocation-percentage or return wording, and it is proven to catch a bad sample (G8). Codes are unique and rungs ascend.
+  > Verification: `Catalog_AllCopy_PassesTheG8Lint`, `Lint_CatchesABadSample` (three bad samples), `Catalog_Codes_AreUnique`, `Catalog_Rungs_AscendStrictly`.
+- [x] `GET /api/journey/state` returns `stars` (0 to 3) on each indicator and real `rawValue` values read back from the database. Recalculation does not reset the focus quest or the snoozes.
+  > Verification: live: every indicator carried a numeric `stars`, live indicators had real `rawValue`s (for example spend 0.3 with 3 stars), and the focus and snoozes survived recalculation.
+- [x] The first pass for a user with no earlier completions that completes more than one quest is folded into a single "You'd already completed N quests" item on the board.
+  > Verification: `Evaluate_FirstPassWithManyCompletions_FlagsBackfill`, `Board_Unseen_BackfillFoldsIntoOneItem`; live, the first upload completed nine rungs and the board returned one unseen item.
+- [x] A successful submit that inserts rows publishes exactly one `TransactionsSubmittedEvent`; an all-duplicates submit and a failed submit publish none; a failed recalculation never fails the import. Account, valuation, liability and asset writes publish `AssetUpdatedEvent` after they succeed.
+  > Verification: `TransactionsUploadErrorTests` (inserted, all-duplicates and failed submits), `AccountsControllerJourneyTriggerTests`, `PublishAssetUpdatedBehavior` tests; live, the submit and the valuation each triggered the engine. `SetCashflowFlag_Succeeds_PublishesAssetUpdated` is not unit-testable (concrete `Supabase.Client`) and was not exercised live.
+- [x] `quest_completions` is owner-only: another signed-in user cannot read, insert or mark another user's rows (checked through the API and directly through PostgREST).
+  > Verification: live: B's board had no items, B reading the table through PostgREST got `[]`, B's insert for A was rejected with 403, B's seen call and direct PATCH left A's rows unseen.
+- [x] `dotnet build`, `dotnet test`, `pytest`, `npm run lint`, `tsc --noEmit`, `npm run test:journey` and `npm run build` pass; `CLAUDE.md`, `docs/architecture/API-endpoints.md` and the Journey scoring card in `docs/architecture/diagram-system-design.html` are updated.
+  > Verification: all gates run in STEP 26 and pass; `CLAUDE.md`, `API-endpoints.md` and the system-design diagram updated. `docs/ai-features` and mentor material that mention the retired endpoint were left as history.
 
 ## Approach
 
@@ -93,7 +138,7 @@ Deliberately not done: the Harvest reveal and the monthly ritual (plan 3); chall
 
 ## Phase 1 — Trigger, snapshot and engine (backend, no existing contract changes)
 
-### [ ] STEP 1 — Reconcile with PF-151 and take the baseline
+### [x] STEP 1 — Reconcile with PF-151 and take the baseline
 ```bash
 # Is PF-151 executed? (its plan should be in plans/done/ and its migration applied)
 ls plans/done | grep -i "PF-151"
@@ -122,7 +167,8 @@ Confirm each of these exists as PF-151 describes (they are the names the rest of
 
 ---
 
-### [ ] STEP 2 — Migration: `quest_completions` and the new `user_journey_state` columns
+### [x] STEP 2 — Migration: `quest_completions` and the new `user_journey_state` columns
+> **Resolved (2026-10-26):** the owner applied `20261026000000_pf_152_quest_completions.sql` to the local stack. Verified in this run: `quest_completions` exists with its unique key `(user_id, quest_code, rung)`, and `user_journey_state` has `indicator_raw`, `focus_quest_code` and `quest_snoozes`.
 Use `/db-migrate`. Create `supabase/migrations/20261026000000_pf_152_quest_completions.sql`. The timestamp must be **later than the newest file in `supabase/migrations/`**; PF-151's migration is `20261025000000`, so if anything newer exists by then, use a later one:
 
 ```sql
@@ -176,7 +222,7 @@ Rollback (dev only, destroys quest history): `DROP TABLE public.quest_completion
 
 ---
 
-### [ ] STEP 3 — Entities: `QuestCompletion`, `UserJourneyFocus`, `UserJourneySnoozes`, `IndicatorRaw`
+### [x] STEP 3 — Entities: `QuestCompletion`, `UserJourneyFocus`, `UserJourneySnoozes`, `IndicatorRaw`
 Create `apps/api/src/PersonalFinance.Domain/Entities/QuestCompletion.cs`:
 ```csharp
 using Supabase.Postgrest.Attributes;
@@ -267,7 +313,7 @@ Edit `UserJourneyState.cs`, add:
 
 ---
 
-### [ ] STEP 4 — Event and handler: `TransactionsSubmittedEvent`
+### [x] STEP 4 — Event and handler: `TransactionsSubmittedEvent`
 Create `apps/api/src/PersonalFinance.Domain/Events/TransactionsSubmittedEvent.cs` (existing events sit in the global namespace; match `AssetUpdatedEvent.cs`):
 ```csharp
 using MediatR;
@@ -286,7 +332,7 @@ Tests: add to `tests/PersonalFinance.Tests/Authentication/JourneyRecalcOwnerTest
 
 ---
 
-### [ ] STEP 5 — Asset-side trigger: one pipeline behavior on a marker interface
+### [x] STEP 5 — Asset-side trigger: one pipeline behavior on a marker interface
 Create `Application/Interfaces/IAffectsJourney.cs`:
 ```csharp
 namespace PersonalFinance.Application.Interfaces;
@@ -338,7 +384,8 @@ Tests (`tests/PersonalFinance.Tests/Behaviors/PublishAssetUpdatedBehaviorTests.c
 
 ---
 
-### [ ] STEP 6 — Controller publishers: `SubmitTransactions` and `SetCashflowFlag`
+### [x] STEP 6 — Controller publishers: `SubmitTransactions` and `SetCashflowFlag`
+> **Done (segment 2):** Production code done and verified (SubmitTransactions folds post-commit work into `AfterImportAsync`, publishes `TransactionsSubmittedEvent` when `InsertedCount > 0`; `SetCashflowFlag` publishes `AssetUpdatedEvent`). 4 of the 5 listed tests written and passing: the SubmitTransactions trio in `TransactionsUploadErrorTests` and `SetCashflowFlag_NotFound_PublishesNothing` in the new `AccountsControllerJourneyTriggerTests`. The 5th, `SetCashflowFlag_Succeeds_PublishesAssetUpdated`, is **not unit-testable** — the success path reads the account back through the concrete `Supabase.Client` (no interface to mock, same limitation as `JourneyScoringService`), so it is a live check (Owner Review Checklist section E). The publish happens before the readback in `SetCashflowFlag`, so a live PATCH proves it.
 In `TransactionsController.SubmitTransactions`, after `QueueEmbeddingAsync` and before `return Ok(result)`:
 ```csharp
             await QueueEmbeddingAsync(result.InsertedIds);
@@ -361,7 +408,8 @@ Tests, extending `TransactionsUploadErrorTests`' `Harness` with a `Mock<IMediato
 
 ---
 
-### [ ] STEP 7 — Scoring: load once, compute from the snapshot (a pure refactor, scores must not change)
+### [x] STEP 7 — Scoring: load once, compute from the snapshot (a pure refactor, scores must not change)
+> **Done (segment 3):** The full refactor landed as one build-safe unit. `Application/Quests/ScoringSnapshot.cs` (with `SavingsAccountFact` and `JourneyRecalculation`) created; `JourneyScoringService` now takes `TimeProvider` as its 4th ctor param, loads everything once in `LoadInputsAsync` (transactions, savings+valuations via one `Operator.In` query with in-memory latest-per-account, liabilities, PF-151 confirmation — each in its own try/catch, null on failure), and the four compute methods are now synchronous `internal` methods over the snapshot (`ComputeSpendLtIncome/LiquidSavings/Dti/SavingsRate`) with every formula, threshold and `JourneyScoringRules` call untouched. `RecalculateWithSnapshotAsync` records `startedAt`, pins `today` to Jakarta (`time.GetLocalNow()`), and returns `JourneyRecalculation(state, snapshot)`; `RecalculateAsync` delegates to it. `IJourneyScoringService` gains `RecalculateWithSnapshotAsync`; `Program.cs` registers `AddSingleton<TimeProvider>(AppTimeProvider.Jakarta())`. `PersistStateAsync`/`PersistSnapshotsAsync` left as-is (STEP 9 adds raw/stars/ShouldPersist). Groundwork from segment 2 (`AppTimeProvider` + 3 clock tests) remains. **Build:** full `dotnet build PersonalFinance.slnx` clean (0 errors, 0 warnings). **Tests:** `JourneyScoringSnapshotTests.cs` (12 new tests) added; Journey test filter = 87 passed / 0 failed (new snapshot tests + unchanged reflection/parity tests both green). **Gated:** the live before/after parity check against the STEP 1 owner numbers needs the STEP 2 migration applied + the stack running (same STEP 2 blocker as STEP 9/14/17/24) — carried to Owner Review.
 Edit `JourneyScoringService.cs`. Create `Application/Quests/ScoringSnapshot.cs`:
 ```csharp
 using PersonalFinance.Application.Dtos;
@@ -436,7 +484,8 @@ Parity check: with the stack running, press Recalculate on `/journey` (or `POST 
 
 ---
 
-### [ ] STEP 8 — Verify the savings-account casing fix (it now lives in PF-151)
+### [x] STEP 8 — Verify the savings-account casing fix (it now lives in PF-151)
+> **Verified (segment 3):** `grep -rn "SavingsAccountType\|\"Savings\"" apps/api/src` shows `JourneyScoringRules.SavingsAccountType = "savings"` (PF-151) and its use in the STEP 7 savings load (`JourneyScoringService.cs` line 128). No capitalised `"Savings"` `account_type` filter remains — the only `"Savings"` hit is an `InsightService` *category* name set, not an account filter. PF-151 shipped the fix (item 5); no re-apply needed. Owner's live L2 before/after numbers are gated on the STEP 2 migration + stack.
 The fix itself moved into PF-151 (STEP 3b item 5: `JourneyScoringRules.SavingsAccountType = "savings"`, used as the filter value), so PF-151's before/after record is true. This step only verifies it:
 ```bash
 grep -rn "SavingsAccountType\|\"Savings\"" apps/api/src | grep -v "/obj/"
@@ -447,7 +496,8 @@ Expect the constant and its use in the savings load (STEP 7), and no capitalised
 
 ---
 
-### [ ] STEP 9 — Persist raw values, add stars, and make `GetStateAsync` honest
+### [x] STEP 9 — Persist raw values, add stars, and make `GetStateAsync` honest
+> **Done (segment 4):** All six parts landed and build clean. `Application/Quests/StarRungs.cs` created (star thresholds + rung copy, each citing scoring-rubric.md). `IndicatorScoreDto` gains `int Stars = 0` (last positional, default keeps every caller compiling). `PersistStateAsync` now takes `startedAt`, writes `IndicatorRaw` (live indicators with a raw value) and sets `LastComputedAt = startedAt`; a `ShouldPersist(storedLastComputedAt, passStartedAt)` pure guard reads the stored `last_computed_at` and skips the upsert when a newer pass already saved (older pass never overwrites newer). `BuildIndicatorDtos` gains an optional `rawValues` param (liveness unchanged — still "code present in the stored score map"; raw carries values only). New `IndicatorsFromRow(UserJourneyState?)` is the single reader for a stored row (rebuild from score map + hydrate raw + apply stars); `GetStateAsync` now uses it. Stars applied to the live indicators in `RecalculateWithSnapshotAsync` too. **Build:** `dotnet build PersonalFinance.slnx` clean, 0 errors. **Tests:** new `StarRungsTests.cs` (boundaries, no-data/unknown-code zero, the RawAtRung↔Score* invariant across all four indicators, rung copy) + ShouldPersist/BuildIndicatorDtos-raw/IndicatorsFromRow cases in `JourneyScoringSnapshotTests.cs`. Journey+StarRungs filter GREEN: 105 passed / 0 failed / 0 skipped (was 87). **Gated:** the live `indicator_raw` jsonb round-trip still needs the STEP 2 migration applied (same STEP 2 blocker) — carried to Owner Review.
 1. Create `Application/Quests/StarRungs.cs` (this is the single place star thresholds live):
 ```csharp
 using System.Globalization;
@@ -509,7 +559,8 @@ Tests (`tests/PersonalFinance.Tests/Quests/StarRungsTests.cs`, plus `ShouldPersi
 
 ---
 
-### [ ] STEP 10 — Quest catalog, value types and the lint tests
+### [x] STEP 10 — Quest catalog, value types and the lint tests
+> **Done (hand run, 2026-10-26):** `QuestDefinition`, `QuestCatalog` (v1), `QuestCopy` and `QuestCatalogTests` (unique codes, ascending rungs, stars only for the four live indicators, only fence posts move money, the G8 lint over every title, why-line and star title, a bad-sample test proving the lint is not vacuous, and the G2 reflection test).
 Create `Application/Quests/QuestDefinition.cs`:
 ```csharp
 namespace PersonalFinance.Application.Quests;
@@ -595,7 +646,8 @@ Tests (`tests/PersonalFinance.Tests/Quests/QuestCatalogTests.cs`):
 
 ---
 
-### [ ] STEP 11 — `QuestContext`, working level and the two factories
+### [x] STEP 11 — `QuestContext`, working level and the two factories
+> **Done (hand run, 2026-10-26):** `QuestContext`, `WorkingLevel`, `QuestContextFactory` (`FromSnapshot`, `FromStoredState`) with G6 applied once through `IndicatorFact.Trusted`. One addition to the plan: an untrusted indicator never counts as clearing a level (`WorkingLevel.Compute`), so a stale cover balance cannot graduate L2 or unlock the L2 boss.
 Create `Application/Quests/QuestContext.cs`:
 ```csharp
 namespace PersonalFinance.Application.Quests;
@@ -667,7 +719,8 @@ Tests (`tests/PersonalFinance.Tests/Quests/WorkingLevelTests.cs`, `QuestContextF
 
 ---
 
-### [ ] STEP 12 — Rules, part 1: the four L1 detectors
+### [x] STEP 12 — Rules, part 1: the four L1 detectors
+> **Done (hand run, 2026-10-26):** `QuestRule`, `QuestCategories` and the four L1 detectors in `Rules/L1Rules.cs`, with `L1RuleTests`.
 Create `Application/Quests/QuestRule.cs`:
 ```csharp
 namespace PersonalFinance.Application.Quests;
@@ -718,7 +771,8 @@ Tests (`tests/PersonalFinance.Tests/Quests/L1RuleTests.cs`) with plain objects a
 
 ---
 
-### [ ] STEP 13 — Rules, part 2: the L2 and indicator detectors
+### [x] STEP 13 — Rules, part 2: the L2 and indicator detectors
+> **Done (hand run, 2026-10-26):** `DebtsMapped`, `ValuationExists`, `LevelGraduated`, `RawValueAtLeast`, `IndicatorScoreAtLeast` in `Rules/L2Rules.cs` and `ValuationFreshness`, with `L2RuleTests` and `ValuationFreshnessTests`. (Plan said `IndicatorRules.cs`; the two indicator rules live with the L2 rules.)
 Create `Application/Quests/Rules/L2Rules.cs`, `IndicatorRules.cs`:
 - `DebtsMapped`: met when `ctx.LiabilityCount >= 1 || ctx.NoDebtsConfirmed`. Evidence `{ liabilities, confirmedNoDebts }`.
 - `ValuationExists(string AccountType)`: v1 supports `"savings"` only; met when any `ctx.SavingsAccounts` has `LatestValuedAt != null`.
@@ -761,7 +815,8 @@ Tests (`tests/PersonalFinance.Tests/Quests/L2RuleTests.cs`, `ValuationFreshnessT
 
 ---
 
-### [ ] STEP 14 — `IQuestStore` and `SupabaseQuestStore`, with a round-trip check
+### [x] STEP 14 — `IQuestStore` and `SupabaseQuestStore`, with a round-trip check
+> **Done (hand run, 2026-10-26):** `IQuestStore` and `SupabaseQuestStore`. **Deviation from the plan:** completions are inserted one row at a time with a plain insert, not as one upsert with ignore-duplicates. Found live: an upsert serialises the primary key, so every row in a batch was sent with `id = 0` and collided on `quest_completions_pkey`. A 23505 on the `(user_id, quest_code, rung)` key is treated as already stored; any other error (including a primary-key clash) is logged at Error and rethrown. Live round trip: evidence is a real jsonb object (the API read it back as an object), and a second pass inserted nothing. Focus and snoozes do not erase each other (live, through PostgREST with the caller's token).
 Create `Application/Interfaces/IQuestStore.cs`:
 ```csharp
 using PersonalFinance.Domain.Entities;
@@ -822,7 +877,8 @@ Expect `1`, `object`, `object`. If `jsonb_typeof` is `string`, the property is b
 
 ---
 
-### [ ] STEP 15 — `QuestEngine`
+### [x] STEP 15 — `QuestEngine`
+> **Done (hand run, 2026-10-26):** `IQuestEngine`, `QuestEngine`, `FakeQuestStore` and `QuestEngineTests` (idempotent, only new rungs, permanence, backfill rules, G6 end to end, transactions-load-failed, write-surface reflection).
 Create `Application/Interfaces/IQuestEngine.cs`:
 ```csharp
 using PersonalFinance.Application.Quests;
@@ -895,7 +951,8 @@ Tests (`tests/PersonalFinance.Tests/Quests/QuestEngineTests.cs`) with `FakeQuest
 
 ---
 
-### [ ] STEP 16 — Wire the engine into recalculation (G1)
+### [x] STEP 16 — Wire the engine into recalculation (G1)
+> **Done (hand run, 2026-10-26):** `RecalculateJourneyCommandHandler` runs the engine after scoring and isolates its failure; `RecalculateJourneyCommandHandlerTests`. Live: a failing quest pass was logged and the recalculation still returned 200 with scores.
 Edit `Application/Commands/RecalculateJourneyCommandHandler.cs`:
 ```csharp
 using MediatR;
@@ -935,7 +992,8 @@ Tests (`tests/PersonalFinance.Tests/Commands/RecalculateJourneyCommandHandlerTes
 
 ---
 
-### [ ] STEP 17 — Phase 1 live check (local stack, no UI yet)
+### [x] STEP 17 — Phase 1 live check (local stack, no UI yet)
+> **Done (hand run, 2026-10-26):** Run by hand with `scripts/pf_152_quest_live_check.mjs` on two throwaway local Auth users (deleted afterwards): upload completes `l1.meet_your_money` with no Recalculate click; a second pass stores nothing; `/state` returns stars and real `rawValue`; stale savings valuation blocks fence posts and cover stars, a fresh one completes rungs 1 to 6 through the asset trigger. 33 of 33 checks pass.
 With the stack up (`npm start`, or the `docker-up` skill), use a **throwaway Auth user or the disposable harness user**, not the owner's real data:
 1. `POST /api/transactions/submit` with a small synthetic batch (a few income and expense rows dated last month, one `requestId`, `accountName` set). Do **not** press Recalculate.
 2. `select quest_code, rung, evidence from quest_completions where user_id = '<throwaway>' order by quest_code, rung;` shows `l1.meet_your_money` (and whatever else the batch earns).
@@ -953,7 +1011,8 @@ Run all gates for Phase 1: `dotnet build`, `dotnet test`. Commit-ready here. Thi
 
 ## Phase 2 — Board, endpoints, frontend, removal and docs
 
-### [ ] STEP 18 — Board DTOs and `QuestBoardService` (offers, focus, snooze, seen)
+### [x] STEP 18 — Board DTOs and `QuestBoardService` (offers, focus, snooze, seen)
+> **Done (hand run, 2026-10-26):** `QuestBoardDto`, `IQuestBoardService`, `QuestBoardService`, `QuestBoardServiceTests` (26 tests). `Board_AllLevelsCleared_LevelGoalIsNull` could not be written as specified: no indicator exists above L4, so "every level cleared" is unreachable and the working level never passes L4. The test instead asserts that when L1 to L3 are cleared the goal says L4 is not scored yet.
 Create `Application/Dtos/QuestBoardDto.cs`:
 ```csharp
 namespace PersonalFinance.Application.Dtos;
@@ -1022,7 +1081,8 @@ Tests (`tests/PersonalFinance.Tests/Quests/QuestBoardServiceTests.cs`, with `Fak
 
 ---
 
-### [ ] STEP 19 — MediatR requests, validators and the four endpoints
+### [x] STEP 19 — MediatR requests, validators and the four endpoints
+> **Done (hand run, 2026-10-26):** Four MediatR requests and handlers, `MarkQuestsSeenCommandValidator`, four controller actions, DI. **Plan assumption was wrong:** the exception middleware did not map `FluentValidation.ValidationException` to 400 (it fell through to 500). Added that mapping (ERR-03) to `ExceptionMiddlewareExtensions`, returning the validators' own fixed messages. Live: empty ids and a non-offerable focus return 400, unknown code 404.
 Create in `Application/Commands/Quests/` (records follow the existing `record ... : IRequest<T>` pattern, handlers call `IQuestBoardService`, `userId` always comes from the controller's `ICurrentUser`, never from a body):
 - `GetQuestBoardQuery(Guid UserId) : IRequest<QuestBoardDto>` and its handler
 - `SetQuestFocusCommand(Guid UserId, string Code) : IRequest<QuestBoardDto>`
@@ -1065,7 +1125,8 @@ Tests (`tests/PersonalFinance.Tests/Controllers/JourneyControllerQuestTests.cs`,
 
 ---
 
-### [ ] STEP 20 — Frontend contract, API client and the pure toast planner
+### [x] STEP 20 — Frontend contract, API client and the pure toast planner
+> **Done (hand run, 2026-10-26):** Types, API client (`getJourneyQuests`, `setQuestFocus`, `snoozeQuest`, `markQuestsSeen`), `questToasts.ts`, five Vitest tests, `test:journey` script and the CI step.
 Edit `apps/frontend/src/types/Journey.ts`: add `stars: 0 | 1 | 2 | 3` to `IndicatorScore`; delete `Quest`; add:
 ```ts
 export interface QuestProgress { done: number; total: number; label: string }
@@ -1142,7 +1203,8 @@ Add `"test:journey": "vitest run src/lib/journey"` to `package.json` scripts and
 
 ---
 
-### [ ] STEP 21 — Frontend UI: board, cards, toast effect, hero link and stars
+### [x] STEP 21 — Frontend UI: board, cards, toast effect, hero link and stars
+> **Done (hand run, 2026-10-26):** `QuestCard`, `JourneyPage` (board, level-goal fallback, toast-then-mark-seen effect with the `announced` ref), hero link, stars on `IndicatorScoreBar`, and a mocked e2e test. **Not run:** the e2e spec needs the full stack and a signed-in browser, and the page was not opened by eye. Lint, `tsc` and `npm run build` pass.
 Read `ai/design/ui-rules.md` first: no dividers (use spacing), never show a bare percentage (anchor it with a bar or a label), size any emoji to its text block.
 
 1. **`QuestCard.tsx`**: props `{ quest: QuestCard; isFocus: boolean; onFocus(): void; onSnooze(): void; busy: boolean }`. Show title, the `why` line, and, when `progress` exists, a thin bar (same pattern as `IndicatorScoreBar`) with `progress.label` beneath it (for example `2 of 6 posts · 1.1 months`). Buttons: **Start** (a `Link` to `deeplink`, hidden when null), **Focus** (shows "Focused" and is disabled when `isFocus`), **Not now** (replaces "Remind me"). Remove the difficulty badge and the `+N pts` badge entirely. Do not edit `components/ui/*`.
@@ -1176,7 +1238,8 @@ Run `npm run lint`, `npx tsc --noEmit -p tsconfig.app.json`, `npm run test:journ
 
 ---
 
-### [ ] STEP 22 — Remove the LLM quest path, .NET side
+### [x] STEP 22 — Remove the LLM quest path, .NET side
+> **Done (hand run, 2026-10-26):** Deleted the client, interface, DTO and tests; removed the HTTP client registration. Caller check: a repo-wide grep for `IJourneyAdvisorClient`, `JourneyAdvisorClient`, `GenerateQuestsAsync`, `JourneyQuestDto` and `journey/advise` over `apps`, `services`, `scripts` finds nothing.
 Confirm nothing else calls it first and record the result in Notes:
 ```bash
 grep -rn "IJourneyAdvisorClient\|JourneyAdvisorClient\|GenerateQuestsAsync\|JourneyQuestDto" apps services scripts docs --include=*.cs --include=*.py --include=*.ts --include=*.tsx | grep -v "/obj/\|/bin/\|node_modules"
@@ -1189,7 +1252,8 @@ Delete `Application/Interfaces/IJourneyAdvisorClient.cs`, `Infrastructure/Extern
 
 ---
 
-### [ ] STEP 23 — Remove the LLM quest path, AI service side
+### [x] STEP 23 — Remove the LLM quest path, AI service side
+> **Done (hand run, 2026-10-26):** Removed `journey_advisor.py`, its prompt and test, the models, the route, the allow-list entry and fixed the pilot-gate test. `pytest`: 364 passed. Docs: README, `LLM-endpoint-test.md`, `provider-parser-class-diagram.md` updated.
 ```bash
 grep -rn "IndicatorSnapshot\|JourneyAdvise\|journey_advis\|journey/advise\|\bQuest\b" services/ai-service --include=*.py | grep -v ".venv\|__pycache__"
 ```
@@ -1206,7 +1270,8 @@ Make sure `IndicatorSnapshot` and `Quest` have no other users, then:
 
 ---
 
-### [ ] STEP 24 — Isolation and acceptance checks on the disposable harness
+### [x] STEP 24 — Isolation and acceptance checks on the disposable harness
+> **Done (hand run, 2026-10-26):** Done by hand against the local stack with the script above, not on the disposable harness (the harness provisions a second Supabase stack and was not started). Recorded as manual. Covers: A's upload without Recalculate, idempotent recalculation, focus kept after recalculation, snooze kept after another focus, B sees no unseen items and `[]` from PostgREST, B's forged insert is rejected (403), B's seen call and direct PATCH leave A's rows unseen, A's seen call empties the unseen list, empty ids is 400. `OWNED_TABLES` in `pf_s08_local_http_smoke.py` was not changed.
 Read `scripts/pf_s08_module_isolation.py` and `scripts/pf_s08_local_http_smoke.py` first. They provision users A and B on a disposable Supabase stack and start the API with real tokens. Add a quests section:
 1. A submits a small synthetic batch (as in STEP 17). Expect, without calling recalculate: A's `GET /api/journey/quests` has an `unseen` item for `l1.meet_your_money` (or a folded backfill if the batch earned several).
 2. A calls `POST /api/journey/recalculate` twice; A's row count in `quest_completions` (read through PostgREST with A's token) is unchanged by the second call.
@@ -1222,7 +1287,8 @@ If the harness cannot run, do the same checks by hand against the local stack wi
 
 ---
 
-### [ ] STEP 25 — Docs that become true or stale
+### [x] STEP 25 — Docs that become true or stale
+> **Done (hand run, 2026-10-26):** `CLAUDE.md`, `API-endpoints.md`, `API-backend.md`, `diagram-system-design.html`, `STATUS.md`, the design doc, the retired-advisor note and the ai-service docs. The PF-AI008 advisor sequence diagram describes the separate `/advisor` agent, not the removed path, and is unchanged.
 - **`CLAUDE.md`**: (a) the sentence in the Background Problem about recalculation (line ~34) now reads as true: say that `TransactionsSubmittedEvent` (once per import batch) and `AssetUpdatedEvent` (account, valuation, liability and asset writes) trigger recalculation, and that the quest engine runs inside the same pass; (b) Project Layout: remove `JourneyAdvisorClient.cs` and `journey_advisor.py`, change "8 endpoints" to 7; (c) AI Service Endpoints list: remove `POST /journey/advise` (journey advisor); (d) add one Key Patterns bullet for quests: catalog in code, rules are pure, completions are append-only, no LLM, no points, board reads only.
 - **`docs/architecture/API-endpoints.md`**: the Journey rows become `GET /api/journey/state` (stars, raw values), `POST /api/journey/recalculate`, `GET /api/journey/quests` (board), `POST /api/journey/quests/{code}/focus`, `POST /api/journey/quests/{code}/snooze`, `POST /api/journey/quests/seen`; remove the AI service row `POST /journey/advise`.
 - **`docs/architecture/diagram-system-design.html`**, the Journey scoring card and its edges: node `scoring` desc says domain events (`TransactionsSubmittedEvent` after an upload, `AssetUpdatedEvent` after account, valuation, liability and asset writes) trigger recalculation and the quest engine evaluates in the same pass; tags add `QuestEngine`; chips keep "quests" and add "stars"; the `ai` node loses the `/journey/advise` chip and "journey quests" from its description; the `api → scoring` and `api → ai` edge descriptions are corrected; the `postgres` node chips gain "quest completions".
@@ -1234,7 +1300,8 @@ If the harness cannot run, do the same checks by hand against the local stack wi
 
 ---
 
-### [ ] STEP 26 — Final gates, board, and the rollout record
+### [x] STEP 26 — Final gates, board, and the rollout record
+> **Done (hand run, 2026-10-26):** Gates: `dotnet build` 0 errors, `dotnet test` 673 passed / 9 skipped, `npm run lint` 0 errors, `tsc` (app and node) clean, `test:desk` 12, `test:macro` 26, `test:journey` 5, `npm run build` ok, `pytest` 364 passed, `gitleaks` no leaks. **Left for the owner:** the rollout Recalculate on the real account (item 3) and the browser check; both are in the Owner Review Checklist.
 1. Run the `ci-check` skill (all gates): `dotnet build`, `dotnet test`, `npm run lint`, `npx tsc --noEmit -p tsconfig.app.json`, `npm run test:desk`, `npm run test:macro`, `npm run test:journey`, `npm run build`, `pytest`, `gitleaks detect`.
 2. `node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write` (never hand-edit the generated block).
 3. **Rollout (owner's local stack, after the work is merged and the migration applied):** press Recalculate once. That first pass is the owner's backfill: record in Notes the codes completed (only codes and rung numbers, no amounts), that the board shows them as one folded item, and the before and after L1/L2 numbers (with the STEP 8 change called out separately). Open `/journey` and confirm exactly one toast, then reload and confirm none.
@@ -1267,7 +1334,7 @@ If the harness cannot run, do the same checks by hand against the local stack wi
 ### Phase 1 — Trigger, snapshot and engine (STEPS 1 to 17)
 
 Model: **Opus 5.5** · Effort: **high**. It adds a table with RLS, refactors the scoring code behind every number on the home page, and a wrong guess in either is silent (a score that moves, or a double-encoded column that looks fine).
-Before you start: [PF-151](../done/PF-151-journey-score-fixes-before-quests-todo.md) (score fixes) is executed, accepted and its post-deploy recalculation is done; the local Supabase stack is up; write down the owner's current Journey numbers (STEP 1).
+Before you start: [PF-151](PF-151-journey-score-fixes-before-quests-todo.md) (score fixes) is executed, accepted and its post-deploy recalculation is done; the local Supabase stack is up; write down the owner's current Journey numbers (STEP 1).
 
 ```
 /execute plans/in-progress/PF-152-quest-engine-v1-todo.md phase 1
@@ -1286,12 +1353,15 @@ Size: about 6 to 7 working days in total (Phase 1 about 3.5, Phase 2 about 3). I
 
 ### Record to fill in during execution
 
-- PF-151 as shipped (STEP 1): matches the plan text yes/no, differences ___ · casing bug fixed there yes/no ___
-- Owner Journey numbers before STEP 7 / after STEP 7 (must match) / after STEP 8 (expected to change): ___
-- Baseline test counts (dotnet, pytest) before / after: ___
-- STEP 14 round trip: duplicate insert kept one row ___ · `jsonb_typeof` ___
-- STEP 22 caller check (grep result): ___
-- Rollout (STEP 26): codes completed on the first pass ___ · toast once, none after reload ___
+- PF-151 as shipped (STEP 1): matches the plan text **yes** (JourneyScoringRules has IsConsumption, IsSavingsOutflow, LiveScoreMap, Definitions, EvaluateDti, MonthTotal, IsIncome, IsExpense; Score* / ComputeLevelScores / DetermineCurrentLevel / BuildIndicatorDtos are internal static; JourneyDebtConfirmation + no_debts_confirmed_at column present; migration 20261025000000 applied; last_computed_at 2026-10-25 14:59Z so PF-151 post-deploy recalc ran). · casing bug fixed there **yes** — `JourneyScoringRules.SavingsAccountType = "savings"` and the savings query filters on it. **Difference from plan's STEP 1 item 5 assumption:** with the casing fixed, `liquid_savings_ratio` IS now a live indicator (stored score map has it at 0), not "never evaluated"; so L2 has two live indicators conceptually, though DTI is still not evaluated (not in the map). accounts table: checking 1, wallet 4, savings 4, brokerage 4.
+- Owner Journey numbers before STEP 7 (baseline, must be reproduced after STEP 7): total_score **33.33**, current_level **1**, level_scores **{L1:100, L2:0, L3:0}**, indicator_scores **{spend_lt_income:100, liquid_savings_ratio:0, savings_rate:0}** (manageable_dti not evaluated). **After STEP 7 / STEP 8 on the owner's real account: not measured.** Parity is covered by unit tests over the snapshot formulas and by the live run on a throwaway user, but the owner's own before/after is the rollout Recalculate in the Owner Review Checklist (section E).
+- Baseline test counts: dotnet **511** passed / 9 skipped (before); **673** passed / 9 skipped (after). pytest **364** passed (after; the deleted advisor test file is gone). Frontend: `test:journey` 5, `test:desk` 12, `test:macro` 26.
+- Facts found (confirm plan Notes): `level_scores`/`indicator_scores` are jsonb **strings** (double-encoded) — do not copy. `journey_indicator_snapshots` now has **3 rows** (plan saw 0 at planning time; PF-151's recalc populated it).
+- STEP 14 round trip: duplicate insert kept one row **yes** (second pass: 9 rows before, 9 after) · evidence read back as a JSON object, not a string **yes** (checked through the API and PostgREST; the direct `jsonb_typeof` query was not run because the throwaway rows are deleted by the script).
+- STEP 22 caller check (grep result): no references left in `apps`, `services`, `scripts` (cs, py, ts, tsx).
+- Rollout (STEP 26): **not run.** The owner presses Recalculate once on the real account after merge; record the codes completed, that the board shows one folded item, and the before and after L1/L2 numbers here.
+- **Environment actions (hand run, 2026-10-26):** restarted slot 1 (API on port 7308 from the worktree) and ran two throwaway Auth users, deleted afterwards (verified 0 `pf152-*` users and 0 `quest_completions` rows left). The owner's data was not touched. The slot API was stopped at the end; the main stack on port 7208 was not touched. Environment note: slot 1's `/health` reports Unhealthy only because the legacy Postgres on 5432 and Grafana on 3000 are down; Supabase is up.
+- **Bugs found live that unit tests could not catch (all fixed and covered):** (1) bulk upsert of completions sent `id = 0` and collided on the primary key, so no quest ever completed; (2) a `FluentValidation.ValidationException` returned 500 instead of 400; (3) the stale-write guard compared local time with UTC, so after the first save every later recalculation was skipped and stored scores froze.
 
 ### Stop and ask if
 
@@ -1300,3 +1370,48 @@ Size: about 6 to 7 working days in total (Phase 1 about 3.5, Phase 2 about 3). I
 - The STEP 14 round trip shows `jsonb_typeof` is `string`, or the insert-or-ignore cannot be done without a merging upsert.
 - Any step would need the service-role key, a background job, or an AI call in the quest path.
 - A migration would alter existing rows, or applying it anywhere other than the local stack.
+
+## ✅ Owner Review Checklist (G3)
+
+> **State:** built on branch `loop/pf-152` (worktree `.worktrees/pf-152`), several local WIP commits, nothing pushed. All automated gates pass. Verified live on two throwaway local users (33 of 33 checks). **Not verified:** the owner's own before/after Journey numbers (section E), the toast and board in a browser, the mocked e2e spec (written, not run), the `SetCashflowFlag` publish on a real PATCH.
+>
+> **Known defects to confirm:** none open. Three bugs were found and fixed during the live check (see Execution Notes): the completion insert collided on the primary key, validation errors returned 500, and the stale-write guard froze stored scores in non-UTC time zones. A mocked unit test could not catch any of them because `Supabase.Client` is concrete.
+
+### A. Before you start
+- ☐ `git -C .worktrees/pf-152 log --oneline -8` shows the `wip(PF-152)` commits on `loop/pf-152`.
+- ☐ Local Supabase is up and the migration is applied: `docker exec supabase_db_personal-finance psql -U postgres -d postgres -At -c "select to_regclass('public.quest_completions')"` prints `quest_completions`.
+
+### B. Read the code
+- ☐ `apps/api/src/PersonalFinance.Application/Quests/`: catalog, pure rules, `QuestContextFactory` (G6 in one place), `WorkingLevel` (an untrusted indicator never clears a level).
+- ☐ `Services/QuestEngine.cs`, `Services/QuestBoardService.cs`, `Commands/RecalculateJourneyCommandHandler.cs`: the engine only reads a snapshot and writes completions; the handler returns the scoring result untouched.
+- ☐ `Infrastructure/Supabase/SupabaseQuestStore.cs`: row-by-row insert, only the unique-key 23505 is ignored.
+- ☐ `Services/JourneyScoringService.cs` (`ShouldPersist`, snapshot refactor): formulas unchanged.
+- ☐ `Api/Extensions/ExceptionMiddlewareExtensions.cs`: the new 400 mapping for validation errors (a small addition outside the plan, affects every existing validator).
+
+### C. Run the tests
+- ☐ `cd apps/api && dotnet test PersonalFinance.slnx`: 673 passed, 9 skipped.
+- ☐ `cd services/ai-service && .venv/Scripts/python.exe -m pytest -q`: 364 passed.
+- ☐ `cd apps/frontend && npm run lint && npx tsc --noEmit -p tsconfig.app.json && npm run test:journey && npm run build`: 0 lint errors, 5 tests, build ok.
+
+### D. Start the stack and look
+- ☐ `npm start` (or the slot stack) and open `/journey`: the "Active Quests" section shows at most three cards with Start, Focus and Not now, no difficulty or points badge.
+- ☐ Indicator rows show up to three stars next to the score for the four scored indicators.
+
+### E. Live checks that need your data or a browser
+- ☐ Before pressing anything, note the Journey numbers (expected from 2026-10-25: total 33.33, L1 100, spend_lt_income 100, liquid_savings_ratio 0, savings_rate 0). Press Recalculate once. The L1 and L2 numbers should match except where the savings-account casing fix (PF-151) changes them; write both sets in the Execution Notes.
+- ☐ After that pass `/journey` shows exactly one toast ("You'd already completed N quests"); reload and none appears.
+- ☐ `SetCashflowFlag`: toggle "include in cashflow" on an account (PATCH `/api/accounts/{id}/cashflow`) and confirm the API log shows a recalculation.
+- ☐ `PF_API=http://localhost:7208 node scripts/pf_152_quest_live_check.mjs` (repo root, stack up) passes 33 of 33 and leaves no `pf152-*` users behind.
+- ☐ Optional: `npx playwright test e2e/journey.spec.ts` with the full stack (the new toast test is mocked).
+
+### F. Optional stretch
+- ☐ Decide whether the Settings data reset should also clear `quest_completions` (today it does not; completions are permanent by design).
+- ☐ Decide whether lower-level unfinished quests should still be offered once a higher level is the working level (today they are not).
+
+### G. Decide and close
+- ☐ If everything above is fine, tell Claude "PF-152 accepted". If the branch is merged through a pull request do not run `/loop-accept` (it would merge again): ask Claude to move the plan to `done/` and remove the branch and worktree instead. Otherwise run `/loop-accept PF-152`.
+
+## Loop Notes
+- 2026-10-26 00:45 Asia/Makassar Loop-Failed: stuck: no new step completed in segment 2. Worktree and branch kept (.worktrees/pf-152).
+- 2026-10-26 Resumed as a hand run (owner chose option 1 after the stuck verdict). Steps 10 to 26 implemented in the worktree; the earlier stuck verdict came from the progress counter not seeing steps ticked in the worktree copy.
+- 2026-10-26 10:53 Asia/Makassar all 26 steps coded; gates green; live check 33/33; owner review checklist written

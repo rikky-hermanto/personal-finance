@@ -1,6 +1,6 @@
 # Quest Engine v1: How It Works
 
-> **Status:** Built in PF-152 (implementation awaiting owner review). Designed 2026-10-25.
+> **Status:** Built in PF-152 (accepted and merged 2026-10-26). Designed 2026-10-25.
 > **Interpretations made while building (small, all in the board service):** focus counts inside the three-card cap; unseen items carry `ids` (a list) so a folded backfill is marked seen with one call; a lone first completion is not folded; "any transaction" is read without the three-month window; `levelGoal` is the board's fallback when nothing can be offered; G6 (stale balances) is applied through `IndicatorFact.Trusted`, so cover stars are blocked as well as fence posts; focus and snoozes are two separate one-column writes; "today" is the Asia/Jakarta calendar day; completions are inserted row by row (an upsert serialises the primary key and collides with itself).
 > **Scope:** plan 2 of the 3 MVP plans in [pm-journey-quests-analysis.md](pm-journey-quests-analysis.md). Plan 1 (score fixes G3 and G4) must land first. Plan 3 (Monthly Harvest) builds on this.
 > **Diagram:** [diagram-quest-engine-v1.html](diagram-quest-engine-v1.html), high-level design (open in a browser).

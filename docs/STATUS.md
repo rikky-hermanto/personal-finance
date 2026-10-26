@@ -8,7 +8,7 @@
 
 The local finance workspace now includes Journey, Cashflow, Assets, Investment, transaction Q&A, Buckets budgeting, Trading Desk foundations, and Macro Scenario Lab. The API targets **net10.0**, React is **18**, and FastAPI requires **Python >=3.11.9** (Docker uses 3.12). Persistence is Supabase/PostgREST plus direct asyncpg/pgvector queries for retrieval. EF Core/Persistence is removed.
 
-**2026-10-26 — PF-152 (Quest Engine v1):** uploads and asset writes now trigger recalculation; `quest_completions` stores one permanent row per completed rung; `GET /api/journey/quests` is a stored-state board with focus, snooze and seen; the LLM quest path (`/journey/advise`) is removed. Built on branch `loop/pf-152`; awaiting owner review.
+**2026-10-26 — PF-152 (Quest Engine v1):** uploads and asset writes now trigger recalculation; `quest_completions` stores one permanent row per completed rung; `GET /api/journey/quests` is a stored-state board with focus, snooze and seen; the LLM quest path (`/journey/advise`) is removed. Accepted by the owner and merged to main locally on 2026-10-26 (not pushed).
 
 The latest recorded feature before that was **PF-141 — opt-in Jev residual categorization** (plan dated 2026-09-27). Implementation and evaluator exist; live evaluation and promotion remain pending. The coded default is `CATEGORIZATION_BACKEND=llm`. No Jev cost/latency improvement is established.
 
