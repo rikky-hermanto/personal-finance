@@ -22,7 +22,7 @@ public class JourneyControllerNoDebtsTests
         caller.SetupGet(c => c.UserId).Returns(Owner);
         return new JourneyController(
             _mediator.Object, new Mock<IJourneyScoringService>().Object,
-            new Mock<IJourneyAdvisorClient>().Object, _confirmation.Object, caller.Object);
+            _confirmation.Object, caller.Object);
     }
 
     [Fact]

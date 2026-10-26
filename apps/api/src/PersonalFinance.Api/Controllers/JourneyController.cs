@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using PersonalFinance.Application.Commands.Journey;
+using PersonalFinance.Application.Commands.Quests;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 
@@ -11,7 +12,6 @@ namespace PersonalFinance.Api.Controllers;
 public class JourneyController(
     IMediator mediator,
     IJourneyScoringService scoringService,
-    IJourneyAdvisorClient advisorClient,
     IJourneyConfirmationService confirmation,
     ICurrentUser caller)
     : ControllerBase
@@ -32,11 +32,22 @@ public class JourneyController(
     }
 
     [HttpGet("quests")]
-    public async Task<ActionResult<List<JourneyQuestDto>>> GetQuests(CancellationToken ct)
+    public async Task<ActionResult<QuestBoardDto>> GetQuests(CancellationToken ct)
+        => Ok(await mediator.Send(new GetQuestBoardQuery(caller.UserId), ct));
+
+    [HttpPost("quests/{code}/focus")]
+    public async Task<ActionResult<QuestBoardDto>> SetFocus(string code, CancellationToken ct)
+        => Ok(await mediator.Send(new SetQuestFocusCommand(caller.UserId, code), ct));
+
+    [HttpPost("quests/{code}/snooze")]
+    public async Task<ActionResult<QuestBoardDto>> Snooze(string code, CancellationToken ct)
+        => Ok(await mediator.Send(new SnoozeQuestCommand(caller.UserId, code), ct));
+
+    [HttpPost("quests/seen")]
+    public async Task<IActionResult> MarkSeen([FromBody] MarkQuestsSeenRequest body, CancellationToken ct)
     {
-        var state = await scoringService.GetStateAsync(caller.UserId, ct);
-        var quests = await advisorClient.GenerateQuestsAsync(state, ct);
-        return Ok(quests);
+        await mediator.Send(new MarkQuestsSeenCommand(caller.UserId, body.Ids), ct);
+        return NoContent();
     }
 
     [HttpGet("no-debts")]
@@ -60,3 +71,5 @@ public class JourneyController(
         return Ok(result);
     }
 }
+
+public sealed record MarkQuestsSeenRequest(IReadOnlyList<long> Ids);

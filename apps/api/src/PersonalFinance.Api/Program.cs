@@ -227,13 +227,7 @@ namespace PersonalFinance.Api
             builder.Services.AddScoped<IJourneyConfirmationService, JourneyConfirmationService>();
             builder.Services.AddScoped<IQuestStore, PersonalFinance.Infrastructure.Supabase.SupabaseQuestStore>();
             builder.Services.AddScoped<IQuestEngine, QuestEngine>();
-            builder.Services.AddHttpClient<IJourneyAdvisorClient, JourneyAdvisorClient>(client =>
-            {
-                client.BaseAddress = new Uri(builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000");
-                client.Timeout = TimeSpan.FromSeconds(120);
-                var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
-                if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
-            });
+            builder.Services.AddScoped<IQuestBoardService, QuestBoardService>();
             // PF-S15: owner-scoped AI routes need the internal key AND a signed owner token.
             builder.Services.AddSingleton(new OwnerTokenSigner(
                 builder.Configuration["AiChat:OwnerSigningSecret"], TimeProvider.System));
