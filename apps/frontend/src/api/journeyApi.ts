@@ -1,5 +1,5 @@
 import { authenticatedFetch } from '@/api/authenticatedFetch';
-import type { JourneyState, NoDebtsConfirmation, Quest } from '@/types/Journey';
+import type { JourneyState, NoDebtsConfirmation, QuestBoard } from '@/types/Journey';
 
 const API = import.meta.env.VITE_API_URL ?? 'http://localhost:7208';
 
@@ -9,7 +9,7 @@ export const getJourneyState = async (): Promise<JourneyState> => {
   return r.json();
 };
 
-export const getJourneyQuests = async (): Promise<Quest[]> => {
+export const getJourneyQuests = async (): Promise<QuestBoard> => {
   const r = await authenticatedFetch(`${API}/api/journey/quests`);
   if (!r.ok) throw new Error('Failed to load quests');
   return r.json();
@@ -37,4 +37,25 @@ export const clearNoDebts = async (): Promise<NoDebtsConfirmation> => {
   const r = await authenticatedFetch(`${API}/api/journey/no-debts`, { method: 'DELETE' });
   if (!r.ok) throw new Error('Failed to clear debt confirmation');
   return r.json();
+};
+
+export const setQuestFocus = async (code: string): Promise<QuestBoard> => {
+  const r = await authenticatedFetch(`${API}/api/journey/quests/${encodeURIComponent(code)}/focus`, { method: 'POST' });
+  if (!r.ok) throw new Error('Failed to set focus quest');
+  return r.json();
+};
+
+export const snoozeQuest = async (code: string): Promise<QuestBoard> => {
+  const r = await authenticatedFetch(`${API}/api/journey/quests/${encodeURIComponent(code)}/snooze`, { method: 'POST' });
+  if (!r.ok) throw new Error('Failed to snooze quest');
+  return r.json();
+};
+
+export const markQuestsSeen = async (ids: number[]): Promise<void> => {
+  const r = await authenticatedFetch(`${API}/api/journey/quests/seen`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!r.ok) throw new Error('Failed to mark quests seen');
 };

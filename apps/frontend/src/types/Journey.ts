@@ -15,6 +15,7 @@ export interface IndicatorScore {
   status: 'achieved' | 'in_progress' | 'not_started' | 'no_data';
   displayName: string;
   description: string;
+  stars: 0 | 1 | 2 | 3;
 }
 
 export interface Achievement {
@@ -27,13 +28,51 @@ export interface NoDebtsConfirmation {
   confirmedAt: string | null;
 }
 
-export interface Quest {
+export interface QuestProgress {
+  done: number;
+  total: number;
+  label: string;
+}
+
+export interface QuestCard {
+  code: string;
+  kind: 'discovery' | 'ladder';
   title: string;
-  description: string;
-  targetIndicator: string;
-  estimatedScoreGain: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  actionDeeplink: string | null;
+  why: string;
+  progress: QuestProgress | null;
+  deeplink: string | null;
+}
+
+export interface UnseenCompletion {
+  ids: number[];
+  code: string | null;
+  rung: number;
+  title: string;
+  completedAt: string;
+  isBackfill: boolean;
+  count: number;
+}
+
+export interface LevelGoalGap {
+  indicatorCode: string;
+  label: string;
+  stars: number;
+}
+
+export interface LevelGoal {
+  level: string;
+  title: string;
+  notEvaluated: boolean;
+  gaps: LevelGoalGap[];
+}
+
+export interface QuestBoard {
+  catalogVersion: number;
+  workingLevel: string;
+  focus: QuestCard | null;
+  offers: QuestCard[];
+  unseen: UnseenCompletion[];
+  levelGoal: LevelGoal | null;
 }
 
 export const TIER_META: Record<string, { label: string; color: string; deeplink: string; module: string }> = {

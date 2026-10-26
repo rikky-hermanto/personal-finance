@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import type { JourneyState, Quest } from '@/types/Journey';
+import type { JourneyState } from '@/types/Journey';
 import { TIER_META } from '@/types/Journey';
 
 const PEAK_KEY = 'pf-journey-peak-stages';
@@ -26,7 +26,7 @@ function loadPeaks(): Record<string, 0 | 1 | 2 | 3> {
 
 interface Props {
   state: JourneyState;
-  topQuest?: Quest;
+  topQuest?: { title: string; deeplink: string | null };
 }
 
 export const LivingGardenHero = ({ state, topQuest }: Props) => {
@@ -133,7 +133,7 @@ export const LivingGardenHero = ({ state, topQuest }: Props) => {
       {topQuest ? (
         <div className="flex justify-center">
           <Link
-            to={topQuest.actionDeeplink ?? meta.deeplink}
+            to={topQuest.deeplink ?? meta.deeplink}
             className="inline-flex items-center gap-1.5 text-xs bg-amber-50 border border-amber-200/80 text-amber-800 rounded-full px-4 py-1.5 hover:bg-amber-100 transition-colors font-medium"
           >
             {topQuest.title}

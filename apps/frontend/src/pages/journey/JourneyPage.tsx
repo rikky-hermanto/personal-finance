@@ -1,12 +1,23 @@
+import { useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Trophy } from 'lucide-react';
+import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LivingGardenHero } from '@/components/journey/LivingGardenHero';
 import { TierCard } from '@/components/journey/TierCard';
 import { QuestCard } from '@/components/journey/QuestCard';
-import { getJourneyState, getJourneyQuests, recalculateJourney } from '@/api/journeyApi';
+import {
+  getJourneyState,
+  getJourneyQuests,
+  recalculateJourney,
+  setQuestFocus,
+  snoozeQuest,
+  markQuestsSeen,
+} from '@/api/journeyApi';
+import { planCompletionToasts } from '@/lib/journey/questToasts';
+import type { QuestBoard } from '@/types/Journey';
 
 export const JourneyPage = () => {
   const queryClient = useQueryClient();
@@ -15,20 +26,45 @@ export const JourneyPage = () => {
     queryKey: ['journey-state'],
     queryFn: getJourneyState,
     staleTime: 5 * 60 * 1000,
+    // Uploads and asset edits change the scores while this page is closed.
+    refetchOnMount: 'always',
   });
 
-  const { data: quests, isLoading: questsLoading } = useQuery({
+  const { data: board, isLoading: questsLoading } = useQuery({
     queryKey: ['journey-quests'],
     queryFn: getJourneyQuests,
-    staleTime: 60 * 60 * 1000,
+    refetchOnMount: 'always',
   });
 
   const recalc = useMutation({
     mutationFn: recalculateJourney,
     onSuccess: (data) => {
       queryClient.setQueryData(['journey-state'], data);
+      queryClient.invalidateQueries({ queryKey: ['journey-quests'] });
     },
   });
+
+  const setBoard = (next: QuestBoard) => queryClient.setQueryData(['journey-quests'], next);
+  const focusQuest = useMutation({ mutationFn: setQuestFocus, onSuccess: setBoard });
+  const snooze = useMutation({ mutationFn: snoozeQuest, onSuccess: setBoard });
+  const questBusy = focusQuest.isPending || snooze.isPending;
+
+  // Toast first, then mark seen: a failed call repeats the celebration next visit instead of losing it.
+  // The ref keeps React StrictMode's double effect from toasting twice.
+  const announced = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    if (!board || board.unseen.length === 0) return;
+    const plan = planCompletionToasts(board.unseen, announced.current);
+    if (plan.ids.length === 0) return;
+    plan.ids.forEach((id) => announced.current.add(id));
+    plan.messages.forEach((m) => toast(m));
+    markQuestsSeen(plan.ids)
+      .then(() => queryClient.invalidateQueries({ queryKey: ['journey-quests'] }))
+      .catch(() => { /* not marked seen: it will be announced once more next visit */ });
+  }, [board, queryClient]);
+
+  const topQuest = board?.focus ?? board?.offers[0];
+  const cards = board ? [...(board.focus ? [board.focus] : []), ...board.offers] : [];
 
   if (stateLoading) {
     return (
@@ -90,7 +126,7 @@ export const JourneyPage = () => {
       {/* Hero (left) + Tier Cards (right) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
-          <LivingGardenHero state={state} topQuest={quests?.[0]} />
+          <LivingGardenHero state={state} topQuest={topQuest} />
         </div>
         <div className="md:col-span-2 space-y-2">
           {['L1', 'L2', 'L3', 'L4', 'L5'].map((lvl) => (
@@ -106,12 +142,32 @@ export const JourneyPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-40" />)}
           </div>
-        ) : quests && quests.length > 0 ? (
+        ) : cards.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {quests.map((q) => <QuestCard key={q.title} quest={q} />)}
+            {cards.map((q) => (
+              <QuestCard
+                key={q.code}
+                quest={q}
+                isFocus={board?.focus?.code === q.code}
+                onFocus={() => focusQuest.mutate(q.code)}
+                onSnooze={() => snooze.mutate(q.code)}
+                busy={questBusy}
+              />
+            ))}
+          </div>
+        ) : board?.levelGoal ? (
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{board.levelGoal.title}</p>
+            {board.levelGoal.notEvaluated ? (
+              <p className="text-sm text-muted-foreground">Not scored yet, add data to start.</p>
+            ) : (
+              board.levelGoal.gaps.map((g) => (
+                <p key={g.indicatorCode} className="text-sm text-muted-foreground">{g.label}</p>
+              ))
+            )}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No quests available. Recalculate to generate new quests.</p>
+          <p className="text-sm text-muted-foreground">Nothing to suggest right now.</p>
         )}
       </section>
 

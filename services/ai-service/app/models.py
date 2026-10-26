@@ -79,45 +79,6 @@ class SuggestCategoriesResponse(BaseModel):
     suggestions: list[MerchantSuggestion]
 
 
-# ── Journey Advisor ───────────────────────────────────────────────────────────
-
-class IndicatorSnapshot(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-
-    code: str
-    level: Literal["L1", "L2", "L3", "L4", "L5"]
-    score: Decimal
-    raw_value: Decimal | None = None
-    status: Literal["achieved", "in_progress", "not_started", "no_data"]
-
-
-class JourneyAdviseRequest(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-
-    user_id: str
-    current_level: int
-    total_score: Decimal
-    indicators: list[IndicatorSnapshot]
-
-
-class Quest(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-
-    title: str
-    description: str
-    target_indicator: str
-    # Score gain in points (0–100), not a monetary value — must serialize as a
-    # JSON number. Pydantic renders Decimal as a JSON *string* ("12"), which the
-    # .NET client cannot read into `decimal`; float serializes as a number.
-    estimated_score_gain: float
-    difficulty: Literal["easy", "medium", "hard"]
-    action_deeplink: str | None = None
-
-
-class JourneyAdviseResponse(BaseModel):
-    quests: list[Quest]
-
-
 # ── Portfolio Review ──────────────────────────────────────────────────────────
 
 class PortfolioHolding(BaseModel):

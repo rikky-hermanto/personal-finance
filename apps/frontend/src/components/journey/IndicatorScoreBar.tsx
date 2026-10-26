@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NOT_EVALUATED_ACTIONS } from '@/utils/journeyLabels';
 import type { IndicatorScore } from '@/types/Journey';
@@ -11,7 +12,10 @@ interface Props {
   subtext?: string;
 }
 
-const STATUS_COLORS: Record<string, string> = {
+// The four indicators that earn stars (StarRungs on the backend); other live indicators show none.
+const STAR_CODES = new Set(['spend_lt_income', 'liquid_savings_ratio', 'manageable_dti', 'savings_rate']);
+
+const STATUS_COLORS:Record<string, string> = {
   achieved:    'bg-emerald-500',
   in_progress: 'bg-amber-500',
   not_started: 'bg-slate-300',
@@ -46,7 +50,22 @@ export const IndicatorScoreBar = ({ indicator, compact, headline, subtext }: Pro
         <span className="text-xs font-medium text-foreground/80 truncate flex-1">
           {headline ?? indicator.displayName}
         </span>
-        <span className="text-xs font-mono font-medium ml-2">{indicator.score.toFixed(0)}</span>
+        <span className="flex items-center gap-1.5 ml-2">
+          {indicator.stars !== undefined && STAR_CODES.has(indicator.code) && (
+            <span className="flex items-center gap-0.5" aria-label={`${indicator.stars} of 3 stars`}>
+              {[1, 2, 3].map((n) => (
+                <Star
+                  key={n}
+                  className={cn(
+                    'w-3 h-3',
+                    n <= indicator.stars ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30',
+                  )}
+                />
+              ))}
+            </span>
+          )}
+          <span className="text-xs font-mono font-medium">{indicator.score.toFixed(0)}</span>
+        </span>
       </div>
       <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
         <motion.div
