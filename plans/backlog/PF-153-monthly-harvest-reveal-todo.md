@@ -1,6 +1,6 @@
 ---
 id: PF-153
-flags: [Blocked]
+flags: []
 ---
 
 # PF-153 — Monthly Harvest: reveal the month's completed quests one by one on Journey
@@ -8,8 +8,8 @@ flags: [Blocked]
 > **GitHub Issue:** _(create when scheduling)_
 > **Status:** To Do
 > **Started:** —
-> **Board objective:** After each monthly upload, Journey shows that month's wins one at a time, and an overspent month still counts. Waits for the quest engine.
-> **Depends on (blocking):** [PF-152](PF-152-quest-engine-v1-todo.md) (plan 2, Quest Engine v1: `quest_completions`, `seen_at`, the board, the toast this plan replaces), which itself waits for [PF-151](../done/PF-151-journey-score-fixes-before-quests-todo.md) (plan 1, score fixes: investing is not spending, so "green" and "red" are true). Both must be executed and accepted first. Names below were reconciled with PF-152's plan text on 2026-10-25; STEP 0 re-checks them against the code as shipped.
+> **Board objective:** After each monthly upload, Journey shows that month's wins one at a time, and an overspent month still counts.
+> **Depends on (blocking):** [PF-152](../done/PF-152-quest-engine-v1-todo.md) (plan 2, Quest Engine v1: `quest_completions`, `seen_at`, the board, the toast this plan replaces), which itself waits for [PF-151](../done/PF-151-journey-score-fixes-before-quests-todo.md) (plan 1, score fixes: investing is not spending, so "green" and "red" are true). Both are now in `plans/done/` (PF-152 merged as `961c803a`). Names below were reconciled with the shipped PF-152 code on 2026-10-26 (see Notes, "Re-review 2026-10-26").
 > **Sensitive:** schema and row-level security (one new table, two database functions) and a seen flag whose failure is silent. Phase 1 runs on the stronger model.
 > **Planned from branch:** main
 
@@ -113,7 +113,7 @@ PF-151 and PF-152 must both be in `plans/done/` (or merged to the branch you are
 | `IQuestStore.LoadCompletionsAsync`, `LoadCashflowAccountsAsync` (active accounts with "include in cash flow" on: the "M" of "N of M") | STEPS 4, 5 |
 | `QuestEngine(IQuestStore, ILogger<QuestEngine>).EvaluateAsync(userId, ScoringSnapshot)`; `QuestContextFactory.FromSnapshot(...)`; `QuestContext.Months` as `MonthFacts(Year, Month, Income, Expense, TopExpenses)` (expense already excludes savings outflows, PF-151); `QuestContext.CashflowAccounts`; `QuestContext.Today` | STEP 4 |
 | `abstract record QuestRule { Evaluate, Applies, Progress }`, `QuestKind.Recognition`, `QuestCatalog.Build()`, `QuestCopy.CompletionTitle(quest, rung, evidence)`, evidence keys: fence posts `months`/`valuedAt`, `l1.in_the_green` `month`/`ratio`, stars `score`/`raw`, `ValuationExists` none yet | STEPS 2, 4 |
-| `QuestBoardDto { CatalogVersion, WorkingLevel, Focus, Offers, Unseen }`, `QuestBoardService(IQuestStore, TimeProvider)`, `GetQuestBoardQuery`, focus plus offers capped at 3 | STEP 5 |
+| `QuestBoardDto { CatalogVersion, WorkingLevel, Focus, Offers, Unseen, LevelGoal }` (shipped: `LevelGoal` is the last positional parameter, so add `Harvest` and `Rhythm` after it and update every place that constructs the record), `QuestBoardService(IQuestStore, TimeProvider)`, `GetQuestBoardQuery`, focus plus offers capped at 3 | STEP 5 |
 | `POST /api/journey/quests/{code}/focus` returns the board; `POST /api/journey/quests/seen` stays but the page stops calling it; controller actions are expression-bodied through MediatR | STEPS 5, 10 |
 | Frontend: types `QuestBoard`, `QuestCard` (kind, title, why, progress, deeplink), `UnseenCompletion`; `getJourneyQuests`, `setQuestFocus`, `markQuestsSeen`; `lib/journey/questToasts.ts` and its test; the toast effect in `JourneyPage`; `npm run test:journey` plus a CI step; a mocked-board toast test in `e2e/journey.spec.ts` | STEPS 8-11 |
 
@@ -159,7 +159,7 @@ GRANT UPDATE (income_idr, expense_idr, result, accounts_covered, accounts_total,
 
 -- Insert or refresh the figures. seen_at is deliberately absent from this function's update list, so a
 -- late upload that changes "4 of 5" to "5 of 5" can never re-open a harvest that was already seen.
-CREATE OR REPLACE FUNCTION public.upsert_harvest_months(p_rows jsonb)
+CREATE OR REPLACE FUNCTION public.upsert_harvest_months(p_rows jsonb, p_seen boolean DEFAULT false)
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY INVOKER
@@ -168,6 +168,9 @@ AS $$
 DECLARE
   v_owner uuid := auth.uid();
   v_count integer;
+  -- p_seen only matters for an owner whose ledger is still empty: months that already existed before
+  -- this feature are history, not a new harvest, so they start out seen. It never applies on conflict.
+  v_seed_seen boolean := p_seen AND NOT EXISTS (SELECT 1 FROM public.harvest_months);
 BEGIN
   IF v_owner IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '28000';
@@ -177,8 +180,9 @@ BEGIN
   END IF;
 
   INSERT INTO public.harvest_months
-    (user_id, month, income_idr, expense_idr, result, accounts_covered, accounts_total)
-  SELECT v_owner, r.month, r.income_idr, r.expense_idr, r.result, r.accounts_covered, r.accounts_total
+    (user_id, month, income_idr, expense_idr, result, accounts_covered, accounts_total, seen_at)
+  SELECT v_owner, r.month, r.income_idr, r.expense_idr, r.result, r.accounts_covered, r.accounts_total,
+         CASE WHEN v_seed_seen THEN now() END
   FROM jsonb_to_recordset(p_rows) AS r(
     month date, income_idr numeric, expense_idr numeric, result text,
     accounts_covered smallint, accounts_total smallint)
@@ -223,8 +227,8 @@ BEGIN
 END
 $$;
 
-REVOKE ALL ON FUNCTION public.upsert_harvest_months(jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.upsert_harvest_months(jsonb) TO authenticated;
+REVOKE ALL ON FUNCTION public.upsert_harvest_months(jsonb, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.upsert_harvest_months(jsonb, boolean) TO authenticated;
 REVOKE ALL ON FUNCTION public.mark_harvest_seen(bigint[], date) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.mark_harvest_seen(bigint[], date) TO authenticated;
 
@@ -255,6 +259,7 @@ SET LOCAL ROLE anon;
 SELECT public.upsert_harvest_months('[]'::jsonb);   -- expect: permission denied
 ROLLBACK;
 ```
+Add a third rollback-only check for the seeding rule, as the owner: with the owner's real ledger empty (true on the first run), `SELECT public.upsert_harvest_months('[{"month":"2001-07-01",...}]'::jsonb, true)` inserts a row with `seen_at IS NOT NULL`; a second call for `2001-08-01` with `p_seen = true` inserts a row with `seen_at IS NULL` (the ledger was no longer empty); a call with `p_seen = false` on an empty ledger inserts `seen_at IS NULL`. Run it inside `BEGIN ... ROLLBACK` against a throwaway user id if the owner's ledger is not empty.
 Then a second rollback-only check for `mark_harvest_seen`: a stranger's call changes nothing, and the owner's call stops at the month cut-off. Adapt the `INSERT INTO public.quest_completions` columns to plan 2's real table (STEP 0). The codes and 2001 months are made up so they cannot collide with real rows.
 ```sql
 BEGIN;
@@ -291,7 +296,7 @@ ROLLBACK;
 These checks were run on 2026-10-25 against a throwaway Postgres 16 container with minimal stand-ins for `auth.users`, `auth.uid()`, the two roles and plan 2's table. They have not yet run on the real Supabase stack, so run them there.
 
 > **Why:** A plain PostgREST upsert sends every column the C# model has and could silently null `seen_at`, which would replay old harvests with no error anywhere. A function with an explicit update list makes that impossible and is testable in SQL. `user_id` comes from `auth.uid()` inside the function, never from the payload. The `GRANT` line matters because PF-S08 revoked all table privileges: without it the API gets "permission denied" and, because the engine swallows ledger failures (STEP 4), nothing would show up except an empty Harvest.
-> **Check:** the first block prints `8500000.00 | 5 | t`, `0`, and a permission error for `anon`; the second prints `0 | 0` for the stranger and `1 | 2001-08` for the owner. Also confirm, as `authenticated`, that `DELETE` on `harvest_months` is refused ("permission denied") and that `UPDATE public.harvest_months SET month = month` and `SET user_id = user_id` are refused too (the column-level grant leaves the key out). If `upsert_harvest_months` now fails with "permission denied for table harvest_months", the column list in the grant is missing a column the function updates.
+> **Check:** the first block prints `8500000.00 | 5 | t`, `0`, and a permission error for `anon`; the seeding check behaves as described above; the second prints `0 | 0` for the stranger and `1 | 2001-08` for the owner. Also confirm, as `authenticated`, that `DELETE` on `harvest_months` is refused ("permission denied") and that `UPDATE public.harvest_months SET month = month` and `SET user_id = user_id` are refused too (the column-level grant leaves the key out). If `upsert_harvest_months` now fails with "permission denied for table harvest_months", the column list in the grant is missing a column the function updates.
 
 ---
 
@@ -1060,8 +1065,11 @@ namespace PersonalFinance.Application.Interfaces;
 /// <summary>The owner's harvested months. The owner is the signed-in caller; no method takes a user id.</summary>
 public interface IHarvestLedger
 {
-    /// <summary>Insert or refresh month figures. Never changes whether a month was seen.</summary>
-    Task UpsertMonthsAsync(IReadOnlyList<HarvestMonthRecord> months, CancellationToken ct = default);
+    /// <summary>Insert or refresh month figures. Never changes whether an existing month was seen.
+    /// <paramref name="insertedAsSeen"/> applies only to new rows written while the owner's ledger is still
+    /// empty (history from before this feature); the database decides, so a stale flag cannot hide a real harvest.</summary>
+    Task UpsertMonthsAsync(
+        IReadOnlyList<HarvestMonthRecord> months, bool insertedAsSeen = false, CancellationToken ct = default);
 
     Task<IReadOnlyList<HarvestLedgerRow>> ListAsync(CancellationToken ct = default);
 
@@ -1089,7 +1097,8 @@ public sealed class SupabaseHarvestLedger(
 {
     private const string DateFormat = "yyyy-MM-dd";
 
-    public async Task UpsertMonthsAsync(IReadOnlyList<HarvestMonthRecord> months, CancellationToken ct = default)
+    public async Task UpsertMonthsAsync(
+        IReadOnlyList<HarvestMonthRecord> months, bool insertedAsSeen = false, CancellationToken ct = default)
     {
         if (months.Count == 0) return;
         var rows = months.Select(m => new
@@ -1101,7 +1110,7 @@ public sealed class SupabaseHarvestLedger(
             accounts_covered = m.AccountsCovered,
             accounts_total = m.AccountsTotal,
         }).ToArray();
-        using var _ = await SendAsync(HttpMethod.Post, "rpc/upsert_harvest_months", new { p_rows = rows }, ct);
+        using var _ = await SendAsync(HttpMethod.Post, "rpc/upsert_harvest_months", new { p_rows = rows, p_seen = insertedAsSeen }, ct);
     }
 
     public async Task<IReadOnlyList<HarvestLedgerRow>> ListAsync(CancellationToken ct = default)
@@ -1208,6 +1217,27 @@ public sealed class SupabaseHarvestLedgerTests
         Assert.Equal("2026-09-01", row.GetProperty("month").GetString());
         Assert.Equal(4, row.GetProperty("accounts_covered").GetInt32());
         Assert.Equal(8_000_000m, row.GetProperty("expense_idr").GetDecimal());
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UpsertMonthsAsync_InsertedAsSeen_IsSentAsPSeen(bool insertedAsSeen)
+    {
+        // Arrange
+        string? body = null;
+        using var http = new HttpClient(new StubHandler(async request =>
+        {
+            body = await request.Content!.ReadAsStringAsync();
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("1") };
+        }));
+
+        // Act
+        await CreateLedger(http).UpsertMonthsAsync([September()], insertedAsSeen);
+
+        // Assert
+        using var parsed = JsonDocument.Parse(body!);
+        Assert.Equal(insertedAsSeen, parsed.RootElement.GetProperty("p_seen").GetBoolean());
     }
 
     [Fact]
@@ -1340,9 +1370,9 @@ public sealed class QuestEngine(IQuestStore store, IHarvestLedger harvestLedger,
     : IQuestEngine
 {
     // ... EvaluateAsync as in PF-152, then, just before `return fresh;`:
-    //     await UpdateHarvestLedgerAsync(ctx, ct);
+    //     await UpdateHarvestLedgerAsync(ctx, historic: existing.Count > 0, ct);
 
-    private async Task UpdateHarvestLedgerAsync(QuestContext ctx, CancellationToken ct)
+    private async Task UpdateHarvestLedgerAsync(QuestContext ctx, bool historic, CancellationToken ct)
     {
         // A failed transaction load must not look like "no months were harvested".
         if (!ctx.TransactionsLoaded) return;
@@ -1356,7 +1386,7 @@ public sealed class QuestEngine(IQuestStore store, IHarvestLedger harvestLedger,
             .ToList();
         try
         {
-            await harvestLedger.UpsertMonthsAsync(records, ct);
+            await harvestLedger.UpsertMonthsAsync(records, insertedAsSeen: historic, ct);
         }
         catch (Exception ex)
         {
@@ -1414,6 +1444,7 @@ Tests (`tests/PersonalFinance.Tests/Quests/`, with `FakeQuestStore` and the new 
 - `Evaluate_LedgerWriteThrows_StillStoresCompletionsAndLogs`
 - `Evaluate_TransactionsLoadFailed_DoesNotTouchTheLedger`
 - `Evaluate_NothingNewCompleted_StillRefreshesTheLedger`
+- `Evaluate_ExistingCompletions_PassesInsertedAsSeenTrue` and `Evaluate_NoEarlierCompletions_PassesInsertedAsSeenFalse` (an existing owner's first ledger write is history; a brand-new user's first harvest still plays)
 - `Evaluate_RedMonthOnTwoPassesAndASecondRedMonth_StoresHonestHarvestOnce`
 - `Evaluate_NoIncomeMonth_DoesNotAwardHonestHarvest`; `Evaluate_ExpenseEqualsIncome_AwardsHonestHarvest`
 - `RedMonthRecorded_*` rule tests with plain objects, including `TransactionsLoaded = false` and `RedMonthRecorded_PartlyCoveredMonth_StoresCoveredAndTotal` (4 of 5 accounts gives `covered = 4`, `total = 5`)
@@ -1515,7 +1546,7 @@ TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
 ```
 Then:
 1. **Real flow.** Upload `apps/frontend/e2e/fixtures/bca-sample.csv` as the test user. In psql run `select month, result, accounts_covered, accounts_total, seen_at from harvest_months;`. A row must exist. If it does not, the likeliest causes are the missing `GRANT` or a swallowed error: read the API log.
-2. **Seed two unseen completions and one unseen month** for the test user's id with psql as the local superuser (two `quest_completions` rows with `catalog_version` set and `seen_at` null, one `harvest_months` row with 4 of 5 and `seen_at` null). The first-run backfill flag is `evidence = '{"backfill": true}'` on three or more rows; seed that too and confirm the board returns one folded card with all the ids.
+2. **Seed two unseen completions and one unseen month** for the test user's id with psql as the local superuser (two `quest_completions` rows with `catalog_version` set and `seen_at` null, one `harvest_months` row with 4 of 5 and `seen_at` null). The first-run backfill flag is `evidence = '{"backfill": true}'` on every row of a first pass that completes two or more quests for a user with no earlier completions (the shipped engine's rule is `existing.Count == 0 && fresh.Count > 1`); seed that too and confirm the board returns one folded card with all the ids.
 3. `curl -s -H "Authorization: Bearer $TOKEN" $API/api/journey/quests | jq .harvest` returns exactly 2 items and `"basis": "Based on 4 of 5 accounts"`.
 4. `curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{"ids":[<id1>,<id2>],"month":"2026-09"}' $API/api/journey/harvest/seen -o /dev/null -w "%{http_code}"` prints `204`.
 5. The same GET as step 3 now prints `null`.
@@ -2219,6 +2250,10 @@ gitleaks detect
 - **Size.** About 5 to 6 working days (Phase 1 about 3, Phase 2 about 2.5). If it runs long, split at the phase boundary: Phase 1 only adds fields and one endpoint, so it can ship alone while PF-152's toast keeps working until STEP 10.
 - **Not done on purpose.** No harvest history page, no per-account "missing" names (only counts, per the brief), no backfill of rhythm beyond the three-month window, no change to PF-152's `/quests/seen`, no push or daily mechanics.
 - **Verification already done while planning (2026-10-25), in scratch projects, not in the repo:** the migration and both checks on a throwaway Postgres 16 container with stand-ins for Supabase's `auth` schema and PF-152's table (outputs as stated in STEP 1); the C# classes and 48 xUnit tests including the ledger adapter against a stub HTTP handler; the TypeScript files under strict `tsc` and 10 Vitest tests; and a jsdom render of `HarvestPanel` (animated order, mark-seen once, Skip, red copy with no red classes, reduced motion). Not verified: anything that touches PF-152's real classes, the real Supabase stack, the real `tsc`/ESLint config, or a browser.
+
+- **Re-review 2026-10-26 (against the shipped PF-152 code).** Checked and matching: `QuestEngine(IQuestStore, ILogger<QuestEngine>)` with the completions stored before `return fresh`; `MonthFacts` (positional, so the two defaulted fields are safe); `AccountFact(Id, Name, HasTransactionInWindow)` for `CashflowAccounts`; rules `GreenMonth` in `L1Rules.cs` and `ValuationExists` in `L2Rules.cs`; `QuestRule.NoEvidence`; `QuestCopy.CompletionTitle`; `QuestCompletion.SeenAt`; the `quest_completions` grants (`UPDATE (seen_at)` only); `npm run test:journey`; `questToasts.ts` and its test; migration `20261026000000` is the newest, so `20261027000000` is free. Corrected in this plan: `QuestBoardDto` also has `LevelGoal` (STEP 0 table); the backfill flag fires for two or more first-pass completions, not three (STEP 7). Not re-read in this review: STEP 3 (ledger adapter) and STEPS 8 to 11 (frontend), which do not depend on PF-152's backend names beyond the table.
+- **Resolved 2026-10-26: the first pass after deploy no longer replays history for an existing owner.** `upsert_harvest_months` takes `p_seen` (default false), used only for rows inserted while the owner's ledger is empty; the engine passes `existing.Count > 0` (STEPS 1, 3, 4). A brand-new user's first pass passes false, so their first harvest plays. The STEP 3 adapter test count is 5 plus the two `UpsertMonthsAsync_InsertedAsSeen_*` cases; they have not been run.
+- **Minor.** `GardenBefore` is `completions.Count - added`, but unseen rows with a retired catalog code are skipped from the items while still counted in the total; harmless today (catalog version 1), revisit when the catalog changes.
 
 ## Execution Notes
 
