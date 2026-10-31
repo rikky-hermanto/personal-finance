@@ -61,8 +61,17 @@ export async function updateAccount(id: string, data: Partial<Account>): Promise
   return res.json();
 }
 
+/** Thrown when an account still has transactions, assets, holdings or liabilities (HTTP 409). */
+export class AccountInUseError extends Error {
+  constructor() {
+    super('account_in_use');
+    this.name = 'AccountInUseError';
+  }
+}
+
 export async function deleteAccount(id: string): Promise<void> {
   const res = await authenticatedFetch(`${BASE}/api/accounts/${id}`, { method: 'DELETE' });
+  if (res.status === 409) throw new AccountInUseError();
   if (!res.ok) throw new Error('Failed to delete account');
 }
 

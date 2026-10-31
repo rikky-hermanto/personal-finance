@@ -5,8 +5,9 @@ import { AccountsHeader } from '@/components/accounts/AccountsHeader';
 import { StaleNudge } from '@/components/accounts/StaleNudge';
 import { AccountGroup } from '@/components/accounts/AccountGroup';
 import { AccountRow, FinishSetupRow } from '@/components/accounts/AccountRow';
+import { AccountSheet } from '@/components/accounts/AccountSheet';
 import { AddAccountDialog } from '@/components/assets/AddAccountDialog';
-import { invalidateAccountQueries, useAccounts } from '@/hooks/use-accounts';
+import { AccountView, invalidateAccountQueries, useAccounts } from '@/hooks/use-accounts';
 import {
   ACCOUNT_GROUPS,
   AccountGroup as Group,
@@ -27,6 +28,7 @@ export default function AccountsTab() {
   const [filter, setFilter] = useState<Filter>('all');
   const [showArchived, setShowArchived] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [editAccount, setEditAccount] = useState<AccountView | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   const loading = isLoading || valuationsLoading;
@@ -54,6 +56,17 @@ export default function AccountsTab() {
   const visibleGroups = filter === 'all' ? groups : groups.filter(g => g.key === filter);
 
   const openAccount = (id: string) => setSelectedAccountId(id);
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId) ?? null;
+
+  // The edit dialog replaces the sheet while it is open, then hands back to it.
+  const startEdit = (account: AccountView) => {
+    setSelectedAccountId(null);
+    setEditAccount(account);
+  };
+  const endEdit = () => {
+    if (editAccount) setSelectedAccountId(editAccount.id);
+    setEditAccount(null);
+  };
 
   return (
     <div className="mx-auto w-full max-w-[640px] px-4 py-11 sm:px-0">
@@ -114,7 +127,16 @@ export default function AccountsTab() {
           onClose={() => setAddOpen(false)}
         />
       )}
-      {selectedAccountId && null}
+      <AccountSheet account={selectedAccount} onClose={() => setSelectedAccountId(null)} onEdit={startEdit} />
+
+      {editAccount && (
+        <AddAccountDialog
+          institutions={institutions}
+          initial={editAccount}
+          onSuccess={() => invalidateAccountQueries(queryClient)}
+          onClose={endEdit}
+        />
+      )}
     </div>
   );
 }
