@@ -20,17 +20,27 @@ public static class QuestContextFactory
         {
             var m = s.Today.AddMonths(-i);
             var monthStart = new DateTime(m.Year, m.Month, 1);
-            var top = transactions
-                .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month && JourneyScoringRules.IsExpense(t))
+            var inMonth = transactions
+                .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month)
+                .ToList();
+            var top = inMonth
+                .Where(JourneyScoringRules.IsExpense)
                 .OrderByDescending(t => t.AmountIdr)
                 .Take(5)
                 .Select(t => new ExpenseFact(t.AmountIdr, t.Category))
                 .ToList();
+            // Every transaction in the month counts, not only income and expense rows (the "N of M" basis).
+            var accountIds = inMonth
+                .Where(t => t.AccountId.HasValue)
+                .Select(t => t.AccountId!.Value)
+                .ToHashSet();
             return new MonthFacts(
                 m.Year, m.Month,
                 JourneyScoringRules.MonthTotal(transactions, monthStart, JourneyScoringRules.IsIncome),
                 JourneyScoringRules.MonthTotal(transactions, monthStart, JourneyScoringRules.IsConsumption),
-                top);
+                top,
+                inMonth.Count,
+                accountIds);
         }).ToList();
 
         var windowKeys = months.Select(m => (m.Year, m.Month)).ToHashSet();

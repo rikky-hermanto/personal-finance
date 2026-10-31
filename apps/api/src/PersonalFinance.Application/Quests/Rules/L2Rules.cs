@@ -18,8 +18,18 @@ public sealed record DebtsMapped : QuestRule
 public sealed record ValuationExists(string AccountType) : QuestRule
 {
     // v1 supports savings only; SavingsAccounts is the only list the snapshot loads.
-    public override IReadOnlyList<RungResult> Evaluate(QuestContext ctx, QuestDefinition quest) =>
-        [new RungResult(0, ctx.SavingsLoaded && ctx.SavingsAccounts.Any(a => a.LatestValuedAt != null), NoEvidence)];
+    public override IReadOnlyList<RungResult> Evaluate(QuestContext ctx, QuestDefinition quest)
+    {
+        var met = ctx.SavingsLoaded && ctx.SavingsAccounts.Any(a => a.LatestValuedAt != null);
+        // The reveal line "You are covered for N months" needs the cover figure. Store it only when the
+        // indicator is live and trusted; otherwise no line appears, rather than an invented one.
+        var coverLive = ctx.SavingsLoaded && ctx.Indicators.TryGetValue("liquid_savings_ratio", out var ind)
+            && ind.Status != "no_data" && ind.Trusted && ind.Raw is not null;
+        IReadOnlyDictionary<string, object?> evidence = coverLive
+            ? new Dictionary<string, object?> { ["months"] = ctx.Indicators["liquid_savings_ratio"].Raw }
+            : NoEvidence;
+        return [new RungResult(0, met, evidence)];
+    }
 }
 
 public sealed record LevelGraduated(string Level) : QuestRule

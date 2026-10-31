@@ -3,13 +3,14 @@ using FluentValidation;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Quests;
+using PersonalFinance.Application.Services.Harvest;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Application.Services;
 
-/// <summary>Reads stored state only (completions, state row, accounts): no scoring, no AI. Decides what to
-/// offer; the only writes are focus, snoozes and seen, through IQuestStore.</summary>
-public sealed class QuestBoardService(IQuestStore store, TimeProvider time) : IQuestBoardService
+/// <summary>Reads stored state only (completions, state row, accounts, harvest ledger): no scoring, no AI.
+/// Decides what to offer; the only writes are focus, snoozes and seen, through IQuestStore.</summary>
+public sealed class QuestBoardService(IQuestStore store, IHarvestLedger ledger, TimeProvider time) : IQuestBoardService
 {
     private const int MaxCards = 3;
     private static readonly string[] Levels = ["L1", "L2", "L3", "L4", "L5"];
@@ -24,6 +25,7 @@ public sealed class QuestBoardService(IQuestStore store, TimeProvider time) : IQ
     public async Task<QuestBoardDto> GetBoardAsync(Guid userId, CancellationToken ct = default)
     {
         var loaded = await LoadAsync(userId, ct);
+        var ledgerRows = await ledger.ListAsync(ct);
         var candidates = Candidates(loaded);
 
         var ordered = Order(candidates, loaded);
@@ -38,13 +40,34 @@ public sealed class QuestBoardService(IQuestStore store, TimeProvider time) : IQ
             offers = cards.Skip(1).ToList();
         }
 
+        var (harvest, rhythm) = BuildHarvest(loaded.Completions, ledgerRows, loaded.Today);
+
         return new QuestBoardDto(
             QuestCatalog.Version,
             loaded.Context.WorkingLevel,
             focus,
             offers,
-            BuildUnseen(loaded.Completions),
-            BuildLevelGoal(loaded));
+            BuildLevelGoal(loaded),
+            harvest,
+            rhythm);
+    }
+
+    private static (HarvestDto? Harvest, RhythmDto Rhythm) BuildHarvest(
+        IReadOnlyList<QuestCompletion> completions, IReadOnlyList<HarvestLedgerRow> ledgerRows, DateOnly today)
+    {
+        var unseenItems = completions
+            .Where(c => c.SeenAt is null && QuestCatalog.Find(c.QuestCode) is not null)
+            .Select(c => new HarvestInputItem(
+                c.Id, c.QuestCode,
+                QuestCopy.CompletionTitle(QuestCatalog.Find(c.QuestCode)!, c.Rung, c.Evidence),
+                c.Evidence, HarvestAssembler.IsBackfillEvidence(c.Evidence), c.CompletedAt))
+            .ToList();
+        var unseenMonths = ledgerRows.Where(r => !r.Seen).Select(r => r.Record).ToList();
+
+        var harvest = HarvestAssembler.Build(unseenItems, unseenMonths, gardenTotal: completions.Count);
+        var lastFull = new DateOnly(today.Year, today.Month, 1).AddMonths(-1);
+        var rhythm = MonthlyRhythm.Compute(ledgerRows.Select(r => r.Record.Month), lastFull);
+        return (harvest, rhythm);
     }
 
     public async Task<QuestBoardDto> SetFocusAsync(Guid userId, string code, CancellationToken ct = default)
@@ -163,34 +186,6 @@ public sealed class QuestBoardService(IQuestStore store, TimeProvider time) : IQ
             q.Why,
             progress is null ? null : new QuestProgressDto(progress.Done, progress.Total, progress.Label),
             q.Deeplink);
-    }
-
-    private static bool IsBackfill(QuestCompletion c) =>
-        c.Evidence.TryGetValue("backfill", out var v)
-        && string.Equals(Convert.ToString(v, CultureInfo.InvariantCulture), "true", StringComparison.OrdinalIgnoreCase);
-
-    private static List<UnseenCompletionDto> BuildUnseen(IReadOnlyList<QuestCompletion> completions)
-    {
-        var unseen = completions.Where(c => c.SeenAt is null).OrderBy(c => c.CompletedAt).ToList();
-        var items = new List<UnseenCompletionDto>();
-
-        var backfill = unseen.Where(IsBackfill).ToList();
-        if (backfill.Count > 0)
-            items.Add(new UnseenCompletionDto(
-                backfill.Select(c => c.Id).ToList(), null, 0,
-                $"You'd already completed {backfill.Count} quests",
-                backfill.Max(c => c.CompletedAt), true, backfill.Count));
-
-        foreach (var c in unseen.Where(c => !IsBackfill(c)))
-        {
-            var def = QuestCatalog.Find(c.QuestCode);
-            if (def is null) continue;   // a code from a retired catalog version is never celebrated
-            items.Add(new UnseenCompletionDto(
-                [c.Id], c.QuestCode, c.Rung, QuestCopy.CompletionTitle(def, c.Rung, c.Evidence),
-                c.CompletedAt, false, 1));
-        }
-
-        return items.OrderBy(i => i.CompletedAt).ToList();
     }
 
     private static LevelGoalDto? BuildLevelGoal(Loaded loaded)

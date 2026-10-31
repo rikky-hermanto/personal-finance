@@ -125,4 +125,70 @@ public class L1RuleTests
         Assert.Equal("0.8", evidence["ratio"]);
         Assert.DoesNotContain("income", evidence.Keys);
     }
+
+    private static MonthFacts MonthWithAccounts(
+        int year, int month, decimal income, decimal expense, int count, IReadOnlySet<Guid> accountIds) =>
+        new(year, month, income, expense, [], count, accountIds);
+
+    [Fact]
+    public void GreenMonth_PartlyCoveredMonth_StoresCoveredAndTotalInEvidence()
+    {
+        // Arrange: 4 of 5 accounts have a row in the green month.
+        var accounts = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToList();
+        var withRows = accounts.Take(4).ToHashSet();
+        var ctx = (Empty() with
+        {
+            CashflowAccounts = accounts.Select(id => new AccountFact(id, "A", true)).ToList(),
+        }).WithMonths(MonthWithAccounts(2026, 9, 1000m, 800m, 10, withRows));
+
+        // Act
+        var evidence = Quest("l1.in_the_green").Rule.Evaluate(ctx, Quest("l1.in_the_green")).Single().Evidence;
+
+        // Assert
+        Assert.Equal(4, evidence["covered"]);
+        Assert.Equal(5, evidence["total"]);
+    }
+
+    private static bool RedMet(QuestContext ctx) =>
+        new RedMonthRecorded().Evaluate(ctx, Quest("l1.honest_harvest")).Single().Met;
+
+    [Fact]
+    public void RedMonthRecorded_AMonthRanOver_Met() =>
+        Assert.True(RedMet(Empty().WithMonths(MonthWithAccounts(2026, 9, 100m, 150m, 3, new HashSet<Guid>()))));
+
+    [Fact]
+    public void RedMonthRecorded_ExpenseEqualsIncome_Met() =>
+        Assert.True(RedMet(Empty().WithMonths(MonthWithAccounts(2026, 9, 100m, 100m, 3, new HashSet<Guid>()))));
+
+    [Fact]
+    public void RedMonthRecorded_NoIncomeMonth_NotMet() =>
+        Assert.False(RedMet(Empty().WithMonths(MonthWithAccounts(2026, 9, 0m, 150m, 3, new HashSet<Guid>()))));
+
+    [Fact]
+    public void RedMonthRecorded_NoTransactionsInMonth_NotMet() =>
+        Assert.False(RedMet(Empty().WithMonths(MonthWithAccounts(2026, 9, 100m, 150m, 0, new HashSet<Guid>()))));
+
+    [Fact]
+    public void RedMonthRecorded_TransactionsNotLoaded_NotMet() =>
+        Assert.False(RedMet((Empty() with { TransactionsLoaded = false })
+            .WithMonths(MonthWithAccounts(2026, 9, 100m, 150m, 3, new HashSet<Guid>()))));
+
+    [Fact]
+    public void RedMonthRecorded_PartlyCoveredMonth_StoresCoveredAndTotal()
+    {
+        // Arrange
+        var accounts = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToList();
+        var withRows = accounts.Take(4).ToHashSet();
+        var ctx = (Empty() with
+        {
+            CashflowAccounts = accounts.Select(id => new AccountFact(id, "A", true)).ToList(),
+        }).WithMonths(MonthWithAccounts(2026, 9, 100m, 150m, 10, withRows));
+
+        // Act
+        var evidence = new RedMonthRecorded().Evaluate(ctx, Quest("l1.honest_harvest")).Single().Evidence;
+
+        // Assert
+        Assert.Equal(4, evidence["covered"]);
+        Assert.Equal(5, evidence["total"]);
+    }
 }

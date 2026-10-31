@@ -31,9 +31,28 @@ public class QuestEngineTests
 
     private static (QuestEngine Engine, FakeQuestStore Store) Create(bool anyTransaction = false)
     {
-        var store = new FakeQuestStore { AnyTransaction = anyTransaction };
-        return (new QuestEngine(store, NullLogger<QuestEngine>.Instance), store);
+        var (engine, store, _) = CreateWithLedger(anyTransaction);
+        return (engine, store);
     }
+
+    private static (QuestEngine Engine, FakeQuestStore Store, FakeHarvestLedger Ledger) CreateWithLedger(
+        bool anyTransaction = false)
+    {
+        var store = new FakeQuestStore { AnyTransaction = anyTransaction };
+        var ledger = new FakeHarvestLedger();
+        return (new QuestEngine(store, ledger, NullLogger<QuestEngine>.Instance), store, ledger);
+    }
+
+    private static Transaction Tx(int year, int month, int day, decimal amount, string flow, Guid? accountId) =>
+        new()
+        {
+            Date = new DateTime(year, month, day),
+            AmountIdr = amount,
+            Flow = flow,
+            Type = flow == "CR" ? "Income" : "Expense",
+            Category = "Food",
+            AccountId = accountId,
+        };
 
     private static SavingsAccountFact Valued(DateTime when) => new(Guid.NewGuid(), "Savings", 1m, when);
 
@@ -153,6 +172,194 @@ public class QuestEngineTests
         await engine.EvaluateAsync(UserId, Snapshot(transactionsFailed: true));
 
         Assert.DoesNotContain(store.Completions, c => c.QuestCode is "l1.sort_the_pile" or "l1.in_the_green" or "l1.full_picture");
+    }
+
+    private static Account Acct(Guid id) => new() { Id = id, Name = "Acct" };
+
+    [Fact]
+    public async Task Evaluate_ThreeMonthsOfData_UpsertsOneRecordPerMonthWithTransactions()
+    {
+        // Arrange: September and August have rows; July has none.
+        var (engine, store, ledger) = CreateWithLedger(anyTransaction: true);
+        var acct = Guid.NewGuid();
+        store.Accounts.Add(Acct(acct));
+        var transactions = new List<Transaction>
+        {
+            Tx(2026, 9, 3, 10_000_000m, "CR", acct),
+            Tx(2026, 9, 5, 4_000_000m, "DB", acct),
+            Tx(2026, 8, 2, 1_000_000m, "DB", acct),
+        };
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: transactions));
+
+        // Assert
+        Assert.Equal(2, ledger.LastUpsert.Count);
+        var sep = ledger.LastUpsert.Single(r => r.Month == new DateOnly(2026, 9, 1));
+        Assert.Equal("green", sep.Result);
+        Assert.Equal(1, sep.AccountsCovered);
+        Assert.Equal(1, sep.AccountsTotal);
+        Assert.DoesNotContain(ledger.LastUpsert, r => r.Month == new DateOnly(2026, 7, 1));
+    }
+
+    [Fact]
+    public async Task Evaluate_FiveAccountsFourWithData_RecordsFourOfFive()
+    {
+        // Arrange
+        var (engine, store, ledger) = CreateWithLedger(anyTransaction: true);
+        var accounts = Enumerable.Range(0, 5).Select(_ => Guid.NewGuid()).ToList();
+        foreach (var id in accounts) store.Accounts.Add(Acct(id));
+        var transactions = new List<Transaction> { Tx(2026, 9, 1, 10_000_000m, "CR", accounts[0]) };
+        transactions.AddRange(accounts.Take(4).Select(id => Tx(2026, 9, 2, 1_000_000m, "DB", id)));
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: transactions));
+
+        // Assert
+        var sep = ledger.LastUpsert.Single(r => r.Month == new DateOnly(2026, 9, 1));
+        Assert.Equal(4, sep.AccountsCovered);
+        Assert.Equal(5, sep.AccountsTotal);
+    }
+
+    [Fact]
+    public async Task Evaluate_LedgerWriteThrows_StillStoresCompletionsAndLogs()
+    {
+        // Arrange
+        var (engine, store, ledger) = CreateWithLedger(anyTransaction: true);
+        ledger.Throws = true;
+
+        // Act
+        var fresh = await engine.EvaluateAsync(UserId, Snapshot());
+
+        // Assert: the import did not fail, completions are stored.
+        Assert.NotEmpty(store.Completions);
+        Assert.Equal(1, ledger.UpsertCalls);
+    }
+
+    [Fact]
+    public async Task Evaluate_TransactionsLoadFailed_DoesNotTouchTheLedger()
+    {
+        // Arrange
+        var (engine, _, ledger) = CreateWithLedger();
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot(transactionsFailed: true));
+
+        // Assert
+        Assert.Equal(0, ledger.UpsertCalls);
+    }
+
+    [Fact]
+    public async Task Evaluate_NothingNewCompleted_StillRefreshesTheLedger()
+    {
+        // Arrange
+        var (engine, store, ledger) = CreateWithLedger(anyTransaction: true);
+        var acct = Guid.NewGuid();
+        store.Accounts.Add(Acct(acct));
+        var transactions = new List<Transaction> { Tx(2026, 9, 3, 1_000_000m, "DB", acct) };
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: transactions));
+        var callsAfterFirst = ledger.UpsertCalls;
+
+        // Act: a second identical pass completes nothing new.
+        var fresh = await engine.EvaluateAsync(UserId, Snapshot(transactions: transactions));
+
+        // Assert
+        Assert.Empty(fresh);
+        Assert.Equal(callsAfterFirst + 1, ledger.UpsertCalls);
+    }
+
+    [Fact]
+    public async Task Evaluate_ExistingCompletions_PassesInsertedAsSeenTrue()
+    {
+        // Arrange: an owner who already has a completion. Their first ledger write is history.
+        var (engine, store, ledger) = CreateWithLedger(anyTransaction: true);
+        store.Completions.Add(new Domain.Entities.QuestCompletion
+        {
+            Id = 99, UserId = UserId, QuestCode = "l1.meet_your_money", Rung = 0, CatalogVersion = 1,
+            Evidence = new Dictionary<string, object?>(),
+        });
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot());
+
+        // Assert
+        Assert.True(ledger.LastInsertedAsSeen);
+    }
+
+    [Fact]
+    public async Task Evaluate_NoEarlierCompletions_PassesInsertedAsSeenFalse()
+    {
+        // Arrange
+        var (engine, _, ledger) = CreateWithLedger(anyTransaction: true);
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot());
+
+        // Assert
+        Assert.False(ledger.LastInsertedAsSeen);
+    }
+
+    [Fact]
+    public async Task Evaluate_RedMonthOnTwoPassesAndASecondRedMonth_StoresHonestHarvestOnce()
+    {
+        // Arrange: September runs over.
+        var (engine, store, _) = CreateWithLedger(anyTransaction: true);
+        var acct = Guid.NewGuid();
+        store.Accounts.Add(Acct(acct));
+        var sep = new List<Transaction>
+        {
+            Tx(2026, 9, 1, 5_000_000m, "CR", acct),
+            Tx(2026, 9, 2, 8_000_000m, "DB", acct),
+        };
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: sep));
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: sep));            // same red month again
+        var augAndSep = new List<Transaction>(sep)
+        {
+            Tx(2026, 8, 1, 3_000_000m, "CR", acct),
+            Tx(2026, 8, 2, 6_000_000m, "DB", acct),                                  // a second red month
+        };
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: augAndSep));
+
+        // Assert
+        Assert.Equal(1, store.Completions.Count(c => c.QuestCode == "l1.honest_harvest"));
+    }
+
+    [Fact]
+    public async Task Evaluate_NoIncomeMonth_DoesNotAwardHonestHarvest()
+    {
+        // Arrange: spending, no income recorded -> neutral, never red.
+        var (engine, store, _) = CreateWithLedger(anyTransaction: true);
+        var acct = Guid.NewGuid();
+        store.Accounts.Add(Acct(acct));
+        var transactions = new List<Transaction> { Tx(2026, 9, 2, 8_000_000m, "DB", acct) };
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: transactions));
+
+        // Assert
+        Assert.DoesNotContain(store.Completions, c => c.QuestCode == "l1.honest_harvest");
+    }
+
+    [Fact]
+    public async Task Evaluate_ExpenseEqualsIncome_AwardsHonestHarvest()
+    {
+        // Arrange: a spend ratio of 1.00 is the rubric's 0-point breakpoint -> red.
+        var (engine, store, _) = CreateWithLedger(anyTransaction: true);
+        var acct = Guid.NewGuid();
+        store.Accounts.Add(Acct(acct));
+        var transactions = new List<Transaction>
+        {
+            Tx(2026, 9, 1, 5_000_000m, "CR", acct),
+            Tx(2026, 9, 2, 5_000_000m, "DB", acct),
+        };
+
+        // Act
+        await engine.EvaluateAsync(UserId, Snapshot(transactions: transactions));
+
+        // Assert
+        Assert.Contains(store.Completions, c => c.QuestCode == "l1.honest_harvest");
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using PersonalFinance.Api.Controllers;
+using PersonalFinance.Application.Commands.Harvest;
 using PersonalFinance.Application.Commands.Quests;
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
@@ -12,7 +13,7 @@ namespace PersonalFinance.Tests.Controllers;
 public class JourneyControllerQuestTests
 {
     private static readonly Guid Owner = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private static readonly QuestBoardDto Board = new(1, "L1", null, [], [], null);
+    private static readonly QuestBoardDto Board = new(1, "L1", null, [], null, null, new RhythmDto(0, 0));
 
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IJourneyScoringService> _scoring = new();
@@ -71,6 +72,18 @@ public class JourneyControllerQuestTests
         Assert.IsType<NoContentResult>(result);
         _mediator.Verify(m => m.Send(
             It.Is<MarkQuestsSeenCommand>(c => c.UserId == Owner && c.Ids.SequenceEqual(new long[] { 4, 5 })),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task MarkHarvestSeen_SendsBodyValuesAndReturnsNoContent()
+    {
+        var result = await Controller().MarkHarvestSeen(
+            new MarkHarvestSeenRequest([41, 42], "2026-09"), CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+        _mediator.Verify(m => m.Send(
+            It.Is<MarkHarvestSeenCommand>(c => c.Ids.SequenceEqual(new long[] { 41, 42 }) && c.Month == "2026-09"),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 

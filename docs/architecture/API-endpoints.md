@@ -70,10 +70,11 @@ Route constraints below (`:guid` / `:int`) describe parameter types; omit the co
 | GET | `/api/investments/setups/{id:guid}/snapshots/{snapshotId:guid}` | GetSnapshot |
 | GET | `/api/journey/state` | GetState (indicators carry `stars` 0-3 and stored `rawValue`) |
 | POST | `/api/journey/recalculate` | Recalculate |
-| GET | `/api/journey/quests` | GetQuests (quest board: focus, offers, unseen completions, level goal) |
+| GET | `/api/journey/quests` | GetQuests (quest board: focus, offers, `harvest` (Monthly Harvest block, null when nothing is unseen), `rhythm` (consecutive harvested months), level goal) |
 | POST | `/api/journey/quests/{code}/focus` | SetFocus |
 | POST | `/api/journey/quests/{code}/snooze` | Snooze (one month) |
 | POST | `/api/journey/quests/seen` | MarkSeen (`{ ids }`, 204) |
+| POST | `/api/journey/harvest/seen` | MarkHarvestSeen (`{ "ids": [41, 42], "month": "2026-09" }`, 204, idempotent — marks the listed completions and every ledger month up to `month` as seen) |
 | GET | `/api/journey/no-debts` | GetNoDebts |
 | PUT | `/api/journey/no-debts` | ConfirmNoDebts |
 | DELETE | `/api/journey/no-debts` | ClearNoDebts |

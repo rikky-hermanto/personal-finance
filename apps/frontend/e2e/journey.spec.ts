@@ -90,36 +90,4 @@ test.describe('Journey Page', () => {
     await page.goto('/journey');
     await expect(page.getByText(/Activity Streak/i)).toBeVisible();
   });
-
-  test('a completed quest toasts once and is marked seen once', async ({ page }) => {
-    const board = (unseen: unknown[]) => ({
-      catalogVersion: 1,
-      workingLevel: 'L1',
-      focus: null,
-      offers: [],
-      unseen,
-      levelGoal: { level: 'L1', title: 'Clear L1', notEvaluated: true, gaps: [] },
-    });
-    let seenCalls = 0;
-    let unseen: unknown[] = [
-      { ids: [101], code: 'l1.meet_your_money', rung: 0, title: 'Meet your money', completedAt: '2026-10-26T00:00:00Z', isBackfill: false, count: 1 },
-    ];
-    await page.route('**/api/journey/quests/seen', async (route) => {
-      seenCalls += 1;
-      unseen = [];
-      await route.fulfill({ status: 204 });
-    });
-    await page.route('**/api/journey/quests', async (route) => {
-      await route.fulfill({ json: board(unseen) });
-    });
-
-    await page.goto('/journey');
-    await expect(page.getByText('Meet your money')).toBeVisible();
-    await expect.poll(() => seenCalls).toBe(1);
-
-    await page.reload();
-    await expect(page.getByRole('heading', { name: /Active Quests/i })).toBeVisible();
-    await expect(page.getByText('Meet your money')).toHaveCount(0);
-    expect(seenCalls).toBe(1);
-  });
 });

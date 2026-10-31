@@ -43,16 +43,6 @@ export interface QuestCard {
   deeplink: string | null;
 }
 
-export interface UnseenCompletion {
-  ids: number[];
-  code: string | null;
-  rung: number;
-  title: string;
-  completedAt: string;
-  isBackfill: boolean;
-  count: number;
-}
-
 export interface LevelGoalGap {
   indicatorCode: string;
   label: string;
@@ -66,13 +56,43 @@ export interface LevelGoal {
   gaps: LevelGoalGap[];
 }
 
+export interface HarvestItem {
+  code: string;
+  glyph: string;
+  title: string;
+  line: string | null;
+  count: number;
+  completionIds: number[];
+  isBackfill: boolean;
+}
+
+export interface Harvest {
+  month: string | null; // "2026-09"
+  title: string;
+  basis: string | null;
+  accountsCovered: number | null;
+  accountsTotal: number | null;
+  result: 'green' | 'red' | 'neutral' | null;
+  resultLine: string | null;
+  closing: string | null;
+  gardenBefore: number;
+  gardenAfter: number;
+  items: HarvestItem[];
+}
+
+export interface Rhythm {
+  current: number;
+  longest: number;
+}
+
 export interface QuestBoard {
   catalogVersion: number;
   workingLevel: string;
   focus: QuestCard | null;
   offers: QuestCard[];
-  unseen: UnseenCompletion[];
   levelGoal: LevelGoal | null;
+  harvest: Harvest | null;
+  rhythm: Rhythm;
 }
 
 export const TIER_META: Record<string, { label: string; color: string; deeplink: string; module: string }> = {

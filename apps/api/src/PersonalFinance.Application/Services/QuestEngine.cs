@@ -1,11 +1,14 @@
 using Microsoft.Extensions.Logging;
+using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Quests;
+using PersonalFinance.Application.Services.Harvest;
 using PersonalFinance.Domain.Entities;
 
 namespace PersonalFinance.Application.Services;
 
-public sealed class QuestEngine(IQuestStore store, ILogger<QuestEngine> logger) : IQuestEngine
+public sealed class QuestEngine(IQuestStore store, IHarvestLedger harvestLedger, ILogger<QuestEngine> logger)
+    : IQuestEngine
 {
     public async Task<IReadOnlyList<QuestCompletion>> EvaluateAsync(
         Guid userId, ScoringSnapshot snapshot, CancellationToken ct = default)
@@ -41,6 +44,32 @@ public sealed class QuestEngine(IQuestStore store, ILogger<QuestEngine> logger) 
 
         if (fresh.Count > 0) await store.InsertCompletionsAsync(fresh, ct);
         logger.LogInformation("Quest pass for {UserId}: {New} new completions", userId, fresh.Count);
+
+        // Always refresh the ledger, even when nothing new completed, so a late upload updates "N of M".
+        await UpdateHarvestLedgerAsync(ctx, historic: existing.Count > 0, ct);
         return fresh;
+    }
+
+    private async Task UpdateHarvestLedgerAsync(QuestContext ctx, bool historic, CancellationToken ct)
+    {
+        // A failed transaction load must not look like "no months were harvested".
+        if (!ctx.TransactionsLoaded) return;
+
+        var accountIds = ctx.CashflowAccounts.Select(a => a.Id).ToList();
+        var records = ctx.Months
+            .Select(m => HarvestSummaryBuilder.Build(
+                new DateOnly(m.Year, m.Month, 1), m.Income, m.Expense, m.TransactionCount,
+                accountIds, m.AccountIdsWithTransactions ?? new HashSet<Guid>()))
+            .OfType<HarvestMonthRecord>()
+            .ToList();
+        try
+        {
+            await harvestLedger.UpsertMonthsAsync(records, insertedAsSeen: historic, ct);
+        }
+        catch (Exception ex)
+        {
+            // Same rule as the recalculation trigger: Journey never fails an import.
+            logger.LogError(ex, "Could not update the harvest ledger");
+        }
     }
 }

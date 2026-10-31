@@ -63,12 +63,20 @@ public sealed record GreenMonth : QuestRule
         if (!ctx.TransactionsLoaded) return [new RungResult(0, false, NoEvidence)];
         foreach (var m in ctx.Months)
         {
-            if (m.Income > 0 && m.Expense < m.Income)
+            // One classifier for the quest and the harvest, so they can never disagree (STEP 4).
+            if (Services.Harvest.HarvestSummaryBuilder.Classify(m.Income, m.Expense)
+                == Services.Harvest.HarvestSummaryBuilder.Green)
             {
+                // The completion is permanent while the ledger row keeps refreshing, so it records
+                // how many accounts it was based on (G10).
+                var (covered, total) = Services.Harvest.HarvestSummaryBuilder.Coverage(
+                    ctx.CashflowAccounts.Select(a => a.Id).ToList(), m.AccountIdsWithTransactions);
                 var evidence = new Dictionary<string, object?>
                 {
                     ["month"] = $"{m.Year:0000}-{m.Month:00}",
                     ["ratio"] = Math.Round(m.Expense / m.Income, 4).ToString(CultureInfo.InvariantCulture),
+                    ["covered"] = covered,
+                    ["total"] = total,
                 };
                 return [new RungResult(0, true, evidence)];
             }

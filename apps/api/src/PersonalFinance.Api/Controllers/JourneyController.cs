@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using PersonalFinance.Application.Commands.Harvest;
 using PersonalFinance.Application.Commands.Journey;
 using PersonalFinance.Application.Commands.Quests;
 using PersonalFinance.Application.Dtos;
@@ -50,6 +51,13 @@ public class JourneyController(
         return NoContent();
     }
 
+    [HttpPost("harvest/seen")]
+    public async Task<IActionResult> MarkHarvestSeen([FromBody] MarkHarvestSeenRequest body, CancellationToken ct)
+    {
+        await mediator.Send(new MarkHarvestSeenCommand(body.Ids, body.Month), ct);
+        return NoContent();
+    }
+
     [HttpGet("no-debts")]
     public async Task<ActionResult<NoDebtsConfirmationDto>> GetNoDebts(CancellationToken ct)
     {
@@ -73,3 +81,5 @@ public class JourneyController(
 }
 
 public sealed record MarkQuestsSeenRequest(IReadOnlyList<long> Ids);
+
+public sealed record MarkHarvestSeenRequest(List<long> Ids, string? Month);

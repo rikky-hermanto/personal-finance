@@ -5,8 +5,9 @@ public sealed record QuestBoardDto(
     string WorkingLevel,
     QuestCardDto? Focus,
     IReadOnlyList<QuestCardDto> Offers,          // Focus + Offers is at most 3 in total
-    IReadOnlyList<UnseenCompletionDto> Unseen,
-    LevelGoalDto? LevelGoal);                    // what is left to clear the working level; null when every level is cleared
+    LevelGoalDto? LevelGoal,                      // what is left to clear the working level; null when every level is cleared
+    HarvestDto? Harvest,                          // the Monthly Harvest to play, or null when nothing is unseen (STEP 5)
+    RhythmDto Rhythm);                            // consecutive harvested months
 
 /// <summary>The working level's clearing goal, so the board is never silent while a level is open.
 /// Gaps name the live indicators below the clearing bar in the rung wording (no scores, no points).</summary>
@@ -19,7 +20,3 @@ public sealed record QuestCardDto(
     string Code, string Kind, string Title, string Why, QuestProgressDto? Progress, string? Deeplink);
 
 public sealed record QuestProgressDto(int Done, int Total, string Label);
-
-/// <summary>One toast. A normal completion has one id; a first-run backfill folds many ids into one item.</summary>
-public sealed record UnseenCompletionDto(
-    IReadOnlyList<long> Ids, string? Code, int Rung, string Title, DateTime CompletedAt, bool IsBackfill, int Count);

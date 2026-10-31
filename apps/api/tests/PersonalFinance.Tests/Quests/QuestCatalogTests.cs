@@ -51,12 +51,35 @@ public class QuestCatalogTests
         // Arrange
         var expected = new[] { "spend_lt_income", "liquid_savings_ratio", "manageable_dti", "savings_rate" };
 
-        // Act
-        var stars = QuestCatalog.V1.Where(q => q.Kind == QuestKind.Recognition)
+        // Act: Recognition quests are the four stars plus the hidden Honest Harvest.
+        var stars = QuestCatalog.V1.Where(q => q.Kind == QuestKind.Recognition && q.Code.StartsWith("stars."))
             .Select(q => q.Code.Replace("stars.", string.Empty)).ToList();
 
         // Assert
         Assert.Equal(expected.OrderBy(x => x), stars.OrderBy(x => x));
+    }
+
+    [Fact]
+    public void Catalog_EveryNonStarQuest_HasRevealCopy()
+    {
+        // A new quest cannot ship without a Harvest reveal line (G8 covers Honest Harvest too).
+        var missing = QuestCatalog.V1
+            .Where(q => !q.Code.StartsWith("stars."))
+            .Select(q => q.Code)
+            .Where(code => !PersonalFinance.Application.Services.Harvest.HarvestCopy.RegisteredCodes.Contains(code))
+            .ToList();
+
+        Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void Catalog_G8Lint_CoversHonestHarvest()
+    {
+        var quest = QuestCatalog.Find("l1.honest_harvest");
+        Assert.NotNull(quest);
+        Assert.Equal(QuestKind.Recognition, quest.Kind);
+        Assert.False(Violates(quest.Title));
+        Assert.False(Violates(quest.Why));
     }
 
     [Fact]
