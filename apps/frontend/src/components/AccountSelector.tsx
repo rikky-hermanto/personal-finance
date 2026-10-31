@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { getAccounts } from '@/api/accountsApi';
 import { getInstitutions } from '@/api/accountsApi';
 import { cn } from '@/lib/utils';
@@ -48,7 +49,7 @@ const AccountSelector = ({ value, onChange, prefilledAccountId, prefilledNote }:
       <div className="py-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-lg">
         No bank accounts set up yet.
         <br />
-        <span className="text-[11px]">Add accounts in Settings → Banks &amp; Accounts first.</span>
+        <Link to="/assets/accounts" className="text-[11px] underline underline-offset-2 hover:opacity-70 transition-opacity">Add accounts in Assets → Accounts first.</Link>
       </div>
     );
   }
