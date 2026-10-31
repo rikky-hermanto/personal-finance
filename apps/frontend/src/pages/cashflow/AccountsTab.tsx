@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useQuery } from '@tanstack/react-query';
 import { Building2, TrendingUp, TrendingDown, X, LayoutList, LayoutGrid, Calendar } from 'lucide-react';
@@ -195,7 +196,7 @@ const AccountsTab = () => {
             <div className="py-6 text-center text-xs text-muted-foreground">
               No accounts yet.
               <br />
-              <span className="text-[11px]">Add in Settings → Banks &amp; Accounts.</span>
+              <Link to="/assets/accounts" className="text-[11px] underline underline-offset-2 hover:opacity-70 transition-opacity">Add one in Assets → Accounts.</Link>
             </div>
           ) : (
             summaries.map((summary) => (

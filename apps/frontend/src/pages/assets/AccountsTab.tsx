@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/format';
 import { getInstitutions, getAccounts, deleteAccount } from '@/api/accountsApi';
 import { AddAccountDialog } from '@/components/assets/AddAccountDialog';
@@ -62,22 +61,11 @@ export default function AccountsTab() {
           <p className="text-[11px] uppercase tracking-[0.07em] font-semibold text-muted-foreground">Total Cash & Savings</p>
           <p className="text-2xl font-mono font-semibold tracking-tight mt-0.5">{formatCurrency(totalIdr, 'IDR')}</p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Manage accounts in{' '}
-          <Link to="/settings/banks" className="text-foreground underline underline-offset-2 hover:opacity-70 transition-opacity">
-            Settings → Banks & Accounts
-          </Link>
-        </p>
       </div>
 
       {/* Institutions */}
       {byInstitution.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-12">
-          No institutions yet.{' '}
-          <Link to="/settings/banks" className="underline underline-offset-2 hover:opacity-70 transition-opacity">
-            Add one in Settings → Banks & Accounts
-          </Link>
-        </p>
+        <p className="text-sm text-muted-foreground text-center py-12">No accounts yet.</p>
       )}
       {byInstitution.map(inst => {
         const instTotal = inst.accounts.reduce((s, a) => s + accountValue(a), 0);

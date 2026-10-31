@@ -20,7 +20,6 @@ import AppearanceTab from '@/pages/settings/AppearanceTab';
 import CategoriesTab from '@/pages/settings/CategoriesTab';
 import DataTab from '@/pages/settings/DataTab';
 import RegionalTab from '@/pages/settings/RegionalTab';
-import BanksTab from '@/pages/settings/BanksTab';
 import NotFound from '@/pages/NotFound';
 import StatusPage from '@/pages/StatusPage';
 import ChatPage from '@/pages/ChatPage';
@@ -98,7 +97,7 @@ const App = () => (
                 <Route path="categories" element={<CategoriesTab />} />
                 <Route path="regional" element={<RegionalTab />} />
                 <Route path="data" element={<DataTab />} />
-                <Route path="banks" element={<BanksTab />} />
+                <Route path="banks" element={<Navigate to="/assets/accounts" replace />} />
               </Route>
               <Route path="/assets" element={<AssetsLayout />}>
                 <Route index element={<Navigate to="/assets/overview" replace />} />
