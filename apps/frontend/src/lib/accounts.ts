@@ -87,6 +87,16 @@ export function accountGroup(accountType: string, institutionType?: string): Acc
   }
 }
 
+// Institution type is one of bank, broker, crypto_exchange, insurer, other (CreateInstitutionCommandValidator).
+export function institutionGroup(institutionType: string): AccountGroup {
+  switch (institutionType) {
+    case 'bank': return 'cash';
+    case 'broker': return 'investing';
+    case 'crypto_exchange': return 'crypto';
+    default: return 'other';
+  }
+}
+
 export function accountTypeLabel(accountType: string, institutionType?: string): string {
   switch (accountType) {
     case 'checking': return 'Checking';

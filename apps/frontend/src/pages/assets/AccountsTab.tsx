@@ -1,188 +1,120 @@
-import { useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { formatCurrency } from '@/lib/format';
-import { getInstitutions, getAccounts, deleteAccount } from '@/api/accountsApi';
+import { useMemo, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AccountsHeader } from '@/components/accounts/AccountsHeader';
+import { StaleNudge } from '@/components/accounts/StaleNudge';
+import { AccountGroup } from '@/components/accounts/AccountGroup';
+import { AccountRow, FinishSetupRow } from '@/components/accounts/AccountRow';
 import { AddAccountDialog } from '@/components/assets/AddAccountDialog';
-import { AddValuationDialog } from '@/components/assets/AddValuationDialog';
-import { Account } from '@/types/Account';
+import { invalidateAccountQueries, useAccounts } from '@/hooks/use-accounts';
+import {
+  ACCOUNT_GROUPS,
+  AccountGroup as Group,
+  accountGroup,
+  accountValue,
+  institutionGroup,
+  staleQueue,
+} from '@/lib/accounts';
+import { cn } from '@/lib/utils';
 
-type ValuationTarget = {
-  subjectId: string;
-  subjectName: string;
-  currency: string;
-};
+type Filter = 'all' | Exclude<Group, 'other'>;
 
-function relativeDate(iso: string) {
-  const diffDays = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  return `${diffDays} days ago`;
-}
-
-function accountValue(account: Account): number {
-  return account.latestValuation?.valueIdr ?? account.openingBalance;
-}
-
-function accountUpdatedAt(account: Account): string {
-  return account.latestValuation?.valuedAt ?? account.openingDate;
-}
+const FILTER_LABELS: Record<Filter, string> = { all: 'All', cash: 'Cash', investing: 'Investing', crypto: 'Crypto' };
 
 export default function AccountsTab() {
-  const [editAccount, setEditAccount] = useState<Account | null>(null);
-  const [valuationTarget, setValuationTarget] = useState<ValuationTarget | null>(null);
-  const [confirmAccountId, setConfirmAccountId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { accounts, institutions, isLoading, valuationsLoading, error } = useAccounts();
+  const [filter, setFilter] = useState<Filter>('all');
+  const [showArchived, setShowArchived] = useState(false);
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
-  const { data: institutions = [] } = useQuery({
-    queryKey: ['institutions'],
-    queryFn: getInstitutions,
-  });
-  const { data: accounts = [], refetch: refetchAcc } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: getAccounts,
-  });
+  const loading = isLoading || valuationsLoading;
+  const active = useMemo(() => accounts.filter(a => a.isActive), [accounts]);
+  const archivedCount = accounts.length - active.length;
+  const stale = useMemo(() => staleQueue(accounts), [accounts]);
+  const total = active.reduce((s, a) => s + accountValue(a), 0);
 
-  const deleteMutation = useMutation({
-    mutationFn: deleteAccount,
-    onSuccess: () => { setConfirmAccountId(null); refetchAcc(); },
-  });
+  const groups = useMemo(() => {
+    const withAccounts = new Set(accounts.map(a => a.institutionId).filter(Boolean));
+    const unfinished = institutions.filter(i => !withAccounts.has(i.id));
+    const listed = showArchived ? accounts : active;
+    return ACCOUNT_GROUPS.map(g => {
+      const rows = listed.filter(a => accountGroup(a.accountType, a.institution?.type) === g.key);
+      return {
+        ...g,
+        rows,
+        unfinished: unfinished.filter(i => institutionGroup(i.type) === g.key),
+        subtotal: rows.filter(a => a.isActive).reduce((s, a) => s + accountValue(a), 0),
+      };
+    }).filter(g => g.rows.length > 0 || g.unfinished.length > 0);
+  }, [accounts, active, institutions, showArchived]);
 
-  const byInstitution = institutions.map(inst => ({
-    ...inst,
-    accounts: accounts.filter(a => a.institutionId === inst.id),
-  }));
+  const filters: Filter[] = ['all', ...groups.map(g => g.key).filter((k): k is Exclude<Group, 'other'> => k !== 'other')];
+  const visibleGroups = filter === 'all' ? groups : groups.filter(g => g.key === filter);
 
-  const totalIdr = accounts.reduce((s, a) => s + accountValue(a), 0);
+  const openAccount = (id: string) => setSelectedAccountId(id);
 
   return (
-    <div className="px-6 py-6 space-y-6">
-      {/* Summary row */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.07em] font-semibold text-muted-foreground">Total Cash & Savings</p>
-          <p className="text-2xl font-mono font-semibold tracking-tight mt-0.5">{formatCurrency(totalIdr, 'IDR')}</p>
+    <div className="mx-auto w-full max-w-[640px] px-4 py-11 sm:px-0">
+      <AccountsHeader total={loading ? null : total} count={active.length} onAdd={() => setAddOpen(true)} />
+
+      {!loading && stale.length > 0 && <StaleNudge count={stale.length} onReview={() => undefined} />}
+
+      {filters.length > 2 && (
+        <div className="mt-[22px] flex flex-wrap gap-1.5" role="group" aria-label="Filter accounts">
+          {filters.map(f => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                'h-[30px] rounded-full px-3 text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                filter === f ? 'bg-secondary font-medium text-foreground' : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              {FILTER_LABELS[f]}
+            </button>
+          ))}
         </div>
-      </div>
-
-      {/* Institutions */}
-      {byInstitution.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-12">No accounts yet.</p>
       )}
-      {byInstitution.map(inst => {
-        const instTotal = inst.accounts.reduce((s, a) => s + accountValue(a), 0);
 
-        return (
-          <div key={inst.id} className="border border-border rounded-lg overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 bg-muted/30 border-b border-border">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-foreground">{inst.name}</span>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wide">{inst.type}</span>
-              </div>
-              <span className="text-sm font-mono font-medium text-foreground">{formatCurrency(instTotal, 'IDR')}</span>
-            </div>
+      {error ? (
+        <p className="mt-8 text-xs text-destructive">Couldn’t load your accounts. Refresh to try again.</p>
+      ) : loading ? (
+        <div className="mt-[30px] flex flex-col gap-1" aria-label="Loading accounts">
+          {[0, 1, 2].map(i => <Skeleton key={i} className="h-[60px] rounded-xl" />)}
+        </div>
+      ) : groups.length === 0 ? (
+        <p className="py-12 text-center text-sm text-muted-foreground">No accounts yet.</p>
+      ) : (
+        visibleGroups.map(g => (
+          <AccountGroup key={g.key} label={g.label} subtotal={g.subtotal}>
+            {g.rows.map(a => <AccountRow key={a.id} account={a} onOpen={openAccount} />)}
+            {g.unfinished.map(i => <FinishSetupRow key={i.id} institution={i} onFinish={() => setAddOpen(true)} />)}
+          </AccountGroup>
+        ))
+      )}
 
-            {inst.accounts.length === 0 ? (
-              <p className="px-5 py-4 text-xs text-muted-foreground">No accounts yet.</p>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="px-5 py-2.5 text-[10px] uppercase tracking-[0.07em] font-semibold text-muted-foreground text-left">Account</th>
-                    <th className="px-5 py-2.5 text-[10px] uppercase tracking-[0.07em] font-semibold text-muted-foreground text-left">Currency</th>
-                    <th className="px-5 py-2.5 text-[10px] uppercase tracking-[0.07em] font-semibold text-muted-foreground text-right">Value (IDR)</th>
-                    <th className="px-5 py-2.5 text-[10px] uppercase tracking-[0.07em] font-semibold text-muted-foreground text-right">Last Updated</th>
-                    <th className="px-5 py-2.5 text-[10px] uppercase tracking-[0.07em] font-semibold text-muted-foreground text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {inst.accounts.map(account => {
-                    const isConfirming = confirmAccountId === account.id;
-                    return (
-                      <tr key={account.id} className="hover:bg-accent/30 transition-colors">
-                        <td className="px-5 py-3 font-medium text-foreground text-xs">{account.name}</td>
-                        <td className="px-5 py-3 text-muted-foreground font-mono text-xs">{account.currency}</td>
-                        <td className="px-5 py-3 font-mono text-right text-foreground text-xs">
-                          {formatCurrency(accountValue(account), 'IDR')}
-                        </td>
-                        <td className="px-5 py-3 font-mono text-right text-muted-foreground text-xs">
-                          {relativeDate(accountUpdatedAt(account))}
-                        </td>
-                        <td className="px-5 py-3 text-right">
-                          {isConfirming ? (
-                            <div className="flex items-center justify-end gap-2 text-xs">
-                              <span className="text-muted-foreground">Delete account?</span>
-                              <button
-                                onClick={() => deleteMutation.mutate(account.id)}
-                                disabled={deleteMutation.isPending}
-                                className="px-2 py-0.5 rounded bg-destructive text-destructive-foreground text-[11px] font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
-                              >
-                                {deleteMutation.isPending ? 'Deleting…' : 'Yes, delete'}
-                              </button>
-                              <button
-                                onClick={() => setConfirmAccountId(null)}
-                                className="px-2 py-0.5 rounded border border-border text-[11px] font-medium hover:bg-accent transition-colors"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-end gap-3">
-                              <button
-                                onClick={() => setValuationTarget({
-                                  subjectId: account.id,
-                                  subjectName: account.name,
-                                  currency: account.currency,
-                                })}
-                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                Update
-                              </button>
-                              <button
-                                onClick={() => setEditAccount(account)}
-                                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => setConfirmAccountId(account.id)}
-                                className="text-xs text-muted-foreground hover:text-destructive transition-colors"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        );
-      })}
+      {!loading && archivedCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowArchived(v => !v)}
+          className="mt-6 rounded-sm px-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {showArchived ? 'Hide archived' : `Show archived (${archivedCount})`}
+        </button>
+      )}
 
-      {/* Edit Account dialog */}
-      {editAccount && (
+      {addOpen && (
         <AddAccountDialog
           institutions={institutions}
-          initial={editAccount}
-          onSuccess={refetchAcc}
-          onClose={() => setEditAccount(null)}
+          onSuccess={() => invalidateAccountQueries(queryClient)}
+          onClose={() => setAddOpen(false)}
         />
       )}
-
-      {/* Update valuation dialog */}
-      {valuationTarget && (
-        <AddValuationDialog
-          subjectType="account"
-          subjectId={valuationTarget.subjectId}
-          subjectName={valuationTarget.subjectName}
-          currency={valuationTarget.currency}
-          strategy="Manual"
-          onSuccess={() => refetchAcc()}
-          onClose={() => setValuationTarget(null)}
-        />
-      )}
+      {selectedAccountId && null}
     </div>
   );
 }

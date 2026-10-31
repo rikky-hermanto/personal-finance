@@ -37,6 +37,15 @@ export async function getHoldings(): Promise<Holding[]> {
   return res.json();
 }
 
+export async function getValuations(
+  subjectType: Valuation['subjectType'],
+  subjectId: string,
+): Promise<Valuation[]> {
+  const res = await authenticatedFetch(`${BASE}/api/assets/valuations/${subjectType}/${subjectId}`);
+  if (!res.ok) throw new Error('Failed to fetch valuations');
+  return res.json();
+}
+
 export async function addValuation(data: Partial<Valuation>): Promise<Valuation> {
   const res = await authenticatedFetch(`${BASE}/api/assets/valuations`, {
     method: 'POST',
