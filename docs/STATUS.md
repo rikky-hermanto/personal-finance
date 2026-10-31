@@ -1,12 +1,14 @@
 # Project Status
 
 > **Code reviewed:** 2026-10-08 (Asia/Makassar)
-> **Updated:** 2026-10-16 — PF-S08/S09 (sign-in and owner-only data) and PF-S15 (owner-scoped AI chat, RAG, advisor and categorizer agent) are done and accepted by the owner. Sections on auth, chat and agents below reflect that; the rest is still the 2026-10-08 review.
+> **Updated:** 2026-10-31 — PF-153 (Monthly Harvest) accepted and merged locally. 2026-10-16 — PF-S08/S09 (sign-in and owner-only data) and PF-S15 (owner-scoped AI chat, RAG, advisor and categorizer agent) are done and accepted by the owner. Sections on auth, chat and agents below reflect that; the rest is still the 2026-10-08 review.
 > Current implementation reference. “Implemented” means source and wiring exist; it does not mean deployed, live-tested today, or production-ready. Historical results retain their original dates.
 
 ## Current phase
 
 The local finance workspace now includes Journey, Cashflow, Assets, Investment, transaction Q&A, Buckets budgeting, Trading Desk foundations, and Macro Scenario Lab. The API targets **net10.0**, React is **18**, and FastAPI requires **Python >=3.11.9** (Docker uses 3.12). Persistence is Supabase/PostgREST plus direct asyncpg/pgvector queries for retrieval. EF Core/Persistence is removed.
+
+**2026-10-31 — PF-153 (Monthly Harvest):** each recalculation writes the month's ledger to `harvest_months` (green, red or neutral, "N of M accounts"); `GET /api/journey/quests` returns `harvest` and `rhythm` instead of `unseen`, and Journey reveals that month's new completions card by card in place of the PF-152 toast. Adds the "Honest Harvest" quest for a red month that still grew, and a monthly rhythm with one free skip per quarter and no loss message. Accepted by the owner and merged to main locally on 2026-10-31 (not pushed). Open follow-up: PF-152's `quest_completions` likely has over-wide local grants (PF-153 needed `REVOKE ALL` for the same reason).
 
 **2026-10-26 — PF-152 (Quest Engine v1):** uploads and asset writes now trigger recalculation; `quest_completions` stores one permanent row per completed rung; `GET /api/journey/quests` is a stored-state board with focus, snooze and seen; the LLM quest path (`/journey/advise`) is removed. Accepted by the owner and merged to main locally on 2026-10-26 (not pushed).
 
