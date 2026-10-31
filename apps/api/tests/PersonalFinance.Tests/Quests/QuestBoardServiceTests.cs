@@ -151,40 +151,6 @@ public class QuestBoardServiceTests
     }
 
     [Fact]
-    public async Task Board_Unseen_BackfillFoldsIntoOneItem()
-    {
-        var store = new FakeQuestStore();
-        for (var i = 0; i < 3; i++)
-            store.Completions.Add(new QuestCompletion
-            {
-                Id = i + 1, UserId = UserId, QuestCode = "stars.spend_lt_income", Rung = (short)(i + 1),
-                CompletedAt = DateTime.UtcNow, Evidence = new Dictionary<string, object?> { ["backfill"] = true },
-            });
-
-        var board = await Service(store).GetBoardAsync(UserId);
-
-        var item = Assert.Single(board.Unseen);
-        Assert.True(item.IsBackfill);
-        Assert.Equal(3, item.Count);
-        Assert.Equal([1L, 2L, 3L], item.Ids.OrderBy(x => x).ToArray());
-        Assert.Equal("You'd already completed 3 quests", item.Title);
-    }
-
-    [Fact]
-    public async Task Board_Unseen_NormalCompletionsAreSeparate()
-    {
-        var store = new FakeQuestStore();
-        store.Completions.Add(new QuestCompletion { Id = 1, UserId = UserId, QuestCode = "l1.meet_your_money", CompletedAt = DateTime.UtcNow.AddMinutes(-2) });
-        store.Completions.Add(new QuestCompletion { Id = 2, UserId = UserId, QuestCode = "l2.fence_posts", Rung = 1, CompletedAt = DateTime.UtcNow });
-
-        var board = await Service(store).GetBoardAsync(UserId);
-
-        Assert.Equal(2, board.Unseen.Count);
-        Assert.Equal("Meet your money", board.Unseen[0].Title);
-        Assert.Equal("Fence post 1 of 6", board.Unseen[1].Title);
-    }
-
-    [Fact]
     public async Task Board_FullPicture_NoAccounts_IsNotOffered()
     {
         var board = await Service(new FakeQuestStore()).GetBoardAsync(UserId);
@@ -346,7 +312,7 @@ public class QuestBoardServiceTests
         // G2: no points, gain or XP anywhere on the board.
         var bad = new Regex("point|gain|xp|reward", RegexOptions.IgnoreCase);
         Type[] types = [typeof(QuestBoardDto), typeof(QuestCardDto), typeof(QuestProgressDto),
-            typeof(UnseenCompletionDto), typeof(LevelGoalDto), typeof(LevelGoalGapDto),
+            typeof(LevelGoalDto), typeof(LevelGoalGapDto),
             typeof(HarvestDto), typeof(HarvestItemDto), typeof(RhythmDto)];
 
         foreach (var type in types)

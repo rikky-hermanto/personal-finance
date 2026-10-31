@@ -48,27 +48,33 @@ Nothing in this plan can change a pyramid score (G1), every number comes from st
 
 The five from the brief:
 
-- [ ] After an upload that completes 2 quests, the next Journey visit plays exactly those 2 quest cards, and after the reveal is finished or skipped, a reload shows no reveal and the API returns `harvest: null`.
-- [ ] For a fixture with 5 active cash-flow accounts of which 4 have transactions in the harvested month, the harvest says "Based on 4 of 5 accounts". An inactive account, or one with "include in cash flow" off, is not counted in the 5.
-- [ ] A red-month fixture (expenses at or above income, with at least one new completion) shows "Harvested. Your garden grew.", contains none of the words on the no-shame list, uses no red or destructive colour, and awards "Honest Harvest" exactly once, even across repeated recalculations and later red months. A harvested month with no new completion (for example a second red month) says only "Harvested.", because nothing grew.
-- [ ] With reduced motion on, the reveal shows all cards at once as static cards: no auto-advance, no animated entrance, no count-up.
-- [ ] One skipped month in a calendar quarter keeps the rhythm; a second skipped month in the same quarter restarts it, and no loss message appears anywhere.
+- [x] After an upload that completes 2 quests, the next Journey visit plays exactly those 2 quest cards, and after the reveal is finished or skipped, a reload shows no reveal and the API returns `harvest: null`.
+  > Verification note: Playwright (stubbed board) plays two cards and replays nothing after a reload; live API returns `harvest: null` after mark-seen. The real server was exercised with a first-run backfill (one folded card), not a two-quest batch.
+- [x] For a fixture with 5 active cash-flow accounts of which 4 have transactions in the harvested month, the harvest says "Based on 4 of 5 accounts". An inactive account, or one with "include in cash flow" off, is not counted in the 5.
+  > Verification note: live run gave "Based on 1 of 2 accounts"; the 4-of-5 wording is a unit-test fixture and the Playwright stub. An inactive or excluded account was not exercised live.
+- [x] A red-month fixture (expenses at or above income, with at least one new completion) shows "Harvested. Your garden grew.", contains none of the words on the no-shame list, uses no red or destructive colour, and awards "Honest Harvest" exactly once, even across repeated recalculations and later red months. A harvested month with no new completion (for example a second red month) says only "Harvested.", because nothing grew.
+- [x] With reduced motion on, the reveal shows all cards at once as static cards: no auto-advance, no animated entrance, no count-up.
+- [x] One skipped month in a calendar quarter keeps the rhythm; a second skipped month in the same quarter restarts it, and no loss message appears anywhere.
 
 Also required:
 
-- [ ] A month with no recorded income is "neutral", never green (FIN-04); exactly equal income and expenses is red (rubric 0-point breakpoint).
-- [ ] Two finished months in a row without a harvest end the current rhythm quietly: the page shows only "Longest rhythm" and nothing about the break.
-- [ ] A refresh of a month's figures (a late upload of the missing account) updates "N of M" but never re-opens a harvest the owner has already seen (checked in SQL).
-- [ ] The first-run backfill shows as one summary card ("You'd already completed N quests") and marks all N completions seen.
-- [ ] After the reveal is marked seen, leaving Journey and coming back inside the app (no page reload) shows no reveal and sends no second mark-seen call. The cached board is updated on success, not just refetched.
-- [ ] A permanent result on a partly covered month states its basis: the `l1.in_the_green` and `l1.honest_harvest` evidence carry `covered` and `total`, and when `covered < total` the result line ends with "in the accounts you uploaded" (G10, FIN-04).
-- [ ] The reveal does not advance and is not marked seen while the tab is hidden.
-- [ ] The reveal is not a modal: no focus trap, no scroll lock, links elsewhere on the page work while it plays, Skip is always visible, it pauses while hovered or focused, and leaving mid-way replays only the cards not yet seen.
-- [ ] Other users never see or change the owner's harvest rows (two-user RLS check), and `mark_harvest_seen` with someone else's completion ids changes nothing.
-- [ ] Scores are identical with and without the ledger write (the G1 test from plan 2 is extended to cover it).
-- [ ] Plan 2's toast code path is gone, `unseen` is gone from the board response, and the quests query refetches on every Journey visit (it used a 1-hour cache, which would hide a fresh harvest).
-- [ ] No new push notification, scheduled job, daily counter or sharing surface exists.
-- [ ] `dotnet build`, `dotnet test`, `npm run lint`, `npx tsc --noEmit -p tsconfig.app.json`, `npm run test:journey`, `npm run build` pass; `gitleaks detect` stays clean.
+- [x] A month with no recorded income is "neutral", never green (FIN-04); exactly equal income and expenses is red (rubric 0-point breakpoint).
+- [x] Two finished months in a row without a harvest end the current rhythm quietly: the page shows only "Longest rhythm" and nothing about the break.
+- [x] A refresh of a month's figures (a late upload of the missing account) updates "N of M" but never re-opens a harvest the owner has already seen (checked in SQL).
+- [x] The first-run backfill shows as one summary card ("You'd already completed N quests") and marks all N completions seen.
+- [x] After the reveal is marked seen, leaving Journey and coming back inside the app (no page reload) shows no reveal and sends no second mark-seen call. The cached board is updated on success, not just refetched.
+- [x] A permanent result on a partly covered month states its basis: the `l1.in_the_green` and `l1.honest_harvest` evidence carry `covered` and `total`, and when `covered < total` the result line ends with "in the accounts you uploaded" (G10, FIN-04).
+- [x] The reveal does not advance and is not marked seen while the tab is hidden.
+  > Verification note: Playwright test with `document.hidden` forced true.
+- [x] The reveal is not a modal: no focus trap, no scroll lock, links elsewhere on the page work while it plays, Skip is always visible, it pauses while hovered or focused, and leaving mid-way replays only the cards not yet seen.
+  > Verification note: "does not block the page" is covered by Playwright. Pause on hover/focus and "leaving mid-way replays only the cards not yet seen" are by code reading only.
+- [x] Other users never see or change the owner's harvest rows (two-user RLS check), and `mark_harvest_seen` with someone else's completion ids changes nothing.
+- [x] Scores are identical with and without the ledger write (the G1 test from plan 2 is extended to cover it).
+  > Verification note: no new dedicated unit test; the engine's store has no score write path (existing G1 test) and the live check compared indicator scores before and after a ledger write (identical).
+- [x] Plan 2's toast code path is gone, `unseen` is gone from the board response, and the quests query refetches on every Journey visit (it used a 1-hour cache, which would hide a fresh harvest).
+- [x] No new push notification, scheduled job, daily counter or sharing surface exists.
+  > Verification note: checked by reading the diff; no scheduler, push, counter or share code was added.
+- [x] `dotnet build`, `dotnet test`, `npm run lint`, `npx tsc --noEmit -p tsconfig.app.json`, `npm run test:journey`, `npm run build` pass; `gitleaks detect` stays clean.
 
 ## Approach
 
@@ -1569,7 +1575,8 @@ Edit `docs/architecture/API-endpoints.md`: add `POST /api/journey/harvest/seen` 
 
 ---
 
-### [ ] STEP 7 — Phase 1 gate: live check against the local stack
+### [x] STEP 7 — Phase 1 gate: live check against the local stack
+> **Done (hand run):** Local stack up. Migration applied to the local DB (pg_dump first: `C:\Users\rikky\pf-backups\pre-pf153-202610261713.dump`); the version row was inserted by hand because `supabase db push` refused (remote version `20260516000001` is not in the worktree's migrations folder). The SQL checks found a **defect in the plan's SQL**: this database's default privileges give `authenticated` and `anon` full rights on every new `public` table, so DELETE and key-column UPDATE were NOT refused. Fixed in the migration with `REVOKE ALL ... FROM PUBLIC, anon, authenticated` before the narrow grants; all SQL checks then pass (refresh keeps `seen_at`, stranger sees 0, anon denied, DELETE and `SET month`/`SET user_id` denied, seeding rule, `mark_harvest_seen` 0|0 and 1|2001-08). Live API flow: `scripts/pf_153_harvest_live_check.mjs` against the slot API, two throwaway users, **28/28 checks pass** (upload writes the ledger row with the grant, "Based on 1 of 2 accounts", first-run backfill folds into one card, mark seen 204 then `harvest: null`, late upload refreshes figures without re-opening, stranger changes nothing, scores identical, `unseen` gone). Throwaway users and rows were deleted. Not run: the two-user harness `scripts/pf_s08_module_isolation.py` (recorded as manual).
 Start the stack (`docker-up` skill). Use a **throwaway signed-in test user** (the PF-S08 disposable test accounts if that harness is up, otherwise a user you create in Studio and delete afterwards), never the owner's real rows. Get a token without printing it:
 ```bash
 TOKEN=$(curl -s -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
@@ -1594,7 +1601,8 @@ Then:
 
 # Phase 2 — Reveal UI
 
-### [ ] STEP 8 — Types, API client and the pure frontend logic (tests first)
+### [x] STEP 8 — Types, API client and the pure frontend logic (tests first)
+> **Done (hand run):** types, `markHarvestSeen`, `revealMachine`, `rhythm`, `harvestMotion` and their tests; `npm run test:journey` passes.
 Edit `apps/frontend/src/types/Journey.ts` (PF-152 defined `QuestBoard`, `QuestCard` and `UnseenCompletion`): add the interfaces below and give `QuestBoard` the two fields `harvest: Harvest | null;` and `rhythm: Rhythm;`. Leave `unseen` and `UnseenCompletion` for now, since the toast still reads them; STEP 10 deletes them:
 ```ts
 export interface HarvestItem {
@@ -1773,7 +1781,8 @@ No new script is needed: PF-152 added `"test:journey": "vitest run src/lib/journ
 
 ---
 
-### [ ] STEP 9 — Components
+### [x] STEP 9 — Components
+> **Done (hand run):** `use-count-up`, `HarvestCard`, `FocusPick`, `HarvestPanel`, `harvestStyles.test.ts`. The style test was made to fail once on purpose (`text-red-500` in `FocusPick`) and then restored.
 Read `ai/design/ui-rules.md` and the `data-oriented-zenmode` skill first. Rules that apply here: `.pf-card` is the card, no dividers (whitespace only), no bare percentages, emoji sized to their text block (two lines of text means `text-lg`), colours from theme tokens so dark mode works. The result is **never** coloured red or with the destructive token, for green and red months alike.
 
 `apps/frontend/src/hooks/use-count-up.ts`
@@ -2035,7 +2044,8 @@ describe('Harvest components', () => {
 
 ---
 
-### [ ] STEP 10 — Wire it into the Journey page and remove the toast
+### [x] STEP 10 — Wire it into the Journey page and remove the toast
+> **Done (hand run):** toast effect, `questToasts.ts` and its test, `markQuestsSeen` and the mocked toast e2e test removed; panel and rhythm line mounted; harvest snapshotted once; seen mutation strips the harvest from `['journey-quests']`; `Unseen`, `UnseenCompletionDto`, `BuildUnseen` and the two unseen tests removed (761 tests pass). Both queries keep `refetchOnMount: 'always'`. The plan's `grep toast(` check is too broad (other pages use `toast(`); `questToasts|markQuestsSeen|UnseenCompletion|.unseen` finds nothing.
 Edit `apps/frontend/src/pages/journey/JourneyPage.tsx` as PF-152's STEP 21 left it.
 
 1. **Remove the toast.** Delete the `announced` ref and the effect that calls `planCompletionToasts`, `toast(...)` and `markQuestsSeen`, plus the imports that become unused (`toast` from `sonner`, `planCompletionToasts`, `markQuestsSeen`, and `useRef` if nothing else uses it). Delete `apps/frontend/src/lib/journey/questToasts.ts` and `lib/journey/__tests__/questToasts.test.ts`, and the `markQuestsSeen` client function in `journeyApi.ts` (the server endpoint `POST /api/journey/quests/seen` stays; nothing in the UI calls it any more). Open `e2e/journey.spec.ts` and delete PF-152's mocked-board "toast once, none after reload" test; STEP 11 replaces it.
@@ -2095,7 +2105,8 @@ const onSeen = useCallback(
 
 ---
 
-### [ ] STEP 11 — Playwright spec with the quests endpoint stubbed
+### [x] STEP 11 — Playwright spec with the quests endpoint stubbed
+> **Done (hand run):** `e2e/journey-harvest.spec.ts` with eight tests (the seven in the plan plus a hidden-tab test); **8 passed** against the slot stack (API 7308, frontend 8180) with a throwaway user. The default `playwright.config.ts` points at port 8080, and the slot API only allows the 8180 origin, so the run used a temporary config (deleted afterwards).
 Create `apps/frontend/e2e/journey-harvest.spec.ts`. It signs in with the disposable PF-S08 test credentials (the same variables `auth-cashflow.spec.ts` uses), stubs only `GET /api/journey/quests` and `POST /api/journey/harvest/seen`, and leaves everything else real. The stubbed board has PF-152's `QuestBoard` shape plus `harvest` and `rhythm`; if PF-152 shipped a different field name, change it in `board()` below. (The older tests in `e2e/journey.spec.ts` open `/journey` without signing in, which the sign-in requirement of PF-S08/S09 no longer allows; this spec signs in explicitly. Fixing the old ones is not part of this ticket.)
 ```ts
 import { expect, test, type Page } from '@playwright/test';
@@ -2242,7 +2253,8 @@ npx playwright test e2e/journey-harvest.spec.ts
 
 ---
 
-### [ ] STEP 12 — Look at it, update the docs, run every gate
+### [x] STEP 12 — Look at it, update the docs, run every gate
+> **Done (hand run):** screenshots taken in the dark theme: calm panel, `pf-card`, no dividers, no red on a red month. Light theme was the OS default but the app rendered dark both times, so light was not seen. At 390 px the app's sidebar fills the viewport (existing layout), so the panel at phone width was not seen. Esc and the DevTools reduced-motion toggle were not tried by hand (reduced motion is covered by e2e). Docs updated (`API-endpoints.md`, `STATUS.md`, `reward-loop-closure.md`). Gates: `dotnet build` 0 warnings, `dotnet test` 761 passed / 9 skipped, `npm run lint` 0 errors, `tsc` clean, `test:desk` 12, `test:macro` 26, `test:journey` 14, `npm run build`, `gitleaks` no leaks.
 1. In the real app (`docker-up`, sign in, seed one harvest as in STEP 7 against a throwaway user), look at `http://localhost:8080/journey` in light and dark theme and at 390 px width: the panel is calm, uses `pf-card`, has no divider lines, no confetti, and nothing shifts the hero below it unexpectedly. Toggle "Emulate CSS prefers-reduced-motion" in DevTools and confirm static cards. Confirm the panel does not trap Tab, and Esc skips.
 2. `docs/architecture/API-endpoints.md`: remove `unseen` from the `GET /api/journey/quests` description and keep the `POST /api/journey/quests/seen` row (the endpoint stays). `docs/STATUS.md`: in the Journey row add "Monthly Harvest reveal after each upload, month ledger (N of M accounts, green/red), monthly rhythm with one free skip per quarter".
 3. `docs/ideas/reward-loop-closure.md`: under the open question about quests that complete while the app is closed, add one line: "Answered by PF-153: completions queue as unseen and play as the Monthly Harvest at the next Journey visit."
@@ -2287,6 +2299,8 @@ gitleaks detect
 - **Resolved 2026-10-26: the first pass after deploy no longer replays history for an existing owner.** `upsert_harvest_months` takes `p_seen` (default false), used only for rows inserted while the owner's ledger is empty; the engine passes `existing.Count > 0` (STEPS 1, 3, 4). A brand-new user's first pass passes false, so their first harvest plays. The STEP 3 adapter test count is 5 plus the two `UpsertMonthsAsync_InsertedAsSeen_*` cases; they have not been run.
 - **Minor.** `GardenBefore` is `completions.Count - added`, but unseen rows with a retired catalog code are skipped from the items while still counted in the total; harmless today (catalog version 1), revisit when the catalog changes.
 
+- **Hand-run record (2026-10-26).** The loop's first two segments finished steps 0 to 6 but never ticked the plan's checkboxes, so the stuck check stopped the run; steps 7 to 12 were finished by hand in the same worktree. **Plan defect found:** local default privileges grant `authenticated` and `anon` every right on new `public` tables, so the migration needs an explicit `REVOKE ALL` first (fixed in the migration). PF-152's `quest_completions` migration has the same exposure (its "`UPDATE (seen_at)` only" grant is not true locally); that is not changed here and should be checked in a PF-152 follow-up. `supabase db push --local` refuses in a worktree that lacks migration `20260516000001`, so the migration was applied with psql and its version row inserted by hand. `loop-env.mjs` looks for the AI service venv inside the worktree when the worktree's own copy is run; run the main checkout's copy.
+
 ## Execution Notes
 
 ### Phase 1 — Data and API
@@ -2311,3 +2325,39 @@ Before you start: Phase 1 is done and `GET /api/journey/quests` returns `harvest
 - The engine's snapshot does not carry `AccountId` per transaction, so "N of M" would need an extra query.
 - The STEP 1 SQL shows `seen_at` reset by a refresh, or another user can read the owner's harvest.
 - After a real upload, no `harvest_months` row appears and the cause is not an obvious missing grant.
+
+## ✅ Owner Review Checklist (G3)
+
+**State:** all 13 steps are implemented and every gate passes (`dotnet test` 761 passed, 8 Playwright tests, 28 live API checks). The migration is already applied to your local database. The verifier did not run (hand run), and the panel was seen only in the dark theme.
+
+**Known defects to confirm:** (1) The migration needed an explicit `REVOKE ALL` because local default privileges grant everything on new tables; a mocked test could not catch it. Confirm the grants in D2. (2) PF-152's `quest_completions` table likely has the same over-wide grants; this ticket did not touch it. (3) Light theme and a phone-width view of the panel were not seen.
+
+### A. Before you start
+- ☐ Branch `loop/pf-153`, worktree `.worktrees/pf-153`, changes still uncommitted on top of two WIP commits.
+- ☐ Local Supabase running (`npx supabase status`).
+
+### B. Read the code
+- ☐ `supabase/migrations/20261027000000_pf_153_harvest_months.sql`: `REVOKE ALL` then narrow grants; neither function writes `seen_at` on conflict.
+- ☐ `apps/api/src/PersonalFinance.Application/Services/QuestEngine.cs`: the ledger write is wrapped so a failure never fails an import.
+- ☐ `apps/frontend/src/pages/journey/JourneyPage.tsx`: harvest snapshotted once; the seen mutation clears the harvest from `['journey-quests']`.
+- ☐ `apps/frontend/src/components/journey/Harvest*.tsx` and `FocusPick.tsx`: no red or destructive classes, no dividers.
+
+### C. Run the tests
+- ☐ `cd apps/api && dotnet test PersonalFinance.slnx`: 761 passed, 9 skipped.
+- ☐ `cd apps/frontend && npm run test:journey`: 14 passed; `npm run lint`: 0 errors; `npx tsc --noEmit -p tsconfig.app.json`: clean; `npm run build`.
+
+### D. Start the stack and check it
+- ☐ D1. `docker exec supabase_db_personal-finance psql -U postgres -c "\d public.harvest_months"` shows the table; `select count(*) from harvest_months` is 0 for your own account until your next upload after a month ends.
+- ☐ D2. `select grantee, privilege_type from information_schema.role_table_grants where table_name='harvest_months' and grantee in ('authenticated','anon')` lists only `authenticated` INSERT and SELECT.
+
+### E. Live checks
+- ☐ E1. `PF_API=http://localhost:7308 node scripts/pf_153_harvest_live_check.mjs` (slot stack up) ends with `28/28 checks passed`.
+- ☐ E2. Open `/journey` signed in as yourself after your next monthly upload: the panel names the month and its "N of M accounts", plays the cards, and a reload shows no panel.
+- ☐ E3. Look at the panel in the light theme and at phone width.
+
+### F. Optional
+- ☐ F1. Add a harvest section to `scripts/pf_s08_module_isolation.py` instead of the standalone script.
+- ☐ F2. Open a follow-up to revoke the extra grants on `quest_completions`.
+
+### G. Decide and close
+- ☐ Accepted: tell Claude "PF-153 accepted". If you merge through a pull request, do not run `/loop-accept` (it would merge again); ask Claude to move the plan to `done/` and remove the branch and worktree.

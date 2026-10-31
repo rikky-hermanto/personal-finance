@@ -70,6 +70,7 @@ Perilaku yang sudah divalidasi di mockup HTML (project "Personal Finance", file 
   - Poin masuk ke **level score** atau ke **indicator score** lalu level score di-derive? (mockup: langsung level score, simplifikasi)
   - `totalScore` recompute formula? (mockup pakai aproksimasi `+gained*0.4` — bukan jawaban)
   - Kalau quest selesai saat user tidak membuka app (batch recompute), feedback-nya jadi apa? Queue toast saat next visit? Digest?
+    - Answered by PF-153: completions queue as unseen and play as the Monthly Harvest at the next Journey visit.
   - Toast stacking max berapa? (mockup: max 2)
   - Persist completed quests di mana — sekarang quest engine belum punya state "done"?
 - Screenshot referensi UI tersimpan di project mockup: `ref/screens/` (7 screenshot: overview, journey-dark, bank-accounts, upload, statement-dark).

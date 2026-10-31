@@ -25,6 +25,9 @@ CREATE POLICY harvest_months_owner ON public.harvest_months FOR ALL TO authentic
 -- No DELETE: a harvest row is never removed. Update is column-level, so user_id and month (the key)
 -- can never be changed. This does not stop the owner writing seen_at through PostgREST directly;
 -- the promise below is about the app's own refresh path, not the table.
+-- Local default privileges hand every new public table full rights to anon and authenticated, so the
+-- narrow grants below only mean something after everything is revoked first.
+REVOKE ALL ON public.harvest_months FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT ON public.harvest_months TO authenticated;
 GRANT UPDATE (income_idr, expense_idr, result, accounts_covered, accounts_total, computed_at, seen_at)
   ON public.harvest_months TO authenticated;

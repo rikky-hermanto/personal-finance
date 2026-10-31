@@ -51,11 +51,11 @@ export const snoozeQuest = async (code: string): Promise<QuestBoard> => {
   return r.json();
 };
 
-export const markQuestsSeen = async (ids: number[]): Promise<void> => {
-  const r = await authenticatedFetch(`${API}/api/journey/quests/seen`, {
+export const markHarvestSeen = async (body: { ids: number[]; month: string | null }): Promise<void> => {
+  const r = await authenticatedFetch(`${API}/api/journey/harvest/seen`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ids }),
+    body: JSON.stringify(body),
   });
-  if (!r.ok) throw new Error('Failed to mark quests seen');
+  if (!r.ok) throw new Error('Failed to mark harvest seen');
 };

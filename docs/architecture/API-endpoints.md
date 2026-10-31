@@ -70,7 +70,7 @@ Route constraints below (`:guid` / `:int`) describe parameter types; omit the co
 | GET | `/api/investments/setups/{id:guid}/snapshots/{snapshotId:guid}` | GetSnapshot |
 | GET | `/api/journey/state` | GetState (indicators carry `stars` 0-3 and stored `rawValue`) |
 | POST | `/api/journey/recalculate` | Recalculate |
-| GET | `/api/journey/quests` | GetQuests (quest board: focus, offers, unseen completions, `harvest` (Monthly Harvest block, null when nothing is unseen), `rhythm` (consecutive harvested months), level goal) |
+| GET | `/api/journey/quests` | GetQuests (quest board: focus, offers, `harvest` (Monthly Harvest block, null when nothing is unseen), `rhythm` (consecutive harvested months), level goal) |
 | POST | `/api/journey/quests/{code}/focus` | SetFocus |
 | POST | `/api/journey/quests/{code}/snooze` | Snooze (one month) |
 | POST | `/api/journey/quests/seen` | MarkSeen (`{ ids }`, 204) |

@@ -1,23 +1,23 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { RefreshCw, Trophy } from 'lucide-react';
-import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LivingGardenHero } from '@/components/journey/LivingGardenHero';
 import { TierCard } from '@/components/journey/TierCard';
 import { QuestCard } from '@/components/journey/QuestCard';
+import { HarvestPanel } from '@/components/journey/HarvestPanel';
 import {
   getJourneyState,
   getJourneyQuests,
   recalculateJourney,
   setQuestFocus,
   snoozeQuest,
-  markQuestsSeen,
+  markHarvestSeen,
 } from '@/api/journeyApi';
-import { planCompletionToasts } from '@/lib/journey/questToasts';
-import type { QuestBoard } from '@/types/Journey';
+import { rhythmLabel } from '@/lib/journey/harvest/rhythm';
+import type { Harvest, QuestBoard } from '@/types/Journey';
 
 export const JourneyPage = () => {
   const queryClient = useQueryClient();
@@ -49,19 +49,30 @@ export const JourneyPage = () => {
   const snooze = useMutation({ mutationFn: snoozeQuest, onSuccess: setBoard });
   const questBusy = focusQuest.isPending || snooze.isPending;
 
-  // Toast first, then mark seen: a failed call repeats the celebration next visit instead of losing it.
-  // The ref keeps React StrictMode's double effect from toasting twice.
-  const announced = useRef<Set<number>>(new Set());
+  // Snapshot the harvest once, so a refetch (after mark-seen, or on window focus) cannot remove the
+  // panel in the middle of the reveal.
+  const [revealed, setRevealed] = useState<Harvest | null>(null);
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
-    if (!board || board.unseen.length === 0) return;
-    const plan = planCompletionToasts(board.unseen, announced.current);
-    if (plan.ids.length === 0) return;
-    plan.ids.forEach((id) => announced.current.add(id));
-    plan.messages.forEach((m) => toast(m));
-    markQuestsSeen(plan.ids)
-      .then(() => queryClient.invalidateQueries({ queryKey: ['journey-quests'] }))
-      .catch(() => { /* not marked seen: it will be announced once more next visit */ });
-  }, [board, queryClient]);
+    if (board?.harvest && !revealed) setRevealed(board.harvest);
+  }, [board, revealed]);
+
+  // The board is cached under ['journey-quests'] (not 'journey-state'). Strip the harvest from the cache
+  // as soon as the server confirms, so leaving Journey and coming back cannot snapshot a stale copy and
+  // replay it. On failure the cache is left alone, which replays next time: a missed seen call must never
+  // swallow a harvest.
+  const seen = useMutation({
+    mutationFn: markHarvestSeen,
+    onSuccess: () => {
+      queryClient.setQueryData<QuestBoard>(['journey-quests'], (old) => (old ? { ...old, harvest: null } : old));
+      queryClient.invalidateQueries({ queryKey: ['journey-quests'] });
+    },
+  });
+  const { mutate: markSeen } = seen;
+  const onSeen = useCallback(
+    (ids: number[], month: string | null) => markSeen({ ids, month }),
+    [markSeen],
+  );
 
   const topQuest = board?.focus ?? board?.offers[0];
   const cards = board ? [...(board.focus ? [board.focus] : []), ...board.offers] : [];
@@ -123,6 +134,19 @@ export const JourneyPage = () => {
         </div>
       </div>
 
+      {revealed && !dismissed && board && (
+        <HarvestPanel
+          harvest={revealed}
+          rhythm={board.rhythm}
+          offers={[...(board.focus ? [board.focus] : []), ...board.offers]}
+          focusCode={board.focus?.code ?? null}
+          focusPending={focusQuest.isPending}
+          onSeen={onSeen}
+          onPickFocus={(code) => focusQuest.mutate(code)}
+          onDone={() => setDismissed(true)}
+        />
+      )}
+
       {/* Hero (left) + Tier Cards (right) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-1">
@@ -138,6 +162,9 @@ export const JourneyPage = () => {
       {/* Active Quests */}
       <section>
         <h2 className="text-lg font-semibold mb-3">Active Quests</h2>
+        {board && rhythmLabel(board.rhythm) && (
+          <p data-testid="rhythm-line" className="mb-3 text-xs text-muted-foreground">{rhythmLabel(board.rhythm)}</p>
+        )}
         {questsLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-40" />)}

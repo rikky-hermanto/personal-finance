@@ -13,7 +13,7 @@ namespace PersonalFinance.Tests.Controllers;
 public class JourneyControllerQuestTests
 {
     private static readonly Guid Owner = Guid.Parse("22222222-2222-2222-2222-222222222222");
-    private static readonly QuestBoardDto Board = new(1, "L1", null, [], [], null, null, new RhythmDto(0, 0));
+    private static readonly QuestBoardDto Board = new(1, "L1", null, [], null, null, new RhythmDto(0, 0));
 
     private readonly Mock<IMediator> _mediator = new();
     private readonly Mock<IJourneyScoringService> _scoring = new();

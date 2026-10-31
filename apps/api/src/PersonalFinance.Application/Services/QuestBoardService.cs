@@ -47,7 +47,6 @@ public sealed class QuestBoardService(IQuestStore store, IHarvestLedger ledger, 
             loaded.Context.WorkingLevel,
             focus,
             offers,
-            BuildUnseen(loaded.Completions),
             BuildLevelGoal(loaded),
             harvest,
             rhythm);
@@ -187,34 +186,6 @@ public sealed class QuestBoardService(IQuestStore store, IHarvestLedger ledger, 
             q.Why,
             progress is null ? null : new QuestProgressDto(progress.Done, progress.Total, progress.Label),
             q.Deeplink);
-    }
-
-    private static bool IsBackfill(QuestCompletion c) =>
-        c.Evidence.TryGetValue("backfill", out var v)
-        && string.Equals(Convert.ToString(v, CultureInfo.InvariantCulture), "true", StringComparison.OrdinalIgnoreCase);
-
-    private static List<UnseenCompletionDto> BuildUnseen(IReadOnlyList<QuestCompletion> completions)
-    {
-        var unseen = completions.Where(c => c.SeenAt is null).OrderBy(c => c.CompletedAt).ToList();
-        var items = new List<UnseenCompletionDto>();
-
-        var backfill = unseen.Where(IsBackfill).ToList();
-        if (backfill.Count > 0)
-            items.Add(new UnseenCompletionDto(
-                backfill.Select(c => c.Id).ToList(), null, 0,
-                $"You'd already completed {backfill.Count} quests",
-                backfill.Max(c => c.CompletedAt), true, backfill.Count));
-
-        foreach (var c in unseen.Where(c => !IsBackfill(c)))
-        {
-            var def = QuestCatalog.Find(c.QuestCode);
-            if (def is null) continue;   // a code from a retired catalog version is never celebrated
-            items.Add(new UnseenCompletionDto(
-                [c.Id], c.QuestCode, c.Rung, QuestCopy.CompletionTitle(def, c.Rung, c.Evidence),
-                c.CompletedAt, false, 1));
-        }
-
-        return items.OrderBy(i => i.CompletedAt).ToList();
     }
 
     private static LevelGoalDto? BuildLevelGoal(Loaded loaded)
