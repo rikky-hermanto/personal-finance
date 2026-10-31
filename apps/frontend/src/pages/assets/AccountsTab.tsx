@@ -87,95 +87,99 @@ export default function AccountsTab() {
 
   if (!loading && !error && accounts.length === 0 && institutions.length === 0) {
     return (
-      <div className="mx-auto flex min-h-[560px] w-full max-w-[640px] items-center px-4 py-11 sm:px-0">
-        <AddPlaceFlow institutions={institutions} accounts={accounts} />
+      <div className="p-8">
+        <div className="mx-auto flex min-h-[560px] w-full max-w-6xl items-center">
+          <AddPlaceFlow institutions={institutions} accounts={accounts} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-[640px] px-4 py-11 sm:px-0">
-      <AccountsHeader total={loading ? null : total} count={active.length} onAdd={() => setAddFlow({})} />
+    <div className="p-8">
+      <div className="mx-auto w-full max-w-6xl">
+        <AccountsHeader total={loading ? null : total} count={active.length} onAdd={() => setAddFlow({})} />
 
-      {!loading && stale.length > 0 && <StaleNudge count={stale.length} onReview={() => setCheckInQueue(stale)} />}
+        {!loading && stale.length > 0 && <StaleNudge count={stale.length} onReview={() => setCheckInQueue(stale)} />}
 
-      {filters.length > 2 && (
-        <div className="mt-[22px] flex flex-wrap gap-1.5" role="group" aria-label="Filter accounts">
-          {filters.map(f => (
-            <button
-              key={f}
-              type="button"
-              aria-pressed={activeFilter === f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                'h-[30px] rounded-full px-3 text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                activeFilter === f ? 'bg-secondary font-medium text-foreground' : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              {FILTER_LABELS[f]}
-            </button>
-          ))}
-        </div>
-      )}
+        {filters.length > 2 && (
+          <div className="mt-[22px] flex flex-wrap gap-1.5" role="group" aria-label="Filter accounts">
+            {filters.map(f => (
+              <button
+                key={f}
+                type="button"
+                aria-pressed={activeFilter === f}
+                onClick={() => setFilter(f)}
+                className={cn(
+                  'h-[30px] rounded-full px-3 text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  activeFilter === f ? 'bg-secondary font-medium text-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {FILTER_LABELS[f]}
+              </button>
+            ))}
+          </div>
+        )}
 
-      {error ? (
-        <p className="mt-8 text-xs text-destructive">Couldn’t load your accounts. Refresh to try again.</p>
-      ) : loading ? (
-        <div className="mt-[30px] flex flex-col gap-1" aria-label="Loading accounts">
-          {[0, 1, 2].map(i => <Skeleton key={i} className="h-[60px] rounded-xl" />)}
-        </div>
-      ) : (
-        visibleGroups.map(g => (
-          <AccountGroup key={g.key} label={g.label} subtotal={g.subtotal}>
-            {g.rows.map(a => <AccountRow key={a.id} account={a} onOpen={openAccount} />)}
-            {g.unfinished.map(i => <FinishSetupRow key={i.id} institution={i} onFinish={preset => setAddFlow({ preset })} />)}
-          </AccountGroup>
-        ))
-      )}
+        {error ? (
+          <p className="mt-8 text-xs text-destructive">Couldn’t load your accounts. Refresh to try again.</p>
+        ) : loading ? (
+          <div className="mt-[30px] flex flex-col gap-1" aria-label="Loading accounts">
+            {[0, 1, 2].map(i => <Skeleton key={i} className="h-[60px] rounded-xl" />)}
+          </div>
+        ) : (
+          visibleGroups.map(g => (
+            <AccountGroup key={g.key} label={g.label} subtotal={g.subtotal}>
+              {g.rows.map(a => <AccountRow key={a.id} account={a} onOpen={openAccount} />)}
+              {g.unfinished.map(i => <FinishSetupRow key={i.id} institution={i} onFinish={preset => setAddFlow({ preset })} />)}
+            </AccountGroup>
+          ))
+        )}
 
-      {!loading && archivedCount > 0 && (
-        <button
-          type="button"
-          onClick={() => setShowArchived(v => !v)}
-          className="mt-6 rounded-sm px-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          {showArchived ? 'Hide archived' : `Show archived (${archivedCount})`}
-        </button>
-      )}
+        {!loading && archivedCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setShowArchived(v => !v)}
+            className="mt-6 rounded-sm px-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {showArchived ? 'Hide archived' : `Show archived (${archivedCount})`}
+          </button>
+        )}
 
-      <Dialog open={!!addFlow} onOpenChange={open => !open && setAddFlow(null)}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl bg-card px-6 py-10 sm:max-w-[560px]">
-          <DialogTitle className="sr-only">Add account</DialogTitle>
-          {addFlow && (
-            <AddPlaceFlow
-              institutions={institutions}
-              accounts={accounts}
-              preset={addFlow.preset}
-              onDone={() => setAddFlow(null)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
-      {checkInQueue && <BalanceCheckIn queue={checkInQueue} onClose={() => setCheckInQueue(null)} />}
+        <Dialog open={!!addFlow} onOpenChange={open => !open && setAddFlow(null)}>
+          <DialogContent className="max-h-[92vh] overflow-y-auto rounded-2xl bg-card px-6 py-10 sm:max-w-[560px]">
+            <DialogTitle className="sr-only">Add account</DialogTitle>
+            {addFlow && (
+              <AddPlaceFlow
+                institutions={institutions}
+                accounts={accounts}
+                preset={addFlow.preset}
+                onDone={() => setAddFlow(null)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+        {checkInQueue && <BalanceCheckIn queue={checkInQueue} onClose={() => setCheckInQueue(null)} />}
 
-      <AccountSheet account={selectedAccount} onClose={() => setSelectedAccountId(null)} onEdit={startEdit} onEditInstitution={startEditInstitution} />
+        <AccountSheet account={selectedAccount} onClose={() => setSelectedAccountId(null)} onEdit={startEdit} onEditInstitution={startEditInstitution} />
 
-      {editAccount && (
-        <AddAccountDialog
-          institutions={institutions}
-          initial={editAccount}
-          onSuccess={() => invalidateAccountQueries(queryClient)}
-          onClose={endEdit}
-        />
-      )}
+        {editAccount && (
+          <AddAccountDialog
+            institutions={institutions}
+            initial={editAccount}
+            onSuccess={() => invalidateAccountQueries(queryClient)}
+            onClose={endEdit}
+          />
+        )}
 
-      {editInstitutionOf?.institution && (
-        <AddInstitutionDialog
-          initial={editInstitutionOf.institution}
-          onSuccess={() => invalidateAccountQueries(queryClient)}
-          onClose={endEditInstitution}
-        />
-      )}
+        {editInstitutionOf?.institution && (
+          <AddInstitutionDialog
+            initial={editInstitutionOf.institution}
+            onSuccess={() => invalidateAccountQueries(queryClient)}
+            onClose={endEditInstitution}
+          />
+        )}
+      </div>
     </div>
   );
 }
