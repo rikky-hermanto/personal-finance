@@ -112,9 +112,10 @@ test('login, refresh, logout, account switch, and late-response isolation', asyn
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, 2);
-  // The old Settings route now lands on the single Accounts page, which starts with the first-run flow.
+  // The old Settings route now lands on Settings > Accounts, the same page as Assets > Accounts,
+  // which starts with the first-run flow.
   await page.goto('/settings/banks');
-  await expect(page).toHaveURL(/\/assets\/accounts$/);
+  await expect(page).toHaveURL(/\/settings\/accounts$/);
   await expect(page.getByRole('heading', { name: 'Where does your money live?' })).toBeVisible();
   await page.getByRole('radio', { name: /Bank/ }).click();
   await page.getByRole('button', { name: 'Continue' }).click();

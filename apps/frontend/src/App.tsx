@@ -97,7 +97,9 @@ const App = () => (
                 <Route path="categories" element={<CategoriesTab />} />
                 <Route path="regional" element={<RegionalTab />} />
                 <Route path="data" element={<DataTab />} />
-                <Route path="banks" element={<Navigate to="/assets/accounts" replace />} />
+                {/* Same page as Assets > Accounts, so accounts can be managed from either place */}
+                <Route path="accounts" element={<AssetsAccountsTab />} />
+                <Route path="banks" element={<Navigate to="/settings/accounts" replace />} />
               </Route>
               <Route path="/assets" element={<AssetsLayout />}>
                 <Route index element={<Navigate to="/assets/overview" replace />} />
