@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('assets flow: add institution → account → valuation → verify headline', async ({ page }) => {
+test('assets flow: add first account with balance → verify headline', async ({ page }) => {
   await page.goto('/assets/overview');
 
   // Headline shows — even if Rp 0
@@ -9,23 +9,13 @@ test('assets flow: add institution → account → valuation → verify headline
   // Navigate to accounts tab
   await page.click('a[href="/assets/accounts"]');
 
-  // Add institution
-  await page.click('button:has-text("Add Institution")');
-  await page.fill('[name="name"]', 'BCA Test');
-  await page.selectOption('[name="type"]', 'bank');
-  await page.click('button:has-text("Save")');
-  await expect(page.getByText('BCA Test')).toBeVisible();
-
-  // Add account
-  await page.click('button:has-text("Add Account")');
-  await page.fill('[name="name"]', 'BCA Tabungan');
-  await page.selectOption('[name="accountType"]', 'savings');
-  await page.click('button:has-text("Save")');
-
-  // Add valuation
-  await page.click('button:has-text("Add Valuation")');
-  await page.fill('[name="valueNative"]', '50000000');
-  await page.click('button:has-text("Save")');
+  // Add the first account through the first-run flow, with today's balance
+  await page.getByRole('radio', { name: /Bank/ }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Name').fill('BCA Test');
+  await page.getByLabel('Balance today').fill('50000000');
+  await page.getByRole('button', { name: 'Add account' }).click();
+  await expect(page.getByRole('button', { name: /BCA Test/ })).toBeVisible();
 
   // Overview should update
   await page.click('a[href="/assets/overview"]');

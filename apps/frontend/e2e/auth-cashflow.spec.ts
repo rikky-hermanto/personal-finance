@@ -112,17 +112,25 @@ test('login, refresh, logout, account switch, and late-response isolation', asyn
   await page.getByRole('button', { name: 'Sign out' }).click();
   await expect(page).toHaveURL(/\/login$/);
   await signIn(page, 2);
+  // The old Settings route now lands on the single Accounts page, which starts with the first-run flow.
   await page.goto('/settings/banks');
-  await expect(page.getByText('No institutions yet')).toBeVisible();
-  await page.getByRole('button', { name: 'Add Institution' }).click();
-  const institutionDialog = page.getByRole('dialog', { name: 'Add Institution' });
-  await institutionDialog.getByRole('textbox', { name: 'Name' }).fill('PF-S08 New Bank');
-  await institutionDialog.getByRole('button', { name: 'Add Institution' }).click();
-  await expect(page.getByText('PF-S08 New Bank')).toBeVisible();
-  await page.getByRole('button', { name: 'Add Account' }).click();
-  await page.locator('select[name="institutionId"]').selectOption({ label: 'PF-S08 New Bank' });
-  await page.getByPlaceholder('e.g. BCA Tabungan').fill('PF-S08 New Account');
-  await page.locator('select[name="accountType"]').selectOption('checking');
-  await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.getByText('PF-S08 New Account')).toBeVisible();
+  await expect(page).toHaveURL(/\/assets\/accounts$/);
+  await expect(page.getByRole('heading', { name: 'Where does your money live?' })).toBeVisible();
+  await page.getByRole('radio', { name: /Bank/ }).click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Name').fill('PF-S08 New Bank');
+  await page.getByLabel('Balance today').fill('1500000');
+  await page.getByRole('button', { name: 'Add account' }).click();
+  await expect(page.getByRole('button', { name: /PF-S08 New Bank/ })).toBeVisible();
+
+  // A second account at the same bank reuses it instead of creating another.
+  await page.getByRole('button', { name: 'Add account' }).click();
+  const addDialog = page.getByRole('dialog', { name: 'Add account' });
+  await addDialog.getByRole('radio', { name: /Bank/ }).click();
+  await addDialog.getByRole('button', { name: 'Continue' }).click();
+  await addDialog.getByLabel('Name').fill('PF-S08 New Bank');
+  await expect(addDialog.getByText('Adds an account to your existing PF-S08 New Bank.')).toBeVisible();
+  await addDialog.getByLabel('Balance today').fill('0');
+  await addDialog.getByRole('button', { name: 'Add account' }).click();
+  await expect(page.getByText('PF-S08 New Bank Savings')).toBeVisible();
 });

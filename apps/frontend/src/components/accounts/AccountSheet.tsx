@@ -51,9 +51,10 @@ interface AccountSheetProps {
   account: AccountView | null;
   onClose: () => void;
   onEdit: (account: AccountView) => void;
+  onEditInstitution: (account: AccountView) => void;
 }
 
-export const AccountSheet = ({ account, onClose, onEdit }: AccountSheetProps) => {
+export const AccountSheet = ({ account, onClose, onEdit, onEditInstitution }: AccountSheetProps) => {
   const small = useSmallScreen();
 
   return (
@@ -69,14 +70,21 @@ export const AccountSheet = ({ account, onClose, onEdit }: AccountSheetProps) =>
               : 'inset-y-0 right-0 h-full w-[400px] border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
           )}
         >
-          {account && <SheetBody key={account.id} account={account} onClose={onClose} onEdit={onEdit} />}
+          {account && <SheetBody key={account.id} account={account} onClose={onClose} onEdit={onEdit} onEditInstitution={onEditInstitution} />}
         </SheetPrimitive.Content>
       </SheetPortal>
     </Sheet>
   );
 };
 
-const SheetBody = ({ account, onClose, onEdit }: { account: AccountView; onClose: () => void; onEdit: (a: AccountView) => void }) => {
+interface SheetBodyProps {
+  account: AccountView;
+  onClose: () => void;
+  onEdit: (a: AccountView) => void;
+  onEditInstitution: (a: AccountView) => void;
+}
+
+const SheetBody = ({ account, onClose, onEdit, onEditInstitution }: SheetBodyProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const inst = account.institution;
@@ -185,7 +193,18 @@ const SheetBody = ({ account, onClose, onEdit }: { account: AccountView; onClose
 
       <dl className="grid grid-cols-[1fr_auto] gap-y-2.5 text-[13px]">
         <dt className="text-muted-foreground">Bank / app</dt>
-        <dd className="text-right">{inst?.name ?? '—'}</dd>
+        <dd className="text-right">
+          {inst ? (
+            <button
+              type="button"
+              onClick={() => onEditInstitution(account)}
+              aria-label={`Edit ${inst.name}`}
+              className="rounded-sm underline decoration-border underline-offset-4 hover:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {inst.name}
+            </button>
+          ) : '—'}
+        </dd>
         <dt className="text-muted-foreground">Type</dt>
         <dd className="text-right">{typeLabel}</dd>
         <dt className="text-muted-foreground">Currency</dt>
