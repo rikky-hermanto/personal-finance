@@ -6,6 +6,7 @@ import { StaleNudge } from '@/components/accounts/StaleNudge';
 import { AccountGroup } from '@/components/accounts/AccountGroup';
 import { AccountRow, FinishSetupRow } from '@/components/accounts/AccountRow';
 import { AccountSheet } from '@/components/accounts/AccountSheet';
+import { BalanceCheckIn } from '@/components/accounts/BalanceCheckIn';
 import { AddAccountDialog } from '@/components/assets/AddAccountDialog';
 import { AccountView, invalidateAccountQueries, useAccounts } from '@/hooks/use-accounts';
 import {
@@ -30,6 +31,7 @@ export default function AccountsTab() {
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
   const [editAccount, setEditAccount] = useState<AccountView | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [checkInQueue, setCheckInQueue] = useState<AccountView[] | null>(null);
 
   const loading = isLoading || valuationsLoading;
   const active = useMemo(() => accounts.filter(a => a.isActive), [accounts]);
@@ -72,7 +74,7 @@ export default function AccountsTab() {
     <div className="mx-auto w-full max-w-[640px] px-4 py-11 sm:px-0">
       <AccountsHeader total={loading ? null : total} count={active.length} onAdd={() => setAddOpen(true)} />
 
-      {!loading && stale.length > 0 && <StaleNudge count={stale.length} onReview={() => undefined} />}
+      {!loading && stale.length > 0 && <StaleNudge count={stale.length} onReview={() => setCheckInQueue(stale)} />}
 
       {filters.length > 2 && (
         <div className="mt-[22px] flex flex-wrap gap-1.5" role="group" aria-label="Filter accounts">
@@ -127,6 +129,8 @@ export default function AccountsTab() {
           onClose={() => setAddOpen(false)}
         />
       )}
+      {checkInQueue && <BalanceCheckIn queue={checkInQueue} onClose={() => setCheckInQueue(null)} />}
+
       <AccountSheet account={selectedAccount} onClose={() => setSelectedAccountId(null)} onEdit={startEdit} />
 
       {editAccount && (

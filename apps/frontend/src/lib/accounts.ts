@@ -64,7 +64,7 @@ export function isStale(account: Account, now: Date = new Date()): boolean {
 }
 
 /** Active stale accounts, the one updated longest ago first. */
-export function staleQueue(accounts: Account[], now: Date = new Date()): Account[] {
+export function staleQueue<T extends Account>(accounts: T[], now: Date = new Date()): T[] {
   return accounts
     .filter(a => a.isActive && isStale(a, now))
     .sort((a, b) => toLocalDate(accountUpdatedAt(a)).getTime() - toLocalDate(accountUpdatedAt(b)).getTime());
