@@ -71,6 +71,17 @@ export default {
 				expense: 'hsl(var(--expense))',
 				warning: 'hsl(var(--warning))',
 				info: 'hsl(var(--info))',
+				// Net Worth zen page (docs/ideas/prototypes/networth_zen/README.md)
+				zen: {
+					faint: 'hsl(var(--zen-faint))',
+					warm: 'hsl(var(--zen-warm))',
+					bar: 'hsl(var(--zen-bar))',
+					track: 'hsl(var(--zen-track))',
+					'track-strong': 'hsl(var(--zen-track-strong))',
+					positive: 'hsl(var(--zen-positive))',
+					caution: 'hsl(var(--zen-caution))',
+					negative: 'hsl(var(--zen-negative))',
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

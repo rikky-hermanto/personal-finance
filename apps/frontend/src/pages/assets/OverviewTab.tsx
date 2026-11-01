@@ -1,12 +1,32 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Download, Upload, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
-import { NetWorthHeadline } from '@/components/assets/NetWorthHeadline';
-import { NetWorthTrendChart } from '@/components/assets/NetWorthTrendChart';
-import { AllocationDonut } from '@/components/assets/AllocationDonut';
-import { getNetWorthCurrent, getNetWorthHistory, getAllocationByClass } from '@/api/netWorthApi';
+import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { NetWorthQuiet } from '@/components/assets/zen/NetWorthQuiet';
+import { OwnOweLedger, LedgerFocus } from '@/components/assets/zen/OwnOweLedger';
+import { NetWorthHorizon } from '@/components/assets/zen/NetWorthHorizon';
+import { ZenPill, ZenSegment } from '@/components/assets/zen/ZenPill';
+import { AddValuationDialog } from '@/components/assets/AddValuationDialog';
+import { getNetWorthCurrent, getNetWorthHistory } from '@/api/netWorthApi';
 import { getAssets, getHoldings, bulkAddValuations, BulkValuationResult } from '@/api/assetsApi';
 import { getAccounts } from '@/api/accountsApi';
+import { getLiabilities } from '@/api/liabilitiesApi';
+import { useAccounts } from '@/hooks/use-accounts';
+import { useValuationHistories } from '@/hooks/use-valuation-histories';
+import { todayIso } from '@/lib/accounts';
+import {
+  LedgerRow,
+  buildOweRows,
+  buildOwnRows,
+  debtRatio,
+  monthDelta,
+  monthlySeries,
+  ownOweSentence,
+  projectMilestone,
+  shortDate,
+} from '@/lib/netWorth';
+import { cn } from '@/lib/utils';
+import { Asset } from '@/types/Asset';
 import {
   buildTemplateRows,
   rowsToCsv,
@@ -25,17 +45,52 @@ type ImportState =
 
 // ── Component ────────────────────────────────────────────────────────────────
 
+type View = 'overview' | 'ledger' | 'horizon';
+
+// Zen Net Worth page (docs/ideas/prototypes/networth_zen/README.md): three views of one page,
+// switched by the bottom pill. Tabs, sidebar and activity rail are hidden on this route.
 export default function OverviewTab() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importState, setImportState] = useState<ImportState>({ phase: 'idle' });
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  const { data: current } = useQuery({ queryKey: ['networth-current'], queryFn: getNetWorthCurrent });
+  const [view, setView] = useState<View>('overview');
+  const [focus, setFocus] = useState<LedgerFocus>('owned');
+  const [switched, setSwitched] = useState(false);
+  const [valuationTarget, setValuationTarget] = useState<Asset | null>(null);
+
+  const currentQuery = useQuery({ queryKey: ['networth-current'], queryFn: getNetWorthCurrent });
+  const current = currentQuery.data;
   const { data: history = [] } = useQuery({ queryKey: ['networth-history'], queryFn: () => getNetWorthHistory() });
-  const { data: allocation = {} } = useQuery({ queryKey: ['networth-allocation'], queryFn: getAllocationByClass });
   const { data: accounts = [] } = useQuery({ queryKey: ['accounts'], queryFn: getAccounts });
   const { data: assets = [] } = useQuery({ queryKey: ['assets'], queryFn: getAssets });
   const { data: holdings = [] } = useQuery({ queryKey: ['holdings'], queryFn: getHoldings });
+  const { data: liabilities = [] } = useQuery({ queryKey: ['liabilities'], queryFn: getLiabilities });
+  const { accounts: accountViews } = useAccounts();
+  const assetHistories = useValuationHistories('asset', assets.map(a => a.id));
+  const holdingHistories = useValuationHistories('holding', holdings.map(h => h.id));
+
+  const series = useMemo(() => monthlySeries(history), [history]);
+  const delta = monthDelta(series);
+  const projection = current ? projectMilestone(series, current.netWorthIdr) : null;
+
+  const own = useMemo(() => buildOwnRows({
+    accounts: accountViews,
+    assets,
+    holdings,
+    assetValuations: new Map(assets.map(a => [a.id, assetHistories.byId.get(a.id)?.[0]])),
+    holdingValues: new Map(holdings.map(h => [h.id, holdingHistories.byId.get(h.id)?.[0]?.valueIdr])),
+  }), [accountViews, assets, holdings, assetHistories.byId, holdingHistories.byId]);
+  const owe = useMemo(() => buildOweRows(liabilities, assets), [liabilities, assets]);
+
+  const holdingSeries = useMemo(
+    () => holdings.map(h => ({ ticker: h.ticker, history: holdingHistories.byId.get(h.id) ?? [] })),
+    [holdings, holdingHistories.byId],
+  );
+
+  const lastPoint = series[series.length - 1];
+  const asOfLabel = shortDate(lastPoint?.date ?? todayIso());
 
   // ── Export ───────────────────────────────────────────────────────────────
 
@@ -93,6 +148,9 @@ export default function OverviewTab() {
     await queryClient.invalidateQueries({ queryKey: ['accounts'] });
     await queryClient.invalidateQueries({ queryKey: ['assets'] });
     await queryClient.invalidateQueries({ queryKey: ['holdings'] });
+    await queryClient.invalidateQueries({ queryKey: ['account-valuations'] });
+    await queryClient.invalidateQueries({ queryKey: ['asset-valuations'] });
+    await queryClient.invalidateQueries({ queryKey: ['holding-valuations'] });
 
     setImportState({ phase: 'done', result, parseErrors });
   }
@@ -101,47 +159,105 @@ export default function OverviewTab() {
     setImportState({ phase: 'idle' });
   }
 
+  // ── Views ────────────────────────────────────────────────────────────────
+
+  function selectSegment(segment: ZenSegment) {
+    setSwitched(true);
+    if (segment === 'overview' || segment === 'horizon') {
+      setView(segment);
+    } else {
+      setFocus(segment);
+      setView('ledger');
+    }
+  }
+
+  function openRow(row: LedgerRow) {
+    if (row.target.kind === 'asset') setValuationTarget(row.target.asset);
+    else navigate(row.target.path);
+  }
+
+  async function onValuationSaved() {
+    for (const key of ['networth-current', 'networth-history', 'networth-allocation', 'asset-valuations', 'assets']) {
+      await queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  }
+
+  const activeSegment: ZenSegment = view === 'ledger' ? focus : view;
+  const animate = !switched;
+  const ratio = current ? debtRatio(current.assetsIdr, current.liabilitiesIdr) : 0;
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="px-6 py-6 space-y-6">
-      {/* Header row with export/import */}
-      <div className="flex items-center justify-between">
-        <NetWorthHeadline totalIdr={current?.netWorthIdr ?? 0} />
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportTemplate}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border border-border rounded-md text-foreground hover:bg-accent transition-colors"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export Template
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-foreground text-background rounded-md hover:bg-foreground/90 transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5" />
-            Import CSV
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,text/csv"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-        </div>
-      </div>
+    <div className="relative flex min-h-full flex-col">
+      {currentQuery.isLoading && (
+        <p className="py-40 text-center text-sm text-zen-faint">Loading your net worth…</p>
+      )}
+      {currentQuery.isError && (
+        <p className="py-40 text-center text-sm text-muted-foreground">Couldn’t load your net worth. Try again in a moment.</p>
+      )}
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="col-span-1 lg:col-span-2">
-          <NetWorthTrendChart data={history} />
+      {current && (
+        <div key={view} className={cn('flex flex-1 flex-col', switched && 'zen-fade')}>
+          {view === 'overview' && (
+            <NetWorthQuiet
+              summary={current}
+              series={series}
+              delta={delta}
+              asOfLabel={asOfLabel}
+              debtRatio={ratio}
+              sentence={ownOweSentence(ratio, owe.anchor)}
+              animate={animate}
+            />
+          )}
+          {view === 'ledger' && (
+            <OwnOweLedger
+              summary={current}
+              delta={delta}
+              own={own}
+              owe={owe}
+              focus={focus}
+              onRowClick={openRow}
+              animate={animate}
+            />
+          )}
+          {view === 'horizon' && (
+            <NetWorthHorizon
+              netWorthIdr={current.netWorthIdr}
+              series={series}
+              projection={projection}
+              holdings={holdingSeries}
+              animate={animate}
+            />
+          )}
         </div>
-        <div className="col-span-1">
-          <AllocationDonut data={allocation} />
-        </div>
-      </div>
+      )}
+
+      <ZenPill
+        active={activeSegment}
+        onSelect={selectSegment}
+        onExport={handleExportTemplate}
+        onImport={() => fileInputRef.current?.click()}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".csv,text/csv"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      {valuationTarget && (
+        <AddValuationDialog
+          subjectType="asset"
+          subjectId={valuationTarget.id}
+          subjectName={valuationTarget.name}
+          currency={valuationTarget.currency}
+          strategy={valuationTarget.valuationStrategy}
+          onSuccess={onValuationSaved}
+          onClose={() => setValuationTarget(null)}
+        />
+      )}
 
       {/* Import modal */}
       {importState.phase !== 'idle' && (

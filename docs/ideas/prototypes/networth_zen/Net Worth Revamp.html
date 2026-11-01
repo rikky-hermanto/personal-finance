@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="design_doc_mode" content="canvas"><title>Net Worth Revamp</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F5F3EE;--sf:#FFFFFF;--el:#FAF9F7;--bd:#E8E5DF;--bh:#D4D0C8;--t1:#37352F;--t2:#6B6B6B;--t3:#9B9B9B;--warm:#E8C5A8;--warmt:#5C3D1E;--green:#16A34A;--amber:#B45309}
+a{color:var(--t1)}a:hover{color:var(--t2)}
+body{margin:0;font-family:Inter,sans-serif;color:var(--t1)}
+.cap{position:absolute;width:1440px;font-size:22px;font-weight:600;color:#37352F}.cap span{display:block;font-size:15px;font-weight:400;color:#6B6B6B;margin-top:6px;max-width:1100px}
+.fr{position:absolute;width:1440px;height:900px;background-color:var(--bg);background-image:linear-gradient(rgba(0,0,0,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.018) 1px,transparent 1px);background-size:80px 80px;overflow:hidden;border-radius:14px}
+.num{font-family:'Plus Jakarta Sans',sans-serif;font-variant-numeric:tabular-nums}
+.ghost{position:absolute;top:28px;left:32px;font-size:18px;color:var(--t3);opacity:.6}
+.kbd{position:absolute;top:26px;right:32px;font-size:12px;color:var(--t3);border:1px solid var(--bd);border-radius:8px;padding:5px 9px;background:rgba(255,255,255,.5)}
+.pill{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);display:flex;gap:2px;background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:4px;box-shadow:0 4px 16px rgba(0,0,0,.05)}
+.pill b{font-weight:500;font-size:13px;color:var(--t2);padding:8px 16px;border-radius:8px}.pill b.on{background:var(--t1);color:#fff}
+.lbl{font-size:13px;color:var(--t3)}
+.up{color:var(--green)}
+/* A */
+.a-stage{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0}
+.a-big{font-size:84px;font-weight:400;letter-spacing:-.035em;line-height:1;margin-top:14px}.a-big small{font-size:.4em;color:var(--t3);letter-spacing:0;margin-left:2px}.a-big i{font-style:normal;color:var(--t3);font-size:.5em;vertical-align:.55em;margin-right:8px;letter-spacing:0}
+.a-delta{font-size:15px;margin-top:18px}
+.a-spark{margin-top:56px;width:760px}
+.a-ax{display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-top:8px}
+.a-bal{width:760px;margin-top:56px}
+.a-row{display:flex;justify-content:space-between;font-size:14px;color:var(--t2)}.a-row .num{color:var(--t1);font-weight:500}
+.a-bar{height:8px;border-radius:8px;background:#E6E1D8;margin:12px 0 12px;position:relative;overflow:hidden}.a-bar span{position:absolute;inset:0 auto 0 0;width:49.08%;background:var(--warm)}
+.a-note{font-size:14px;color:var(--t2)}
+/* B */
+.b-head{position:absolute;top:72px;left:0;right:0;text-align:center}
+.b-head .num{font-size:44px;letter-spacing:-.03em;margin-top:8px}
+.b-grid{position:absolute;top:220px;left:50%;transform:translateX(-50%);width:1080px;display:grid;grid-template-columns:1fr 1fr;gap:0}
+.b-col{padding:0 48px}.b-col+.b-col{border-left:1px solid var(--bd)}
+.b-ttl{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:20px;border-bottom:1px solid var(--bd)}
+.b-ttl .num{font-size:26px;letter-spacing:-.02em}
+.b-it{padding:18px 0;border-bottom:1px solid rgba(0,0,0,.045)}
+.b-it .r{display:flex;justify-content:space-between;font-size:14px}.b-it .r .num{font-weight:500}
+.b-it .m{display:flex;justify-content:space-between;font-size:12px;color:var(--t3);margin-top:4px}
+.b-bar{height:4px;border-radius:4px;background:#EDE9E2;margin-top:10px;overflow:hidden}.b-bar span{display:block;height:100%;background:#BDB6A9}
+.b-col.owe .b-bar span{background:var(--warm)}
+.b-foot{position:absolute;bottom:96px;left:0;right:0;text-align:center;font-size:15px;color:var(--t2)}
+/* C */
+.c-top{position:absolute;top:96px;left:120px;right:120px;display:flex;justify-content:space-between;align-items:flex-end}
+.c-top .num.big{font-size:60px;letter-spacing:-.035em;margin-top:10px}
+.c-goal{text-align:right;font-size:14px;color:var(--t2);line-height:1.6}.c-goal .num{color:var(--t1);font-weight:500}
+.c-chart{position:absolute;top:300px;left:120px;width:1200px;height:330px}
+.c-months{position:absolute;top:650px;left:120px;width:1200px;display:grid;grid-template-columns:repeat(8,1fr) 1.6fr;font-size:12px;color:var(--t3)}
+.c-months div{padding-top:10px;border-top:1px solid var(--bd)}.c-months .on{color:var(--t1);border-top:2px solid var(--t1);padding-top:9px}.c-months .fut{border-top:1px dashed var(--bh)}
+.c-read{position:absolute;top:730px;left:120px;width:1200px;display:flex;gap:64px;font-size:14px;color:var(--t2)}
+.c-read .num{display:block;color:var(--t1);font-size:20px;margin-top:6px;letter-spacing:-.01em}
+.tip{position:absolute;background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--t2);box-shadow:0 4px 16px rgba(0,0,0,.05);white-space:nowrap}.tip .num{color:var(--t1);font-size:14px;display:block}
+</style></head><body>
+
+<div class="cap" style="left:0;top:0">A · Quiet number<span>One figure, one line, one sentence. Cards, tabs and axes are gone. Allocation and accounts open on demand from the pill or ⌘K.</span></div>
+<div class="fr" style="left:0;top:90px" data-screen-label="A Quiet number">
+<div class="ghost">←</div><div class="kbd">⌘ K</div>
+<div class="a-stage">
+<div class="lbl">Net worth · 31 Oct</div>
+<div class="a-big num"><i>Rp</i>808.052.170<small>,00</small></div>
+<div class="a-delta"><span class="up">+Rp 16.852.170</span> <span style="color:var(--t3)">since September · 2,13%</span></div>
+<div class="a-spark"><svg id="sparkA" width="760" height="110" viewBox="0 0 760 110"></svg><div class="a-ax"><span>Mar</span><span>8 months</span><span>Oct</span></div></div>
+<div class="a-bal"><div class="a-row"><span>You own <span class="num">Rp 1,59 M</span></span><span>You owe <span class="num">Rp 778,9 jt</span></span></div>
+<div class="a-bar"><span></span></div>
+<div class="a-note">About half of what you own is still borrowed, almost all of it the apartment.</div></div>
+</div>
+<div class="pill"><b class="on">Overview</b><b>Owned</b><b>Owed</b><b>⋯</b></div>
+</div>
+
+<div class="cap" style="left:1540px;top:0">B · Own / Owe<span>Net worth as a plain subtraction. Two quiet ledgers replace the donut and the KPI strip; every asset and debt reads as a sentence with one proportion bar.</span></div>
+<div class="fr" style="left:1540px;top:90px" data-screen-label="B Own Owe">
+<div class="ghost">←</div><div class="kbd">⌘ K</div>
+<div class="b-head"><div class="lbl">Net worth</div><div class="num">Rp 808.052.170</div><div style="font-size:14px;margin-top:6px"><span class="up">+2,13%</span> <span style="color:var(--t3)">vs September</span></div></div>
+<div class="b-grid">
+<div class="b-col"><div class="b-ttl"><span class="lbl">What you own</span><span class="num">Rp 1.586.932.170</span></div>
+<div class="b-it"><div class="r"><span>Apartemen Taman Rasuna</span><span class="num">1.265.000.000</span></div><div class="m"><span>Property · revalued 30 Sep</span><span>80%</span></div><div class="b-bar"><span style="width:80%"></span></div></div>
+<div class="b-it"><div class="r"><span>Stocks &amp; ETF</span><span class="num">171.982.500</span></div><div class="m"><span>BBCA, VOO, TLKM · Ajaib</span><span>11%</span></div><div class="b-bar"><span style="width:11%"></span></div></div>
+<div class="b-it"><div class="r"><span>Cash</span><span class="num">96.082.070</span></div><div class="m"><span>4 accounts</span><span>6%</span></div><div class="b-bar"><span style="width:6%"></span></div></div>
+<div class="b-it"><div class="r"><span>Emas Antam</span><span class="num">28.530.000</span></div><div class="m"><span>18 gram · Bibit</span><span>2%</span></div><div class="b-bar"><span style="width:2%"></span></div></div>
+<div class="b-it"><div class="r"><span>Sucorinvest Money Market</span><span class="num">25.337.600</span></div><div class="m"><span>Mutual fund · Bibit</span><span>2%</span></div><div class="b-bar"><span style="width:2%"></span></div></div>
+</div>
+<div class="b-col owe"><div class="b-ttl"><span class="lbl">What you owe</span><span class="num">Rp 778.880.000</span></div>
+<div class="b-it"><div class="r"><span>KPR Apartemen — BCA</span><span class="num">768.400.000</span></div><div class="m"><span>7,5% · Rp 7,2 jt / month</span><span>99%</span></div><div class="b-bar"><span style="width:98.7%"></span></div></div>
+<div class="b-it"><div class="r"><span>Kredivo — Laptop</span><span class="num">6.300.000</span></div><div class="m"><span>2,6% · Rp 1,05 jt / month · 6 left</span><span>1%</span></div><div class="b-bar"><span style="width:1%"></span></div></div>
+<div class="b-it"><div class="r"><span>BCA Credit Card</span><span class="num">4.180.000</span></div><div class="m"><span style="color:var(--amber)">21% · highest rate, pay first</span><span>&lt;1%</span></div><div class="b-bar"><span style="width:.6%"></span></div></div>
+</div>
+</div>
+<div class="b-foot">Rp 321,9 jt of it is liquid, ready within a few days.</div>
+</div>
+
+<div class="cap" style="left:3080px;top:0">C · Horizon<span>The chart becomes the page: no gridlines, no Y-axis. Past is a solid line, the next milestone a dashed one. Tap a month to read what moved it.</span></div>
+<div class="fr" style="left:3080px;top:90px" data-screen-label="C Horizon">
+<div class="ghost">←</div><div class="kbd">⌘ K</div>
+<div class="c-top"><div><div class="lbl">Net worth</div><div class="num big">Rp 808.052.170</div></div>
+<div class="c-goal">Next marker <span class="num">Rp 1 miliar</span><br>Rp 191,9 jt away · around Nov 2027 at this pace</div></div>
+<div class="c-chart"><svg id="chartC" width="1200" height="330" viewBox="0 0 1200 330"></svg>
+<div class="tip" id="tipC"><span style="color:var(--t3)">Oct</span><span class="num">+Rp 16,9 jt</span></div></div>
+<div class="c-months"><div>Mar</div><div>Apr</div><div>May</div><div>Jun</div><div>Jul</div><div>Aug</div><div>Sep</div><div class="on">Oct</div><div class="fut">→ 2027</div></div>
+<div class="c-read"><div>Assets<span class="num">+Rp 9,7 jt</span></div><div>Debt paid down<span class="num">Rp 7,2 jt</span></div><div>Biggest mover<span class="num">VOO +2,4%</span></div></div>
+</div>
+
+<script>
+const S=[700.0,715.2,728.6,742.1,757.3,774.0,791.2,808.05];
+function pts(v,w,h,mn,mx,pad){return v.map((y,i)=>[pad+i*(w-2*pad)/(v.length-1),h-((y-mn)/(mx-mn))*h])}
+function d(p){return p.map((q,i)=>(i?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1)).join(' ')}
+// A
+{const p=pts(S,760,100,690,815,4).map(q=>[q[0],q[1]+5]);const e=p[p.length-1];
+document.getElementById('sparkA').innerHTML=`<path d="${d(p)}" fill="none" stroke="#37352F" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/><circle cx="${e[0]}" cy="${e[1]}" r="4" fill="#37352F"/><circle cx="${e[0]}" cy="${e[1]}" r="9" fill="#37352F" opacity=".08"/>`}
+// C: 8 past months + future to 1000 occupying last 1.6 col
+{const W=1200,H=300,cw=W/9.6,mn=650,mx=1020,y=v=>20+H-((v-mn)/(mx-mn))*H;
+const p=S.map((v,i)=>[cw*i+cw/2,y(v)]);const last=p[7];const fut=[W-6,y(1000)];
+const area=d(p)+` L ${last[0]} 330 L ${p[0][0]} 330 Z`;
+document.getElementById('chartC').innerHTML=`<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E8C5A8" stop-opacity=".35"/><stop offset="1" stop-color="#E8C5A8" stop-opacity="0"/></linearGradient></defs>
+<line x1="0" x2="${W}" y1="${y(1000)}" y2="${y(1000)}" stroke="#D4D0C8" stroke-dasharray="2 6"/><text x="0" y="${y(1000)-10}" font-size="12" fill="#9B9B9B" font-family="Inter">Rp 1 M</text>
+<path d="${area}" fill="url(#g)"/><path d="${d(p)}" fill="none" stroke="#37352F" stroke-width="2" stroke-linejoin="round"/>
+<path d="M ${last[0]} ${last[1]} L ${fut[0]} ${fut[1]}" stroke="#9B9B9B" stroke-width="1.6" stroke-dasharray="4 6" fill="none"/>
+<line x1="${last[0]}" x2="${last[0]}" y1="${last[1]}" y2="330" stroke="#37352F" stroke-opacity=".15"/>
+${p.map((q,i)=>`<circle cx="${q[0]}" cy="${q[1]}" r="${i==7?5:2.5}" fill="${i==7?'#37352F':'#BDB6A9'}"/>`).join('')}
+<circle cx="${fut[0]}" cy="${fut[1]}" r="4" fill="#F5F3EE" stroke="#9B9B9B" stroke-width="1.6"/>`;
+const t=document.getElementById('tipC');t.style.left=(last[0]-50)+'px';t.style.top=(last[1]-70)+'px';}
+</script>
+</body></html>

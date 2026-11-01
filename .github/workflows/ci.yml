@@ -53,6 +53,7 @@ jobs:
       - run: npm run test:macro
       - run: npm run test:journey
       - run: npm run test:accounts
+      - run: npm run test:networth
       - run: npm run build
 
   ai-service:

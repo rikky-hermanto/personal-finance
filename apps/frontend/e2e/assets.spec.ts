@@ -7,7 +7,7 @@ test('assets flow: add first account with balance → verify headline', async ({
   await expect(page.getByTestId('net-worth-headline')).toBeVisible();
 
   // Navigate to accounts tab
-  await page.click('a[href="/assets/accounts"]');
+  await page.getByRole('tab', { name: 'Accounts' }).click();
 
   // Add the first account through the first-run flow, with today's balance
   await page.getByRole('radio', { name: /Bank/ }).click();
@@ -18,6 +18,6 @@ test('assets flow: add first account with balance → verify headline', async ({
   await expect(page.getByRole('button', { name: /BCA Test/ })).toBeVisible();
 
   // Overview should update
-  await page.click('a[href="/assets/overview"]');
+  await page.getByRole('tab', { name: 'Overview' }).click();
   await expect(page.getByTestId('net-worth-headline')).toContainText('50');
 });

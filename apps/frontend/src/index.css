@@ -64,6 +64,16 @@
 
     /* Zen extras */
     --font-title: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+    /* Net Worth zen page */
+    --zen-faint: 0 0% 61%;           /* #9B9B9B */
+    --zen-warm: 27 59% 78%;          /* #E8C5A8 debt bars, chart fill */
+    --zen-bar: 38 13% 70%;           /* #BDB6A9 neutral bar */
+    --zen-track: 38 21% 91%;         /* #EDE9E2 */
+    --zen-track-strong: 39 20% 88%;  /* #E6E1D8 */
+    --zen-positive: 142 76% 36%;     /* #16A34A */
+    --zen-caution: 26 90% 37%;       /* #B45309 */
+    --zen-negative: 0 72% 51%;       /* #DC2626 */
   }
 
   /* ── Dark mode (Toloshi) ───────────────────────────────────────────── */
@@ -120,6 +130,15 @@
     --chart-3: 280 66% 65%;
     --chart-4: 355 85% 58%;
     --chart-5: 35 91% 60%;
+
+    --zen-faint: 210 8% 50%;
+    --zen-warm: 27 45% 62%;
+    --zen-bar: 240 5% 34%;
+    --zen-track: 240 6% 14%;
+    --zen-track-strong: 240 6% 16%;
+    --zen-positive: 142 69% 58%;
+    --zen-caution: 38 92% 50%;
+    --zen-negative: 0 91% 71%;
   }
 }
 
@@ -257,6 +276,29 @@
   .zen-ease-reveal {
     transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1),
                 transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Net Worth zen page: blocks rise in on load, views cross-fade on switch */
+  .zen-rise {
+    animation: zen-rise 400ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .zen-fade {
+    animation: zen-fade 200ms ease-out both;
+  }
+
+  @keyframes zen-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes zen-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .zen-rise, .zen-fade { animation: none; }
   }
 
   /* Recessed chrome — used on Sidebar and ActivityPanel in focus mode */
