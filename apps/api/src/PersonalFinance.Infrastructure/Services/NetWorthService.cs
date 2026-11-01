@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
+using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
+using PersonalFinance.Application.Services;
 using PersonalFinance.Domain.Entities;
 using static global::Supabase.Postgrest.Constants;
 
@@ -10,41 +12,18 @@ public class NetWorthService(
     ILogger<NetWorthService> logger
 ) : INetWorthService
 {
-    public async Task<decimal> GetCurrentNetWorthIdrAsync(CancellationToken ct = default)
+    public async Task<NetWorthSummaryDto> GetCurrentAsync(CancellationToken ct = default)
     {
         logger.LogDebug("Computing current net worth");
 
-        var accounts = await supabase.From<Account>().Filter("is_active", Operator.Equals, "true").Get();
-        var assets = await supabase.From<Asset>().Get();
-        var liabilities = await supabase.From<Liability>().Get();
+        var (accounts, assets, holdings, liabilities) = await LoadBalanceSheetAsync();
         var valuations = await supabase.From<Valuation>().Get();
 
-        var latestBySubject = valuations.Models
-            .GroupBy(v => (v.SubjectType, v.SubjectId))
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(v => v.ValuedAt).First().ValueIdr);
+        var summary = NetWorthCalculator.Summarize(accounts, assets, holdings, liabilities, valuations.Models);
+        logger.LogInformation("Net worth computed: {NetWorth} IDR (assets={TotalAssets}, liabilities={TotalLiabilities}, liquid={Liquid})",
+            summary.NetWorthIdr, summary.AssetsIdr, summary.LiabilitiesIdr, summary.LiquidIdr);
 
-        decimal totalAssets = 0;
-        foreach (var account in accounts.Models)
-        {
-            if (latestBySubject.TryGetValue(("account", account.Id), out var val))
-                totalAssets += val;
-            else
-                totalAssets += account.OpeningBalance;
-        }
-
-        foreach (var asset in assets.Models)
-        {
-            if (latestBySubject.TryGetValue(("asset", asset.Id), out var val))
-                totalAssets += val;
-        }
-
-        decimal totalLiabilities = liabilities.Models.Sum(l => l.Principal);
-
-        var netWorth = totalAssets - totalLiabilities;
-        logger.LogInformation("Net worth computed: {NetWorth} IDR (assets={TotalAssets}, liabilities={TotalLiabilities})",
-            netWorth, totalAssets, totalLiabilities);
-
-        return netWorth;
+        return summary;
     }
 
     public async Task<IReadOnlyDictionary<string, decimal>> GetAllocationByClassAsync(CancellationToken ct = default)
@@ -71,27 +50,29 @@ public class NetWorthService(
         return allocation;
     }
 
-    public async Task<IReadOnlyList<(DateTime Date, decimal ValueIdr)>> GetHistoryAsync(
+    public async Task<IReadOnlyList<NetWorthPointDto>> GetHistoryAsync(
         DateTime from, DateTime to, CancellationToken ct = default)
     {
         logger.LogDebug("Getting net worth history from {From} to {To}", from, to);
 
+        var (accounts, assets, holdings, liabilities) = await LoadBalanceSheetAsync();
+
+        // Valuations before `from` are needed too: each point carries the latest value forward.
         var valuations = await supabase.From<Valuation>()
-            .Filter("valued_at", Operator.GreaterThanOrEqual, from.ToString("O"))
             .Filter("valued_at", Operator.LessThanOrEqual, to.ToString("O"))
             .Order("valued_at", Ordering.Ascending)
             .Get();
 
+        return NetWorthCalculator.History(accounts, assets, holdings, liabilities, valuations.Models, from, to);
+    }
+
+    private async Task<(List<Account> Accounts, List<Asset> Assets, List<Holding> Holdings, List<Liability> Liabilities)>
+        LoadBalanceSheetAsync()
+    {
+        var accounts = await supabase.From<Account>().Get();
+        var assets = await supabase.From<Asset>().Get();
+        var holdings = await supabase.From<Holding>().Get();
         var liabilities = await supabase.From<Liability>().Get();
-        var totalLiabilities = liabilities.Models.Sum(l => l.Principal);
-
-        // Group by date (day-level buckets) and sum all subject values
-        var byDate = valuations.Models
-            .GroupBy(v => v.ValuedAt.Date)
-            .Select(g => (Date: g.Key, ValueIdr: g.Sum(v => v.ValueIdr) - totalLiabilities))
-            .OrderBy(x => x.Date)
-            .ToList();
-
-        return byDate;
+        return (accounts.Models, assets.Models, holdings.Models, liabilities.Models);
     }
 }

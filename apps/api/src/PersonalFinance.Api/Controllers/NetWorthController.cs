@@ -10,8 +10,8 @@ public class NetWorthController(INetWorthService netWorthService) : ControllerBa
     [HttpGet("current")]
     public async Task<IActionResult> GetCurrent(CancellationToken ct)
     {
-        var netWorth = await netWorthService.GetCurrentNetWorthIdrAsync(ct);
-        return Ok(new { netWorthIdr = netWorth });
+        var summary = await netWorthService.GetCurrentAsync(ct);
+        return Ok(summary);
     }
 
     [HttpGet("allocation")]
@@ -31,7 +31,6 @@ public class NetWorthController(INetWorthService netWorthService) : ControllerBa
         var toDate = to ?? DateTime.UtcNow;
 
         var history = await netWorthService.GetHistoryAsync(fromDate, toDate, ct);
-        var result = history.Select(h => new { date = h.Date, valueIdr = h.ValueIdr });
-        return Ok(result);
+        return Ok(history);
     }
 }
