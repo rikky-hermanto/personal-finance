@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>PF-AI001 Quiz</title>
+<style>
+:root{color-scheme:dark;--bg:#1d1d1f;--panel:#111113;--border:#353538;--text:#ececef;--muted:#aaaab4;--purple:#8985ff;--blue:#247cba;--green:#44c79a;--red:#e08188}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",sans-serif}
+button{font:inherit;border:1px solid transparent;border-radius:5px;cursor:pointer;padding:9px 19px;line-height:1.5;font-weight:600}
+button:disabled{opacity:.42;cursor:default}
+button:not(:disabled):hover{filter:brightness(1.12)}
+:focus-visible{outline:3px solid var(--purple);outline-offset:3px}
+a{color:var(--purple);text-underline-offset:4px}
+code{font-family:"Cascadia Code",Consolas,monospace;font-size:.86em;background:#242426;border:1px solid #444448;border-radius:4px;padding:1px 5px;overflow-wrap:anywhere}
+h1,h2,h3,p{margin-top:0}
+.app{max-width:820px;margin:auto;padding:24px 16px 32px;display:flex;flex-direction:column;gap:20px;min-height:100dvh}
+.masthead{padding:20px 22px 22px;background:var(--panel);border:1px solid #29292d;border-radius:8px}
+.crumb{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.crumb a{color:var(--muted)}
+.topline{display:flex;gap:16px;align-items:baseline;justify-content:space-between;margin-bottom:12px}
+h1{margin:0;color:var(--purple);font-size:22px;line-height:1.35}
+.count{flex-shrink:0;font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+progress{display:block;width:100%;height:8px;appearance:none;border:0;border-radius:20px;overflow:hidden;background:#3a3a3f}
+progress::-webkit-progress-bar{background:#3a3a3f}
+progress::-webkit-progress-value{background:var(--green);transition:width .2s}
+progress::-moz-progress-bar{background:var(--green)}
+.quiz{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px clamp(18px,4vw,38px)}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+.eyebrow{color:var(--muted);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.plain{color:var(--muted);background:transparent;border-color:#424247;font-size:12px;padding:5px 10px}
+.qcount{margin-bottom:4px;font-size:12px;color:var(--purple);font-weight:600;letter-spacing:.06em}
+.certs{font-size:12px;color:var(--muted);margin-bottom:16px}
+.scenario{padding:13px 16px;background:#202023;border-left:3px solid var(--purple);border-radius:0 5px 5px 0;margin:0 0 18px;font-size:15px;color:#d6d6dc}
+.scenario b{color:var(--muted);font-size:11px;letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:2px}
+.prompt{font-size:18px;font-weight:500;margin-bottom:18px;line-height:1.55}
+.options{display:flex;flex-direction:column;gap:9px;margin-bottom:6px}
+.option{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;background:#18181b;color:var(--text);border:1px solid #33333a;border-radius:7px;padding:12px 14px;font-weight:400}
+.option:not(:disabled):hover{background:#202028;border-color:#5b5795;filter:none}
+.option:disabled{opacity:1;cursor:default}
+.option .letter{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#2c2c33;font-weight:700;font-size:13px}
+.option .txt{flex:1;min-width:0}
+.option.correct{background:#162b24;border-color:#3d9c7b}
+.option.correct .letter{background:var(--green);color:#092219}
+.option.wrong{background:#302022;border-color:#a66470}
+.option.wrong .letter{background:var(--red);color:#2a0d10}
+.option.dim{opacity:.55}
+.mark{display:block;font-size:12px;font-weight:600;margin-top:3px;color:#72e2b9}
+.wrong .mark{color:#ffc0c5}
+.hint{color:var(--muted);font-size:12px;margin:14px 0 0}
+.feedback{background:#e9f8f1;color:#176a52;border-left:4px solid var(--green);padding:15px 18px;border-radius:3px;margin:18px 0 20px;font-size:15px}
+.feedback.incorrect{background:#fff0ee;color:#863a42;border-left-color:var(--red)}
+.feedback h3{font-size:15px;margin:0 0 6px}
+.feedback p{margin:0 0 8px}.feedback p:last-child{margin:0}
+.feedback .maps{font-size:12px;opacity:.85}
+.feedback code{color:inherit;background:#ffffff80;border-color:#00000020}
+.actions{display:flex;gap:11px;flex-wrap:wrap;align-items:center}
+.primary{background:var(--green);color:#092219}
+.secondary{background:#29292e;color:var(--text);border-color:#51515a}
+.score{color:var(--muted);font-size:12px;margin-top:20px}
+.big{font-size:56px;line-height:1.2;letter-spacing:-.04em;color:var(--green);font-weight:700;margin:12px 0}
+.review{border-top:1px solid var(--border);padding:14px 0}
+.review summary{cursor:pointer;display:flex;gap:10px;align-items:baseline;font-size:14px}
+.review .st{color:var(--green);font-weight:650;font-size:12px;flex:none}
+.review .st.missed{color:#efa4ac}
+.review p{font-size:14px;margin:10px 0 0}
+.foot{color:#91919d;font-size:11px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.foot a{color:#aaa7e9}
+.topics{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.topics a{display:flex;justify-content:space-between;gap:16px;align-items:baseline;background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:15px 18px;text-decoration:none;color:var(--text)}
+.topics a:hover{border-color:#5b5795}
+.topics .id{color:var(--purple);font-weight:650;font-size:13px;margin-right:8px}
+.topics .meta{color:var(--muted);font-size:12px;flex:none}
+.lede{color:var(--muted);font-size:14px;margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <div class="crumb"><a href="index.html">AI Learning quizzes</a> · PF-AI001</div>
+    <div class="topline"><h1>AI Observability: Langfuse Integration</h1><span class="count" id="count"></span></div>
+    <progress id="progress" value="0" max="1" aria-label="Questions answered"></progress>
+  </header>
+  <main class="quiz" id="panel">
+    <div class="toolbar"><span class="eyebrow" id="round">Knowledge check</span><button class="plain" id="restart" type="button">Restart</button></div>
+    <div id="content"></div>
+    <noscript><p>Enable JavaScript to take this quiz.</p></noscript>
+  </main>
+  <footer class="foot"><span>Source: <a href="../../../plans/done/learning/PF-AI001-ai-observability.md">PF-AI001-ai-observability.md</a></span><span>Keys: A–D answer · → next · ← previous</span></footer>
+</div>
+<script type="application/json" id="data">[{"id": "q1", "number": 1, "title": "Why LLM-specific observability?", "certs": "Databricks · Azure AI-102", "scenario": "Your FastAPI service already has standard APM — request latency, error rate, throughput — but you can't answer \"which extractions cost the most\" or \"is output quality drifting?\"", "prompt": "What does LLM-specific observability (e.g., Langfuse) add that traditional APM does not?", "options": [{"id": "A", "html": "Lower request latency"}, {"id": "B", "html": "Automatic horizontal autoscaling of the service"}, {"id": "C", "html": "Per-call token usage, cost, captured prompt/response, and quality signals attached to each generation"}, {"id": "D", "html": "Database query execution plans"}], "answer": "C", "explanation": "APM measures the HTTP/infra layer; LLM observability captures token count, cost, prompt/response content, and quality per <em>generation<\/em>.", "maps": "Databricks GenAI Engineer Associate · Deployment &amp; Monitoring; Azure AI-102 · Monitor generative AI solutions"}, {"id": "q2", "number": 2, "title": "Reporting cost per document", "certs": "AWS ML Engineer · Databricks", "scenario": "One extraction uses ~8,000 input + ~1,200 output tokens against a model priced per 1M tokens.", "prompt": "The most reliable way to report cost-per-document is to:", "options": [{"id": "A", "html": "Multiply each call's actual input/output token counts by the model's per-token price and log it on the trace"}, {"id": "B", "html": "Estimate it from wall-clock latency"}, {"id": "C", "html": "Divide the monthly invoice by the number of API keys"}, {"id": "D", "html": "Assume a flat cost regardless of statement length"}], "answer": "A", "explanation": "Cost-per-doc must come from per-call token usage × price, recorded at trace time (exactly what <code>estimate_cost_usd()<\/code> does).", "maps": "AWS Certified ML Engineer – Associate · Monitoring &amp; cost optimization; Databricks GenAI Engineer Associate · Monitoring"}, {"id": "q3", "number": 3, "title": "Percentiles vs the mean", "certs": "Azure AI-102 · Google Cloud PMLE", "scenario": "Mean extraction latency is a healthy 900 ms, yet some users report slow uploads.", "prompt": "Why track p50 and p95 latency instead of the mean alone?", "options": [{"id": "A", "html": "The mean can't be computed for LLM calls"}, {"id": "B", "html": "p95 always equals the mean for LLMs"}, {"id": "C", "html": "Percentiles reduce token cost"}, {"id": "D", "html": "Percentiles expose the tail latency the mean hides — p95 reflects the experience of the slowest 5% of calls"}], "answer": "D", "explanation": "The mean smooths over tail behavior; p95 captures worst-case user experience, which is what users actually complain about.", "maps": "Azure AI-102 · Optimize &amp; monitor solutions; Google Cloud PMLE · Monitor ML solutions"}, {"id": "q4", "number": 4, "title": "Structuring a trace", "certs": "Databricks · LLMOps", "scenario": "A single upload runs PDF text extraction → LLM extraction → categorization.", "prompt": "The cleanest way to model this in an observability tool is:", "options": [{"id": "A", "html": "One log line with everything concatenated"}, {"id": "B", "html": "One trace for the upload with nested spans/generations (pdf-extract, llm-extract, categorize) so cost and latency are attributable per step"}, {"id": "C", "html": "A separate database table per request"}, {"id": "D", "html": "Log only the final result, nothing intermediate"}], "answer": "B", "explanation": "A trace with nested spans/generations makes per-step cost and latency attributable and debuggable.", "maps": "Databricks GenAI Engineer Associate · Deployment &amp; Monitoring (LLMOps)"}, {"id": "q5", "number": 5, "title": "Catching silent quality drift", "certs": "Databricks · AWS ML Engineer", "scenario": "The extraction model is unchanged, but accuracy on new uploads quietly degrades over a month.", "prompt": "Which is the most practical production signal to catch this?", "options": [{"id": "A", "html": "Input-distribution drift (e.g., a new bank format) plus output-quality proxies and user-correction/feedback rates"}, {"id": "B", "html": "The LLM's training loss"}, {"id": "C", "html": "The number of GPUs in the cluster"}, {"id": "D", "html": "The Docker image size"}], "answer": "A", "explanation": "You don't train the LLM, so you monitor input drift + quality proxies + user-correction feedback, not training internals.", "maps": "Databricks GenAI Engineer Associate · Monitoring; AWS Certified ML Engineer – Associate · Monitoring &amp; data/model drift"}]</script>
+<script>
+(() => {
+  const Q = JSON.parse(document.getElementById('data').textContent);
+  const $ = id => document.getElementById(id);
+  const content = $('content');
+  let ids, index, answers, done, review;
+
+  function start(sel, isReview) { ids = sel; index = 0; answers = {}; done = false; review = isReview; render('prompt'); }
+  const byId = id => Q.find(q => q.id === id);
+  const stats = () => {
+    const answered = ids.filter(id => id in answers);
+    const missed = answered.filter(id => answers[id] !== byId(id).answer);
+    return { answered: answered.length, correct: answered.length - missed.length, total: ids.length, missed };
+  };
+
+  function render(focusId) {
+    const s = stats();
+    $('count').textContent = s.answered + ' / ' + s.total + (review ? ' reviewed' : ' answered');
+    $('progress').max = s.total; $('progress').value = s.answered;
+    $('round').textContent = review ? 'Review round · missed questions' : 'Knowledge check · ' + Q.length + ' questions';
+    done ? renderResults(s) : renderQuestion(s);
+    const el = focusId && $(focusId); if (el) el.focus({ preventScroll: true });
+  }
+
+  function renderQuestion(s) {
+    const q = byId(ids[index]);
+    const picked = answers[q.id];
+    const locked = picked !== undefined;
+    const ok = picked === q.answer;
+    const opts = q.options.map(o => {
+      let cls = '', mark = '';
+      if (locked) {
+        if (o.id === q.answer) { cls = ' correct'; mark = o.id === picked ? 'Your answer · correct' : 'Correct answer'; }
+        else if (o.id === picked) { cls = ' wrong'; mark = 'Your answer'; }
+        else cls = ' dim';
+      }
+      return '<button type="button" class="option' + cls + '" data-id="' + o.id + '"' + (locked ? ' disabled' : '') + '><span class="letter">' + o.id + '</span><span class="txt">' + o.html + (mark ? '<span class="mark">' + mark + '</span>' : '') + '</span></button>';
+    }).join('');
+    const prev = '<button class="secondary" id="prev" type="button"' + (index === 0 ? ' disabled' : '') + '>Previous</button>';
+    content.innerHTML =
+      '<p class="qcount">QUESTION ' + (index + 1) + ' OF ' + ids.length + ' · ' + q.title + '</p>' +
+      (q.certs ? '<p class="certs">' + q.certs + '</p>' : '<p class="certs"></p>') +
+      (q.scenario ? '<div class="scenario"><b>Scenario</b>' + q.scenario + '</div>' : '') +
+      '<h2 class="prompt" id="prompt" tabindex="-1">' + q.prompt + '</h2>' +
+      '<div class="options" role="group" aria-label="Answer options">' + opts + '</div>' +
+      (locked
+        ? '<div class="feedback' + (ok ? '' : ' incorrect') + '" id="feedback" role="status" tabindex="-1"><h3>' + (ok ? 'Correct.' : 'Not quite. The answer is ' + q.answer + '.') + '</h3><p>' + q.explanation + '</p>' + (q.maps ? '<p class="maps">Maps to: ' + q.maps + '</p>' : '') + '</div>' +
+          '<div class="actions">' + prev + '<button class="primary" id="next" type="button">' + (index === ids.length - 1 ? 'See results' : 'Next') + '</button></div>'
+        : '<p class="hint">Click an answer to reveal the explanation.</p><div class="actions" style="margin-top:14px">' + prev + '</div>') +
+      '<p class="score">Score: ' + s.correct + ' / ' + s.answered + ' correct' + (review ? ' in this review round' : '') + '</p>';
+    content.querySelectorAll('.option:not(:disabled)').forEach(b => b.addEventListener('click', () => choose(b.dataset.id)));
+    $('prev').addEventListener('click', goPrev);
+    if (locked) $('next').addEventListener('click', goNext);
+  }
+
+  function choose(id) {
+    const q = byId(ids[index]);
+    if (done || q.id in answers) return;
+    answers[q.id] = id; render('feedback');
+    $('next').scrollIntoView({ block: 'nearest' });
+  }
+  function goNext() {
+    const q = byId(ids[index]);
+    if (done || !(q.id in answers)) return;
+    if (index === ids.length - 1) done = true; else index++;
+    window.scrollTo(0, 0); render(done ? 'results' : 'prompt');
+  }
+  function goPrev() {
+    if (done) { done = false; index = ids.length - 1; }
+    else if (index > 0) index--;
+    else return;
+    window.scrollTo(0, 0); render('prompt');
+  }
+
+  function renderResults(s) {
+    const perfect = s.correct === s.total;
+    const pct = s.total ? s.correct / s.total : 0;
+    const advice = perfect ? 'Every answer correct. Try explaining each idea aloud in interview form.'
+      : pct < 0.6 ? 'Below 60%: re-read the plan\'s Resources and Theory sections, then retry before moving on.'
+      : 'Open an item below to review the reasoning, or retry only the ones you missed.';
+    content.innerHTML = '<p class="qcount">' + (review ? 'REVIEW COMPLETE' : 'QUIZ COMPLETE') + '</p>' +
+      '<h2 id="results" tabindex="-1">' + (perfect ? 'All clear.' : 'A few ideas to revisit.') + '</h2>' +
+      '<div class="big">' + s.correct + ' / ' + s.total + '</div><p>' + advice + '</p>' +
+      '<div class="actions" style="margin:20px 0 26px"><button class="secondary" id="prev" type="button">Previous</button>' +
+      (s.missed.length ? '<button class="primary" id="retry" type="button">Retry missed (' + s.missed.length + ')</button>' : '') +
+      '<button class="plain" id="again" type="button">Restart all ' + Q.length + '</button></div><h3>Answer review</h3>' +
+      ids.map((id, i) => {
+        const q = byId(id), mine = answers[id], ok = mine === q.answer;
+        const txt = oid => q.options.find(o => o.id === oid).html;
+        return '<details class="review"><summary><span class="st' + (ok ? '' : ' missed') + '">' + (ok ? 'Correct' : 'Missed') + '</span><span>' + (i + 1) + '. ' + q.title + '</span></summary>' +
+          '<p>' + q.prompt + '</p><p><strong>Your answer: ' + mine + '.</strong> ' + txt(mine) + '</p>' +
+          (ok ? '' : '<p><strong>Correct answer: ' + q.answer + '.</strong> ' + txt(q.answer) + '</p>') +
+          '<p>' + q.explanation + '</p></details>';
+      }).join('');
+    $('prev').addEventListener('click', goPrev);
+    $('again').addEventListener('click', () => start(Q.map(q => q.id), false));
+    const r = $('retry'); if (r) r.addEventListener('click', () => { window.scrollTo(0, 0); start(s.missed, true); });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const k = e.key.toUpperCase();
+    if (!done && 'ABCD'.includes(k) && k.length === 1) choose(k);
+    else if (e.key === 'ArrowRight') goNext();
+    else if (e.key === 'ArrowLeft') goPrev();
+  });
+  $('restart').addEventListener('click', () => start(Q.map(q => q.id), false));
+  start(Q.map(q => q.id), false);
+})();
+</script>
+</body>
+</html>
