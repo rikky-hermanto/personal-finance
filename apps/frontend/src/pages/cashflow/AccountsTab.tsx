@@ -145,77 +145,77 @@ const AccountsTab = () => {
   const displayTitle = selectedSummary?.accountName ?? 'All Bank Accounts';
 
   return (
-    <div className="flex h-full bg-transparent">
-      {/* Left panel — account list */}
-      <div className="w-72 shrink-0 border-r border-border flex flex-col">
-        <div className="px-4 pt-6 pb-4 border-b border-border">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-foreground">Bank Accounts</h2>
+    <div className="h-full overflow-auto bg-transparent">
+      <div className="max-w-7xl mx-auto flex gap-8 p-8">
+        {/* Left panel — account list */}
+        <div className="w-64 shrink-0 self-start sticky top-0 flex flex-col max-h-[calc(100vh-8rem)]">
+          <div className="pb-3">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold text-foreground">Bank Accounts</h2>
+            </div>
+
+            {/* Net position summary card */}
+            <div className="rounded-lg bg-muted/50 border border-border px-3 py-3">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Net Position</div>
+              <div className={cn(
+                'text-lg font-bold font-mono',
+                totalNet >= 0 ? 'text-emerald-400' : 'text-red-400'
+              )}>
+                {totalNet >= 0 ? '+' : ''}Rp {formatCompact(totalNet)}
+              </div>
+              <div className="flex gap-3 mt-1.5">
+                <span className="text-emerald-400 font-mono text-[10px]">↑ Rp {formatCompact(totals.income)}</span>
+                <span className="text-red-400 font-mono text-[10px]">↓ Rp {formatCompact(totals.expenses)}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Net position summary card */}
-          <div className="rounded-lg bg-muted/50 border border-border px-3 py-3">
-            <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Net Position</div>
-            <div className={cn(
-              'text-lg font-bold font-mono',
-              totalNet >= 0 ? 'text-emerald-400' : 'text-red-400'
-            )}>
-              {totalNet >= 0 ? '+' : ''}Rp {formatCompact(totalNet)}
-            </div>
-            <div className="flex gap-3 mt-1.5">
-              <span className="text-emerald-400 font-mono text-[10px]">↑ Rp {formatCompact(totals.income)}</span>
-              <span className="text-red-400 font-mono text-[10px]">↓ Rp {formatCompact(totals.expenses)}</span>
-            </div>
-          </div>
-        </div>
+          <div className="flex-1 overflow-y-auto space-y-1.5">
+            {/* All accounts option */}
+            <button
+              onClick={() => setSelectedAccountId(null)}
+              className={cn(
+                'w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-150',
+                selectedAccountId === null
+                  ? 'border-primary/60 bg-primary/10 text-foreground'
+                  : 'border-border bg-card hover:bg-foreground/5/50 text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                <span className="text-sm font-medium">All Bank Accounts</span>
+              </div>
+              <div className="text-[10px] text-muted-foreground mt-0.5 ml-6">
+                {totals.count.toLocaleString()} transactions
+              </div>
+            </button>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
-          {/* All accounts option */}
-          <button
-            onClick={() => setSelectedAccountId(null)}
-            className={cn(
-              'w-full text-left px-4 py-2.5 rounded-lg border transition-all duration-150',
-              selectedAccountId === null
-                ? 'border-primary/60 bg-primary/10 text-foreground'
-                : 'border-border bg-card hover:bg-foreground/5/50 text-muted-foreground hover:text-foreground',
+            {/* Per-account cards */}
+            {isLoading ? (
+              <div className="py-8 text-center text-xs text-muted-foreground">Loading accounts…</div>
+            ) : summaries.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                No accounts yet.
+                <br />
+                <Link to="/assets/accounts" className="text-[11px] underline underline-offset-2 hover:opacity-70 transition-opacity">Add one in Assets → Accounts.</Link>
+              </div>
+            ) : (
+              summaries.map((summary) => (
+                <AccountCard
+                  key={summary.accountId}
+                  summary={summary}
+                  selected={selectedAccountId === summary.accountId}
+                  onClick={() => setSelectedAccountId(
+                    summary.accountId === selectedAccountId ? null : summary.accountId
+                  )}
+                />
+              ))
             )}
-          >
-            <div className="flex items-center gap-2">
-              <Building2 className="w-4 h-4" />
-              <span className="text-sm font-medium">All Bank Accounts</span>
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5 ml-6">
-              {totals.count.toLocaleString()} transactions
-            </div>
-          </button>
-
-          {/* Per-account cards */}
-          {isLoading ? (
-            <div className="py-8 text-center text-xs text-muted-foreground">Loading accounts…</div>
-          ) : summaries.length === 0 ? (
-            <div className="py-6 text-center text-xs text-muted-foreground">
-              No accounts yet.
-              <br />
-              <Link to="/assets/accounts" className="text-[11px] underline underline-offset-2 hover:opacity-70 transition-opacity">Add one in Assets → Accounts.</Link>
-            </div>
-          ) : (
-            summaries.map((summary) => (
-              <AccountCard
-                key={summary.accountId}
-                summary={summary}
-                selected={selectedAccountId === summary.accountId}
-                onClick={() => setSelectedAccountId(
-                  summary.accountId === selectedAccountId ? null : summary.accountId
-                )}
-              />
-            ))
-          )}
+          </div>
         </div>
-      </div>
 
-      {/* Right panel */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
+        {/* Right panel */}
+        <div className="flex-1 min-w-0">
           {/* Header row */}
           <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
             <div>
