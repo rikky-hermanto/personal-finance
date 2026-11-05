@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="design_doc_mode" content="canvas">
+<title>Accounts Revamp</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+:root{--bg:hsl(42 17% 94%);--fg:hsl(35 9% 19%);--card:#fff;--muted:hsl(39 18% 91%);--mfg:hsl(0 0% 42%);--bd:hsl(39 18% 88%);--warn:hsl(35 80% 42%);--ok:hsl(170 70% 32%);--serif:ui-serif,Georgia,Cambria,"Times New Roman",serif}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased}
+a{color:var(--fg)}a:hover{opacity:.7}
+.lbl{position:absolute;white-space:nowrap;font:500 13px Inter;color:#555;letter-spacing:.02em}
+.lbl b{font-weight:600;color:#222}
+.frame{position:absolute;width:1040px;height:860px;background:var(--bg);border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgb(0 0 0/.08)}
+.page{position:absolute;inset:16px;background:var(--card);border-radius:14px;border:1px solid var(--bd);overflow:hidden}
+.num{font-family:"Plus Jakarta Sans",sans-serif;font-variant-numeric:tabular-nums}
+.title{font:400 30px/1.1 var(--serif);margin:0}.title.num{white-space:nowrap}
+.sub{font-size:13px;color:var(--mfg);margin:6px 0 0}
+.btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--bd);background:var(--card);font:500 13px Inter;color:var(--fg)}
+.btn.dark{background:var(--fg);color:#fff;border-color:var(--fg)}
+.btn svg{width:14px;height:14px}
+.chips{display:flex;gap:6px}
+.chip{height:30px;padding:0 12px;border-radius:999px;font-size:12.5px;display:flex;align-items:center;color:var(--mfg)}
+.chip.on{background:var(--muted);color:var(--fg);font-weight:500}
+.grp{display:flex;justify-content:space-between;align-items:baseline;padding:22px 4px 8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mfg);font-weight:500}
+.grp .num{letter-spacing:0;text-transform:none;font-size:12px}
+.row{display:grid;grid-template-columns:36px 1fr auto 16px;gap:14px;align-items:center;padding:12px 12px;border-radius:12px}
+.row:hover,.row.hl{background:hsl(42 17% 97%)}
+.mono{width:36px;height:36px;border-radius:50%;background:var(--muted);display:grid;place-items:center;font:600 12px "Plus Jakarta Sans";color:var(--fg)}
+.nm{font-size:14px;font-weight:500}
+.meta{font-size:12px;color:var(--mfg);margin-top:2px;display:flex;gap:6px;align-items:center}
+.bal{text-align:right;font-size:14px;font-weight:500}
+.fresh{font-size:11.5px;color:var(--mfg);margin-top:2px;text-align:right}
+.fresh.stale{color:var(--warn)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--warn);display:inline-block}
+.chev{width:16px;height:16px;color:#bbb}
+.faded{opacity:.55}
+.nudge{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:12px;background:hsl(38 60% 95%);font-size:13px;margin-top:22px}
+.nudge a{font-weight:500;text-decoration:none}
+.scrim{position:absolute;inset:0;background:rgb(40 36 30/.18)}
+.sheet{position:absolute;top:0;right:0;bottom:0;width:400px;background:var(--card);border-left:1px solid var(--bd);padding:28px;display:flex;flex-direction:column;gap:24px;box-shadow:-12px 0 40px rgb(0 0 0/.06)}
+.k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--mfg);font-weight:500}
+.field{height:48px;border:1px solid var(--bd);border-radius:12px;display:flex;align-items:center;padding:0 14px;gap:8px;font-size:18px}
+.field .cur{color:var(--mfg);font-size:14px}
+.tog{width:40px;height:24px;border-radius:999px;background:var(--fg);position:relative;flex:none}
+.tog::after{content:"";position:absolute;top:3px;right:3px;width:18px;height:18px;border-radius:50%;background:#fff}
+.kv{display:grid;grid-template-columns:1fr auto;row-gap:10px;font-size:13px}.kv span:nth-child(odd){color:var(--mfg)}
+.ann{position:absolute;width:300px;font-size:13px;line-height:1.55;color:#444}
+.ann h4{margin:0 0 8px;font:600 13px Inter;color:#222}
+.ann ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px}
+.tile{border:1px solid var(--bd);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;background:var(--card)}
+.tile.on{border-color:var(--fg);box-shadow:0 0 0 1px var(--fg)}
+.tile svg{width:20px;height:20px}
+.tile p{margin:0;font-size:12.5px;color:var(--mfg);line-height:1.45}
+.tile h5{margin:0;font-size:14px;font-weight:500}
+.steps{display:flex;gap:6px}.steps i{width:24px;height:3px;border-radius:2px;background:var(--bd)}.steps i.on{background:var(--fg)}
+</style>
+</head>
+<body>
+<!-- Principles -->
+<div class="ann" style="left:0;top:0;width:1040px">
+<h4>Direction · one place, one list, one action at a time</h4>
+<ol style="flex-direction:row;gap:40px;padding-left:0;list-style:none">
+<li style="flex:1"><b>Merge the two screens.</b> Settings › Banks and Assets › Accounts show the same data twice. Keep a single “Accounts” page; settings only links to it.</li>
+<li style="flex:1"><b>Flatten institution → account.</b> Most institutions hold one account with the same name. Institution becomes a detail, not a nesting level.</li>
+<li style="flex:1"><b>Hide controls until asked.</b> Edit, delete, cashflow toggle and currency move into a side sheet. The list shows only name, balance and freshness.</li>
+</ol>
+</div>
+
+<!-- A1 list -->
+<div class="lbl" style="left:0;top:110px"><b>A · Quiet list</b> &nbsp;grouped by what the money does</div>
+<div class="frame" style="left:0;top:136px"><div class="page"><div style="max-width:640px;margin:0 auto;padding:44px 0">
+<div style="display:flex;justify-content:space-between;align-items:flex-end">
+<div><p class="k" style="margin:0 0 10px">Accounts</p><p class="title num" style="font-family:'Plus Jakarta Sans';font-weight:500;font-size:34px">Rp 412.580.000</p><p class="sub">Across 9 accounts</p></div>
+<span class="btn dark"><i data-lucide="plus"></i>Add account</span></div>
+<div class="nudge"><span style="display:flex;align-items:center;gap:10px"><span class="dot"></span>6 balances haven’t been updated in over a year</span><a href="#">Review now →</a></div>
+<div class="chips" style="margin-top:22px"><span class="chip on">All</span><span class="chip">Cash</span><span class="chip">Investing</span><span class="chip">Crypto</span></div>
+<div class="grp"><span>Cash</span><span class="num">Rp 86.400.000</span></div>
+<div class="row"><span class="mono">BJ</span><div><div class="nm">Bank Jago</div><div class="meta">Savings</div></div><div><div class="bal num">Rp 24.100.000</div><div class="fresh">Updated 3 days ago</div></div><i class="chev" data-lucide="chevron-right"></i></div>
+<div class="row hl"><span class="mono">BC</span><div><div class="nm">BCA</div><div class="meta">Checking</div></div><div><div class="bal num">Rp 38.750.000</div><div class="fresh stale">Needs update</div></div><i class="chev" data-lucide="chevron-right"></i></div>
+<div class="row"><span class="mono">NB</span><div><div class="nm">Neo Bank</div><div class="meta">Savings</div></div><div><div class="bal num">Rp 9.050.000</div><div class="fresh stale">Needs update</div></div><i class="chev" data-lucide="chevron-right"></i></div>
+<div class="row"><span class="mono">SB</span><div><div class="nm">Seabank</div><div class="meta">Savings</div></div><div><div class="bal num">Rp 14.500.000</div><div class="fresh">Updated today</div></div><i class="chev" data-lucide="chevron-right"></i></div>
+<div class="grp"><span>Investing</span><span class="num">Rp 301.200.000</span></div>
+<div class="row"><span class="mono">BI</span><div><div class="nm">Bibit</div><div class="meta">Mutual funds</div></div><div><div class="bal num">Rp 120.400.000</div><div class="fresh stale">Needs update</div></div><i class="chev" data-lucide="chevron-right"></i></div>
+<div class="row"><span class="mono">SK</span><div><div class="nm">Stockbit</div><div class="meta">Stocks</div></div><div><div class="bal num">Rp 180.800.000</div><div class="fresh">Updated last week</div></div><i class="chev" data-lucide="chevron-right"></i></div>
+<div class="row faded"><span class="mono">BL</span><div><div class="nm">Bukalapak</div><div class="meta">No account added yet</div></div><div><div class="fresh" style="color:var(--fg);font-weight:500">Finish setup</div></div><i class="chev" data-lucide="chevron-right"></i></div>
+</div></div></div>
+
+<!-- A2 sheet -->
+<div class="lbl" style="left:1120px;top:110px"><b>A · Account sheet</b> &nbsp;all controls live here, one tap away</div>
+<div class="frame" style="left:1120px;top:136px"><div class="page"><div style="max-width:640px;margin:0 auto;padding:44px 0;transform:translateX(-170px)">
+<p class="k" style="margin:0 0 10px">Accounts</p><p class="title num" style="font-family:'Plus Jakarta Sans';font-weight:500;font-size:34px">Rp 412.580.000</p>
+<div class="grp" style="margin-top:40px"><span>Cash</span></div>
+<div class="row"><span class="mono">BJ</span><div><div class="nm">Bank Jago</div></div><div class="bal num">Rp 24.100.000</div><span></span></div>
+<div class="row hl"><span class="mono">BC</span><div><div class="nm">BCA</div></div><div class="bal num">Rp 38.750.000</div><span></span></div>
+<div class="row"><span class="mono">NB</span><div><div class="nm">Neo Bank</div></div><div class="bal num">Rp 9.050.000</div><span></span></div>
+</div>
+<div class="scrim"></div>
+<div class="sheet">
+<div style="display:flex;justify-content:space-between;align-items:center"><div style="display:flex;gap:12px;align-items:center"><span class="mono">BC</span><div><div class="nm" style="font-size:16px">BCA</div><div class="meta">Checking · IDR</div></div></div><i data-lucide="x" style="width:18px;color:var(--mfg)"></i></div>
+<div style="display:flex;flex-direction:column;gap:10px"><span class="k">Balance today</span><div class="field num"><span class="cur">Rp</span>38.750.000</div><span style="font-size:12px;color:var(--warn)">Last updated 6 years ago. Enter today’s balance to keep net worth accurate.</span><span class="btn dark" style="align-self:flex-start">Save balance</span></div>
+<div style="display:flex;gap:14px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--bd);border-bottom:1px solid var(--bd)"><div style="flex:1"><div class="nm" style="font-size:13.5px">Include in Cashflow</div><div class="sub" style="margin-top:4px;line-height:1.45">Transactions from this account count toward your monthly income and spending.</div></div><span class="tog"></span></div>
+<div class="kv"><span>Institution</span><span>BCA</span><span>Type</span><span>Checking</span><span>Currency</span><span>IDR</span></div>
+<div style="margin-top:auto;display:flex;justify-content:space-between;font-size:13px"><a href="#">Edit details</a><a href="#" style="color:hsl(354 60% 48%)">Remove account</a></div>
+</div></div></div>
+
+<!-- B check-in -->
+<div class="lbl" style="left:0;top:1056px"><b>B · Check-in</b> &nbsp;focus mode for stale balances, one account per screen</div>
+<div class="frame" style="left:0;top:1082px"><div class="page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px">
+<div style="position:absolute;top:28px;left:32px;right:32px;display:flex;justify-content:space-between;font-size:13px;color:var(--mfg)"><span>Balance check-in</span><span style="display:flex;align-items:center;gap:6px"><i data-lucide="x" style="width:16px"></i>Done for now</span></div>
+<div class="steps"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div>
+<span class="mono" style="width:56px;height:56px;font-size:15px">BC</span>
+<div style="text-align:center"><p class="title">What’s in your BCA checking today?</p><p class="sub" style="font-size:14px">Last recorded Rp 38.750.000 · 6 years ago</p></div>
+<div class="field num" style="width:360px;height:60px;font-size:24px;justify-content:center"><span class="cur" style="font-size:16px">Rp</span>&nbsp;</div>
+<div style="display:flex;gap:10px"><span class="btn">Same as before</span><span class="btn dark">Save &amp; next</span></div>
+<span style="font-size:12.5px;color:var(--mfg)">2 of 6 · Skip this one</span>
+</div></div>
+
+<!-- C first run -->
+<div class="lbl" style="left:1120px;top:1056px"><b>C · First run</b> &nbsp;new users pick a type; no institution/account jargon</div>
+<div class="frame" style="left:1120px;top:1082px"><div class="page" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px">
+<div class="steps"><i class="on"></i><i></i></div>
+<div style="text-align:center"><p class="title">Where does your money live?</p><p class="sub" style="font-size:14px">Add one place to start. You can add the rest later.</p></div>
+<div style="display:grid;grid-template-columns:repeat(2,240px);gap:12px">
+<div class="tile on"><i data-lucide="landmark"></i><div><h5>Bank</h5><p>Savings or checking, like BCA or Jago</p></div></div>
+<div class="tile"><i data-lucide="trending-up"></i><div><h5>Investing app</h5><p>Stocks or funds, like Bibit or Stockbit</p></div></div>
+<div class="tile"><i data-lucide="bitcoin"></i><div><h5>Crypto</h5><p>Exchange or wallet, like Binance</p></div></div>
+<div class="tile"><i data-lucide="wallet"></i><div><h5>Something else</h5><p>E-wallet, cash, marketplace balance</p></div></div>
+</div>
+<span class="btn dark" style="height:42px;padding:0 22px">Continue</span>
+</div></div>
+<script>lucide.createIcons();</script>
+</body>
+</html>
