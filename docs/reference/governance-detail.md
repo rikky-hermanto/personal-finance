@@ -12,6 +12,8 @@ globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 # PROJECT GOVERNANCE RULEBOOK
 
 > 33 rules across 8 categories. All grounded in observed code violations.
+>
+> **Current state (2026-11-05):** CODE-04, CI-02 and CI-03 below describe targets that were never switched on. The live wording is in [.claude/rules/governance.md](../../.claude/rules/governance.md).
 > Last updated: 2026-03-16
 
 ---

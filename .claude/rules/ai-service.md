@@ -1,6 +1,6 @@
 ---
 description: Python FastAPI AI service rules — LLM extraction patterns, structured output design, Pydantic models, cost discipline, and cross-service contract with .NET TransactionDto
-globs: services/ai-service/**
+paths: services/ai-service/**
 ---
 
 # AI Service Development Rules (Python FastAPI)
@@ -24,6 +24,14 @@ without a corresponding change in `apps/api/src/PersonalFinance.Application/Dtos
 | `currency`      | `Currency`      | string    | ISO 4217 code — default `"IDR"`        |
 | `exchange_rate` | `ExchangeRate`  | number?   | FX rate (Wise only), null for IDR banks |
 | `account_name`  | `AccountName`   | string    | Bank/account name (e.g. `"BCA"`, `"Superbank"`) — renamed from `wallet`/`Wallet` in PF-125. Separate retrieval/chat models may still expose `wallet`; don't rename those blindly |
+
+## Service Shape
+
+- **Trigger:** the .NET API calls the service directly through typed HttpClients. The webhook-triggered pipeline is planned in PF-S11 and not built.
+- **Endpoints (all in `app/main.py`):** `GET /health`; extraction `POST /parse`, `/parse-pdf` (multipart, optional password), `/parse-image` (multipart, 10 MB cap); categorization `POST /categorize`, `/categorize-agent`, `/suggest-categories`; advice `POST /advisor`, `/portfolio-review`; retrieval and chat `POST /embed-transactions`, `/search`, `/ask`, `/ask/followups`, `/ask/stream`.
+- **Providers:** `ProviderFactory.create(settings)` returns `GeminiProvider` (default) or `AnthropicProvider`. Extraction results go back to the .NET API as JSON.
+- **Observability:** OpenTelemetry tracing and metrics over OTLP, with `FastAPIInstrumentor` wrapping all routes. Langfuse records cost, latency and token counts per LLM call (PF-AI001).
+- **Async:** all FastAPI endpoints and LLM calls are async.
 
 ## LLM Extraction Patterns
 
@@ -157,7 +165,7 @@ class TransactionResult(BaseModel):
 
 ## Bank-Specific Prompt Rules
 
-Each bank has a prompt template in `app/prompts/{bank_id}_v1.py`:
+A bank that needs its own prompt gets a template in `app/prompts/{bank_id}_v1.py` (only Superbank has one today; other unstructured PDFs use the generic prompt). A bank template should:
 - Include 2–3 real sanitized examples from the bank's actual format
 - Specify the bank's date format explicitly (NeoBank: `"DD MMM YYYY"`, Superbank: `"DD/MM/YYYY"`)
 - Specify the decimal convention (Indonesian: `"1.000.000,50"` → `1000000.50`)

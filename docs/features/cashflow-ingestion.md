@@ -8,6 +8,25 @@ The cashflow module combines registered BCA/NeoBank/Superbank signatures, standa
 
 ---
 
+## Why This Exists
+
+The Cashflow module ingests statements from 5 Indonesian bank accounts, each in a different format. Without accurate cashflow data, L1 scores are guesses. Before automation the workflow was entirely manual:
+
+```text
+INPUT (5 sources, 3 format types)
+├── BCA        → CSV        → column mapping          → Master Cashflow
+├── Superbank  → PDF        → LLM extract → validate  → Master Cashflow
+├── NeoBank    → PDF        → LLM extract → validate  → Master Cashflow
+├── Wise       → CSV        → mapping + FX conversion → Master Cashflow
+└── Bank Jago  → Screenshot → LLM extract → validate  → Master Cashflow
+```
+
+The pain points were format chaos (CSV, PDF, screenshots), manual LLM copy-paste, manual validation of dates and decimals, and an Excel file that kept growing. All of it repeated for 5 banks every month.
+
+The data layer has two goals: automate ingestion (no manual extraction, validation or mapping) and make it scalable (PostgreSQL instead of Excel, and a new bank should be configuration rather than new code).
+
+---
+
 ## Parser Strategy: Hybrid Approach
 
 The project uses a **hybrid parser strategy** — direct parsers for deterministic sources, LLM extraction for unstructured sources (PDFs, screenshots).

@@ -17,7 +17,7 @@ Use this before every `git push` or pull request. All 5 gates must pass.
 cd apps/api && dotnet build PersonalFinance.slnx
 ```
 
-Expected: `Build succeeded.` with 0 errors, 0 warnings (warnings are errors via CI-02).
+Expected: `Build succeeded.` with 0 errors. Warnings do not fail the build (see CI-02).
 
 ### Gate 2 — Backend tests
 

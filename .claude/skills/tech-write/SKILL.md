@@ -951,13 +951,13 @@ Produces an architecture diagram of the system (or a named subsystem) in one of 
 
 ### Format: `interactive` — HTML node-graph
 
-Delegated entirely to the **[`create-diagram`](../create-diagram/SKILL.md)** skill — that skill is the canonical source of truth for this format (the one-view contract, stub-card rules, edge routing/layout rules, theming, implementation rules, and the `verify-diagram.js` geometry harness). Do not reproduce or re-derive that ruleset here.
+Delegated entirely to the **`create-diagram`** skill (personal copy in `~/.claude/skills/create-diagram/`) — that skill is the canonical source of truth for this format (the one-view contract, stub-card rules, edge routing/layout rules, theming, implementation rules, and the `verify-diagram.js` geometry harness). Do not reproduce or re-derive that ruleset here.
 
 **Dispatch:** invoke it via the Skill tool (`skill: "create-diagram"`, `args: "[subject]"`), or tell the user to run `/create-diagram [subject]` directly.
 
 Step 1 above (gather the truth) still applies before dispatching — hand `create-diagram` a subject that's already been scoped against `docs/architecture/architecture-diagram.md` and `docs/STATUS.md`.
 
-If the ruleset itself needs to change (new layout rule, new failure mode, a fixed defect), edit [`.claude/skills/create-diagram/SKILL.md`](../create-diagram/SKILL.md) — never patch a duplicate copy here.
+If the ruleset itself needs to change (new layout rule, new failure mode, a fixed defect), edit `~/.claude/skills/create-diagram/SKILL.md` — never patch a duplicate copy here.
 
 ### Format: `text` — markdown box diagram
 

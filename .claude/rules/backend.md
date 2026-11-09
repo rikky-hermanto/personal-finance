@@ -1,6 +1,6 @@
 ---
 description: Rules for .NET backend development
-globs: apps/api/**
+paths: apps/api/**,supabase/**
 ---
 
 # Backend Development Rules (.NET 10)
@@ -87,3 +87,8 @@ All validators go in `Application/Validation/`.
 - Return `List<TransactionDto>` with fields: Date, Description, Remarks, Flow (DB/CR), Type, AmountIdr, Currency, AccountName (renamed from `Wallet` in PF-125) — the frozen cross-service contract lives in `.claude/rules/ai-service.md`; check it before adding/renaming fields
 - All parsed output runs through the 5-stage validation pipeline (`ITransactionPipelineService`): DateNormalizer → DecimalFixer → CurrencyStandardizer → SchemaValidator → DeduplicateCheck
 - Categorization uses longest-keyword-match via `ICategoryRuleService.CategorizeAsync()` — load rules once per parse, never per row (PERF-01)
+- **Routing:** direct parsers (BCA CSV, NeoBank PDF, Default CSV) are synchronous, deterministic and cost no LLM calls. Unrecognized PDFs go to `LlmPdfParser`, then `ILlmExtractionClient`, then the AI service `POST /parse-pdf`. Images skip the identifier and go straight to `POST /parse-image`.
+- Superbank PDF uses a bank-specific prompt through the dispatch map in `LlmPdfParser` (PF-128). BCA CSV uses semantic-anchor detection through `CsvTokenizer` and `BankKeys` (PF-104).
+- Not built yet: the bank profile YAML config (PF-045) and the event-driven webhook pipeline from Storage to the AI service (PF-S11).
+- **Deduplication** has three tiers: Tier 1 is the file hash (`uploaded_files` table); Tiers 2 and 3 are a composite UNIQUE index on `(date, amount_idr, description, account_name, flow, bank_running_balance)`.
+- Full design: [docs/features/cashflow-ingestion.md](../../docs/features/cashflow-ingestion.md).

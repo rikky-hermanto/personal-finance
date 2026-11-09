@@ -1,6 +1,6 @@
 ---
 description: Rules for Docker and container configuration
-globs: docker-compose.yml,**/Dockerfile,nginx.conf,**/.dockerignore,supabase/config.toml
+paths: docker-compose.yml,**/Dockerfile,nginx.conf,**/.dockerignore,supabase/config.toml
 ---
 
 # Docker & Container Rules

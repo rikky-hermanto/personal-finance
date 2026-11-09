@@ -1,12 +1,12 @@
 ---
 description: Project governance rulebook — architectural constraints, coding conventions, testing, security, and CI enforcement derived from structural analysis
-globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
+paths: apps/api/**,apps/frontend/**,services/**,supabase/**,docker-compose.yml,**/Dockerfile,.github/**
 ---
 
 # PROJECT GOVERNANCE RULEBOOK
 
 > 33 rules across 8 categories. Full rationale + compliant/violation examples: [docs/reference/governance-detail.md](../../docs/reference/governance-detail.md)
-> Last updated: 2026-03-16
+> Last updated: 2026-11-05
 
 ## Rules Quick Reference
 
@@ -21,7 +21,7 @@ globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 | CODE-01 | Convention | Naming: `{Verb}{Entity}Command/Handler/Validator`, `I{Entity}Service`, `{Entity}Controller` (plural), snake_case DB tables, PascalCase React components, `use-` camelCase hooks. |
 | CODE-02 | Convention | All `async Task` methods end with `Async`. Exemptions: MediatR `Handle()`, controller actions. |
 | CODE-03 | Convention | `<Nullable>enable</Nullable>` always on. Never `#nullable disable`. |
-| CODE-04 | Convention | TypeScript `strict: true`, `noImplicitAny: true`, `noUnusedLocals: true`. |
+| CODE-04 | Convention | `tsconfig.app.json` has `strict`, `noImplicitAny` and `noUnusedLocals` off today. Write new TypeScript as if they were on; turning them on is a separate scoped change. |
 | CODE-05 | Convention | No `Console.WriteLine` in `api/src/`. All output via `ILogger<T>`. |
 | TEST-01 | Testing | Every public method in Services, Commands, Validators, Parsers, Controllers must have tests. |
 | TEST-02 | Testing | Test method naming: `MethodName_Condition_ExpectedResult`. |
@@ -38,8 +38,8 @@ globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 | PERF-01 | Performance | Load category rules once per parse operation. No N+1 — never call `CategorizeAsync()` inside a foreach. |
 | PERF-02 | Performance | All GET collection endpoints support `?page=1&pageSize=50`. Default 50, max 200. |
 | CI-01 | CI | Required PR gates: `dotnet build`, `dotnet test`, `npm run lint`, `npm run build`, `tsc --noEmit`, `gitleaks detect`. All block merge. |
-| CI-02 | CI | Add `Microsoft.CodeAnalysis.NetAnalyzers` to `Directory.Build.props`. `TreatWarningsAsErrors=true`. |
-| CI-03 | CI | Add Prettier. `@typescript-eslint/no-unused-vars: error`. CI: `prettier --check "src/**/*.{ts,tsx}"`. |
+| CI-02 | CI | Preserve existing analyzer settings. There is no `Directory.Build.props`, so warnings do not fail the build; adding analyzers or warnings-as-errors is a separate scoped change. |
+| CI-03 | CI | Preserve existing lint and format settings. There is no Prettier and `no-unused-vars` is off; adding either is a separate scoped change. |
 
 ---
 
@@ -50,11 +50,11 @@ globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 **Rationale:** CSV banks (BCA, Wise) are deterministic — zero LLM cost, 100% accuracy. LLM extraction adds latency and API cost and is only justified for unstructured formats (PDF with variable layout, screenshots).
 
 **Rule:** Before implementing any new bank parser, answer: "Is this format fully deterministic (fixed column positions, known delimiters)?"
-- **YES** → implement `IBankStatementParser` in .NET `Infrastructure/BankParsers/`
+- **YES** → implement `IBankStatementParser` in .NET `Infrastructure/Parsers/`
 - **NO** → implement LLM extractor in Python `services/ai-service/app/services/`
-- Document the routing decision explicitly in the bank's YAML profile config
+- Record the routing decision in the plan. Bank profile YAML configs are not built yet (PF-045).
 
-**Enforcement:** Manual Review Required — check the profile config for a `parser: direct_csv` or `parser: llm_extraction` field.
+**Enforcement:** Manual Review Required.
 
 ---
 

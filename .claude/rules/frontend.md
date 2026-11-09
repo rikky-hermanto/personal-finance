@@ -1,6 +1,6 @@
 ---
 description: Rules for frontend React/TypeScript development
-globs: apps/frontend/**
+paths: apps/frontend/**
 ---
 
 # Frontend Development Rules (React 18 + TypeScript)
@@ -45,8 +45,8 @@ Commands run from `apps/frontend/` (not `src/`): `npm run dev` (port 8080), `npm
 - Hooks: camelCase with `use-` prefix (`use-mobile.tsx`)
 - Utilities/API clients: camelCase (`transactionsApi.ts`, `transactionParser.ts`)
 
-## Testing (when adding)
+## Testing
 
-- Place tests alongside components as `ComponentName.test.tsx`
-- Use Vitest + React Testing Library (not yet configured — add as needed)
-- Test user interactions and rendered output, not implementation details
+- **Unit:** Vitest runs pure logic under `src/lib/` in a node environment. Scripts: `test:desk`, `test:macro`, `test:journey`, `test:accounts`, `test:networth`; CI runs all five. Add a script (and a CI line) for a new area, and put the test next to the code as `name.test.ts`.
+- **Component tests:** not set up. There is no repo-wide `test` script and no React Testing Library yet (PF-038).
+- **E2E:** Playwright specs in `e2e/` are the main functional coverage: `npm run e2e`, `npm run e2e:ui`, or `npx playwright test e2e/health.spec.ts`. They need the full stack running and are not run in CI.

@@ -34,6 +34,9 @@
   },
   "model": "opusplan",
   "includeCoAuthoredBy": false,
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": false
+  },
   "hooks": {
     "PostToolUse": [
       {
