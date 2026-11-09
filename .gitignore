@@ -66,6 +66,8 @@ supabase/migrations/20260516000001_assets_seed.sql
 *.egg-info/
 build/
 dist/
+# ai/build holds the plan template and build guide, not build output
+!ai/build/
 
 docs/statement-examples/Cashflow 2024 2025.csv
 supabase/seed/assets_seed.sql
