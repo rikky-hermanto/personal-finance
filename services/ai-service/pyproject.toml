@@ -55,7 +55,7 @@ dev = [
     "pytest>=8.3.0",
     "pytest-asyncio>=0.25.0",
     "httpx>=0.28.0",
-    "anyio>=4.8.0",
+    "anyio>=4.15.1",
 ]
 
 # PF-147: eval-only stack, kept out of the production image and the dev install.
