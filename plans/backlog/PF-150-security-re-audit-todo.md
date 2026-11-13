@@ -20,7 +20,7 @@ After the other seven slices land, run the October audit again and prove the epi
 ## Acceptance Criteria
 
 - [ ] PF-143 to PF-149 are all in `plans/done/` (or the owner explicitly accepts running the re-audit with some still open; record which).
-- [ ] A report at `ai/audits/2026-10-security-re-audit.md` (the folder already holds earlier audits) lists each of the 12 original findings with status: fixed (ticket and evidence), already closed (PF-S15 for the AI service bypassing RLS, and for `transaction_embeddings`), or accepted (row in `docs/reference/accepted-risks.md`).
+- [ ] A report at `ai/audits/2026-10-security-re-audit.md` (the folder already holds earlier audits) lists each of the 12 original findings with status: fixed (ticket and evidence), already closed (PF-S15 for the AI service bypassing RLS, and for `transaction_embeddings`), or accepted (row in `docs/references/accepted-risks.md`).
 - [ ] Evidence is fresh, from this run, for: `dotnet list package --vulnerable --include-transitive`, `npm audit --omit=dev`, `pip-audit`, a gitleaks scan of the working tree and history (install gitleaks locally if absent, or use the CI result for the same commit), and the name search from PF-143 returning nothing in the working tree.
 - [ ] Runtime checks, run against the local stack: Grafana returns 401 without credentials; the listed ports do not answer on the LAN address; `/health` returns only a status; an upload with a wrong magic byte is rejected; an upload error body contains no exception text; a weak password is rejected by the local Auth API.
 - [ ] A fresh review pass over the diff of PF-143 to PF-149 and the auth, upload and AI-chat code paths for new problems, with every finding at medium or above either fixed in a follow-up ticket or accepted in writing. The report says plainly whether anything new at medium or above was found.
@@ -35,7 +35,7 @@ Treat it as a checklist run, not a new design. Gather the commands' output into 
 | File | Change |
 |------|--------|
 | `ai/audits/2026-10-security-re-audit.md` | Create — the report |
-| `docs/reference/accepted-risks.md` | Edit — only to add any new accepted item the owner approves |
+| `docs/references/accepted-risks.md` | Edit — only to add any new accepted item the owner approves |
 | `docs/STATUS.md` | Edit — one line with the result |
 | `plans/epics/E-001-security-hardening.md` | Edit via the validator only — status changes are the owner's/loop's |
 

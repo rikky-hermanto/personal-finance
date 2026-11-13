@@ -39,7 +39,7 @@ run:
 > **Was blocked by (PF-151 done 2026-10-25):** [PF-151](PF-151-journey-score-fixes-before-quests-todo.md), plan 1 of 3, "Journey score fixes before quests" (G3 investing is not spending, G4 DTI "not evaluated" plus the "I have no debts" flag, G11 insurance to L2). It must be executed and accepted first. This plan reuses its names, read from the plan on 2026-10-25: column `user_journey_state.no_debts_confirmed_at`, narrow entity `JourneyDebtConfirmation`, `IJourneyConfirmationService.GetNoDebtsConfirmedAtAsync`, `JourneyScoringRules` (`IsConsumption`, `IsSavingsOutflow`, `LiveScoreMap`, `Definitions`, `EvaluateDti`) and `BuildIndicatorDtos(liveScores)`. STEP 1 re-checks them against the code as executed.
 > **Sensitive:** Phase 1 only. Schema and RLS (new table, owner policy) and scoring code that feeds money decisions (G1: scores must not change because of quests). Phase 2 is not sensitive.
 > **Planned from branch:** main
-> **Spec:** [quest-engine-v1-design.md](../brainstorms/quest-engine-v1-design.md) is the design and is not re-opened here. [diagram-quest-engine-v1.html](../brainstorms/diagram-quest-engine-v1.html) is its high-level design. Product rules and guardrails G1, G2, G6, G7, G8: [pm-journey-quests-analysis.md](../brainstorms/pm-journey-quests-analysis.md).
+> **Spec:** [quest-engine-v1-design.md](../../docs/features/quest-engine-v1-design.md) is the design and is not re-opened here. [diagram-quest-engine-v1.html](../../docs/features/diagram-quest-engine-v1.html) is its high-level design. Product rules and guardrails G1, G2, G6, G7, G8: [pm-journey-quests-analysis.md](../../docs/ideas/brainstorms/pm-journey-quests-analysis.md).
 > **Next in the series:** plan 3 (Monthly Harvest) builds on this plan's board DTO, `quest_completions` and `seen_at`.
 
 ## Objective
@@ -83,7 +83,7 @@ Today nothing recalculates the Journey after a statement upload (`POST /api/tran
 - [x] `quest_completions` is owner-only: another signed-in user cannot read, insert or mark another user's rows (checked through the API and directly through PostgREST).
   > Verification: live: B's board had no items, B reading the table through PostgREST got `[]`, B's insert for A was rejected with 403, B's seen call and direct PATCH left A's rows unseen.
 - [x] `dotnet build`, `dotnet test`, `pytest`, `npm run lint`, `tsc --noEmit`, `npm run test:journey` and `npm run build` pass; `CLAUDE.md`, `docs/architecture/API-endpoints.md` and the Journey scoring card in `docs/architecture/diagram-system-design.html` are updated.
-  > Verification: all gates run in STEP 26 and pass; `CLAUDE.md`, `API-endpoints.md` and the system-design diagram updated. `docs/ai-features` and mentor material that mention the retired endpoint were left as history.
+  > Verification: all gates run in STEP 26 and pass; `CLAUDE.md`, `API-endpoints.md` and the system-design diagram updated. `docs/architecture/ai` and mentor material that mention the retired endpoint were left as history.
 
 ## Approach
 
@@ -130,7 +130,7 @@ Deliberately not done: the Harvest reveal and the monthly ritual (plan 3); chall
 | `apps/frontend/package.json`, `.github/workflows/ci.yml` | Edit — `test:journey` script and CI step |
 | `apps/frontend/e2e/journey.spec.ts` | Edit — mocked-board toast-once test |
 | `scripts/pf_s08_module_isolation.py` (and `pf_s08_local_http_smoke.py` if it owns the table list) | Edit — quest isolation and idempotency checks |
-| `CLAUDE.md`, `docs/architecture/API-endpoints.md`, `docs/architecture/diagram-system-design.html`, `docs/STATUS.md`, `services/ai-service/README.md`, `services/ai-service/docs/*`, `plans/brainstorms/quest-engine-v1-design.md` | Edit — docs that become true or stale |
+| `CLAUDE.md`, `docs/architecture/API-endpoints.md`, `docs/architecture/diagram-system-design.html`, `docs/STATUS.md`, `services/ai-service/README.md`, `services/ai-service/docs/*`, `docs/features/quest-engine-v1-design.md` | Edit — docs that become true or stale |
 
 ---
 
@@ -506,7 +506,7 @@ namespace PersonalFinance.Application.Quests;
 
 public static class StarRungs
 {
-    // Source: docs/ideas/scoring-rubric.md. 70 is the level-graduation bar ("cleared"); 50 and 100
+    // Source: docs/references/finance-domain/scoring-rubric.md. 70 is the level-graduation bar ("cleared"); 50 and 100
     // are the rubric's mid and full breakpoint scores. Stars are recognition, not points.
     public static readonly IReadOnlyList<decimal> Scores = [50m, 70m, 100m];
 
@@ -1293,8 +1293,8 @@ If the harness cannot run, do the same checks by hand against the local stack wi
 - **`docs/architecture/API-endpoints.md`**: the Journey rows become `GET /api/journey/state` (stars, raw values), `POST /api/journey/recalculate`, `GET /api/journey/quests` (board), `POST /api/journey/quests/{code}/focus`, `POST /api/journey/quests/{code}/snooze`, `POST /api/journey/quests/seen`; remove the AI service row `POST /journey/advise`.
 - **`docs/architecture/diagram-system-design.html`**, the Journey scoring card and its edges: node `scoring` desc says domain events (`TransactionsSubmittedEvent` after an upload, `AssetUpdatedEvent` after account, valuation, liability and asset writes) trigger recalculation and the quest engine evaluates in the same pass; tags add `QuestEngine`; chips keep "quests" and add "stars"; the `ai` node loses the `/journey/advise` chip and "journey quests" from its description; the `api → scoring` and `api → ai` edge descriptions are corrected; the `postgres` node chips gain "quest completions".
 - **`docs/STATUS.md`**: one dated line for PF-152.
-- **`plans/brainstorms/quest-engine-v1-design.md`**: set the status to built in PF-152 and list the small interpretations from STEP 18 (focus counted in the three-card cap, `ids` on unseen items, lone completions not folded, the any-transaction read, `levelGoal` as the board's fallback, G6 applied through `IndicatorFact.Trusted` so cover stars are covered too, focus and snoozes as separate one-column writes, the Asia/Jakarta clock). The design diagram stays unchanged unless one of these changes a box.
-- **Retired advisor write-ups** that describe the removed path as current: `docs/ai-features/diagram-ai-journey-advisor.html` and `docs/architecture/sequences/diagram-journey-advisor-sequence.html` get a one-line "Retired in PF-152: quests are now deterministic" note near the top rather than deletion. Sweep with `grep -rn "journey/advise\|JourneyAdvisorClient" docs README.md services --include=*.md --include=*.html` and fix any file that presents it as current. Leave historical learning material alone (`docs/mentor/`, `docs/ideas/`, `plans/done/`, `docs/codex/`, `archreview-*`).
+- **`docs/features/quest-engine-v1-design.md`**: set the status to built in PF-152 and list the small interpretations from STEP 18 (focus counted in the three-card cap, `ids` on unseen items, lone completions not folded, the any-transaction read, `levelGoal` as the board's fallback, G6 applied through `IndicatorFact.Trusted` so cover stars are covered too, focus and snoozes as separate one-column writes, the Asia/Jakarta clock). The design diagram stays unchanged unless one of these changes a box.
+- **Retired advisor write-ups** that describe the removed path as current: `docs/architecture/ai/diagram-ai-journey-advisor.html` and `docs/architecture/sequences/diagram-journey-advisor-sequence.html` get a one-line "Retired in PF-152: quests are now deterministic" note near the top rather than deletion. Sweep with `grep -rn "journey/advise\|JourneyAdvisorClient" docs README.md services --include=*.md --include=*.html` and fix any file that presents it as current. Leave historical learning material alone (`docs/mentor/`, `docs/ideas/`, `plans/done/`, `docs/codex/`, `archreview-*`).
 
 > **Why:** CLAUDE.md is loaded into every session, and today it claims recalculation after asset changes happens when it does not; after this plan it is true, and the endpoint list would otherwise still advertise an endpoint that is gone. The system-design diagram is the page people read to learn how the pieces connect.
 

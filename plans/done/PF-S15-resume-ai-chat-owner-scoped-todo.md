@@ -77,7 +77,7 @@ Global startup state is replaced by per-request lookups keyed by owner. That cov
 | `scripts/pf_s15_ai_isolation.py` | Create — live two-user A/B check |
 | `services/ai-service/app/agents/advisor_tools.py`, `services/advisor.py` | Edit (Phase 2) — per-request token, user-namespaced thread id |
 | `services/ai-service/app/agents/tools/*.py`, `agents/categorizer_agent.py` | Edit (Phase 2) — per-request owner context |
-| `.env.example`, `docs/runbooks/pf-s08-cashflow-pilot.md`, `plans/BOARD.md` | Edit — flags, enable order, rollback |
+| `.env.example`, `docs/operations/runbooks/pf-s08-cashflow-pilot.md`, `plans/BOARD.md` | Edit — flags, enable order, rollback |
 
 ---
 
@@ -308,7 +308,7 @@ Create `scripts/pf_s15_ai_isolation.py`, following `scripts/pf_s08_module_isolat
 ### [x] STEP 12 — Compliance check, enable and record
 - Run `/compliance` on the chat answer wording (FIN-05). Add any required disclosure line to the chat panel.
 - Enable the flags locally in this order: AI service `AI_CHAT_ENABLED=true`, then API `AiChat:Enabled=true`, then the frontend build with `VITE_AI_CHAT_ENABLED=true`. To roll back, apply them in reverse order.
-- Add the enable order and rollback to `docs/runbooks/pf-s08-cashflow-pilot.md` and `.env.example`, update `plans/BOARD.md`, and write an owner smoke test (sign in, ask one lookup question and one total, sign out). Include a streaming check: tokens appear incrementally rather than all at once, and closing the tab mid-answer stops the FastAPI request (watch the AI service log).
+- Add the enable order and rollback to `docs/operations/runbooks/pf-s08-cashflow-pilot.md` and `.env.example`, update `plans/BOARD.md`, and write an owner smoke test (sign in, ask one lookup question and one total, sign out). Include a streaming check: tokens appear incrementally rather than all at once, and closing the tab mid-answer stops the FastAPI request (watch the AI service log).
 
 > **Why:** Turning the AI service on first means the API never calls a route that returns 404. Turning the frontend on last means users only see chat once the backend is ready.
 

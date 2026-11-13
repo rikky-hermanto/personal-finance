@@ -529,7 +529,7 @@ class GeminiProvider:
 
 > **Mirror, don't invent.** As in Step 2: the authoritative Langfuse + `estimate_cost_usd` call shapes live in [gemini.py](../../../services/ai-service/app/providers/gemini.py)'s existing `generate_json` block (~lines 101–131). Copy and adapt.
 
-> **SDK note (simplified):** The repo already runs the new `google-genai` SDK with the async surface — [gemini.py](../../../services/ai-service/app/providers/gemini.py) calls `await client.aio.models.generate_content(...)` today, and `generate_content_stream` is its streaming sibling (a coroutine that resolves to an async iterator — hence the `await` before `async for`). If the method is missing, upgrade `google-genai`; only as a last resort wrap the sync call in `asyncio.to_thread(...)` (keeps the event loop free but loses true incremental streaming) and note it in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+> **SDK note (simplified):** The repo already runs the new `google-genai` SDK with the async surface — [gemini.py](../../../services/ai-service/app/providers/gemini.py) calls `await client.aio.models.generate_content(...)` today, and `generate_content_stream` is its streaming sibling (a coroutine that resolves to an async iterator — hence the `await` before `async for`). If the method is missing, upgrade `google-genai`; only as a last resort wrap the sync call in `asyncio.to_thread(...)` (keeps the event loop free but loses true incremental streaming) and note it in [docs/operations/ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 **C# equivalent** (same "no official SDK, port the technique" situation as Anthropic; the Python
 asymmetry from Step 2's callout — `client.messages.stream()` returns a context manager directly,
@@ -1494,7 +1494,7 @@ Expected: service log shows the generator exited cleanly (no stack trace, just a
 
 ### [x] STEP 11 — Record metrics + commit
 
-Record in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
+Record in [docs/operations/ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md):
 
 ```markdown
 ## Streaming / SSE (PF-AI005)
@@ -1535,7 +1535,7 @@ git add apps/frontend/src/hooks/useRealtimeTransactions.ts
 git add apps/frontend/.env.example
 git add supabase/migrations/20260703000001_enable_realtime_transactions.sql
 git add apps/frontend/package.json
-git add docs/performances/ai-observability-metrics.md
+git add docs/operations/ai-observability-metrics.md
 git status    # verify no .env files
 git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase Realtime live transactions"
 ```

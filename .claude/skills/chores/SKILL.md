@@ -25,7 +25,7 @@ Scan `plans/backlog/` and `plans/in-progress/` for plan files whose status may n
 
 ### Step 0 — Path check
 
-Verify `plans/` and its status folders exist before scanning. If a folder is absent, report the missing path and continue. Shared assets in `plans/resources/` are not status candidates.
+Verify `plans/` and its status folders exist before scanning. If a folder is absent, report the missing path and continue. Learning resources live in `docs/mentor/resources/`, outside `plans/`, and are not status candidates.
 
 ### Step 1 — Collect candidates
 
@@ -96,7 +96,7 @@ Stale plans may be superseded. Do not delete — report them for human decision.
 
 Scan learning subfolders under every status. Learning plans (PF-AIxxx) track the 90-day AI learning path and live longer than feature plans:
 
-- When accepted or closed, move the canonical learning plan and its companions to `plans/done/learning/`; keep shared diagrams, glossary, and evidence in `plans/resources/learning/`.
+- When accepted or closed, move the canonical learning plan and its companions to `plans/done/learning/`; keep shared diagrams, glossary, and evidence in `docs/mentor/resources/`, and update the plan's row in the chapter map of `docs/mentor/README.md`.
 - Update the plan's current `Status:` header and board row with the move. Preserve historical incomplete checks as recorded rather than claiming they passed.
 - Flag any learning plan untouched for more than 90 days (same age logic as Step 4 — `Started:` header or file mtime, compared by you) as "review for relevance" — report only, never move.
 
@@ -128,7 +128,7 @@ Report each hit with file:line. Do not auto-delete — output a triage list.
 
 ### Orphaned plan files
 
-Files in a status folder that are not plans or known companions (shared artifacts belong in `plans/resources/`):
+Files in a status folder that are not plans or known companions (shared artifacts belong in `docs/mentor/resources/`):
 
 ```bash
 Get-ChildItem plans/backlog,plans/in-progress,plans/done,plans/cancelled -Recurse -File

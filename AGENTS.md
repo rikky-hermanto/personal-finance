@@ -36,10 +36,10 @@ Read relevant code and manifests before relying on status claims in older docume
 
 - Use C# `decimal` and Python `Decimal` for new financial calculations; use integer minor units or decimal strings with explicit arithmetic in TypeScript. Existing float/number contracts are compatibility constraints, not a reason to introduce more imprecise calculations. Change serialization deliberately across producers and consumers.
 - Preserve debit/credit meaning, currency units, rounding, and date semantics. Test financial boundary cases when changing calculations or parsers.
-- Cite the source of financial thresholds and formulas. Consult `docs/reference/finance-domain/` and `docs/ideas/scoring-rubric.md` for relevant methodology.
+- Cite the source of financial thresholds and formulas. Consult `docs/references/finance-domain/` and `docs/references/finance-domain/scoring-rubric.md` for relevant methodology.
 - Label return methods (TWR versus MWR/XIRR); do not mix incompatible methods.
 - Unevaluated risk or health checks must display as unevaluated, never as a passing green state.
-- For recommendation, sizing, or projection features, retain appropriate disclosures and review financial/regulatory assumptions. Verify time-sensitive tax and regulatory claims against primary sources, including the verification dates in `docs/reference/finance-domain/tax-id.md`.
+- For recommendation, sizing, or projection features, retain appropriate disclosures and review financial/regulatory assumptions. Verify time-sensitive tax and regulatory claims against primary sources, including the verification dates in `docs/references/finance-domain/tax-id.md`.
 
 ## Commands and task context
 

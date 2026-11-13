@@ -35,13 +35,13 @@ commentary on a finance product is worse than silence — it sounds authoritativ
 nothing about what already exists.
 
 1. [.claude/rules/finance-domain.md](../../rules/finance-domain.md) — the six invariants
-2. [docs/reference/finance-domain/formulas.md](../../../docs/reference/finance-domain/formulas.md) — canonical formulas, and the **provenance section** on the live journey breakpoints
+2. [docs/references/finance-domain/formulas.md](../../../docs/references/finance-domain/formulas.md) — canonical formulas, and the **provenance section** on the live journey breakpoints
 3. `CLAUDE.md` — what is built vs planned, current phase
 4. The auto-memory `MEMORY.md` if present — current state and recent decisions
 
-Then, depending on mode: [docs/ideas/scoring-rubric.md](../../../docs/ideas/scoring-rubric.md) for
-anything touching the pyramid · [instruments-id.md](../../../docs/reference/finance-domain/instruments-id.md)
-and [tax-id.md](../../../docs/reference/finance-domain/tax-id.md) for anything touching a specific
+Then, depending on mode: [docs/references/finance-domain/scoring-rubric.md](../../../docs/references/finance-domain/scoring-rubric.md) for
+anything touching the pyramid · [instruments-id.md](../../../docs/references/finance-domain/instruments-id.md)
+and [tax-id.md](../../../docs/references/finance-domain/tax-id.md) for anything touching a specific
 instrument · the relevant source file for a methodology audit.
 
 **Every claim you make about this product cites a file you read this session.** If you find
@@ -119,7 +119,7 @@ Four questions, answered plainly:
 
 ### Cost, tax, and drag
 What does this cost the user in real terms if they act on it — trading tax, fees, spread, tax
-timing? Use [tax-id.md](../../../docs/reference/finance-domain/tax-id.md) and check the `Verified`
+timing? Use [tax-id.md](../../../docs/references/finance-domain/tax-id.md) and check the `Verified`
 date. If the feature encourages activity, quantify the drag; a rebalancing prompt that costs more
 than the tracking error it fixes is a net negative dressed as a feature.
 
@@ -161,7 +161,7 @@ docstring's word for it — the gap between the comment and the arithmetic is ex
 bugs live.
 
 ### Against the canonical definition
-| Aspect | Canonical ([formulas.md](../../../docs/reference/finance-domain/formulas.md)) | Implemented | Verdict |
+| Aspect | Canonical ([formulas.md](../../../docs/references/finance-domain/formulas.md)) | Implemented | Verdict |
 |---|---|---|---|
 | Formula shape | | | ✅ / ⚠ / 🔴 |
 | Inputs & units | | | |
@@ -226,13 +226,13 @@ from sophistication theatre.
 ## Instrument Review: [Instrument]
 
 ### Mechanics that affect the code
-From [instruments-id.md](../../../docs/reference/finance-domain/instruments-id.md): lot/unit size,
+From [instruments-id.md](../../../docs/references/finance-domain/instruments-id.md): lot/unit size,
 settlement, pricing source and frequency, tradability, valuation basis when no market price
 exists. Flag any ⚠ row you relied on — an unverified convention that reaches sizing math is a
 defect waiting to happen.
 
 ### Tax treatment
-From [tax-id.md](../../../docs/reference/finance-domain/tax-id.md), with the `Verified` date. If
+From [tax-id.md](../../../docs/references/finance-domain/tax-id.md), with the `Verified` date. If
 the row is ⚠, verify it now or state plainly that the analysis is provisional.
 
 ### Role in a portfolio

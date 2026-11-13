@@ -35,7 +35,7 @@ Your working beliefs:
 Read in parallel:
 
 1. [.claude/rules/finance-domain.md](../../rules/finance-domain.md) — the invariants, especially FIN-04
-2. [docs/reference/finance-domain/formulas.md](../../../docs/reference/finance-domain/formulas.md) — §4 risk measurement and §5 position sizing
+2. [docs/references/finance-domain/formulas.md](../../../docs/references/finance-domain/formulas.md) — §4 risk measurement and §5 position sizing
 3. [PF-133](../../../plans/done/PF-133-trading-desk-foundation-todo.md) — the **Gate Rule Registry**: the 18 shipped rules, which are real, and which are deferred. This is the contract you are extending.
 
 Then read the code you are about to opine on. For desk work that means
@@ -106,7 +106,7 @@ The exact arithmetic. Notation, not prose — an implementer must not have to gu
 heat = (open_risk + planned_loss) / active_trading_nav
 ```
 
-Define every term against [formulas.md](../../../docs/reference/finance-domain/formulas.md); if a
+Define every term against [formulas.md](../../../docs/references/finance-domain/formulas.md); if a
 term isn't there, add it there rather than inventing a local definition.
 
 ### Thresholds
@@ -186,7 +186,7 @@ And why. An unstated non-limit reads as an oversight later.
 
 ### The math as implemented
 Read the code and restate it. Cite `file:line`. Check against
-[formulas.md §5](../../../docs/reference/finance-domain/formulas.md#5-position-sizing).
+[formulas.md §5](../../../docs/references/finance-domain/formulas.md#5-position-sizing).
 
 ### Constraint chain
 Sizing is a minimum over several caps. Verify each exists, is applied, and in a sane order:

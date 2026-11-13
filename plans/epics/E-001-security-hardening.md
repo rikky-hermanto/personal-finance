@@ -36,7 +36,7 @@ The app holds my real bank statements, balances and investments, and the reposit
 Findings from the audit in the terminal session on 2026-10-15, ranked by severity. Items marked **latent** are blocked today by the PF-S08 route gate or by missing grants, but they become live if that gate changes.
 
 ### High
-1. **Real third-party names in a public repo.** `docs/data/category-rules-2026-05-07.csv` contains two real people's names tied to "Loan Given", "Loan Repayment" and a bill. The names have been in history since `c77208a7`. Fixing the file is easy; removing the names from history needs a history rewrite and a force-push. *(Do not copy the names into tickets: this repo is public.)*
+1. **Real third-party names in a public repo.** `docs/references/data/category-rules-2026-05-07.csv` contains two real people's names tied to "Loan Given", "Loan Repayment" and a bill. The names have been in history since `c77208a7`. Fixing the file is easy; removing the names from history needs a history rewrite and a force-push. *(Do not copy the names into tickets: this repo is public.)*
 2. **The AI service bypasses row-level security (latent).** `services/ai-service/app/config.py` defaults `DATABASE_URL` to the `postgres` superuser. The `/search`, `/ask`, `/ask/stream`, `/embed-transactions` and aggregation routes, plus the startup category and rule loaders, query `transactions` and `category_rules` with no owner filter. The browser calls the AI service directly with no auth header (`apps/frontend/src/api/chatApi.ts:48`). Today the pilot gate returns 404 for these routes.
 3. **Vulnerable dependencies.**
    - **.NET:** `Microsoft.OpenApi` 2.0.0 is pulled in transitively and has a high-severity advisory (GHSA-v5pm-xwqc-g5wc). It is mapped in Development only.
@@ -106,7 +106,7 @@ Close the audit findings that still matter, in small independent pieces, and wri
 - Whether the demo keys in history really are Supabase demo keys is unverified; the low-items slice checks this.
 
 ## Proposed Slices
-1. Scrub real names from `docs/data/category-rules-2026-05-07.csv` and record the accepted history exposure.
+1. Scrub real names from `docs/references/data/category-rules-2026-05-07.csv` and record the accepted history exposure.
 2. Upload hardening: no exception text in responses with correlation ID and logging (ERR-01), magic-byte file check, PDF timeout and size cap in .NET and the AI service (SEC-02).
 3. Local network: 127.0.0.1 binding and Grafana login in `docker-compose.yml`.
 4. Sign-in password rules in `supabase/config.toml`, applied before the Supabase Cloud move.

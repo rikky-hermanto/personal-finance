@@ -47,5 +47,5 @@ remain useful references, not a claim that every rule has automated CI enforceme
   Python models, and HTTP mapping; AccountName/account_name is the extraction contract,
   while separate features may still expose wallet fields.
 
-For historical rationale/examples, `docs/reference/governance-detail.md` is context;
+For historical rationale/examples, `docs/references/governance-detail.md` is context;
 verify examples against current code before adopting them.

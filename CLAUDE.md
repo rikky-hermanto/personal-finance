@@ -27,7 +27,7 @@ The pyramid makes the correct order explicit. Each level has prerequisites; you 
        ████████████████████     L1 · Foundations  — Cleared: spending ≤ 89% of income · Mastered: ≤ 80%
 ```
 
-Cleared = every live indicator scores ≥ 70; Mastered = score 100 (per indicator). Spending excludes money you invest or save. DTI is judged once debts are recorded or confirmed. Source: [scoring-rubric.md](docs/ideas/scoring-rubric.md).
+Cleared = every live indicator scores ≥ 70; Mastered = score 100 (per indicator). Spending excludes money you invest or save. DTI is judged once debts are recorded or confirmed. Source: [scoring-rubric.md](docs/references/finance-domain/scoring-rubric.md).
 
 `JourneyScoringService` reads across transactions, assets, and investments and computes indicator scores per tier. Recalculation is event-driven: `TransactionsSubmittedEvent` (once per import batch) and `AssetUpdatedEvent` (account, valuation, liability and asset writes) trigger it via MediatR handlers, and the quest engine runs inside the same pass. This scoring engine is the product's core, not a feature.
 
@@ -62,8 +62,8 @@ Read on demand:
 - [docs/SETUP.md](docs/SETUP.md) — local setup, ports, environment, migrations
 - [docs/architecture/API-endpoints.md](docs/architecture/API-endpoints.md) · [API-backend.md](docs/architecture/API-backend.md) · [Front-End.md](docs/architecture/Front-End.md) · [architecture-diagram.md](docs/architecture/architecture-diagram.md) · [supabase-migration.md](docs/architecture/supabase-migration.md)
 - [docs/features/cashflow-ingestion.md](docs/features/cashflow-ingestion.md) — parser routing, bank profiles, validation pipeline, master schema
-- [docs/sprint-plan.md](docs/sprint-plan.md) — sprint breakdown
-- [docs/reference/finance-domain/](docs/reference/finance-domain/) — formulas, Indonesian instruments, tax rates. Invariants are in [.claude/rules/finance-domain.md](.claude/rules/finance-domain.md); domain judgment routes to `/cio`, `/risk-officer`, `/compliance`
+- [docs/records/sprint-plan.md](docs/records/sprint-plan.md) — sprint breakdown
+- [docs/references/finance-domain/](docs/references/finance-domain/) — formulas, Indonesian instruments, tax rates. Invariants are in [.claude/rules/finance-domain.md](.claude/rules/finance-domain.md); domain judgment routes to `/cio`, `/risk-officer`, `/compliance`
 
 ## Project Layout
 
@@ -72,7 +72,7 @@ apps/frontend/        React 18 + Vite app: src/ (api, components, components/ui,
 apps/api/             .NET 10: src/PersonalFinance.{Api,Application,Domain,Infrastructure}, tests/PersonalFinance.Tests
 services/ai-service/  FastAPI: app/ (main.py, services, providers, prompts), evals/, tests/
 supabase/             migrations/ — schema changes live here and nowhere else
-docs/                 Product, architecture and reference docs
+docs/                 architecture, features, reference, operations, ideas, records, mentor (folder map: docs/INDEX.md)
 plans/                One plan per task in status folders, plus BOARD.md
 ai/                   Job map, shared preferences, templates, audits
 _archive/             Retired material; don't load it unless asked
@@ -92,7 +92,7 @@ Conventions for each area load automatically from [.claude/rules/](.claude/rules
 - **Clean Architecture:** Domain (no deps) → Application → Infrastructure → Api. CQRS via MediatR, all persistence via `supabase-csharp`.
 - **Hybrid parsing:** deterministic formats use direct parsers; unstructured PDFs and screenshots use LLM extraction. All paths converge on the five-stage `ITransactionPipelineService` before persisting.
 - **Auth:** Sign-in is required (PF-S08/S09, done 2026-10-16). The API validates the Supabase JWT, requires an authenticated user by default, and talks to PostgREST with a per-request client carrying the caller's token, so owner RLS policies on `user_id` apply. Take the owner from `ICurrentUser`, never from the request body. Public signup is off; the single owner account holds all legacy rows.
-- **AI chat and agents:** The browser calls only `/api/chat/*`. The API forwards to the AI service with the internal API key and a signed 60-second owner token, and the AI service reads as that user under RLS (PF-S15). Flags: `AiChat:Enabled`, `AiChat:AgentsEnabled`, `AI_CHAT_ENABLED`, `AI_AGENTS_ENABLED`, `VITE_AI_CHAT_ENABLED`. Runbook: [docs/runbooks/pf-s08-cashflow-pilot.md](docs/runbooks/pf-s08-cashflow-pilot.md).
+- **AI chat and agents:** The browser calls only `/api/chat/*`. The API forwards to the AI service with the internal API key and a signed 60-second owner token, and the AI service reads as that user under RLS (PF-S15). Flags: `AiChat:Enabled`, `AiChat:AgentsEnabled`, `AI_CHAT_ENABLED`, `AI_AGENTS_ENABLED`, `VITE_AI_CHAT_ENABLED`. Runbook: [docs/operations/runbooks/pf-s08-cashflow-pilot.md](docs/operations/runbooks/pf-s08-cashflow-pilot.md).
 - **Quests (PF-152):** the catalog lives in code (`Application/Quests/QuestCatalog`), detectors are pure rules, completions are append-only rows in `quest_completions` (never deleted), and the engine runs inside the recalculation pass on the same snapshot as scoring. No LLM and no point values anywhere in the quest path; `GET /api/journey/quests` only reads stored state.
 - **UI look:** see [ai/design/](ai/design/README.md) — the zen/theme skills plus Rikky's standing UI rules. Skip only if the user asks for a different style (landing page, marketing, creative).
 

@@ -23,11 +23,11 @@ responsible and changes nothing.
 ## Step 0 — Ground yourself (mandatory)
 
 1. [.claude/rules/finance-domain.md](../../rules/finance-domain.md) — FIN-05 (tool, not advice) and FIN-06 (perishable rates)
-2. [docs/reference/finance-domain/tax-id.md](../../../docs/reference/finance-domain/tax-id.md) — the rate table **and its `Verified` dates**
+2. [docs/references/finance-domain/tax-id.md](../../../docs/references/finance-domain/tax-id.md) — the rate table **and its `Verified` dates**
 3. The actual feature: the UI copy, the prompt, the endpoint response. Read what the user will see, not the ticket describing it.
 
 **The verification rule that makes this skill trustworthy:** never assert a regulation or a rate
-from memory. If [tax-id.md](../../../docs/reference/finance-domain/tax-id.md) marks the row ✅ with
+from memory. If [tax-id.md](../../../docs/references/finance-domain/tax-id.md) marks the row ✅ with
 a recent date, cite it. If it is marked ⚠, or the date is stale, or the question concerns
 licensing, **search for a primary source now** (pajak.go.id, ojk.go.id, idx.co.id) and update the
 reference file with what you find, including the verification log entry. A compliance skill that
@@ -88,7 +88,7 @@ itself is beyond your scope and needs a consultant, not a workaround.
 
 ### Tax and rate accuracy
 Every number shown, checked against
-[tax-id.md](../../../docs/reference/finance-domain/tax-id.md):
+[tax-id.md](../../../docs/references/finance-domain/tax-id.md):
 
 | Number shown | Source row | Verified date | Correct? |
 |---|---|---|---|
@@ -162,7 +162,7 @@ product claims less.
 ## Tax Review: [Instrument / Feature]
 
 ### Rates that apply
-Pull from [tax-id.md](../../../docs/reference/finance-domain/tax-id.md). For every ⚠ row or stale
+Pull from [tax-id.md](../../../docs/references/finance-domain/tax-id.md). For every ⚠ row or stale
 date, verify against a primary source **now**, then update the file and its verification log — the
 next reviewer should not have to redo this.
 

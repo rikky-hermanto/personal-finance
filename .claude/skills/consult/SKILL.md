@@ -481,4 +481,4 @@ These govern every output. Never violate them:
 
 At the end of any consultation, offer:
 
-> "Want me to save this as an ADR or plan file? I can write it to `plans/resources/reviews/ADR-{NNN}-{slug}.md` (numbered per the ADR numbering steps above, date inside the document) or `plans/resources/reviews/{ticket}-architecture-notes.md`."
+> "Want me to save this as an ADR or plan file? I can write it to `docs/architecture/adr/ADR-{NNN}-{slug}.md` (numbered per the ADR numbering steps above, date inside the document) or `docs/records/{ticket}-architecture-notes.md`."

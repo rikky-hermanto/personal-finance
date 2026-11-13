@@ -22,7 +22,7 @@ public static class BucketDefaults
     /// <summary>Trailing days used to compute the forecast pace.</summary>
     public const int ForecastPaceWindowDays = 7;
 
-    /// <summary>Emergency fund target, in months of essential (Committed) spend — the low end of the 3–6 month range. docs/reference/finance-domain/formulas.md.</summary>
+    /// <summary>Emergency fund target, in months of essential (Committed) spend — the low end of the 3–6 month range. docs/references/finance-domain/formulas.md.</summary>
     public const int EmergencyFundTargetMonths = 3;
 
     /// <summary>Minimum trailing months of transaction data before Buckets leaves `learning` state.</summary>

@@ -27,7 +27,7 @@ Sign-in is the only door to the owner's money data, and `supabase/config.toml` c
   > Verification note: [auth.mfa*] sections not edited.
 - [x] The local stack still starts with `supabase start`, and the owner can still sign in with the current account. If the owner's current password does not meet the new rules, the plan's STEP 4 explains the change-password path; sign-in itself is not blocked, since the rules apply when a password is set or changed.
   > Verification note: stack restarted cleanly; owner sign-in not exercised (password not touched), existing password is unaffected by policy.
-- [x] A note in `docs/runbooks/` (or `docs/architecture/supabase-migration.md`, whichever already covers the cloud move) says the same four values must be set in the Supabase Cloud dashboard (Authentication, then Policies/Providers) before go-live, because `config.toml` only configures the local stack.
+- [x] A note in `docs/operations/runbooks/` (or `docs/architecture/supabase-migration.md`, whichever already covers the cloud move) says the same four values must be set in the Supabase Cloud dashboard (Authentication, then Policies/Providers) before go-live, because `config.toml` only configures the local stack.
   > Verification note: added a Supabase Cloud go-live checklist to docs/architecture/supabase-migration.md.
 - [x] Frontend: if a sign-in or password screen shows a password hint or client-side length check, it matches the new rule (12 characters, mixed types). If none exists, nothing is added.
   > Verification note: only LoginPage.tsx has a rule (min(1) on sign-in, correct since sign-in must not reject existing passwords); no hint to change.
@@ -43,7 +43,7 @@ Edit three lines in `config.toml` and add the cloud checklist note; do not add M
 | File | Change |
 |------|--------|
 | `supabase/config.toml` | Edit — `minimum_password_length`, `password_requirements`, `secure_password_change` |
-| `docs/runbooks/` or `docs/architecture/supabase-migration.md` | Edit — add the "set these in the cloud dashboard" checklist item |
+| `docs/operations/runbooks/` or `docs/architecture/supabase-migration.md` | Edit — add the "set these in the cloud dashboard" checklist item |
 | `apps/frontend/src/` (login or settings password UI, if any) | Edit only if it shows a conflicting rule |
 
 ---

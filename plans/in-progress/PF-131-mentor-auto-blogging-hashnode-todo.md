@@ -131,7 +131,7 @@ Create [docs/ideas/blogs/README.md](../../docs/ideas/blogs/README.md) with the 8
 | 4 | *Embeddings for people who own the database* | Concept Ladder | [PF-AI003](../done/learning/PF-AI003-rag-embeddings-retrieval.md) |
 | 5 | *Re-ranking: when your retriever is confidently wrong* | Concept Ladder | [PF-AI004](../done/learning/PF-AI004-rag-reranking-generation.md) |
 | 6 | *Citation guards: stopping the LLM from citing rows it never saw* | Build Log | [PF-AI004](../done/learning/PF-AI004-rag-reranking-generation.md) |
-| **7 — Flagship #2** | *The gate, not the loop, is the design* | Short Take | [closed-loop-ai-engineering.md](../../docs/ai-features/closed-loop-ai-engineering.md) |
+| **7 — Flagship #2** | *The gate, not the loop, is the design* | Short Take | [closed-loop-ai-engineering.md](../../docs/ideas/closed-loop-ai-engineering.md) |
 
 ## Weekly workflow
 

@@ -8,7 +8,7 @@
 >
 > **Urutan baca:** masalah dulu, baru konsep, baru cara kerja, baru kode, baru optimisasi, baru best practice, baru kesalahan umum, baru ringkasan. Kalau langsung loncat ke bagian Implementasi, kodenya akan terasa seperti sihir. Baca tiga bagian pertama dulu.
 >
-> **Ketemu istilah asing?** Semua istilah baru dijelaskan saat pertama kali muncul. Tiap istilah juga di-link ke [Glossary RAG](../../resources/learning/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik.
+> **Ketemu istilah asing?** Semua istilah baru dijelaskan saat pertama kali muncul. Tiap istilah juga di-link ke [Glossary RAG](../../../docs/mentor/resources/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik.
 >
 > **Prasyarat:** angka baseline Chapter 4 (P@5 dan RAGAS faithfulness) harus sudah tercatat di metrics doc sebelum chapter ini dimulai. STEP 0 di file asli adalah gerbangnya.
 
@@ -16,7 +16,7 @@
 
 ## Apa Masalahnya
 
-Chapter 4 (PF-AI004) sudah membuat jalur `/ask` cukup matang. Alurnya: retrieval [cosine](../../resources/learning/glossary-rag-id.md#cosine-similarity) ambil top-10, [re-rank](../../resources/learning/glossary-rag-id.md#re-ranking) persempit ke top-3, lalu LLM menjawab dengan [sitasi](../../resources/learning/glossary-rag-id.md#citations) yang tervalidasi. Baseline-nya sudah tercatat: [MRR@5](../../resources/learning/glossary-rag-id.md#mrr-5) = 1.000, [P@5](../../resources/learning/glossary-rag-id.md#p-5) = 0.66.
+Chapter 4 (PF-AI004) sudah membuat jalur `/ask` cukup matang. Alurnya: retrieval [cosine](../../../docs/mentor/resources/glossary-rag-id.md#cosine-similarity) ambil top-10, [re-rank](../../../docs/mentor/resources/glossary-rag-id.md#re-ranking) persempit ke top-3, lalu LLM menjawab dengan [sitasi](../../../docs/mentor/resources/glossary-rag-id.md#citations) yang tervalidasi. Baseline-nya sudah tercatat: [MRR@5](../../../docs/mentor/resources/glossary-rag-id.md#mrr-5) = 1.000, [P@5](../../../docs/mentor/resources/glossary-rag-id.md#p-5) = 0.66.
 
 Tapi "matang" di sini ada batasnya. Retrieval-nya masih satu bentuk saja: cosine top-K di atas satu tabel embedding yang datar. Ada tiga celah nyata yang belum tertutup.
 
@@ -38,11 +38,11 @@ Target chapter ini: tiga teknik retrieval lanjutan, masing-masing bisa dinyalaka
 
 Bayangkan sebuah lomba dengan dua juri yang keahliannya berbeda total. Juri pertama sangat peka terhadap makna — dia bisa menangkap kalau dua kalimat bicara soal hal yang sama meskipun kata-katanya berbeda jauh. Juri kedua tidak peduli soal makna sama sekali — dia cuma menghitung apakah kata yang dicari muncul persis di teks, dan seberapa sering.
 
-Juri pertama itu vector search. Juri kedua itu [BM25](../../resources/learning/glossary-rag-id.md#bm25), algoritme scoring kata kunci klasik.
+Juri pertama itu vector search. Juri kedua itu [BM25](../../../docs/mentor/resources/glossary-rag-id.md#bm25), algoritme scoring kata kunci klasik.
 
 Masalahnya, dua juri ini memberi nilai dengan skala yang sama sekali berbeda. Juri pertama selalu memberi angka antara 0 dan 1. Juri kedua bisa memberi angka berapa saja, tidak ada batas atasnya, dan skalanya berubah-ubah tergantung soal yang dinilai. Menjumlahkan dua nilai ini secara langsung sama seperti menjumlahkan nilai ujian dalam skala 0–100 dengan nilai kredit dalam skala yang tidak ditentukan — hasilnya tidak berarti apa-apa.
 
-Solusinya bukan menjumlahkan nilai kedua juri. Solusinya menjumlahkan urutan peringkat yang mereka berikan. Nama tekniknya [RRF](../../resources/learning/glossary-rag-id.md#rrf), singkatan dari Reciprocal Rank Fusion.
+Solusinya bukan menjumlahkan nilai kedua juri. Solusinya menjumlahkan urutan peringkat yang mereka berikan. Nama tekniknya [RRF](../../../docs/mentor/resources/glossary-rag-id.md#rrf), singkatan dari Reciprocal Rank Fusion.
 
 ### Sentence-window retrieval — kartu katalog perpustakaan
 
@@ -100,17 +100,17 @@ Bagian ini menjelaskan tiap konsep seperti belajar naik tangga. Mulai dari versi
 
 ### Hybrid search — dua juri, satu daftar akhir
 
-**Anak tangga 1: vector search saja.** Ini yang dipakai Chapter 3 dan 4. Query di-embed, dibandingkan lewat [cosine similarity](../../resources/learning/glossary-rag-id.md#cosine-similarity) ke semua embedding transaksi, lalu diambil 10 teratas. Untuk query seperti "makan siang di kantor" — padahal deskripsi aslinya "WARUNG", "RESTO", "MAKAN" — cara ini menang telak. Embedding memang dibuat untuk menangkap kedekatan makna seperti itu.
+**Anak tangga 1: vector search saja.** Ini yang dipakai Chapter 3 dan 4. Query di-embed, dibandingkan lewat [cosine similarity](../../../docs/mentor/resources/glossary-rag-id.md#cosine-similarity) ke semua embedding transaksi, lalu diambil 10 teratas. Untuk query seperti "makan siang di kantor" — padahal deskripsi aslinya "WARUNG", "RESTO", "MAKAN" — cara ini menang telak. Embedding memang dibuat untuk menangkap kedekatan makna seperti itu.
 
 Anak tangga ini mentok di satu titik. Query "tagihan listrik PLN" tidak dijamin mengangkat baris ber-PLN ke posisi teratas. Bagi ruang vektor, semua "tagihan" itu saling bertetangga — tagihan listrik, tagihan air, tagihan internet, semuanya dianggap mirip. Yang dibutuhkan di kasus ini adalah pencocokan kata yang persis, dan itu bukan keahlian embedding.
 
-**Anak tangga 2: tambahkan juri kata kunci.** [BM25](../../resources/learning/glossary-rag-id.md#bm25) adalah algoritme scoring dari dunia search engine lama. Dokumen dapat skor tinggi kalau kata yang dicari muncul persis di dalamnya, dibobot seberapa sering kata itu muncul dan seberapa langka kata itu di seluruh koleksi data. BM25 tidak paham sinonim sama sekali — dan justru itu kekuatannya untuk merek serta istilah eksak.
+**Anak tangga 2: tambahkan juri kata kunci.** [BM25](../../../docs/mentor/resources/glossary-rag-id.md#bm25) adalah algoritme scoring dari dunia search engine lama. Dokumen dapat skor tinggi kalau kata yang dicari muncul persis di dalamnya, dibobot seberapa sering kata itu muncul dan seberapa langka kata itu di seluruh koleksi data. BM25 tidak paham sinonim sama sekali — dan justru itu kekuatannya untuk merek serta istilah eksak.
 
-Di PostgreSQL, BM25 didekati lewat [tsvector](../../resources/learning/glossary-rag-id.md#tsvector). Kolom `description_tsv` dihitung otomatis dari kolom `description`, lewat [generated column](../../resources/learning/glossary-rag-id.md#generated-column), bukan trigger. Kolom itu diindeks dengan [GIN](../../resources/learning/glossary-rag-id.md#gin-index), dicari dengan [`plainto_tsquery`](../../resources/learning/glossary-rag-id.md#tsquery), dan diranking dengan [`ts_rank`](../../resources/learning/glossary-rag-id.md#ts-rank). Config yang dipakai adalah `'simple'` — tokenisasi per kata, tanpa stemming. Deskripsi bank Indonesia pendek dan sudah apa adanya, seperti "BELANJA MAKAN" atau "TRANSFER PLN". Pencocokan token eksak sudah cukup untuk teks sependek itu. Config `'indonesian'` juga belum tentu terpasang di instance Supabase.
+Di PostgreSQL, BM25 didekati lewat [tsvector](../../../docs/mentor/resources/glossary-rag-id.md#tsvector). Kolom `description_tsv` dihitung otomatis dari kolom `description`, lewat [generated column](../../../docs/mentor/resources/glossary-rag-id.md#generated-column), bukan trigger. Kolom itu diindeks dengan [GIN](../../../docs/mentor/resources/glossary-rag-id.md#gin-index), dicari dengan [`plainto_tsquery`](../../../docs/mentor/resources/glossary-rag-id.md#tsquery), dan diranking dengan [`ts_rank`](../../../docs/mentor/resources/glossary-rag-id.md#ts-rank). Config yang dipakai adalah `'simple'` — tokenisasi per kata, tanpa stemming. Deskripsi bank Indonesia pendek dan sudah apa adanya, seperti "BELANJA MAKAN" atau "TRANSFER PLN". Pencocokan token eksak sudah cukup untuk teks sependek itu. Config `'indonesian'` juga belum tentu terpasang di instance Supabase.
 
 Anak tangga ini juga mentok, tapi di titik yang berbeda. Sekarang ada dua daftar ranking, dan skor keduanya tidak bisa dijumlahkan begitu saja. Cosine similarity berkisar 0 sampai 1. `ts_rank` adalah bobot log-frekuensi yang tidak berbatas, dan skalanya berubah tiap query. Rumus seperti `0.7 * vector + 0.3 * bm25` kelihatan masuk akal di atas kertas. Kenyataannya, salah satu juri bisa diam-diam mendominasi total, atau bahkan lenyap sama sekali — dan kamu tidak akan tahu kapan itu terjadi, karena skalanya bergeser tiap kali query berbeda.
 
-**Anak tangga 3: gabungkan peringkat, bukan skor.** [RRF](../../resources/learning/glossary-rag-id.md#rrf) membuang skor mentah sepenuhnya. Yang dipakai cuma posisi peringkat tiap dokumen di masing-masing daftar. Dokumen di posisi tertentu menyumbang nilai `1/(k + posisi)`, lalu nilai itu dijumlahkan dari semua daftar tempat dokumen itu muncul. Posisi peringkat selalu berupa angka 1, 2, 3, dan seterusnya, di daftar mana pun — jadi tidak perlu normalisasi apa-apa lagi.
+**Anak tangga 3: gabungkan peringkat, bukan skor.** [RRF](../../../docs/mentor/resources/glossary-rag-id.md#rrf) membuang skor mentah sepenuhnya. Yang dipakai cuma posisi peringkat tiap dokumen di masing-masing daftar. Dokumen di posisi tertentu menyumbang nilai `1/(k + posisi)`, lalu nilai itu dijumlahkan dari semua daftar tempat dokumen itu muncul. Posisi peringkat selalu berupa angka 1, 2, 3, dan seterusnya, di daftar mana pun — jadi tidak perlu normalisasi apa-apa lagi.
 
 Konstanta k=60 diambil dari paper aslinya, Cormack dkk., SIGIR 2009. Angka itu di-tuning di benchmark TREC dan terbukti tetap bagus di berbagai jenis data. Cara kerjanya gampang dicek dengan angka: dokumen yang berada di peringkat #1 pada *kedua* daftar mendapat `1/61 + 1/61`, sekitar 0.033. Dokumen yang cuma peringkat #1 di satu daftar saja mendapat `1/61`, sekitar 0.016. Dokumen yang disepakati dua juri sekaligus selalu menang melawan dokumen yang cuma diunggulkan satu juri.
 
@@ -154,7 +154,7 @@ Ini yang membedakan auto-merging dari sentence-window, dan ini poin yang enak di
 
 Set eval lama berisi 10 query, dan semuanya ditulis untuk menguji parafrase semantik. Kalau hybrid dan vector diuji pakai set ini saja, hasilnya nyaris pasti seri. Bukan karena kedua teknik itu setara — tapi karena tidak ada satu pun query di set itu yang memberi BM25 kesempatan untuk menang.
 
-Solusinya menambahkan 5 [query adversarial](../../resources/learning/glossary-rag-id.md#adversarial-queries), masing-masing dirancang supaya satu modalitas tertentu memang seharusnya menang:
+Solusinya menambahkan 5 [query adversarial](../../../docs/mentor/resources/glossary-rag-id.md#adversarial-queries), masing-masing dirancang supaya satu modalitas tertentu memang seharusnya menang:
 
 | Query | Dirancang untuk |
 |-------|-----------------|
@@ -394,4 +394,4 @@ Prediksi dari plan ini: `hybrid` akan menang untuk jalur `/search` dan `/ask`, k
 
 ## 📖 Glossary
 
-Semua istilah baru di chapter ini — BM25, tsvector, RRF, hybrid search, sentence-window retrieval, auto-merging, sibling threshold, dan lainnya — sudah di-link langsung dari kemunculan pertamanya di atas. Untuk melihat semuanya sekaligus, cek file bersama yang dipakai semua chapter RAG: **[Glossary RAG (Bahasa Indonesia)](../../resources/learning/glossary-rag-id.md)** — istilah chapter ini ada di kategori *Hybrid Search & Advanced Retrieval*.
+Semua istilah baru di chapter ini — BM25, tsvector, RRF, hybrid search, sentence-window retrieval, auto-merging, sibling threshold, dan lainnya — sudah di-link langsung dari kemunculan pertamanya di atas. Untuk melihat semuanya sekaligus, cek file bersama yang dipakai semua chapter RAG: **[Glossary RAG (Bahasa Indonesia)](../../../docs/mentor/resources/glossary-rag-id.md)** — istilah chapter ini ada di kategori *Hybrid Search & Advanced Retrieval*.

@@ -13,7 +13,7 @@ Execution is staged so each phase can be verified independently before proceedin
 ## Acceptance Criteria
 
 - [x] `governance.md` is ≤ 120 lines (rule table + full THINK-01–05 prose)
-- [x] Full governance detail preserved in `docs/reference/governance-detail.md`
+- [x] Full governance detail preserved in `docs/references/governance-detail.md`
 - [x] CLAUDE.md volatile sections ("What's Working", "What's Not Built Yet", "Known Tech Debt", "Current Phase") extracted to `docs/STATUS.md`
 - [x] CLAUDE.md contains a link to `docs/STATUS.md` replacing the extracted sections
 - [x] CLAUDE.md section order confirmed cache-optimal (stable content leads, volatile trails)
@@ -24,7 +24,7 @@ Execution is staged so each phase can be verified independently before proceedin
 
 ## Approach
 
-**Phase 1 (Steps 1–2):** Slim `governance.md` from 503 lines to a compact rule table + full THINK-01–05 prose. Preserve full content in a new `docs/reference/governance-detail.md`. This is the highest-ROI change (400 line reduction) with zero information loss. Audit and confirm CLAUDE.md section ordering is cache-optimal while here.
+**Phase 1 (Steps 1–2):** Slim `governance.md` from 503 lines to a compact rule table + full THINK-01–05 prose. Preserve full content in a new `docs/references/governance-detail.md`. This is the highest-ROI change (400 line reduction) with zero information loss. Audit and confirm CLAUDE.md section ordering is cache-optimal while here.
 
 **Phase 2 (Steps 3–4):** Extract the volatile, frequently-changing sections from CLAUDE.md ("Current Phase", "What's Working", "What's Not Built Yet", "Known Tech Debt", "Sprint Plan") into `docs/STATUS.md`. Replace extracted content with a single link. STATUS.md becomes the project status ledger — update it instead of CLAUDE.md each sprint.
 
@@ -35,7 +35,7 @@ Execution is staged so each phase can be verified independently before proceedin
 | File | Change |
 |------|--------|
 | `.claude/rules/governance.md` | Edit — slim to rule table + THINK prose (~120 lines from 503) |
-| `docs/reference/governance-detail.md` | Create — full current governance content, preserved for reference |
+| `docs/references/governance-detail.md` | Create — full current governance content, preserved for reference |
 | `CLAUDE.md` | Edit — verify section order; extract 5 volatile sections → link to STATUS.md |
 | `docs/STATUS.md` | Create — extracted volatile sections: Current Phase, What's Working, What's Not Built, Known Debt, Sprint Plan |
 | `docs/INDEX.md` | Create — topic-oriented map of all docs/ files |
@@ -46,9 +46,9 @@ Execution is staged so each phase can be verified independently before proceedin
 
 ### [x] STEP 1 — Slim governance.md (Phase 1B)
 
-Create `docs/reference/governance-detail.md` first (copy of current content, no edits), then rewrite `governance.md` to the compact format below.
+Create `docs/references/governance-detail.md` first (copy of current content, no edits), then rewrite `governance.md` to the compact format below.
 
-**1a.** Copy current `governance.md` content verbatim into `docs/reference/governance-detail.md` with this header prepended:
+**1a.** Copy current `governance.md` content verbatim into `docs/references/governance-detail.md` with this header prepended:
 
 ```markdown
 # Governance Rulebook — Full Detail
@@ -68,7 +68,7 @@ globs: apps/api/**,services/**,*.csproj,docker-compose.yml,Dockerfile,.github/**
 
 # PROJECT GOVERNANCE RULEBOOK
 
-> 33 rules across 8 categories. Full rationale + compliant/violation examples: [docs/reference/governance-detail.md](../../docs/reference/governance-detail.md)
+> 33 rules across 8 categories. Full rationale + compliant/violation examples: [docs/references/governance-detail.md](../../docs/references/governance-detail.md)
 > Last updated: 2026-03-16
 
 ## Rules Quick Reference
@@ -189,7 +189,7 @@ Create `docs/INDEX.md` as a topic-oriented retrieval map. Organized by question,
 ## Notes
 
 - **Verification gate after Step 2:** Before proceeding to Step 3, start a fresh Claude conversation and ask a question that previously relied on ambient "What's Working" awareness (e.g., "what parsers are live?"). If Claude correctly deduces the answer from the stable architectural sections in CLAUDE.md, Phase 2 is safe to proceed. If it fails, keep STATUS.md content in CLAUDE.md.
-- **Governance detail file:** `docs/reference/governance-detail.md` is the authoritative full version. If governance rules change, update BOTH `governance.md` (table row) AND `governance-detail.md` (full section). Never let them diverge.
+- **Governance detail file:** `docs/references/governance-detail.md` is the authoritative full version. If governance rules change, update BOTH `governance.md` (table row) AND `governance-detail.md` (full section). Never let them diverge.
 - **STATUS.md update cadence:** Replace the habit of editing CLAUDE.md's "What's Working" section with editing `docs/STATUS.md` instead. This is now the sprint ledger.
 - **Token baseline after completion:** Expected always-loaded context: governance.md ~87 lines + CLAUDE.md ~443 lines + backend.md 84 + frontend.md 49 + ai-service.md 203 + docker.md 43 + MEMORY.md 139 = ~1,048 lines (down from ~1,540 — 32% reduction). The major remaining load is ai-service.md (203 lines) — could be a future Phase 4 if needed.
 - **Do not slim ai-service.md yet.** It contains the frozen TransactionDto cross-service contract table (THINK-05) plus the mock pattern for tests. These are high-density, high-consequence — worth the token cost.

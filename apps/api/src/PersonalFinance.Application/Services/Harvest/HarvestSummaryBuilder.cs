@@ -8,7 +8,7 @@ public static class HarvestSummaryBuilder
     public const string Red = "red";
     public const string Neutral = "neutral";
 
-    // Source: docs/ideas/scoring-rubric.md and docs/reference/finance-domain/formulas.md section 1:
+    // Source: docs/references/finance-domain/scoring-rubric.md and docs/references/finance-domain/formulas.md section 1:
     // a spend ratio of 1.00 is the 0-point breakpoint of spend_lt_income. Green means spending stayed
     // under income. No income recorded is neutral, never green (FIN-04).
     public static string Classify(decimal incomeIdr, decimal expenseIdr) =>

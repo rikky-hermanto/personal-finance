@@ -4,7 +4,7 @@
 > Sentence-window retrieval (STEP 4) dan auto-merging (STEP 5) — beserta tabel `statement_chunks` di Part 2 migration STEP 2, backfill script, dan varian eval `sentence_window` — **dipindah ke [PF-AI006-PART2](../../backlog/learning/PF-AI006-PART2-sentence-window-automerging-todo.md)** (deferred). Alasannya: hybrid search menjawab kelemahan produksi yang nyata di `/ask` sekarang; dua teknik lainnya butuh data source baru (teks naratif statement PDF) untuk usecase yang belum jadi kebutuhan produk. Materi STEP 4–5 di bawah **sengaja tidak dihapus** — PART2 merujuk ke sini sebagai satu-satunya sumber. Yang dieksekusi di tiket ini: STEP 0–3 + STEP 6 (tanpa varian `sentence_window`) + STEP 7–10.
 >
 > **Learning Phase:** Phase 2 · Chapter 6 of 12 · Day ~38 of 90
-> **Status:** Done (hybrid-search scope) — live-verified 2026-07-24. Docker/Supabase started, migration applied, full eval run against real data. **Result: `hybrid` did NOT beat `vector` on this corpus — production default stays `vector`.** See STEP 7 and `docs/mentor/advanced-rag-notes.md`.
+> **Status:** Done (hybrid-search scope) — live-verified 2026-07-24. Docker/Supabase started, migration applied, full eval run against real data. **Result: `hybrid` did NOT beat `vector` on this corpus — production default stays `vector`.** See STEP 7 and `docs/mentor/topics/advanced-rag-notes.md`.
 > **Started:** (draft compiled 2026-06-15 — execute after Ch5 Streaming completes)
 > **Planned from branch:** main
 > **Pivot goal:** Three techniques that move retrieval accuracy beyond naive top-K: hybrid BM25+vector search, sentence-window retrieval (wiring the Ch4 primitive), and auto-merging (hierarchical context promotion). Each technique is measured with the existing eval harness. The winner becomes the production default. After this chapter, you can name three advanced RAG patterns in an interview, show measured MRR/P@5 deltas per technique, and explain exactly when each one helps — not from a tutorial, but from your own benchmark.
@@ -30,7 +30,7 @@
     - [STEP 5 — Auto-merging retrieval](#--step-5--auto-merging-retrieval)
     - [STEP 6 — Extend eval harness: 5 adversarial queries + multi-variant benchmark](#--step-6--extend-eval-harness-5-adversarial-queries--multi-variant-benchmark)
     - [STEP 7 — Pick winner + update production default](#--step-7--pick-winner--update-production-default)
-    - [STEP 8 — Write technique notes in `docs/mentor/advanced-rag-notes.md`](#--step-8--write-technique-notes-in-docsmentoradvanced-rag-notesmd)
+    - [STEP 8 — Write technique notes in `docs/mentor/topics/advanced-rag-notes.md`](#--step-8--write-technique-notes-in-docsmentoradvanced-rag-notesmd)
     - [STEP 9 — Full test pass + commit](#--step-9--full-test-pass--commit)
     - [STEP 10 — Log progress](#--step-10--log-progress)
   - [📌 Notes](#-notes)
@@ -231,10 +231,10 @@ WHAT CHAPTER 6 ADDS (the three techniques, independently switchable)
 - [ ] `AutoMergingRetriever` — deferred to PF-AI006-PART2
 - [ ] `backfill_statement_chunks.py` — deferred to PF-AI006-PART2
 - [x] Eval harness extended: 5 adversarial queries added to [search_queries.json](../../../services/ai-service/evals/search_queries.json) (keyword-wins PLN, semantic-wins lunch, date-crossing, English-language coffee, adversarial-suspicious)
-- [x] All variants benchmarked with live numbers — MRR@5 + P@5 recorded per variant in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
+- [x] All variants benchmarked with live numbers — MRR@5 + P@5 recorded per variant in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md)
   > Verified (2026-07-24, live, 4,467 transactions): vector 0.771/0.533, hybrid 0.750/0.467, vector+rerank 0.625/0.467, hybrid+rerank 0.558/0.483, bm25 0.433/0.333 (MRR@5/P@5). `sentence_window` correctly excluded per re-scope.
 - [x] [models.py](../../../services/ai-service/app/models.py) — `SearchRequest.search_mode` default reviewed against live numbers and kept at `vector` (STEP 7); `/ask` lookup path (`answerer.py` + `main.py` `/ask/stream`) does not override the mode
-- [x] [advanced-rag-notes.md](../../../docs/mentor/advanced-rag-notes.md) — write-up complete with the measured (not assumed) finding; Sentence-Window/Auto-Merging sections left as explicit deferred stubs for PART2
+- [x] [advanced-rag-notes.md](../../../docs/mentor/topics/advanced-rag-notes.md) — write-up complete with the measured (not assumed) finding; Sentence-Window/Auto-Merging sections left as explicit deferred stubs for PART2
 - [x] Tests: [test_hybrid_search.py](../../../services/ai-service/tests/test_hybrid_search.py) — 12 tests (RRF logic, `_to_or_tsquery` tokenizer, bm25/hybrid SQL paths), all pass with mocked asyncpg/embedder; full suite re-verified live (127 passed, 1 pre-existing unrelated failure). `test_doc_retriever.py`/`test_auto_merger.py` deferred to PART2.
 
 ## 🧭 Approach
@@ -267,8 +267,8 @@ Out of scope: conversation memory across `/ask` calls (Chapter 8), `.NET` chat U
 | [test_auto_merger.py](../../../services/ai-service/tests/test_auto_merger.py) | Create — unit tests (mocked DocumentRetriever) |
 | [search_queries.json](../../../services/ai-service/evals/search_queries.json) | Edit — add 5 adversarial queries |
 | [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) | Edit — `--mode` flag for all variants; multi-variant comparison table |
-| [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) | Edit — per-variant MRR@5 + P@5 comparison table |
-| [advanced-rag-notes.md](../../../docs/mentor/advanced-rag-notes.md) | Create — 1-paragraph write-up per technique |
+| [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md) | Edit — per-variant MRR@5 + P@5 comparison table |
+| [advanced-rag-notes.md](../../../docs/mentor/topics/advanced-rag-notes.md) | Create — 1-paragraph write-up per technique |
 
 
 ## 📋 TODO
@@ -280,8 +280,8 @@ Out of scope: conversation memory across `/ask` calls (Chapter 8), `.NET` chat U
 cd services/ai-service
 PYTHONPATH=. python evals/eval_retrieval.py           # prints P@5 baseline
 PYTHONPATH=. python evals/eval_retrieval.py --rerank  # prints re-ranked P@5
-grep "P@5 reranked" docs/performances/ai-observability-metrics.md
-grep "RAGAS faithfulness" docs/performances/ai-observability-metrics.md
+grep "P@5 reranked" docs/operations/ai-observability-metrics.md
+grep "RAGAS faithfulness" docs/operations/ai-observability-metrics.md
 ```
 
 > **Why:** Chapter 6's headline is a *comparison table* — five variants, each with a number. Without the Ch4 baseline committed to the metrics doc, the table has a blank first row and the delta story falls apart. Don't start STEP 1 until the grep hits.
@@ -289,7 +289,7 @@ grep "RAGAS faithfulness" docs/performances/ai-observability-metrics.md
 
 ### [!] STEP 1 — Theory anchor: three techniques, 45 minutes, in order
 
-> **Skipped:** this is a human active-recall reading task (external links + closed-book write-up), not an automatable implementation step — left for the user to do. The Hybrid Search section of [advanced-rag-notes.md](../../../docs/mentor/advanced-rag-notes.md) was written directly in STEP 8 instead of via the stub-then-finalize flow this step describes.
+> **Skipped:** this is a human active-recall reading task (external links + closed-book write-up), not an automatable implementation step — left for the user to do. The Hybrid Search section of [advanced-rag-notes.md](../../../docs/mentor/topics/advanced-rag-notes.md) was written directly in STEP 8 instead of via the stub-then-finalize flow this step describes.
 
 Read these three sources sequentially — each primes the next. The goal is to close your laptop after reading and answer the active-retrieval questions from memory.
 
@@ -299,7 +299,7 @@ Read these three sources sequentially — each primes the next. The goal is to c
 3. **LlamaIndex — Auto-Merging Retriever** → https://docs.llamaindex.ai/en/stable/examples/retrievers/auto_merging_retriever/ — focus on the sibling-threshold concept and the parent/child node hierarchy. (10 min)
 4. **DeepLearning.AI — Building and Evaluating Advanced RAG Applications** (free, ~3h) → https://learn.deeplearning.ai/courses/building-evaluating-advanced-rag — watch only the sentence-window and auto-merging segments (~30 min of the course). Skip the LlamaIndex-framework-specific code sections; understand the concepts. (30 min)
 
-**Active-retrieval task (mandatory):** Close all tabs. In [advanced-rag-notes.md](../../../docs/mentor/advanced-rag-notes.md), create three stub sections and write from memory:
+**Active-retrieval task (mandatory):** Close all tabs. In [advanced-rag-notes.md](../../../docs/mentor/topics/advanced-rag-notes.md), create three stub sections and write from memory:
 - **Hybrid search:** why is combining rank positions (RRF) safer than combining raw scores?
 - **Sentence-window:** what two different representations does a chunk have, and which one gets indexed?
 - **Auto-merging:** what triggers a merge, and what is returned when one fires?
@@ -1486,14 +1486,14 @@ cd services/ai-service
 PYTHONPATH=. python evals/eval_retrieval.py --all
 ```
 
-Paste the printed table into [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+Paste the printed table into [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 > **Why 5 adversarial queries specifically?** A homogeneous eval set can't surface complementarity. If all 10 baseline queries are semantic (they were designed for vector search), hybrid never wins — BM25 gets no credit even when it should. "tagihan listrik PLN" is a real query a user types; it should hit BM25 #1 (PLN is verbatim in descriptions). Without it in the set, the eval says "hybrid tied with vector" and you'd never know the difference matters.
 
 
 ### [x] STEP 7 — Pick winner + update production default
 
-> **Verified result (2026-07-24, live, corrects the earlier assumption-based pass):** `vector` won — MRR@5 0.771 / P@5 0.533 vs `hybrid`'s 0.750 / 0.467. `SearchRequest.search_mode` default stays `"vector"`; the `/ask` lookup calls (`answerer.py`, `main.py::/ask/stream`) do NOT force `search_mode="hybrid"` (that wiring, added on an earlier assumption-based pass before Docker was available, was reverted once live numbers came in). Full reasoning in `docs/mentor/advanced-rag-notes.md` — RRF actively hurt precision here because this corpus's embedding text already bakes in the category tag that would otherwise be BM25's unique contribution.
+> **Verified result (2026-07-24, live, corrects the earlier assumption-based pass):** `vector` won — MRR@5 0.771 / P@5 0.533 vs `hybrid`'s 0.750 / 0.467. `SearchRequest.search_mode` default stays `"vector"`; the `/ask` lookup calls (`answerer.py`, `main.py::/ask/stream`) do NOT force `search_mode="hybrid"` (that wiring, added on an earlier assumption-based pass before Docker was available, was reverted once live numbers came in). Full reasoning in `docs/mentor/topics/advanced-rag-notes.md` — RRF actively hurt precision here because this corpus's embedding text already bakes in the category tag that would otherwise be BM25's unique contribution.
 
 After the benchmark table is in hand, apply this decision framework:
 
@@ -1526,7 +1526,7 @@ candidates = await self._retriever.search(
 Commit message note: document the mode chosen and why (the eval delta) in the commit body, not a code comment — the commit log is the right place for the decision rationale.
 
 
-### [x] STEP 8 — Write technique notes in `docs/mentor/advanced-rag-notes.md`
+### [x] STEP 8 — Write technique notes in `docs/mentor/topics/advanced-rag-notes.md`
 
 Complete the three stubs from STEP 1's active-retrieval task with finalized learnings:
 
@@ -1589,8 +1589,8 @@ git add services/ai-service/tests/test_doc_retriever.py
 git add services/ai-service/tests/test_auto_merger.py
 git add services/ai-service/evals/search_queries.json
 git add services/ai-service/evals/eval_retrieval.py
-git add docs/performances/ai-observability-metrics.md
-git add docs/mentor/advanced-rag-notes.md
+git add docs/operations/ai-observability-metrics.md
+git add docs/mentor/topics/advanced-rag-notes.md
 git status   # verify NO .env, NO credentials
 git commit -m "PF-AI006: Advanced RAG — hybrid BM25+vector (RRF), sentence-window doc store, auto-merging; MRR/P@5 comparison table across all variants"
 ```

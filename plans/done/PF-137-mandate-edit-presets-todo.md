@@ -4,7 +4,7 @@
 > **Status:** Done
 > **Started:** 2026-07-30
 > **Planned from branch:** main
-> **Source spec:** [docs/superpowers/specs/2026-07-30-mandate-edit-presets-design.md](../../docs/superpowers/specs/2026-07-30-mandate-edit-presets-design.md)
+> **Source spec:** [docs/records/specs/2026-07-30-mandate-edit-presets-design.md](../../docs/superpowers/specs/2026-07-30-mandate-edit-presets-design.md)
 
 ## Objective
 

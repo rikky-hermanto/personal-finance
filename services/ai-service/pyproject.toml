@@ -35,7 +35,7 @@ dependencies = [
     # the 1.x line, but 1.x needs langchain-google-genai 4.x, which no longer ships
     # google.api_core; app/agents/chat_model_factory.py patches that client directly, so
     # moving means rewriting the agent model factory. Accepted in
-    # docs/reference/accepted-risks.md (PF-147); revisit as its own ticket.
+    # docs/references/accepted-risks.md (PF-147); revisit as its own ticket.
     "langgraph>=0.2,<1.0",
     "langchain-anthropic>=0.3,<1.0",
     # app/services/advisor.py imports langfuse.langchain, which needs the langchain

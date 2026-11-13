@@ -5,7 +5,7 @@ paths: apps/api/**,apps/frontend/**,services/**,supabase/**,docker-compose.yml,*
 
 # PROJECT GOVERNANCE RULEBOOK
 
-> 33 rules across 8 categories. Full rationale + compliant/violation examples: [docs/reference/governance-detail.md](../../docs/reference/governance-detail.md)
+> 33 rules across 8 categories. Full rationale + compliant/violation examples: [docs/references/governance-detail.md](../../docs/references/governance-detail.md)
 > Last updated: 2026-11-05
 
 ## Rules Quick Reference

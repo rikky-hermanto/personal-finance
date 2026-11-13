@@ -11,5 +11,5 @@ Outputs stay as local repo files. See [../shared/preferences.md](../shared/prefe
 ## Finished examples
 
 - [architecture-diagram.md](../../docs/architecture/architecture-diagram.md): the canonical text diagram and system topology
-- [diagram-ai-chat-rag.html](../../docs/ai-features/diagram-ai-chat-rag.html): an interactive diagram that passes the one-view check
+- [diagram-ai-chat-rag.html](../../docs/architecture/ai/diagram-ai-chat-rag.html): an interactive diagram that passes the one-view check
 - [API-endpoints.md](../../docs/architecture/API-endpoints.md): the API reference style

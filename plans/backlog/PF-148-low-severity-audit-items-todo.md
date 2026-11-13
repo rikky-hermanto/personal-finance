@@ -23,7 +23,7 @@ Close the small, mostly mechanical findings from the 2026-10-15 audit in one pas
 - [ ] **`/health`** (`Program.cs`, `MapHealthChecks`): the anonymous response is only `{"status":"Healthy"}` (or `Unhealthy`) with an HTTP status. Dependency names and error text move to an authenticated endpoint or to logs. `docker compose` health checks, `npm start` readiness checks and CI still work (check scripts that parse the old JSON).
 - [ ] **AI service container**: `services/ai-service/Dockerfile` creates and switches to a non-root user, and the container still starts and passes `/health`. File paths it writes to (for example caches) are writable by that user.
 - [ ] **Monitoring images**: the `:latest` tags in `docker-compose.yml` for alloy, prometheus, loki, tempo and grafana are replaced with specific version tags that are currently running successfully (read them from `docker image ls`/`docker compose images`, do not guess), and the versions are noted in `docs/SETUP.md`.
-- [ ] **Demo keys in history** (commits `aca5f696`, `1762c8ed`): the executor decodes the JWT header and payload of the keys found there (base64 only, no network, no verification against any service) and records in `docs/reference/accepted-risks.md` whether the issuer is `supabase-demo` (the public local-development key) or something else. If it is something else, stop and report to the owner without printing the key.
+- [ ] **Demo keys in history** (commits `aca5f696`, `1762c8ed`): the executor decodes the JWT header and payload of the keys found there (base64 only, no network, no verification against any service) and records in `docs/references/accepted-risks.md` whether the issuer is `supabase-demo` (the public local-development key) or something else. If it is something else, stop and report to the owner without printing the key.
 - [ ] **`transaction_embeddings` RLS**: already closed by `supabase/migrations/20261015000000_pf_s15_embeddings_owner_read.sql` (RLS enabled, `anon` revoked, owner-read policy). This ticket only confirms it with a one-line check against the local database and records "already done in PF-S15" in the plan notes. No new migration.
 - [ ] `dotnet build`, `dotnet test`, `npm run lint`, `npx tsc --noEmit` and `pytest` still pass.
 
@@ -41,7 +41,7 @@ Treat the six items as independent, small commits-in-waiting. Prefer deletion ov
 | `services/ai-service/Dockerfile` | Edit — non-root user |
 | `docker-compose.yml` | Edit — pin monitoring image versions |
 | `docs/SETUP.md` | Edit — list the pinned versions; health response shape |
-| `docs/reference/accepted-risks.md` | Edit — result of the demo key check |
+| `docs/references/accepted-risks.md` | Edit — result of the demo key check |
 | `scripts/` or CI files that read `/health` JSON | Edit only if they parse dependency names |
 
 ---
@@ -74,7 +74,7 @@ Read the versions from the running containers (`docker compose images`, or `dock
 > **Why:** `:latest` can change under you on the next pull; pinned tags make the stack reproducible and auditable.
 
 ### [ ] STEP 6 — Check the demo keys
-Show the two commits with `git show <hash> -- <file>` and decode only the header and payload segments of any JWT-looking value locally (for example with a short Node snippet). Record only the issuer and role, never the key. Add the finding to `docs/reference/accepted-risks.md`. If the issuer is not `supabase-demo`, stop and report.
+Show the two commits with `git show <hash> -- <file>` and decode only the header and payload segments of any JWT-looking value locally (for example with a short Node snippet). Record only the issuer and role, never the key. Add the finding to `docs/references/accepted-risks.md`. If the issuer is not `supabase-demo`, stop and report.
 
 > **Why:** The commit message claims these are public demo keys; the audit could not verify that. Decoding costs nothing and settles it.
 

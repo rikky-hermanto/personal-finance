@@ -11,8 +11,8 @@ Apply to financial code, UI, specifications, and finance-facing documentation.
 | FIN-05 | Ranking, recommendation, sizing, and projection features need contextual disclosures and a review of actual regulatory exposure. Disclaimers do not remove substantive obligations. |
 | FIN-06 | Tax/regulatory values are time-sensitive. Check verification dates and primary sources before publishing rates; do not repeat historical change dates as current truth without checking. |
 
-Read root `docs/reference/finance-domain/formulas.md`, `instruments-id.md`, and
-`tax-id.md` as relevant. Product scoring methodology in `docs/ideas/scoring-rubric.md`
+Read root `docs/references/finance-domain/formulas.md`, `instruments-id.md`, and
+`tax-id.md` as relevant. Product scoring methodology in `docs/references/finance-domain/scoring-rubric.md`
 and actual gate implementations take precedence over generic assumptions. Locate
 historical plans by filename rather than relying on a fixed active-plan location.
 

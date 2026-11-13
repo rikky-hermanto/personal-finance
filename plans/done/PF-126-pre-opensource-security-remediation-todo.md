@@ -4,7 +4,7 @@
 > **Status:** Done
 > **Started:** 2026-05-31
 > **Completed:** 2026-05-31
-> **Audit doc:** `docs/security-reviews/2026-05-31-pre-opensource-audit.md`
+> **Audit doc:** `docs/records/security-reviews/2026-05-31-pre-opensource-audit.md`
 
 ## Objective
 
@@ -147,7 +147,7 @@ Create `.mcp.json.example` with this content:
 ```bash
 git add .gitignore .mcp.json.example .mcp.json \
   .kanban/BOARD.md \
-  docs/security-reviews/2026-05-31-pre-opensource-audit.md
+  docs/records/security-reviews/2026-05-31-pre-opensource-audit.md
 git commit -m "security: harden gitignore + redact .mcp.json credential before history purge (PF-126)
 ...
 ```
@@ -201,7 +201,7 @@ All 4 existing branches + 5 new branches force-pushed successfully. Tags were al
 
 ### [x] STEP 8 — Post-push: GitHub repository configuration (manual)
 
-Manual actions documented in `docs/security-reviews/2026-05-31-pre-opensource-audit.md`:
+Manual actions documented in `docs/records/security-reviews/2026-05-31-pre-opensource-audit.md`:
 
 1. **GitHub secret scanning:** Repo Settings → Security → Secret scanning. Verify no alerts on new history.
 2. **Branch protection:** Add rule for `main` requiring force-push protection.
@@ -216,5 +216,5 @@ Manual actions documented in `docs/security-reviews/2026-05-31-pre-opensource-au
 - `git filter-repo` rewrites all commit SHAs — any local clones by collaborators will diverge after the force-push and will need to be deleted and re-cloned. There are no known collaborators on this repo, but worth confirming.
 - The sensitive files remain on disk after filter-repo runs (filter-repo does not touch the working tree). This is intentional — the local copies are useful for continued development. The `.gitignore` rules added in STEP 2 prevent them from being accidentally re-committed.
 - `docs/statement-examples/transaction-template-sample.csv` was NOT flagged in the audit but was found to contain real PII in STEP 1 — full name, 16-digit card number, real balances. It was added to the purge list and purged from history.
-- The audit confirms `docs/security-reviews/2026-05-31-pre-opensource-audit.md` itself is safe to commit — it documents the remediation without containing any PII or credentials.
+- The audit confirms `docs/records/security-reviews/2026-05-31-pre-opensource-audit.md` itself is safe to commit — it documents the remediation without containing any PII or credentials.
 - After force-push, GitHub keeps a cached copy of the old history for approximately 90 days before GC. To request immediate expungement, use the GitHub Support "Remove sensitive data" form.

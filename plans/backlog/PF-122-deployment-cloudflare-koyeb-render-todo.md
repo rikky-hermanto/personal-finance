@@ -1,6 +1,6 @@
 # PF-105 — Deployment: Cloudflare Pages + Supabase Cloud + Koyeb + Render + Grafana Cloud
 
-> **Based on:** `docs/battle-plans/PF-105-deployment-strategy-verdict.md` (Option A' synthesis)
+> **Based on:** `docs/records/battle-plans/PF-105-deployment-strategy-verdict.md` (Option A' synthesis)
 > **Status:** Not Started
 > **Target stack:** Cloudflare Pages (frontend) · Supabase Cloud (DB) · Koyeb Eco (API) · Render (AI) · Grafana Cloud (observability)
 

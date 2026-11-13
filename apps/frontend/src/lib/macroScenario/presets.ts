@@ -1,5 +1,5 @@
 // Macro Scenario Lab — default drivers, slider metadata, historical presets.
-// Ported from docs/reference/simulator-makro-v3.jsx (BASE, GROUPS, PRESETS, lines 261-314).
+// Ported from docs/references/simulator-makro-v3.jsx (BASE, GROUPS, PRESETS, lines 261-314).
 // Preset labels translated to English; all numeric values are unchanged from the reference.
 
 import type { DriverGroup, MacroDrivers, ScenarioPreset } from './types';

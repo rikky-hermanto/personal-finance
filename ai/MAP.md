@@ -40,6 +40,6 @@ Start here. This file points to things; it never repeats them.
 - Skills: `.claude/skills/<name>/SKILL.md` (Claude) and `.agents/skills/<name>/SKILL.md` (Codex), as separate copies. `commit`, `create-diagram` and `ai-setup-audit` are personal skills shared across projects: Claude loads them from `~/.claude/skills/`, and a project copy of the same name would never load.
 - Codex conventions: `.agents/WORKFLOWS.md`. Codex settings rationale: `docs/codex/configuration.md`.
 - Tasks and status: `plans/` and `plans/BOARD.md` (rules in `plans/README.md`).
-- Product and architecture docs: `docs/` (current state: `docs/STATUS.md`).
-- Finance formulas, instruments, and tax tables: `docs/reference/finance-domain/`.
+- Product and architecture docs: `docs/` (current state: `docs/STATUS.md`; folder map: `docs/INDEX.md`).
+- Finance formulas, instruments, and tax tables: `docs/references/finance-domain/`.
 - Retired material: `_archive/`. Don't load it unless asked.

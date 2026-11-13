@@ -43,7 +43,7 @@ PF-AI008 is closed for the learning/product-validation scope at the user's reque
     - [STEP 8 — Wire `POST /advisor` in `app/main.py`](#--step-8--wire-post-advisor-in-appmainpy)
     - [STEP 9 — Unit tests for graph routing (`tests/test_advisor_agent.py`)](#--step-9--unit-tests-for-graph-routing-teststest_advisor_agentpy)
     - [STEP 10 — Write 5 evaluation scenarios (`evals/advisor_scenarios.json`)](#--step-10--write-5-evaluation-scenarios-evalsadvisor_scenariosjson)
-    - [STEP 11 — Update `docs/performances/ai-observability-metrics.md`](#--step-11--update-docsperformancesai-observability-metricsmd)
+    - [STEP 11 — Update `docs/operations/ai-observability-metrics.md`](#--step-11--update-docsperformancesai-observability-metricsmd)
     - [STEP 12 — Full test pass and review](#--step-12--full-test-pass-and-review)
     - [STEP 13 — Log progress](#--step-13--log-progress)
   - [📌 Notes](#-notes)
@@ -139,7 +139,7 @@ The new test filename is a planned deliverable. Use the existing venv; inspect r
 >
 > Returned usage for the two successful calls: **1058 input + 1160 output = 2218 tokens**, including 974 reasoning tokens within output. No usage returned for the failed request; billed cost not measured. Local callback evidence captured real model outputs/usage/latency; Langfuse export/dashboard was not tested. The full .NET HTTP integration and Step 10 scenarios were not exercised. **At the end of this probe, R4 and the combined two-turn acceptance remained unchecked; the later user acceptance below changes the ACT status only.**
 >
-> Evidence: [PF-AI008-gemini-smoke.json](../../resources/learning/evidence/PF-AI008-gemini-smoke.json). Probe is opt-in and is not a unit test; no production implementation changed during this live check.
+> Evidence: [PF-AI008-gemini-smoke.json](../../../docs/mentor/resources/evidence/PF-AI008-gemini-smoke.json). Probe is opt-in and is not a unit test; no production implementation changed during this live check.
 
 **Acceptance decision — 2026-09-15:** user requested accepting the AdvisorService ACT despite the failed live second turn. **Accepted with documented verification deferral**, based on 41 passing advisor tests (including mocked two-turn memory), successful live tool→synthesis, and retained session history. This is a user acceptance decision, not a claim that live turn 2 passed. **Follow-up:** complete a successful live second-turn answer and inspect grounding/refetch behavior in a future explicitly authorized bounded experiment. R4, Step 8 live verification, Step 10 scenarios, and Langfuse dashboard gates are not closed by this decision. No additional LLM calls were made for acceptance.
 
@@ -149,7 +149,7 @@ Start with one two-turn conversation from Step 8, within R3 limits; each turn ma
 
 ### [x] STEP R5 — Reconcile evidence and hand off
 
-Update this original plan and the local board, preserving prior verification history. Record revised test results separately from original counts. Update stale Anthropic-only operational notes in `docs/mentor/progress.md` and `docs/performances/ai-observability-metrics.md` with dated follow-ups when implementation occurs; do not rewrite past observations. Report local checks, skipped live work, actual measured results, and remaining issues. Do not commit, push, or mutate GitHub from this revision without a separate user instruction.
+Update this original plan and the local board, preserving prior verification history. Record revised test results separately from original counts. Update stale Anthropic-only operational notes in `docs/mentor/progress.md` and `docs/operations/ai-observability-metrics.md` with dated follow-ups when implementation occurs; do not rewrite past observations. Report local checks, skipped live work, actual measured results, and remaining issues. Do not commit, push, or mutate GitHub from this revision without a separate user instruction.
 
 **Rollout:** install compatible dependencies, use the configured Gemini model, run mocked checks, then the opt-in live experiment. **Rollback:** revert only task-scoped changes after reviewing the diff; reverting restores the old Anthropic credential requirement and is not a workaround for Gemini quota exhaustion. Leave the live gate pending instead of spending on a fallback.
 
@@ -455,7 +455,7 @@ Original implementation checklist; checked entries are historical. The revision 
 - [x] Langfuse traces visible for each `/advisor` call — steps, token counts, latency per node
   > **Accepted by user, 2026-09-15:** live trace persistence, steps, token counts and node latency verified through the Langfuse API are sufficient for this ACT. Dashboard visual confirmation is deferred and does not block acceptance; no claim that the browser rendered successfully. No additional LLM calls for this acceptance decision.
   > **Tracing verified live, 2026-09-15:** real `POST /advisor` through ASGI, synthetic financial HTTP fixtures, unchanged real `CallbackHandler`, Gemini 2.5 Flash and Langfuse export. HTTP 200; 2 Gemini calls, no retries. Langfuse API returned HTTP 200 with all 14 completed observations: HTTP root, LangGraph, agent→tools→agent, tool and two generations. Input 1052/output 1414 tokens (reasoning 1344 included); request 10.621s, generation durations 2.452s and 8.095s. **Deferred visual follow-up:** Chrome remained on Loading after reload; trace persistence/data are confirmed, UI rendering is not. No Anthropic blocker remains.
-  > [Live trace](https://cloud.langfuse.com/project/cmps0uij102r2ad0ekbh49nbo/traces/4ab6bf4c5c7e6bfd1cafe56fa363e4d2) · [Evidence](../../resources/learning/evidence/PF-AI008-langfuse-live.json). Probe: `scripts/verify_advisor_langfuse.py --live-gemini`. Trace ingestion was eventually consistent: an initial read had only 7 observations; subsequent read verified both generations and completed root. No extra model requests for readback. Local OTEL metrics export to localhost:4317 failed separately; it did not prevent Langfuse trace storage. No production code changed.
+  > [Live trace](https://cloud.langfuse.com/project/cmps0uij102r2ad0ekbh49nbo/traces/4ab6bf4c5c7e6bfd1cafe56fa363e4d2) · [Evidence](../../../docs/mentor/resources/evidence/PF-AI008-langfuse-live.json). Probe: `scripts/verify_advisor_langfuse.py --live-gemini`. Trace ingestion was eventually consistent: an initial read had only 7 observations; subsequent read verified both generations and completed root. No extra model requests for readback. Local OTEL metrics export to localhost:4317 failed separately; it did not prevent Langfuse trace storage. No production code changed.
 - [x] `pyproject.toml` updated: `langgraph>=0.2`, `langchain-anthropic>=0.3` in dependencies; `langchain-google-genai>=2.0` in optional/dev
   > Verification note: all three present with additional upper-bounds (`<1.0`, `<1.0`, `<3.0`) — unbounded floors resolved to versions requiring `langchain-core>=1.4`+, which broke the pinned ragas/langchain-openai/langchain-community eval stack; pinned below that line instead, documented inline in pyproject.toml.
 
@@ -489,7 +489,7 @@ The original implementation inventory follows. Revision-specific changes are:
 | `tests/test_chat_model_factory.py`, `tests/test_advisor_agent.py` | Factory selection and mocked graph/provider contract coverage |
 | `tests/test_advisor_tools.py` | Existing HTTP tool regression checks |
 | This plan, repository `plans/BOARD.md` | Revision acceptance and local status |
-| Repository `docs/mentor/progress.md`, `docs/performances/ai-observability-metrics.md` | Dated implementation follow-up; measured or pending results |
+| Repository `docs/mentor/progress.md`, `docs/operations/ai-observability-metrics.md` | Dated implementation follow-up; measured or pending results |
 
 | File | Change |
 |------|--------|
@@ -1470,13 +1470,13 @@ Run these manually against the live service, then inspect Langfuse traces for:
 - Session continuity (S4 turns 1+2 share a thread_id in Langfuse)
 - No fabricated numbers in S5
 
-Record pass/fail per scenario in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+Record pass/fail per scenario in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 > **Why manual eval instead of an automated harness?** Agent outputs are free-text and grounding is context-dependent — LLM-as-judge is the right evaluator, but it's a Chapter 6/Advanced skill. For now, manual pass/fail per written criterion is honest and sufficient. The traces are the evidence. If you ship a blog post in Chapter 10, the Langfuse screenshots from S4 (zero re-fetch in turn 2) are compelling demo material.
 
 ---
 
-### [x] STEP 11 — Update `docs/performances/ai-observability-metrics.md`
+### [x] STEP 11 — Update `docs/operations/ai-observability-metrics.md`
 
 > **Verification note:** appended with values marked `_pending_` and an explicit blocker note rather than fabricated numbers, since the underlying live run (STEP 10) didn't happen this session.
 

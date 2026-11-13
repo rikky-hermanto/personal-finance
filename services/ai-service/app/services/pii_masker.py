@@ -3,7 +3,7 @@
 Scope: unambiguous identifiers only (NIK, phone, account numbers, email).
 Person/merchant names deliberately NOT masked — indistinguishable without NER,
 and a wrong mask destroys categorization signal. Residual risk documented in
-docs/security/ai-threat-model.md.
+docs/operations/ai-threat-model.md.
 """
 import re
 

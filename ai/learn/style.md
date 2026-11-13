@@ -17,7 +17,7 @@ The full writing spec lives in the mentor skill (`.agents/skills/mentor/SKILL.md
 - Headings in exactly this order, never numbered: **Apa Masalah yang Ingin Diselesaikan? → Konsep Sederhananya → Cara Kerjanya → Implementasi → Optimisasi → Best Practice → Kesalahan Umum → Summary**. Cross-reference by section name.
 - **Cara Kerjanya** walks each concept from the simplest approach to the one that ships. Each approach gets a bold lead-in that *names what it is* (e.g. **"SSE (koneksi tetap terbuka)"**). A sentence naming the limit that forces the next approach links each one to the next. The last approach ends with "*Ini yang dipakai chapter ini*".
 - **Kesalahan Umum** lists only bugs that really happened.
-- Link a domain term on its first use in each section to the shared glossary [glossary-rag-id.md](../../plans/resources/learning/glossary-rag-id.md). Extend that glossary; never make per-chapter ones.
+- Link a domain term on its first use in each section to the shared glossary [glossary-rag-id.md](../../docs/mentor/resources/glossary-rag-id.md). Extend that glossary; never make per-chapter ones.
 - Canonical example: [PF-AI004-rag-reranking-generation-id.md](../../plans/done/learning/PF-AI004-rag-reranking-generation-id.md).
 
 ## Never show the method

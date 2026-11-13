@@ -1,6 +1,6 @@
 // Macro Scenario Lab — model coefficients.
 //
-// Ported 1:1 from docs/reference/simulator-makro-v3.jsx (computeModel()). Every numeric literal
+// Ported 1:1 from docs/references/simulator-makro-v3.jsx (computeModel()). Every numeric literal
 // from that file lives here, named, with a one-line note on what it represents (FIN-02: no magic
 // thresholds). These are heuristic calibrations for an educational emerging-market macro model —
 // NOT official Bank Indonesia, IMF, or OJK figures. Do not change a value without updating this

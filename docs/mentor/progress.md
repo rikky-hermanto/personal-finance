@@ -41,7 +41,7 @@
 - [x] Verify trace appears in Langfuse UI with correct token counts (end-to-end smoke test)
 - [x] Create Langfuse dashboard: cost/day, calls/day, latency distribution, error rate
 - [x] Extract p50/p95 latency and average cost-per-doc
-- [x] Document 3 concrete numbers in `docs/performances/ai-observability-metrics.md`
+- [x] Document 3 concrete numbers in `docs/operations/ai-observability-metrics.md`
 
 ### Chapter 2: LLM Evaluation Framework ✅ DONE (2026-06-05)
 - [x] Create `services/ai-service/evals/` directory with 20 anonymized fixture statements
@@ -162,7 +162,7 @@
 - Langfuse SDK integrated into Python AI service (`services/ai-service`)
 - Anthropic and Gemini calls wrapped with tracing — cost, latency, token counts visible in Langfuse UI
 - Langfuse dashboard created: cost/day, calls/day, p50/p95 latency distribution, error rate
-- 3 concrete numbers documented in `docs/performances/ai-observability-metrics.md`
+- 3 concrete numbers documented in `docs/operations/ai-observability-metrics.md`
 - Chapter 1 ✅ DONE — AI Observability gap closed
 
 **Streak: 5 days**
@@ -307,7 +307,7 @@
 **Remaining for tomorrow:**
 - Open Supabase Studio → get real transaction IDs → fill `evals/search_queries.json`
 - Run `PYTHONPATH=. python scripts/backfill_embeddings.py --dry-run` (check count), then without `--dry-run`
-- Run `PYTHONPATH=. python evals/eval_retrieval.py` — record MRR@5 + p50/p95 latency in `docs/performances/ai-observability-metrics.md`
+- Run `PYTHONPATH=. python evals/eval_retrieval.py` — record MRR@5 + p50/p95 latency in `docs/operations/ai-observability-metrics.md`
 - Commit PF-AI003: `git add` all new files + `git commit -m "PF-AI003: RAG Phase 1 — transaction embeddings + pgvector semantic search"`
 
 **Streak: 13 days**
@@ -351,7 +351,7 @@
 
 **Remaining for next session (the real Chapter-3 close-out):**
 - Build REAL ground truth: for each of the 7 queries, SQL-find genuinely matching transaction IDs in Supabase Studio → replace placeholders in `evals/search_queries.json`
-- Re-run `PYTHONPATH=. python evals/eval_retrieval.py` → record the *real* MRR@5 in `docs/performances/ai-observability-metrics.md`
+- Re-run `PYTHONPATH=. python evals/eval_retrieval.py` → record the *real* MRR@5 in `docs/operations/ai-observability-metrics.md`
 - Commit PF-AI003
 
 **Streak: 1 day**
@@ -439,14 +439,14 @@
 - [ ] RAGAS faithfulness scoring on 5 generated answers ← blocked this session, see Retros
 
 **Retros (blockers & surprises):**
-- **Two real infra walls, both genuine — not skipped, not faked.** (1) Local Supabase/Postgres isn't reachable in this execution environment — Docker Desktop's service is stopped and `net start com.docker.service` returns Access Denied (no admin rights here), so `eval_retrieval.py --rerank`, the `/ask` curl smoke test, and `eval_faithfulness.py` all fail at the DB-connect step (confirmed: `ConnectionRefusedError`). (2) `ragas` cannot be `pip install`ed on this Windows box — its hard dependency `scikit-network` ships no prebuilt wheel for Python 3.14/win_amd64 and needs the MSVC C++ Build Tools to compile from source, which aren't installed. **Fix:** documented both gaps explicitly in `docs/performances/ai-observability-metrics.md` instead of writing placeholder numbers — table cells say "not measured" with the reason, not "0" or silently omitted.
+- **Two real infra walls, both genuine — not skipped, not faked.** (1) Local Supabase/Postgres isn't reachable in this execution environment — Docker Desktop's service is stopped and `net start com.docker.service` returns Access Denied (no admin rights here), so `eval_retrieval.py --rerank`, the `/ask` curl smoke test, and `eval_faithfulness.py` all fail at the DB-connect step (confirmed: `ConnectionRefusedError`). (2) `ragas` cannot be `pip install`ed on this Windows box — its hard dependency `scikit-network` ships no prebuilt wheel for Python 3.14/win_amd64 and needs the MSVC C++ Build Tools to compile from source, which aren't installed. **Fix:** documented both gaps explicitly in `docs/operations/ai-observability-metrics.md` instead of writing placeholder numbers — table cells say "not measured" with the reason, not "0" or silently omitted.
 - **Got one real (non-mocked) data point anyway.** Ran `RerankerService.rerank("makan", ...)` for real against three hand-picked candidates — FlashRank's English-trained `ms-marco-MiniLM-L-12-v2` ranked `"MAKANAN TERNAK SAPI BERKAH"` (cattle feed) **above** `"GOFOOD GEPREK BENSU GADING"` (food delivery), confirming the exact language-bias risk the plan's Step 5 anticipated. Logged in `evals/README.md` and the metrics doc as real evidence, not speculation — useful even without the full DB-backed eval.
 - **FlashRank itself installs and runs cleanly** (model download ~22MB, no network restriction) — only `ragas`'s native-compile dependency is blocked, not all of Step 10's tooling.
 
 **Remaining for next session (the real Chapter-4 close-out):**
 - Get Supabase running locally (`docker compose`/`supabase start` on a machine with Docker available) → run `PYTHONPATH=. python evals/eval_retrieval.py` then `--rerank` → record the real P@5 baseline-vs-reranked delta
 - Either install MSVC Build Tools (or run on a non-Windows box / WSL) to get `ragas` installed, or hand-roll the claim-decompose-and-verify faithfulness check the way the plan's C# port describes → run `eval_faithfulness.py` → record mean faithfulness
-- Once both numbers exist, fill in `docs/performances/ai-observability-metrics.md` and close Chapter 4
+- Once both numbers exist, fill in `docs/operations/ai-observability-metrics.md` and close Chapter 4
 
 **Streak: 1 day** (reset — no log entries 2026-06-16)
 
@@ -468,7 +468,7 @@
 **Remaining for next session (the real Chapter-4 close-out):**
 - Get Postgres reachable (WSL / `supabase start` on a Docker-capable box) → `PYTHONPATH=. python evals/eval_retrieval.py` then `--rerank` → record the P@5 baseline-vs-reranked delta
 - Install MSVC Build Tools (or run on WSL/non-Windows) for `ragas`, or hand-roll the claim-decompose-and-verify faithfulness check → run `eval_faithfulness.py` → record mean faithfulness
-- Fill `docs/performances/ai-observability-metrics.md` with both numbers → close Chapter 4 → Phase 1 complete
+- Fill `docs/operations/ai-observability-metrics.md` with both numbers → close Chapter 4 → Phase 1 complete
 
 **Streak: 1 day** (reset — no log entries 2026-06-18 → 2026-06-23)
 
@@ -521,7 +521,7 @@
 
 - Ran `POST /ask` live against the running AI service (Supabase up, 4,467 embedded transactions) for all 5 questions in `ask_questions.json`: food-Maret-2025 → confident=true, correct Rp 77,200 across 2 cited transactions; last-PLN-payment → confident=true, correct row cited; kopi-Maret-2025 → confident=false (genuinely no strong match that month); biggest-expense-Maret-2025 → confident=true, correct max cited; sewa-2031 adversarial → confident=false, no invented number (canary passed)
 - Queried the Langfuse public API directly (`GET /api/public/traces`, `GET /api/public/observations`) and confirmed `POST /ask` traces land with a nested `gemini-generate-json` GENERATION observation carrying `cost_usd`, token usage, and per-call latency — `AnswerService` → `provider.generate_json()` tracing works end-to-end with zero new code, exactly as designed
-- Found the metrics doc had gone stale: the Day-27 rerank delta (P@5 0.657→0.600) was measured live but never transcribed out of "not measured" placeholders. Corrected `docs/performances/ai-observability-metrics.md` with the real numbers, the /ask retrieval_ms/generation_ms p50 (~887ms / ~2683ms, median of the 5 live calls above), and folded the Day-27 and Day-35 findings into the doc's narrative notes
+- Found the metrics doc had gone stale: the Day-27 rerank delta (P@5 0.657→0.600) was measured live but never transcribed out of "not measured" placeholders. Corrected `docs/operations/ai-observability-metrics.md` with the real numbers, the /ask retrieval_ms/generation_ms p50 (~887ms / ~2683ms, median of the 5 live calls above), and folded the Day-27 and Day-35 findings into the doc's narrative notes
 - Updated the plan file (`PF-AI004-rag-reranking-generation.md`) — all 14 TODO steps and all 9 acceptance criteria now `[x]`, status header marked Done
 - Moved `PF-AI004` from "In Progress" to "Done" on `plans/BOARD.md`
 
@@ -627,11 +627,11 @@
   - `list_all_categories` now specified to snapshot live vocabulary from `app.state.categories` at startup, hardcoded list kept only as an empty-DB fallback.
   - Tightened acceptance criteria: `tool_calls_count` must be derived from the agent's own step log (never hardcoded); the 5-transaction smoke test now requires an exact category match per row instead of "non-null".
   - None of this is implemented yet — STEP 1b/1c and everything from STEP 2 onward in the plan's own checklist are still unchecked.
-- Built `docs/mentor/production-llm-topics-diagram.html` and used it to push two reusable upgrades into the tech-write skill's diagram engine:
+- Built `docs/mentor/resources/production-llm-topics-diagram.html` and used it to push two reusable upgrades into the tech-write skill's diagram engine:
   - A computed layered layout (longest-path column assignment + single-pass barycenter row placement) for diagrams whose node set grows over time (roadmaps, curricula) — replaces hand-tuned fixed coordinates, verified via a Node.js simulation for zero node overlaps and zero backward edges.
   - Dragged node positions now persist across a reload via `localStorage`.
   - Fixed a real light/dark theme bug in the diagram template: `color` was declared only on `html, body`, so any descendant without its own explicit `color` inherited the dark-theme value even after switching to light. Fixed by re-declaring `color: var(--text)` on `#app` itself.
-- Added `plans/resources/learning/diagram-pf-ai007-agent-loop.html` (the agent tool-calling loop for Chapter 7) and relocated `diagram-pf-ai006-rag-patterns.html` from `docs/architecture/` into the learning-plans folder — it documents a learning chapter, not shipped architecture.
+- Added `docs/mentor/resources/diagram-pf-ai007-agent-loop.html` (the agent tool-calling loop for Chapter 7) and relocated `diagram-pf-ai006-rag-patterns.html` from `docs/architecture/` into the learning-plans folder — it documents a learning chapter, not shipped architecture.
 - Unrelated same-day work happened on the Trading Desk feature (PF-136, mandate presets) — out of scope for this log, noted only so the working tree's other uncommitted files aren't mistaken for pivot work.
 
 **Chapter 7 (PF-AI007) checklist progress:**
@@ -661,7 +661,7 @@
 - **The chapter's assumption was falsified: hybrid (BM25 + RRF) underperforms pure vector on this corpus.** Diagnosed the mechanism from the per-query breakdown: the stored embedding text is `description | remarks | category | wallet`, so the `Electricity`/`Listrik` category tag already gives the embedding the exact-keyword signal BM25 was supposed to add — `tagihan listrik PLN` already scores P@5=1.00 on vector alone. RRF then *displaces* correct vector hits with BM25's noisier candidates on queries where BM25 has nothing real to contribute (`makan siang di kantor` dropped MRR 0.25 → 0.00; no keyword overlap with `WARUNG`/`RESTO`).
 - **Reverted the earlier assumption-based wiring rather than shipping it:** `SearchRequest.search_mode` default returned to `"vector"`, and the `/ask` lookup path (`answerer.py`, `main.py::/ask/stream`) no longer forces `search_mode="hybrid"`. `bm25`/`hybrid` stay implemented and selectable — they're the right tool for a corpus where descriptions are the only signal, i.e. PART2's `statement_chunks`.
 - **Real bug found only by the live run:** the first benchmark scored `bm25` at a flat 0.000 on every query. Cause was `plainto_tsquery`, which ANDs every query word — a 5-word natural-language question can never match a 2–4 word bank description in full. Fixed with `_to_or_tsquery()` in `retriever.py` (OR-join tokens, then `to_tsquery`); `ts_rank` still weights rows with more matched terms higher, which approximates real BM25 instead of a boolean AND filter. 3 new unit tests for the tokenizer.
-- Wrote up the finding in [advanced-rag-notes.md](../../docs/mentor/advanced-rag-notes.md) and filled the real numbers into [ai-observability-metrics.md](../../docs/performances/ai-observability-metrics.md) (replacing the "pending" table). Updated [PF-AI006](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) — STEP 2, 6, 7, 9 flipped from `[!]` to `[x]` with live verification notes; status header now Done (hybrid-search scope).
+- Wrote up the finding in [advanced-rag-notes.md](topics/advanced-rag-notes.md) and filled the real numbers into [ai-observability-metrics.md](../operations/ai-observability-metrics.md) (replacing the "pending" table). Updated [PF-AI006](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) — STEP 2, 6, 7, 9 flipped from `[!]` to `[x]` with live verification notes; status header now Done (hybrid-search scope).
 - Full suite: **127 passed, 1 pre-existing unrelated failure** (`test_is_pii_keyword[REK123456-True]` in `test_merchant_suggester.py`, untouched by this ticket). Changes left uncommitted for review.
 
 **Chapter 6 checklist progress:**
@@ -755,7 +755,7 @@
 - Answered a question about the PF-AI007 walkthrough table (Step / Observe / Reason / Act / Result): for each of the 3 agent tools, does it actually hit a live DB, an LLM, or something else? Traced it in the real code instead of guessing.
 - Confirmed `search_category_rules` (Step 1) and `list_all_categories` (Step 3) both read **in-memory snapshots** — `_CATEGORY_RULES` and `_CATEGORIES`, populated once from Postgres (`SELECT keyword, category FROM category_rules`, and the categories vocabulary) during FastAPI's `lifespan()` startup, never re-queried per request. `find_similar_transactions` (Step 2) is the one live call — it hits `app.state.retriever`, the same pgvector-backed retriever `/search` uses, so newly-ingested transactions are searchable immediately, unlike the other two which only refresh on service restart.
 - Added a **Data source** column to the walkthrough table in [PF-AI007-tool-calling-agents-smolagents-todo.md](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md), documenting this snapshot-vs-live distinction per step with file/line links — the tradeoff (a new category rule needs a service restart to take effect; similarity search doesn't) is now explicit instead of implicit.
-- Noted in passing, not fixed: `docs/architecture/diagram-pf-ai007-agent-loop.html` and `plans/resources/learning/diagram-pf-ai007-agent-loop.html` are both currently tracked in git with the same content — the `docs/architecture/` copy was deleted from the working tree but never staged, so it still shows as a pending deletion. Flagged for cleanup, not touched this session.
+- Noted in passing, not fixed: `docs/architecture/diagram-pf-ai007-agent-loop.html` and `docs/mentor/resources/diagram-pf-ai007-agent-loop.html` are both currently tracked in git with the same content — the `docs/architecture/` copy was deleted from the working tree but never staged, so it still shows as a pending deletion. Flagged for cleanup, not touched this session.
 
 **Chapter 7 (PF-AI007) checklist progress:**
 - [x] Plan file's example walkthrough table now documents each tool's actual data source (snapshot vs. live), closing a documentation gap the original table left implicit
@@ -838,7 +838,7 @@
 - Wired the Langfuse `CallbackHandler` into the graph's `ainvoke` config for per-node tracing — from the plan's Notes section; the plan's own Step 6 code block had omitted it despite the Acceptance Criteria requiring visible traces
 - Unit tests: 4 tool tests (mocked httpx) + 6 routing tests (pure `should_continue`/`call_fallback` logic, zero LLM calls) — 10/10 green; full existing suite still green except one pre-existing, unrelated failure (`test_is_pii_keyword[REK123456]` in `test_merchant_suggester.py` — confirmed untouched by this session)
 - Wrote the 5 eval scenarios (`evals/advisor_scenarios.json`) and the "LangGraph mental model" active-retrieval section in `evals/README.md`
-- Updated `docs/performances/ai-observability-metrics.md` — Chapter 8 section, values marked pending rather than fabricated
+- Updated `docs/operations/ai-observability-metrics.md` — Chapter 8 section, values marked pending rather than fabricated
 
 **Chapter 8 checklist progress:** see updated checklist above — 4/5 done, scenario testing blocked.
 
@@ -852,7 +852,7 @@
 - Add `ANTHROPIC_API_KEY` to `.env`
 - Run the Step 8 two-turn smoke test (`curl` — verify turn 2 shows 0 re-fetches)
 - Run the 5 scenarios in `evals/advisor_scenarios.json` against the live service, record pass/fail
-- Fill in the real numbers in `docs/performances/ai-observability-metrics.md` Chapter 8 table (currently all "_pending_")
+- Fill in the real numbers in `docs/operations/ai-observability-metrics.md` Chapter 8 table (currently all "_pending_")
 - Re-run Chapter 7's PF-AI007 STEP 7 smoke test to formally close that gate, independent of Chapter 8
 - Chapter 8 complete once the above lands
 
@@ -880,12 +880,12 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - Turn 1 succeeded in 11.125s (2 requests): tool `get_pyramid_scores` → model synthesis → response string. L2 score 45% and L1 score 90% matched fixtures. It did not fetch cashflow or supply a concrete IDR action; not a full S1 quality pass.
 - Turn 2 failed with `ServiceUnavailable` in 2.224s (1 request); controlled fallback returned. Both questions and the previous tool result remain in the same saved session, but successful follow-up/no-refetch behavior is still pending. Stopped without retry.
 - Total: 3 Gemini generation attempts, 0 Anthropic. Successful-call usage: 1058 input / 1160 output tokens (974 reasoning tokens included). Failed-call usage and billed cost unavailable. Langfuse dashboard and full .NET HTTP integration untested.
-- [Local evidence](../../plans/resources/learning/evidence/PF-AI008-gemini-smoke.json) recorded; combined two-turn checkbox and R4 remain open. No production implementation change, commit, push, or GitHub mutation.
+- [Local evidence](resources/evidence/PF-AI008-gemini-smoke.json) recorded; combined two-turn checkbox and R4 remain open. No production implementation change, commit, push, or GitHub mutation.
 
 #### Follow-up — Langfuse live tracing verification, 2026-09-15
 
 - After accepting the AdvisorService ACT with live-turn-2 verification deferred, the user requested testing Langfuse. One real `/advisor` request via ASGI with synthetic tool data succeeded: 2 Gemini calls, no retries; production callback/export path unchanged.
-- Langfuse API readback confirmed 14 completed observations, including HTTP root, graph, two agent nodes, tools/get_pyramid_scores and two Gemini generations. Input 1052/output 1414 tokens; generation latency 2.452s/8.095s; HTTP root 10.621s. [Stored evidence](../../plans/resources/learning/evidence/PF-AI008-langfuse-live.json).
+- Langfuse API readback confirmed 14 completed observations, including HTTP root, graph, two agent nodes, tools/get_pyramid_scores and two Gemini generations. Input 1052/output 1414 tokens; generation latency 2.452s/8.095s; HTTP root 10.621s. [Stored evidence](resources/evidence/PF-AI008-langfuse-live.json).
 - Trace export and persistence **verified**. Chrome trace page remained on Loading after reload; only visual dashboard confirmation remains pending for the tracing ACT. Local OTEL metrics collector localhost:4317 was unavailable, independently of successful Langfuse trace storage.
 - No production code changes or further LLM calls for API polling; opt-in verification script and actual evidence added. R4 follow-up answer/scenario gates remain separate.
 
@@ -1002,7 +1002,7 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
   - An output guard replaces an answer that leaks the prompt scaffold. On a streamed answer it sends `output_flagged`, and the UI drops the text it already showed.
   - PII masking (NIK, phone incl. `+62`, cue-worded account numbers, email) runs before text reaches the LLM, in chat, follow-ups and the categorizer agent. Citations keep the original text.
   - Flagged requests get a `security.flagged` tag in Langfuse (v3 API).
-  - Wrote the threat model: [ai-threat-model.md](../security/ai-threat-model.md).
+  - Wrote the threat model: [ai-threat-model.md](../operations/ai-threat-model.md).
 - 2026-10-21: closed STEP 7 (secrets). Installed gitleaks 8.30.1; the full history (650 commits) and the new files scan clean. The first run found 6 false positives from before this chapter (Supabase CLI demo JWTs and an env var name), now allowlisted by narrow regexes.
 - 2026-10-21: committed `1ad33dbd`, ran every gate (pytest 351, dotnet 431 with 9 skipped, frontend unit tests 38, lint, tsc), and ran the separate loop verifier: **12 of 12 acceptance criteria passed**. Merged to `main` as `4c760832` through `/loop-accept`.
 

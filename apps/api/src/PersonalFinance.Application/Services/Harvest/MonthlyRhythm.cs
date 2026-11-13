@@ -5,7 +5,7 @@ namespace PersonalFinance.Application.Services.Harvest;
 /// <summary>
 /// Counts consecutive harvested months. One missing month between two harvested months is
 /// forgiven once per calendar quarter; any other gap starts a new run quietly.
-/// Product rule: plans/brainstorms/pm-journey-quests-analysis.md (Ritual quest type).
+/// Product rule: docs/ideas/brainstorms/pm-journey-quests-analysis.md (Ritual quest type).
 /// </summary>
 public static class MonthlyRhythm
 {

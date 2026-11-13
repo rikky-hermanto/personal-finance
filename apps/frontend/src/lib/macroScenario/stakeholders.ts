@@ -1,5 +1,5 @@
 // Macro Scenario Lab — stakeholder scoring, regime classification, narrative text.
-// Ported from docs/reference/simulator-makro-v3.jsx: computeModel() stakeholder-score block
+// Ported from docs/references/simulator-makro-v3.jsx: computeModel() stakeholder-score block
 // (lines 136-192), mechanism() (lines 208-250), flowNarrative() (lines 252-258). Narrative text
 // translated from Indonesian to English to match this app's UI language convention.
 

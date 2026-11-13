@@ -10,7 +10,7 @@ Read [shared Codex workflow conventions](../../WORKFLOWS.md) before using this s
 
 ## Codex isolation and current sources
 
-Keep this established curriculum and teaching style. Learning plans live in `plans/<status>/learning/`; the shared glossary and evidence live in `plans/resources/learning/`. Update plans and companions directly, preserving prior content and concurrent edits. Extend the one shared glossary; do not create a second learning tree. Existing `docs/mentor/` progress and curriculum remain canonical shared learning documents.
+Keep this established curriculum and teaching style. Learning plans live in `plans/<status>/learning/`; the shared glossary and evidence live in `docs/mentor/resources/`. Update plans and companions directly, preserving prior content and concurrent edits. Extend the one shared glossary; do not create a second learning tree. Existing `docs/mentor/` progress and curriculum remain canonical shared learning documents.
 
 Use only current Codex tools and PowerShell-compatible commands. Slash-style examples below denote modes, not a dependency on Claude commands. Verify current courses, pricing, certifications, roles, and publishing API behavior against primary sources; dated context is historical. Publication requires the user's explicit publish request; drafting does not authorize it.
 
@@ -782,12 +782,12 @@ Summary
 - **"Summary"** = masalah → yang dibangun → real-numbers table → pelajaran terpenting → interview
   one-liner → link back to the plan file for the rest.
 - **Glossary linking:** every new domain term links, at its first occurrence *per section*, to the
-  shared glossary ([glossary-rag-id.md](../../../plans/resources/learning/glossary-rag-id.md)) via
+  shared glossary ([glossary-rag-id.md](../../../docs/mentor/resources/glossary-rag-id.md)) via
   explicit `<a id="slug"></a>` anchors. Extend this shared glossary directly, preserving existing anchors and concurrent edits; never create a separate Codex or per-chapter glossary.
   New glossary entries follow its existing format (`<a id>` + bold term + simple-Indonesian
   definition, grouped by category not alphabet).
 - **File naming:** `{plan-filename}-id.md`, saved next to the plan in
-  `plans/resources/learning/` for shared material. Preserve prior content and move a learning plan with its status.
+  `docs/mentor/resources/` for shared material. Preserve prior content and move a learning plan with its status.
 
 ## C# Equivalent Code Blocks (PF-AIxxx) — Required
 

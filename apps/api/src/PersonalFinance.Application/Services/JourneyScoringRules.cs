@@ -5,11 +5,11 @@ namespace PersonalFinance.Application.Services;
 
 /// <summary>
 /// Pure Journey scoring rules: no Supabase, no clock. Kept apart from JourneyScoringService so
-/// every rule can be tested with plain objects. Methodology: docs/ideas/scoring-rubric.md (v2).
+/// every rule can be tested with plain objects. Methodology: docs/references/finance-domain/scoring-rubric.md (v2).
 /// </summary>
 internal static class JourneyScoringRules
 {
-    // Source: docs/ideas/scoring-rubric.md v2, "Spending vs saving". These categories mean money
+    // Source: docs/references/finance-domain/scoring-rubric.md v2, "Spending vs saving". These categories mean money
     // moved to the future rather than consumed. spend_lt_income and liquid_savings_ratio leave them
     // out of expense; savings_rate counts only them. Only "Investment" is produced by a preset today.
     private static readonly HashSet<string> SavingsCategories = new(StringComparer.OrdinalIgnoreCase)

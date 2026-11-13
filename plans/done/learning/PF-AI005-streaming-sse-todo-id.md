@@ -4,7 +4,7 @@
 >
 > **Urutan baca:** masalah dulu → baru konsep → baru cara kerja → baru kode → baru optimisasi → baru best practice → baru kesalahan umum → baru ringkasan. Jangan loncat ke bagian Implementasi kalau tiga bagian pertama belum kebayang, nanti kodenya kelihatan seperti sihir.
 >
-> **Ketemu istilah asing di tengah baca?** Semua istilah baru dijelaskan pas pertama kali muncul, dan tiap istilah di-link langsung ke definisinya di [Glossary RAG](../../resources/learning/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik.
+> **Ketemu istilah asing di tengah baca?** Semua istilah baru dijelaskan pas pertama kali muncul, dan tiap istilah di-link langsung ke definisinya di [Glossary RAG](../../../docs/mentor/resources/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik.
 
 ---
 
@@ -14,7 +14,7 @@ Di chapter sebelumnya (PF-AI004), sistem sudah punya `POST /ask`: user tanya *"b
 
 **Masalah 1 — user menatap spinner 2–6 detik.** Gemini butuh 2–6 detik untuk menyusun jawaban. Selama itu UI cuma menampilkan spinner kosong. Bandingkan dengan ChatGPT atau Claude.ai — mereka tidak pernah membuatmu menatap layar kosong selama itu; jawabannya muncul kata demi kata. Spinner yang diam lama itu *terasa* rusak, padahal backend-nya bekerja dengan benar. Persepsi = kenyataan di UX.
 
-**Masalah 2 — data berubah di server, tapi UI tidak tahu.** Setelah upload wizard commit statement bank, tab Transactions baru menampilkan baris baru saat React Query kebetulan refetch (pindah halaman, refresh manual). Tab kedua tetap basi. Device lain tetap basi. Solusi naifnya adalah [polling](../../resources/learning/glossary-rag-id.md#polling) — tembak request tiap 2 detik selamanya, yang hampir semuanya menjawab "tidak ada yang berubah." Boros request, boros beban server.
+**Masalah 2 — data berubah di server, tapi UI tidak tahu.** Setelah upload wizard commit statement bank, tab Transactions baru menampilkan baris baru saat React Query kebetulan refetch (pindah halaman, refresh manual). Tab kedua tetap basi. Device lain tetap basi. Solusi naifnya adalah [polling](../../../docs/mentor/resources/glossary-rag-id.md#polling) — tembak request tiap 2 detik selamanya, yang hampir semuanya menjawab "tidak ada yang berubah." Boros request, boros beban server.
 
 Jadi target chapter ini dua:
 1. `POST /ask/stream` — jawaban muncul **token demi token**, token pertama tampil dalam ~150ms, bukan 2–6 detik.
@@ -26,11 +26,11 @@ Jadi target chapter ini dua:
 
 Ada tiga konsep baru. Analoginya:
 
-1. **[SSE (Server-Sent Events)](../../resources/learning/glossary-rag-id.md#sse)** — biasanya HTTP itu seperti pesan-antar: kamu pesan sekali, kurir datang sekali bawa satu paket lengkap, selesai. SSE itu seperti langganan koran: kamu daftar sekali, lalu koran terus diantar tiap terbit lewat "pintu" yang sama, sampai kamu berhenti langganan. Server terus mendorong potongan data kecil ke browser lewat **satu koneksi HTTP yang dibiarkan terbuka** — tanpa browser harus bertanya ulang.
+1. **[SSE (Server-Sent Events)](../../../docs/mentor/resources/glossary-rag-id.md#sse)** — biasanya HTTP itu seperti pesan-antar: kamu pesan sekali, kurir datang sekali bawa satu paket lengkap, selesai. SSE itu seperti langganan koran: kamu daftar sekali, lalu koran terus diantar tiap terbit lewat "pintu" yang sama, sampai kamu berhenti langganan. Server terus mendorong potongan data kecil ke browser lewat **satu koneksi HTTP yang dibiarkan terbuka** — tanpa browser harus bertanya ulang.
 
-2. **[Async generator](../../resources/learning/glossary-rag-id.md#async-generator)** — fungsi biasa itu seperti koki yang baru keluar dari dapur setelah SEMUA masakan jadi (`return` sekali di akhir). Async generator itu koki yang mengantar tiap piring begitu matang (`yield` berkali-kali). Untuk streaming, provider LLM harus jadi koki tipe kedua — tidak mungkin men-stream token yang belum kamu punya.
+2. **[Async generator](../../../docs/mentor/resources/glossary-rag-id.md#async-generator)** — fungsi biasa itu seperti koki yang baru keluar dari dapur setelah SEMUA masakan jadi (`return` sekali di akhir). Async generator itu koki yang mengantar tiap piring begitu matang (`yield` berkali-kali). Untuk streaming, provider LLM harus jadi koki tipe kedua — tidak mungkin men-stream token yang belum kamu punya.
 
-3. **[Supabase Realtime](../../resources/learning/glossary-rag-id.md#supabase-realtime)** — daripada UI bertanya "ada data baru?" tiap 2 detik (polling), balik arahnya: database yang *memberi tahu* UI begitu ada baris baru masuk. Seperti bel pintu vs kamu bolak-balik ngecek ke depan rumah tiap 2 menit.
+3. **[Supabase Realtime](../../../docs/mentor/resources/glossary-rag-id.md#supabase-realtime)** — daripada UI bertanya "ada data baru?" tiap 2 detik (polling), balik arahnya: database yang *memberi tahu* UI begitu ada baris baru masuk. Seperti bel pintu vs kamu bolak-balik ngecek ke depan rumah tiap 2 menit.
 
 Gambaran besar `POST /ask/stream`:
 
@@ -74,15 +74,15 @@ Response sekali jadi — `POST /ask` yang sudah ada. Retrieve → rerank → gen
 
 Ganjalannya, Gemini butuh 2–6 detik untuk menyusun jawaban, dan sepanjang itu user hanya melihat spinner. Total durasi kerjanya tidak bisa dipangkas — yang bisa digeser cuma *persepsinya*.
 
-**Push tiap potongan teks begitu model menghasilkannya.** Kata pertama muncul dalam ~150ms. [TTFT (time-to-first-token)](../../resources/learning/glossary-rag-id.md#ttft) anjlok dari ~3 detik ke ~150ms, padahal total durasi generation tidak berubah sama sekali. Yang berubah cuma: user *melihat progres*.
+**Push tiap potongan teks begitu model menghasilkannya.** Kata pertama muncul dalam ~150ms. [TTFT (time-to-first-token)](../../../docs/mentor/resources/glossary-rag-id.md#ttft) anjlok dari ~3 detik ke ~150ms, padahal total durasi generation tidak berubah sama sekali. Yang berubah cuma: user *melihat progres*.
 
 Kedengarannya tinggal implementasi — sampai ketabrak sifat dasar HTTP: satu request → satu response, selesai. Bagaimana caranya server terus mengirim data tambahan *setelah* response dimulai, tanpa client bertanya lagi?
 
-**[SSE](../../resources/learning/glossary-rag-id.md#sse) — satu koneksi HTTP dibiarkan terbuka.** Response yang tidak pernah ditutup dan terus ditulisi server. Unidirectional (server → client saja), jalan di HTTP biasa (tanpa upgrade protokol, tanpa konfigurasi proxy khusus), dan browser otomatis reconnect kalau koneksi putus. Untuk pola "client kirim satu query, server balas aliran token" — bentuknya pas persis. Alternatifnya, [WebSocket](../../resources/learning/glossary-rag-id.md#websocket), memberi kanal dua arah — itu tepat untuk chat room atau collaborative editing di mana dua sisi terus bicara; di sini client cuma kirim sekali lalu mendengarkan, jadi dua-arah cuma overhead.
+**[SSE](../../../docs/mentor/resources/glossary-rag-id.md#sse) — satu koneksi HTTP dibiarkan terbuka.** Response yang tidak pernah ditutup dan terus ditulisi server. Unidirectional (server → client saja), jalan di HTTP biasa (tanpa upgrade protokol, tanpa konfigurasi proxy khusus), dan browser otomatis reconnect kalau koneksi putus. Untuk pola "client kirim satu query, server balas aliran token" — bentuknya pas persis. Alternatifnya, [WebSocket](../../../docs/mentor/resources/glossary-rag-id.md#websocket), memberi kanal dua arah — itu tepat untuk chat room atau collaborative editing di mana dua sisi terus bicara; di sini client cuma kirim sekali lalu mendengarkan, jadi dua-arah cuma overhead.
 
-Tinggal satu batu sandungan, dan letaknya di browser: React perlu mengirim **POST dengan JSON body** (`{"query": "...", "category": "..."}`) untuk memulai stream, sementara API SSE bawaan browser, [`EventSource`](../../resources/learning/glossary-rag-id.md#eventsource), **cuma bisa GET** — tidak bisa kirim body, tidak bisa custom header. Dia bahkan gagal di langkah pertama.
+Tinggal satu batu sandungan, dan letaknya di browser: React perlu mengirim **POST dengan JSON body** (`{"query": "...", "category": "..."}`) untuk memulai stream, sementara API SSE bawaan browser, [`EventSource`](../../../docs/mentor/resources/glossary-rag-id.md#eventsource), **cuma bisa GET** — tidak bisa kirim body, tidak bisa custom header. Dia bahkan gagal di langkah pertama.
 
-**[`@microsoft/fetch-event-source`](../../resources/learning/glossary-rag-id.md#fetch-event-source) — bungkus `fetch()`, bukan `EventSource`.** Mendukung POST body, custom header, dan `AbortController` untuk membatalkan — sambil mempertahankan semantik auto-reconnect SSE. → *Ini yang dipakai chapter ini* (di `chatApi.ts`).
+**[`@microsoft/fetch-event-source`](../../../docs/mentor/resources/glossary-rag-id.md#fetch-event-source) — bungkus `fetch()`, bukan `EventSource`.** Mendukung POST body, custom header, dan `AbortController` untuk membatalkan — sambil mempertahankan semantik auto-reconnect SSE. → *Ini yang dipakai chapter ini* (di `chatApi.ts`).
 
 > **Teaser, tidak diajarkan di sini:** WebSockets untuk kanal full bidirectional — chat room, multiplayer, collaborative editing. Bukan kebutuhan chapter ini.
 
@@ -94,11 +94,11 @@ Tinggal satu batu sandungan, dan letaknya di browser: React perlu mengirim **POS
 
 Cocok untuk `/ask`, buntu untuk streaming: endpoint SSE butuh `yield` token berulang kali *selagi* generation masih berjalan, dan fungsi yang `return` sekali di akhir tidak punya apa-apa untuk disuapkan ke generator SSE — mustahil men-stream token yang belum ada.
 
-**[Async generator](../../resources/learning/glossary-rag-id.md#async-generator) — `yield` tiap potongan.** `async def stream_generate(...)` dengan `yield` alih-alih `return`: tiap `yield text` menyerahkan satu potongan ke siapa pun yang iterasi dengan `async for`, sebelum fungsi lanjut ke potongan berikutnya. Type-nya `AsyncGenerator[str, None]` — teks keluar, tidak ada yang dikirim masuk.
+**[Async generator](../../../docs/mentor/resources/glossary-rag-id.md#async-generator) — `yield` tiap potongan.** `async def stream_generate(...)` dengan `yield` alih-alih `return`: tiap `yield text` menyerahkan satu potongan ke siapa pun yang iterasi dengan `async for`, sebelum fungsi lanjut ke potongan berikutnya. Type-nya `AsyncGenerator[str, None]` — teks keluar, tidak ada yang dikirim masuk.
 
-Ada jebakan halus di sini: kalau panggilan SDK di dalamnya ternyata **sinkron dan [blocking](../../resources/learning/glossary-rag-id.md#blocking-call)** (misalnya `client.generate_content(...)` biasa yang baru return setelah jawaban lengkap), dia membekukan **seluruh [event loop](../../resources/learning/glossary-rag-id.md#event-loop)** selama itu — health check, search user lain, stream user lain, semua macet sampai dia selesai. Membungkus panggilan blocking dalam `async def` **tidak** membuatnya non-blocking. (Persis jebakan yang sama dengan FlashRank di PF-AI004.)
+Ada jebakan halus di sini: kalau panggilan SDK di dalamnya ternyata **sinkron dan [blocking](../../../docs/mentor/resources/glossary-rag-id.md#blocking-call)** (misalnya `client.generate_content(...)` biasa yang baru return setelah jawaban lengkap), dia membekukan **seluruh [event loop](../../../docs/mentor/resources/glossary-rag-id.md#event-loop)** selama itu — health check, search user lain, stream user lain, semua macet sampai dia selesai. Membungkus panggilan blocking dalam `async def` **tidak** membuatnya non-blocking. (Persis jebakan yang sama dengan FlashRank di PF-AI004.)
 
-**Entry point streaming async asli SDK-nya.** Anthropic: `client.messages.stream()` (async context manager, iterasi via `.text_stream`). Gemini: `client.aio.models.generate_content_stream()` (coroutine yang *resolve ke* iterator — makanya butuh `await` sebelum `async for`, beda dengan Anthropic). Event loop tetap bebas selagi token mengalir. Kalau versi SDK terpasang belum punya async streaming, fallback terakhirnya [`asyncio.to_thread(...)`](../../resources/learning/glossary-rag-id.md#asyncio-to-thread) — kehilangan streaming inkremental (semua teks tetap datang sekaligus), tapi setidaknya tidak menyandera request lain. → *Ini yang dipakai chapter ini.*
+**Entry point streaming async asli SDK-nya.** Anthropic: `client.messages.stream()` (async context manager, iterasi via `.text_stream`). Gemini: `client.aio.models.generate_content_stream()` (coroutine yang *resolve ke* iterator — makanya butuh `await` sebelum `async for`, beda dengan Anthropic). Event loop tetap bebas selagi token mengalir. Kalau versi SDK terpasang belum punya async streaming, fallback terakhirnya [`asyncio.to_thread(...)`](../../../docs/mentor/resources/glossary-rag-id.md#asyncio-to-thread) — kehilangan streaming inkremental (semua teks tetap datang sekaligus), tapi setidaknya tidak menyandera request lain. → *Ini yang dipakai chapter ini.*
 
 ▶ **Tonton/baca untuk konsep ini:** https://docs.anthropic.com/en/api/messages-streaming
 
@@ -108,9 +108,9 @@ Ada jebakan halus di sini: kalau panggilan SDK di dalamnya ternyata **sinkron da
 
 Cukup untuk satu tab — begitu buka tab kedua, langsung retak: data berubah *di server*, dan tidak ada yang memberi tahu client. Tab kedua basi. Device lain basi. Dan pipeline async PF-S11 nanti (202 Accepted → webhook → hasil masuk beberapa menit kemudian) selesai sepenuhnya di luar jalur — tidak ada cara memberi tahu UI sama sekali. Perbaikan naifnya polling: request tiap 2 detik selamanya, hampir semua sia-sia.
 
-**[Supabase Realtime](../../resources/learning/glossary-rag-id.md#supabase-realtime) — server yang dorong duluan.** Buka satu subscription di tabel `transactions`, biarkan Postgres mendorong tiap baris yang di-commit — event [`postgres_changes`](../../resources/learning/glossary-rag-id.md#postgres-changes) INSERT sampai dalam ~50ms, tanpa loop polling sama sekali.
+**[Supabase Realtime](../../../docs/mentor/resources/glossary-rag-id.md#supabase-realtime) — server yang dorong duluan.** Buka satu subscription di tabel `transactions`, biarkan Postgres mendorong tiap baris yang di-commit — event [`postgres_changes`](../../../docs/mentor/resources/glossary-rag-id.md#postgres-changes) INSERT sampai dalam ~50ms, tanpa loop polling sama sekali.
 
-Mulus di papan tulis, buntu di praktik: subscribe pakai anon key dan... tidak ada yang datang. Tanpa error, tanpa exception — channel lapor SUBSCRIBED, tapi nol event. Ada **dua filter diam-diam yang independen**: (1) tabelnya tidak ada di [publication](../../resources/learning/glossary-rag-id.md#publication) `supabase_realtime` — Postgres tidak pernah menyiarkan perubahannya; (2) [RLS (Row Level Security)](../../resources/learning/glossary-rag-id.md#rls) diam-diam membuang baris yang tidak boleh di-`SELECT` oleh role yang subscribe. Dua-duanya tak terlihat kecuali kamu sudah tahu harus curiga ke sana.
+Mulus di papan tulis, buntu di praktik: subscribe pakai anon key dan... tidak ada yang datang. Tanpa error, tanpa exception — channel lapor SUBSCRIBED, tapi nol event. Ada **dua filter diam-diam yang independen**: (1) tabelnya tidak ada di [publication](../../../docs/mentor/resources/glossary-rag-id.md#publication) `supabase_realtime` — Postgres tidak pernah menyiarkan perubahannya; (2) [RLS (Row Level Security)](../../../docs/mentor/resources/glossary-rag-id.md#rls) diam-diam membuang baris yang tidak boleh di-`SELECT` oleh role yang subscribe. Dua-duanya tak terlihat kecuali kamu sudah tahu harus curiga ke sana.
 
 **Publication + RLS dua-duanya dibuka.** Sebuah migration menambahkan `public.transactions` ke publication `supabase_realtime` (belum ada tabel apa pun di dalamnya hari ini), dan policy permisif `allow_all_transactions USING (true)` yang sudah ada membuat anon key menerima semua event secara lokal. Di production (PF-S08) policy itu menyempit ke pemilik yang terautentikasi — dan subscription diam-diam berhenti menerima baris user lain, yang justru *persis* perilaku yang diinginkan. → *Ini yang dipakai chapter ini.*
 
@@ -138,7 +138,7 @@ Sekarang baru kodenya. File yang dibuat/diubah:
 
 Kode lengkap, test, dan C# equivalent ada di STEP 1–9 file plan asli — di sini cuma potongan yang paling menanggung beban, dengan komentar bahasa biasa.
 
-**Provider streaming (Anthropic)** — inti polanya: async context manager + `yield` per potongan, lalu ambil usage setelah stream selesai untuk [Langfuse](../../resources/learning/glossary-rag-id.md#langfuse):
+**Provider streaming (Anthropic)** — inti polanya: async context manager + `yield` per potongan, lalu ambil usage setelah stream selesai untuk [Langfuse](../../../docs/mentor/resources/glossary-rag-id.md#langfuse):
 
 ```python
 async with self._client.messages.stream(
@@ -210,7 +210,7 @@ supabase.channel("transactions-inserts")
   .subscribe();
 ```
 
-Di `TransactionsTab.tsx`, callback-nya di-[debounce](../../resources/learning/glossary-rag-id.md#debounce) 1 detik: satu commit statement bisa insert puluhan baris sekaligus — refetch per event akan menghajar API puluhan kali; debounce menggabungkannya jadi satu toast + satu invalidation.
+Di `TransactionsTab.tsx`, callback-nya di-[debounce](../../../docs/mentor/resources/glossary-rag-id.md#debounce) 1 detik: satu commit statement bisa insert puluhan baris sekaligus — refetch per event akan menghajar API puluhan kali; debounce menggabungkannya jadi satu toast + satu invalidation.
 
 ---
 
@@ -224,7 +224,7 @@ Keputusan tuning yang diambil, masing-masing dengan alasan konkretnya:
 4. **Retrieval kosong → langsung `done`, LLM tidak dipanggil.** Sama seperti PF-AI004: tidak ada halusinasi, `confident: false` jujur ke user, biaya LLM Rp 0.
 5. **Debounce 1 detik untuk Realtime.** Satu commit = puluhan INSERT event. Tanpa debounce, puluhan refetch; dengan debounce, satu.
 6. **React langsung ke AI service untuk SSE, tidak lewat proxy .NET.** Mem-proxy streaming lewat ASP.NET Core butuh lapisan forward async ekstra, dan auth belum ada. Keputusan ber-scope — ditinjau ulang saat PF-S08 (auth).
-7. **TTFT adalah metrik yang di-record** (STEP 11): dari ~3s ([blocking](../../resources/learning/glossary-rag-id.md#blocking-call) `/ask`) ke ~150ms. Total durasi kerja tidak berubah — yang dibeli streaming adalah *perceived latency*.
+7. **TTFT adalah metrik yang di-record** (STEP 11): dari ~3s ([blocking](../../../docs/mentor/resources/glossary-rag-id.md#blocking-call) `/ask`) ke ~150ms. Total durasi kerja tidak berubah — yang dibeli streaming adalah *perceived latency*.
 
 ---
 

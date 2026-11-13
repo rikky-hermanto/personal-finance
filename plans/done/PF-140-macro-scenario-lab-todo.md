@@ -8,7 +8,7 @@
 
 ## Objective
 
-Port the domain logic from the throwaway reference artifact `docs/reference/simulator-makro-v3.jsx` (an
+Port the domain logic from the throwaway reference artifact `docs/references/simulator-makro-v3.jsx` (an
 Indonesian macro-economy scenario simulator) into a new **Macro Scenario Lab** feature, rebuilt on this
 app's own design system and — critically — personalized against the user's real portfolio, spending
 history, and liabilities instead of the reference's generic assumptions. The reference file's visual
@@ -31,7 +31,7 @@ is preserved, coefficient-for-coefficient.
 - [x] Computed outputs (inflation, growth, unemployment, FX) are visually distinct from adjustable inputs — verified by `DerivedOutcomePanel`'s "computed — not directly adjustable" label and left-accent-border card styling, separate from the slider console.
 - [x] Unit tests cover: golden snapshots for BASE + all 7 historical presets, convergence/NaN sweep across every slider's min/max, the required sign tests (oil×subsidy dual path, IDR weakness dual effect, informal-share Okun dampening, global real rate on gold+crypto), and personalization edge cases (empty portfolio, single-asset portfolio, out-of-taxonomy asset class) — verified by `npm run test:macro`: 26/26 passing.
 - [x] A clear disclaimer states this is a heuristic educational index, not an economic projection or investment advice — verified by `MacroLabDisclaimer.tsx`, rendered at the bottom of `MacroLabPage`.
-- [x] The reference file is moved out of the active tree — verified by `git mv docs/ideas/simulator-makro-v3.jsx docs/reference/simulator-makro-v3.jsx`.
+- [x] The reference file is moved out of the active tree — verified by `git mv docs/ideas/simulator-makro-v3.jsx docs/references/simulator-makro-v3.jsx`.
 - [x] Full-stack verification: `dotnet build` (0 errors), `dotnet test` (349 passed / 9 pre-existing skips / 0 failed), `tsc --noEmit` (0 errors), `npm run lint` (0 errors in new files — all 28 pre-existing findings are in files this task never touched), `npm run build` (succeeds), `npm run test:macro` (26/26).
 
 ## Approach
@@ -65,7 +65,7 @@ payment deltas (a simple-interest-on-principal approximation is used instead, la
 
 | File | Change |
 |------|--------|
-| `docs/reference/simulator-makro-v3.jsx` | Moved from `docs/ideas/` — read-only spec, no longer an active component |
+| `docs/references/simulator-makro-v3.jsx` | Moved from `docs/ideas/` — read-only spec, no longer an active component |
 | `apps/frontend/src/lib/macroScenario/constants.ts` | Create — every model coefficient, named and commented |
 | `apps/frontend/src/lib/macroScenario/types.ts` | Create — `MacroDrivers`, `MacroState`, `InstrumentView`, `StakeholderRow`, etc. |
 | `apps/frontend/src/lib/macroScenario/solver.ts` | Create — 4-round iterative FX/inflation solve + household/bank/corp/gov derived state |
@@ -313,7 +313,7 @@ Trading-Desk-tab-points-to-external-top-level-route precedent).
 ---
 
 ### [x] STEP 17 — Move the reference file
-`git mv docs/ideas/simulator-makro-v3.jsx docs/reference/simulator-makro-v3.jsx`.
+`git mv docs/ideas/simulator-makro-v3.jsx docs/references/simulator-makro-v3.jsx`.
 
 > **Why:** Explicit hard constraint #3 — the reference is a read-only spec, not a component to leave live
 > in the tree once the port is complete.

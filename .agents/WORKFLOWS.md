@@ -13,7 +13,7 @@ These conventions apply to every skill in `.agents/skills/`.
   BOARD.md and learning material/glossary, and archive completed feature plans.
 - Resolve a user-supplied path first, then search the status folders in `plans/`.
   New plans start in `plans/backlog/`; learning plans use `<status>/learning/`.
-  Shared learning assets live in `plans/resources/learning/`. Edit existing plans
+  Shared learning assets live in `docs/mentor/resources/`. Edit existing plans
   directly; do not create a second Codex plan tree, working copy, or board.
   Preserve plan history and move learning companions with their canonical plan.
 - Re-read plans and board immediately before writing. Use narrow patches, preserve

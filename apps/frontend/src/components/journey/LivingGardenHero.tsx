@@ -5,16 +5,11 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import type { JourneyState } from '@/types/Journey';
 import { TIER_META } from '@/types/Journey';
+import { PixelPlant } from '@/components/journey/PixelPlant';
+import { stageFromScore, toGardenLevel } from '@/lib/journey/gardenSprite';
 
 const PEAK_KEY = 'pf-journey-peak-stages';
 const LEVEL_KEYS = ['L1', 'L2', 'L3', 'L4', 'L5'] as const;
-
-// 4 growth stages — user-specified progression
-const PLANT_STAGES: [string, string, string, string] = ['🌱', '🌿', '🌳', '🌳🍎'];
-
-function stageFromScore(score: number): 0 | 1 | 2 | 3 {
-  return Math.min(3, Math.floor(score / 25)) as 0 | 1 | 2 | 3;
-}
 
 function loadPeaks(): Record<string, 0 | 1 | 2 | 3> {
   try {
@@ -44,7 +39,6 @@ export const LivingGardenHero = ({ state, topQuest }: Props) => {
   });
 
   const meta = TIER_META[currentKey];
-  const emoji = PLANT_STAGES[effectiveStage];
 
   return (
     <div
@@ -85,7 +79,7 @@ export const LivingGardenHero = ({ state, topQuest }: Props) => {
         })}
       </div>
 
-      {/* Big plant emoji — single, animated on stage change */}
+      {/* Pixel plant — single, animated on stage change */}
       <AnimatePresence mode="wait">
         <motion.div
           key={`${currentKey}-${effectiveStage}`}
@@ -95,15 +89,12 @@ export const LivingGardenHero = ({ state, topQuest }: Props) => {
           transition={{ duration: 0.45, ease: 'easeOut' }}
           className="flex justify-center"
         >
-          <span
-            data-testid={`plant-${currentKey.toLowerCase()}`}
-            data-stage={effectiveStage}
-            role="img"
-            aria-label={`${meta.label}, stage ${effectiveStage} of 3`}
-            style={{ fontSize: '88px', lineHeight: 1, userSelect: 'none' }}
-          >
-            {emoji}
-          </span>
+          <PixelPlant
+            levelKey={currentKey}
+            level={toGardenLevel(state.currentLevel)}
+            label={meta.label}
+            stage={effectiveStage}
+          />
         </motion.div>
       </AnimatePresence>
 

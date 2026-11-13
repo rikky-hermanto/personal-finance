@@ -1,5 +1,5 @@
 // Macro Scenario Lab — instrument pricing. Framework-free, deterministic.
-// Ported from docs/reference/simulator-makro-v3.jsx computeModel() (instrument block, lines 92-134).
+// Ported from docs/references/simulator-makro-v3.jsx computeModel() (instrument block, lines 92-134).
 
 import type { MacroDrivers, MacroState, InstrumentView, PortfolioAggregate } from './types';
 import { clamp } from './solver';

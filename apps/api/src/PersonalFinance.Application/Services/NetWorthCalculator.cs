@@ -4,7 +4,7 @@ using PersonalFinance.Domain.Entities;
 namespace PersonalFinance.Application.Services;
 
 /// <summary>
-/// Net worth = Σ assets − Σ liabilities (docs/reference/finance-domain/formulas.md, "Net worth").
+/// Net worth = Σ assets − Σ liabilities (docs/references/finance-domain/formulas.md, "Net worth").
 /// Assets are active accounts, valued assets and valued holdings, each at its latest valuation.
 /// The current figure and every history point go through the same method, so they agree.
 /// </summary>

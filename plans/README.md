@@ -13,6 +13,8 @@ The first folder below `plans/` is the **local status** of a task:
 
 `Ready` and `Blocked` are board/plan flags, not folders. Loop flags: `PO-Review NOT PASSED` (frontmatter `review: not-passed`) and a `rework` counter. A task moves only when its actual status changes. Keep related translations and walkthroughs beside their canonical plan under `<status>/learning/`. Shared diagrams, glossary, evidence, and historical reviews live in `resources/` and do not have a task status.
 
+Only tickets live in `plans/`. Designs, brainstorms, learning resources and dated records live under `docs/` (see `docs/INDEX.md`); a plan links to them.
+
 `BOARD.md` remains the local index. GitHub Project #4 is the source of truth for GitHub-linked issues; a local folder move does not change a remote issue. For local-only tasks, keep the folder, plan status, and board row aligned. When moving a plan, update its links and the board in the same task. Preserve completed and cancelled history.
 
 ## Board format (visual overview)

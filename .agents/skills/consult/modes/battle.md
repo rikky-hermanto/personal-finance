@@ -21,4 +21,4 @@ For each proposal state score, strengths, and blind spots. Give a concrete A/B/H
 verdict, decisive evidence, what the other proposal gets right, assumptions that could
 change the decision, and first implementable step. Do not fabricate precision or
 force a winner when essential evidence is absent. Save a requested verdict to
-plans/resources/reviews/<subject>-verdict.md. Do not edit either source proposal by default.
+docs/records/battle-plans/<subject>-verdict.md. Do not edit either source proposal by default.

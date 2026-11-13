@@ -19,7 +19,7 @@ Statement text is sent to Gemini for extraction, and Langfuse cloud stores full 
 
 ## Acceptance Criteria
 
-- [ ] `docs/reference/accepted-risks.md` has two rows: (1) Gemini data use — records the date the owner confirmed the key's billing tier (a plain statement from the owner; the executor must ask the owner and never guess) and the source they used; (2) Langfuse stores full prompts — decision "accepted, no masking", date `2026-10-22`, reason "owner decision under E-001", plus a note that real statement text, descriptions and amounts are in those prompts.
+- [ ] `docs/references/accepted-risks.md` has two rows: (1) Gemini data use — records the date the owner confirmed the key's billing tier (a plain statement from the owner; the executor must ask the owner and never guess) and the source they used; (2) Langfuse stores full prompts — decision "accepted, no masking", date `2026-10-22`, reason "owner decision under E-001", plus a note that real statement text, descriptions and amounts are in those prompts.
 - [ ] `docs/architecture/` (or `services/ai-service/README`/`docs/SETUP.md`, wherever the Langfuse variables are documented) lists exactly what leaves the machine: statement text to Gemini and Anthropic (alternate provider), full prompts and responses to Langfuse cloud, and which environment variables control each.
 - [ ] Langfuse tracing can be turned off by setting its keys empty or a single flag (for example `LANGFUSE_ENABLED=false`), with no code change at call sites. If this already exists, document it and add a test; if not, add the flag in the AI service's config and make `GeminiProvider` and `AnthropicProvider` skip tracing when it is off.
 - [ ] A pytest test shows that with tracing disabled no Langfuse client is created or called (LLM calls mocked).
@@ -33,7 +33,7 @@ This is mostly a record-keeping ticket. The one code change is a kill switch for
 
 | File | Change |
 |------|--------|
-| `docs/reference/accepted-risks.md` | Edit — two rows (created in PF-143) |
+| `docs/references/accepted-risks.md` | Edit — two rows (created in PF-143) |
 | `docs/SETUP.md` or `docs/architecture/architecture-diagram.md` | Edit — "what leaves the machine" table with the controlling variables |
 | `services/ai-service/app/config.py` | Edit — tracing flag, if one does not exist |
 | `services/ai-service/app/providers/gemini.py`, `anthropic.py` | Edit — honour the flag |
@@ -65,7 +65,7 @@ Add a pytest test with mocked providers that sets the flag false and asserts the
 > **Why:** `.claude/rules/ai-service.md` requires mocked LLM calls and explicit path tests.
 
 ### [ ] STEP 5 — Write the records
-Add the two rows to `docs/reference/accepted-risks.md` and the "what leaves the machine" table to the docs. Keep to the facts: provider, data, variable, decision, date. Do not commit.
+Add the two rows to `docs/references/accepted-risks.md` and the "what leaves the machine" table to the docs. Keep to the facts: provider, data, variable, decision, date. Do not commit.
 
 > **Why:** The epic's done-condition is that every remaining item is accepted in writing; this is that writing.
 

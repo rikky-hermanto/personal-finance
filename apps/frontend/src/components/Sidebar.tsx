@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Mountain, Settings, Menu, X, PiggyBank, Sun, Moon, Landmark, Bot, TrendingUp, LogOut,
   Wallet, Receipt, Shield, Target, Flame, Coins, ScrollText, FileText, Briefcase, HeartPulse,
+  CreditCard, ShoppingBag,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useFocusMode } from '@/lib/focus-mode';
@@ -33,13 +34,14 @@ const navSections = [
     items: [
       { id: 'emergency-fund', label: 'Emergency Fund', icon: Shield,     path: '/emergency-fund', matchPrefix: '/emergency-fund', live: false },
       { id: 'insurance',      label: 'Insurance',      icon: HeartPulse, path: '/insurance',      matchPrefix: '/insurance',      live: false },
+      { id: 'debt',           label: 'Debt',           icon: CreditCard, path: '/debt',           matchPrefix: '/debt',           live: false },
     ],
   },
   {
     level: 'L3', label: 'Growth', color: 'rgb(56 142 60)',
     items: [
       { id: 'investment', label: 'Investments',   icon: TrendingUp, path: '/investment', matchPrefix: '/investment', live: true  },
-      { id: 'goals',      label: 'Savings Goals', icon: Target,     path: '/goals',      matchPrefix: '/goals',      live: false },
+      { id: 'big-purchases', label: 'Big Purchases', icon: ShoppingBag, path: '/big-purchases', matchPrefix: '/big-purchases', live: false },
     ],
   },
   {
@@ -169,6 +171,28 @@ const Sidebar = () => {
             <span className="flex-1 text-xs font-medium tracking-wide">Net Worth</span>
           </button>
         )}
+      </div>
+
+      {/* Goals — cross-cutting, every goal is tagged with a pyramid tier (not live yet) */}
+      <div className={cn('px-3 pb-1', collapsed && 'flex justify-center')}>
+        <button
+          disabled
+          title={collapsed ? 'Goals' : undefined}
+          className={cn(
+            'w-full flex items-center text-left rounded-lg opacity-45 cursor-default text-sidebar-foreground',
+            collapsed ? 'justify-center px-2 py-2' : 'justify-start px-3 py-2 gap-2'
+          )}
+        >
+          <Target className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-xs font-medium tracking-wide">Goals</span>
+              <span className="text-[9px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded bg-foreground/6 text-foreground/40">
+                soon
+              </span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* Navigation — pyramid tiers */}

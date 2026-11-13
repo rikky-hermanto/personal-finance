@@ -75,9 +75,20 @@ docs/mentor/
   ai-engineer-learning-tips.md   ← daily loop, retrieval/interleaving protocol, anti-patterns
   ai-engineer-learning-tips-id.md← Indonesian translation of the tips doc
   ai-engineering-usecase-map.md  ← AI engineering use-case map
-  what-ai-engineering-build/
-    prompt-engineering.md              ← topic doc: prompt iteration, testing, versioning
-    model-serving-inference-pipelines.md ← topic doc: model serving, inference pipelines
+  cert-path-*.md                 ← certification paths
+  topics/                        ← topic docs (numbered in reading order: each builds on the ones before it)
+    01-llm-fundamentals.md             ← tokens, attention, KV cache, sampling, context window
+    02-llm-api-structured-output.md    ← API request/response, tool_use, JSON mode
+    03-prompt-engineering.md           ← prompt iteration, testing, versioning
+    04-context-engineering-prompt-caching.md ← what enters the context window, prompt caching
+    05-rag-knowledge-retrieval.md      ← RAG: retrieval, re-ranking, grounded answers
+    06-ai-agents-and-agentic-workflows.md ← tool-calling agents, orchestration
+    07-model-serving-inference-pipelines.md ← model serving, inference pipelines
+    08-fine-tuned-llms.md              ← when to fine-tune vs prompt vs RAG
+    advanced-rag-notes.md              ← PF-AI006 measured results
+  resources/                     ← shared glossary, interactive diagrams, run evidence (was plans/resources/learning)
+  quizzes/                       ← one HTML quiz per chapter, plus the Anki deck
+  images/                        ← reference pictures
 
 .agents/skills/mentor/
   SKILL.md          ← skill brain (modes, rules, prompts)
@@ -88,10 +99,30 @@ docs/mentor/
   README.md         ← short pointer to this file
 
 plans/<status>/learning/
-  PF-AI00x-*.md     ← detailed per-chapter learning plans (with Knowledge Check quizzes)
-plans/resources/learning/
-  glossary, diagrams and evidence
+  PF-AI00x-*.md     ← the learning plans (tickets) and their "-id" versi belajar, side by side
 ```
+
+**Where each kind of file lives.** The plan is a ticket, so it moves between `plans/<status>/learning/` as its status changes. The Indonesian `-id` version stays in the same folder as the plan it translates and moves with it. Everything that outlives the ticket (glossary, diagrams, evidence, quizzes, topic docs) lives here in `docs/mentor/`.
+
+## Chapter map
+
+One row per learning plan. When a plan changes status folder, update its row here.
+
+| Plan | Plan + versi belajar (`-id`) | Quiz | Diagram / topic doc |
+|---|---|---|---|
+| PF-AI001 AI observability | [plan](../../plans/done/learning/PF-AI001-ai-observability.md) | [quiz](quizzes/pf-ai001-ai-observability.html) | |
+| PF-AI002 LLM evaluation | [plan](../../plans/done/learning/PF-AI002-llm-evaluation-framework.md) · [id](../../plans/done/learning/PF-AI002-llm-evaluation-framework-id.md) | [quiz](quizzes/pf-ai002-llm-evaluation-framework.html) | |
+| PF-AI003 RAG embeddings + retrieval | [plan](../../plans/done/learning/PF-AI003-rag-embeddings-retrieval.md) · [003b toggle](../../plans/done/learning/PF-AI003b-embedding-provider-toggle.md) | [quiz](quizzes/pf-ai003-rag-embeddings-retrieval.html) | [topic 05](topics/05-rag-knowledge-retrieval.md) |
+| PF-AI004 RAG re-ranking + generation | [plan](../../plans/done/learning/PF-AI004-rag-reranking-generation.md) · [id](../../plans/done/learning/PF-AI004-rag-reranking-generation-id.md) | [quiz](quizzes/pf-ai004-rag-reranking-generation.html) | [glossary](resources/glossary-rag-id.md) |
+| PF-AI005 Streaming (SSE) | [plan](../../plans/done/learning/PF-AI005-streaming-sse-todo.md) · [id](../../plans/done/learning/PF-AI005-streaming-sse-todo-id.md) · [chat flow id](../../plans/done/learning/PF-AI005-chat-flow-diagram-id.md) | [quiz](quizzes/pf-ai005-streaming-sse.html) | |
+| PF-AI005 Part 2 answer accuracy | [plan](../../plans/in-progress/learning/PF-AI005-PART2-answer-accuracy-todo.md) | [quiz](quizzes/pf-ai005-part2-answer-accuracy.html) | |
+| PF-AI006 Advanced RAG patterns | [plan](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) · [id](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo-id.md) · [id v2](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo-id-v2.md) | [quiz](quizzes/pf-ai006-advanced-rag-patterns.html) | [diagram](resources/diagram-pf-ai006-rag-patterns.html) · [notes](topics/advanced-rag-notes.md) |
+| PF-AI007 Tool-calling agents | [plan](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) · [id](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo-id.md) | [quiz](quizzes/pf-ai007-tool-calling-agents-smolagents.html) | [diagram](resources/diagram-pf-ai007-agent-loop.html) · [topic 06](topics/06-ai-agents-and-agentic-workflows.md) |
+| PF-AI008 LangGraph advisor | [plan](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md) · [id](../../plans/done/learning/PF-AI008-langgraph-financial-advisor-id.md) | [quiz](quizzes/pf-ai008-langgraph-financial-advisor.html) | [diagram](resources/PF-AI008-langgraph-advisor-diagram.html) · [evidence](resources/evidence/) |
+| PF-AI009 MCP server | [plan](../../plans/done/learning/PF-AI009-mcp-personal-finance-server-todo.md) · [id](../../plans/done/learning/PF-AI009-mcp-personal-finance-server-todo-id.md) | [quiz](quizzes/pf-ai009-mcp-personal-finance-server.html) | |
+| PF-AI010 Categorization eval harness | [plan](../../plans/done/learning/PF-AI010-categorization-eval-harness-todo.md) | | |
+| PF-AI011 AI security + governance | [plan](../../plans/done/learning/PF-AI011-ai-security-governance-todo.md) | [quiz](quizzes/pf-ai011-ai-security-governance.html) | [threat model](../operations/ai-threat-model.md) |
+| PF-AI012 Deployment + LLMOps | [plan](../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) | [quiz](quizzes/pf-ai012-deployment-llmops.html) | |
 
 ---
 

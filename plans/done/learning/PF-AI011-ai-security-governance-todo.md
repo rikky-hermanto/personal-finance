@@ -220,7 +220,7 @@ Produce the threat-model write-up as the portfolio artifact.
 ## ✅ Acceptance Criteria
 
 - [x] 12-case injection fixture set exists ([injection_cases.json](../../../services/ai-service/evals/security/injection_cases.json)), plus a 4-case hold-out set ([injection_holdout.json](../../../services/ai-service/evals/security/injection_holdout.json)) written before any scanner pattern exists; the baseline run against the unprotected system is recorded in the threat model doc
-  > Verification note: baseline run (gemini-3.5-flash-lite, 16 cases, no quota error) recorded in docs/security/ai-threat-model.md: 4/16 by regex, 2/16 by hand review.
+  > Verification note: baseline run (gemini-3.5-flash-lite, 16 cases, no quota error) recorded in docs/operations/ai-threat-model.md: 4/16 by regex, 2/16 by hand review.
 - [x] The baseline and after runs for context cases use the stubbed-retriever harness (STEP 1) and write no rows to the database
   > Verification note: stub retriever, reranker and aggregator; nothing read from or written to Supabase.
 - [x] `_format_context` (used by `/ask`, `/ask/stream` and the aggregate narration) and the follow-up prompt wrap every description in `<data>…</data>`, strip forged markers case-insensitively, and the system prompts carry the "data, never instructions" clause
@@ -241,7 +241,7 @@ Produce the threat-model write-up as the portfolio artifact.
   > Not met: `gitleaks detect` could not run locally (binary not installed). Untracked/placeholder checks pass; confirm gitleaks in CI.
 - [x] `eval_injection.py` reports the scanner's block rate on direct attacks at ≥ 80% on the fixture set, reports the hold-out block rate separately (no target), and 0% false positives on 20 benign Indonesian queries
   > Verification note: fixtures 7/8 (88%), hold-out 0/4 (0%), benign 0/20.
-- [x] [ai-threat-model.md](../../../docs/security/ai-threat-model.md) documents each threat → control → before/after numbers, and the residual egress paths listed in Notes
+- [x] [ai-threat-model.md](../../../docs/operations/ai-threat-model.md) documents each threat → control → before/after numbers, and the residual egress paths listed in Notes
 
 ## 🧭 Approach
 
@@ -278,7 +278,7 @@ publicly.
 | [chatApi.ts](../../../apps/frontend/src/api/chatApi.ts) | Edit — `onopen`: read a 400 `input_flagged` body and report it as a typed error; pass `output_flagged` through |
 | [useChatSession.ts](../../../apps/frontend/src/hooks/useChatSession.ts) | Edit — on `input_flagged` / `output_flagged`, replace the message content with a refusal (do not keep streamed text) |
 | [ai-service.md](../../../.claude/rules/ai-service.md) | Edit — add the `400 · input_flagged` row and the `output_flagged` stream error to the error contract table |
-| [ai-threat-model.md](../../../docs/security/ai-threat-model.md) | Create — threat → control → numbers write-up |
+| [ai-threat-model.md](../../../docs/operations/ai-threat-model.md) | Create — threat → control → numbers write-up |
 
 ## 📋 TODO
 
@@ -330,7 +330,7 @@ case's `description` as one `SearchResult` next to two ordinary rows. Direct cas
 ordinary rows only. Nothing is written to Supabase, so no poisoned row ever lands in the owner's
 real transactions, and no embedding is needed for the row to be "retrieved". Record per case:
 did the attack change the answer? Save the tally into a skeleton
-[ai-threat-model.md](../../../docs/security/ai-threat-model.md).
+[ai-threat-model.md](../../../docs/operations/ai-threat-model.md).
 
 **Quota:** each case costs two LLM calls (planner + answer), so one full run is about 24 calls.
 That is more than the free `gemini-2.5-flash` quota of 20 requests a day. Give the harness its
@@ -489,7 +489,7 @@ Create [pii_masker.py](../../../services/ai-service/app/services/pii_masker.py):
 Scope: unambiguous identifiers only (NIK, phone, account numbers, email).
 Person/merchant names deliberately NOT masked — indistinguishable without NER,
 and a wrong mask destroys categorization signal. Residual risk documented in
-docs/security/ai-threat-model.md.
+docs/operations/ai-threat-model.md.
 """
 import re
 
@@ -762,7 +762,7 @@ context cases.
 
 ### [x] STEP 9 — Finish the threat-model doc (the "prove it" artifact)
 
-Complete [ai-threat-model.md](../../../docs/security/ai-threat-model.md) with this structure:
+Complete [ai-threat-model.md](../../../docs/operations/ai-threat-model.md) with this structure:
 
 ```markdown
 # AI Service Threat Model — PF-AI011

@@ -4,7 +4,7 @@ namespace PersonalFinance.Application.Quests;
 
 public static class StarRungs
 {
-    // Source: docs/ideas/scoring-rubric.md. 70 is the level-graduation bar ("cleared"); 50 and 100
+    // Source: docs/references/finance-domain/scoring-rubric.md. 70 is the level-graduation bar ("cleared"); 50 and 100
     // are the rubric's mid and full breakpoint scores. Stars are recognition, not points.
     public static readonly IReadOnlyList<decimal> Scores = [50m, 70m, 100m];
 

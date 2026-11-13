@@ -160,7 +160,7 @@ var NODES = [
   { id: "scoring", title: "Journey scoring", sub: "Financial Pyramid engine", icon: "pyramid", color: "#512BD4", status: "live", x: 620, y: 440,
     tags: ["JourneyScoringService", "MediatR events", "QuestEngine"], chips: ["L1 Foundations → L5 Legacy", "quests", "stars", "achievements"],
     desc: "The product's core. Reads transactions, assets and investments and scores pyramid indicators per tier. Domain events (TransactionsSubmittedEvent after an upload, AssetUpdatedEvent after account, valuation, liability and asset writes) trigger recalculation in-process, and the deterministic quest engine evaluates in the same pass. Four data-derived indicators today: spending/income, liquid savings coverage, DTI, savings rate; the rest render as unavailable.",
-    files: ["apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs", "docs/ideas/scoring-rubric.md"] },
+    files: ["apps/api/src/PersonalFinance.Application/Services/JourneyScoringService.cs", "docs/references/finance-domain/scoring-rubric.md"] },
   { id: "ai", title: "AI service", sub: "FastAPI :8000", icon: "fastapi", color: "#009688", status: "live", x: 920, y: 330,
     tags: ["Python 3.12", "FastAPI", "PyMuPDF", "LangGraph", "FlashRank"], chips: ["/parse-pdf · /parse-image", "/ask/stream (RAG)", "/portfolio-review", "/advisor"],
     desc: "LLM work behind a provider factory. Structured extraction (Gemini JSON mode / Anthropic tool_use, temperature 0), categorization, portfolio review, embeddings and RAG Q&A (planner: SQL SUM/COUNT for aggregates, vector + local rerank for lookups). The LangGraph /advisor calls four .NET endpoints back as tools.",

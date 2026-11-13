@@ -17,22 +17,20 @@ test.describe('Journey Page', () => {
     await expect(page.locator('[data-testid="garden-hero"]')).toBeVisible();
   });
 
-  test('Living Garden hero renders all 5 plants', async ({ page }) => {
+  test('Living Garden hero renders the current level plant as a sprite', async ({ page }) => {
     await page.goto('/journey');
-    for (const level of ['l1', 'l2', 'l3', 'l4', 'l5']) {
-      const plant = page.locator(`[data-testid="plant-${level}"]`);
-      await expect(plant).toBeVisible();
-      const stage = await plant.getAttribute('data-stage');
-      expect(['0', '1', '2', '3']).toContain(stage);
-    }
+    const plant = page.locator('[data-testid^="plant-l"]');
+    await expect(plant).toHaveCount(1);
+    const stage = await plant.getAttribute('data-stage');
+    expect(['0', '1', '2', '3']).toContain(stage);
+    await expect(plant.locator('span').first()).toHaveCSS('background-image', /garden\/l\d-stage-\d\.png/);
   });
 
-  test('Clicking plant L2 scrolls to tier card L2', async ({ page }) => {
+  test('Clicking the L2 dot scrolls to tier card L2', async ({ page }) => {
     await page.goto('/journey');
-    await page.locator('[data-testid="plant-l2"]').click();
+    await page.locator('button[title^="L2"]').click();
     await page.waitForTimeout(700);
-    const tierCard = page.locator('#tier-card-L2');
-    await expect(tierCard).toBeInViewport();
+    await expect(page.locator('#tier-card-L2')).toBeInViewport();
   });
 
   test('TierCard indicator dual display shows product headline', async ({ page }) => {

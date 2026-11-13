@@ -4,13 +4,13 @@
 >
 > **Urutan baca:** masalah dulu → baru konsep → baru cara kerja → baru kode → baru optimisasi → baru best practice → baru kesalahan yang pernah kejadian → baru ringkasan. Jangan loncat ke bagian Implementasi kalau tiga bagian pertama belum kebayang, nanti kodenya kelihatan seperti sihir.
 >
-> **Ketemu istilah asing di tengah baca?** Semua istilah baru dijelaskan pas pertama kali muncul (bukan di-dump di awal), dan sekarang tiap istilah juga di-link langsung ke definisinya di [Glossary RAG](../../resources/learning/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik.
+> **Ketemu istilah asing di tengah baca?** Semua istilah baru dijelaskan pas pertama kali muncul (bukan di-dump di awal), dan sekarang tiap istilah juga di-link langsung ke definisinya di [Glossary RAG](../../../docs/mentor/resources/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik.
 
 ---
 
 ## Apa Masalah yang Ingin Diselesaikan?
 
-Di chapter sebelumnya (PF-AI003), sistem sudah bisa melakukan **retrieval**: user tanya sesuatu, pertanyaan itu diubah jadi angka ([embedding](../../resources/learning/glossary-rag-id.md#embedding)), lalu dicari transaksi yang paling mirip di database pakai [cosine similarity](../../resources/learning/glossary-rag-id.md#cosine-similarity). Itu jalan — tapi ada dua masalah nyata yang bikin hasilnya belum bisa dipakai serius:
+Di chapter sebelumnya (PF-AI003), sistem sudah bisa melakukan **retrieval**: user tanya sesuatu, pertanyaan itu diubah jadi angka ([embedding](../../../docs/mentor/resources/glossary-rag-id.md#embedding)), lalu dicari transaksi yang paling mirip di database pakai [cosine similarity](../../../docs/mentor/resources/glossary-rag-id.md#cosine-similarity). Itu jalan — tapi ada dua masalah nyata yang bikin hasilnya belum bisa dipakai serius:
 
 **Masalah 1 — apa yang di-embed itu penting.** Kalau teks sumbernya panjang (misalnya narasi statement bank berlembar-lembar) lalu dipotong-potong sembarangan sebelum di-embed, hasil potongannya bisa rusak — nama merchant kepotong di tengah, atau dua transaksi malah nyampur jadi satu chunk. Model embedding jadi "melihat" data yang sudah cacat dari awal.
 
@@ -24,13 +24,13 @@ Jadi target chapter ini jelas: `POST /ask {"query": "berapa pengeluaran makan bu
 
 Ada tiga konsep baru yang menyelesaikan dua masalah di atas. Kalau dianalogikan sederhana:
 
-1. **[Chunking](../../resources/learning/glossary-rag-id.md#chunking)** — cara memotong teks panjang jadi potongan-potongan kecil *sebelum* di-embed, supaya potongannya tidak merusak makna aslinya. Ibarat memotong kue: potong di garis yang sudah ada, jangan potong di tengah lapisan.
+1. **[Chunking](../../../docs/mentor/resources/glossary-rag-id.md#chunking)** — cara memotong teks panjang jadi potongan-potongan kecil *sebelum* di-embed, supaya potongannya tidak merusak makna aslinya. Ibarat memotong kue: potong di garis yang sudah ada, jangan potong di tengah lapisan.
 
-2. **[Re-ranking](../../resources/learning/glossary-rag-id.md#re-ranking)** — pakai "juri kedua" yang lebih teliti (tapi lebih lambat) untuk mengecek ulang urutan hasil pencarian dari juri pertama. Juri pertama ([bi-encoder](../../resources/learning/glossary-rag-id.md#bi-encoder) / model embedding) menilai query dan dokumen **secara terpisah** lalu membandingkan titiknya di ruang vektor — cepat, tapi kadang salah kira mirip padahal beda arti. Juri kedua ([cross-encoder](../../resources/learning/glossary-rag-id.md#cross-encoder)) membaca query dan dokumen **bersamaan** dalam satu kali proses — jauh lebih akurat, tapi terlalu lambat kalau dipakai untuk semua data, jadi cuma dipakai untuk menyaring ulang kandidat teratas.
+2. **[Re-ranking](../../../docs/mentor/resources/glossary-rag-id.md#re-ranking)** — pakai "juri kedua" yang lebih teliti (tapi lebih lambat) untuk mengecek ulang urutan hasil pencarian dari juri pertama. Juri pertama ([bi-encoder](../../../docs/mentor/resources/glossary-rag-id.md#bi-encoder) / model embedding) menilai query dan dokumen **secara terpisah** lalu membandingkan titiknya di ruang vektor — cepat, tapi kadang salah kira mirip padahal beda arti. Juri kedua ([cross-encoder](../../../docs/mentor/resources/glossary-rag-id.md#cross-encoder)) membaca query dan dokumen **bersamaan** dalam satu kali proses — jauh lebih akurat, tapi terlalu lambat kalau dipakai untuk semua data, jadi cuma dipakai untuk menyaring ulang kandidat teratas.
 
-3. **[Grounded generation](../../resources/learning/glossary-rag-id.md#grounded-generation) + [citations](../../resources/learning/glossary-rag-id.md#citations)** — bukan cuma menyodorkan baris data mentah ke user, tapi minta LLM merangkumnya jadi kalimat jawaban, dengan aturan ketat: **jawab hanya dari data yang diberikan**, boleh bilang "tidak tahu" kalau datanya tidak ada, dan setiap angka/klaim di jawaban harus bisa dilacak balik ke transaksi aslinya (sitasi/citation). Kalau LLM "mengarang" id transaksi yang sebenarnya tidak ada di data yang dikirim, itu harus dibuang sebelum sampai ke user.
+3. **[Grounded generation](../../../docs/mentor/resources/glossary-rag-id.md#grounded-generation) + [citations](../../../docs/mentor/resources/glossary-rag-id.md#citations)** — bukan cuma menyodorkan baris data mentah ke user, tapi minta LLM merangkumnya jadi kalimat jawaban, dengan aturan ketat: **jawab hanya dari data yang diberikan**, boleh bilang "tidak tahu" kalau datanya tidak ada, dan setiap angka/klaim di jawaban harus bisa dilacak balik ke transaksi aslinya (sitasi/citation). Kalau LLM "mengarang" id transaksi yang sebenarnya tidak ada di data yang dikirim, itu harus dibuang sebelum sampai ke user.
 
-Alur besarnya ([RAG](../../resources/learning/glossary-rag-id.md#rag) itu cuma dua fase — bangun index sekali, lalu query berkali-kali):
+Alur besarnya ([RAG](../../../docs/mentor/resources/glossary-rag-id.md#rag) itu cuma dua fase — bangun index sekali, lalu query berkali-kali):
 
 ```
  1. BANGUN INDEX (offline, sekali per dokumen)
@@ -86,11 +86,11 @@ Chunk 1: "DING                         85.00"   ← "GADING" kehilangan awalnya
 
 Celakanya, karakter ke-35 jatuh persis di tengah nama merchant. `"GADI"` dan `"NG"` di-embed sebagai dua potongan yang tidak nyambung — model embedding tidak tahu keduanya sebenarnya satu kata ("GADING"), jadi pencarian untuk merchant ini bisa gagal di kedua chunk.
 
-**Pakai [overlap](../../resources/learning/glossary-rag-id.md#overlap) — bawa sisa ekor ke chunk berikutnya.** [`fixed_size_chunks(text, chunk_size, overlap)`](../../resources/learning/glossary-rag-id.md#fixed-size-chunking) masih menghitung karakter, tapi sisa ekor satu chunk dibawa juga ke chunk berikutnya, jadi fakta yang kepotong di batas tetap muncul utuh di salah satu chunk.
+**Pakai [overlap](../../../docs/mentor/resources/glossary-rag-id.md#overlap) — bawa sisa ekor ke chunk berikutnya.** [`fixed_size_chunks(text, chunk_size, overlap)`](../../../docs/mentor/resources/glossary-rag-id.md#fixed-size-chunking) masih menghitung karakter, tapi sisa ekor satu chunk dibawa juga ke chunk berikutnya, jadi fakta yang kepotong di batas tetap muncul utuh di salah satu chunk.
 
 Overlap mencegah fakta *hilang*, tapi tidak membuat si pemotong paham struktur — dia masih buta terhadap batas kalimat. Deskripsi transaksi masih bisa terpisah dari nominalnya kalau batas potongan jatuh di antara keduanya.
 
-**Potong berdasarkan struktur, bukan hitungan karakter.** [`sentence_window_chunks(text, window_size)`](../../resources/learning/glossary-rag-id.md#sentence-window-chunking) memotong berdasarkan baris baru (`\n`) dan tanda baca kalimat, jadi tiap chunk adalah **satu baris lengkap** — nama merchant tidak pernah kepotong, deskripsi tidak pernah terpisah dari nominalnya. Ditambah lagi ada [`window`](../../resources/learning/glossary-rag-id.md#window): ±N baris tetangga ikut dibawa, jadi unit yang **dicari** kecil dan presisi, tapi unit yang **dikirim ke LLM** cukup konteksnya. Prinsipnya: **"kecil untuk dicari, besar untuk dibaca."** → *Ini yang dipakai chapter ini.*
+**Potong berdasarkan struktur, bukan hitungan karakter.** [`sentence_window_chunks(text, window_size)`](../../../docs/mentor/resources/glossary-rag-id.md#sentence-window-chunking) memotong berdasarkan baris baru (`\n`) dan tanda baca kalimat, jadi tiap chunk adalah **satu baris lengkap** — nama merchant tidak pernah kepotong, deskripsi tidak pernah terpisah dari nominalnya. Ditambah lagi ada [`window`](../../../docs/mentor/resources/glossary-rag-id.md#window): ±N baris tetangga ikut dibawa, jadi unit yang **dicari** kecil dan presisi, tapi unit yang **dikirim ke LLM** cukup konteksnya. Prinsipnya: **"kecil untuk dicari, besar untuk dibaca."** → *Ini yang dipakai chapter ini.*
 
 ```
 sentence_window_chunks(text, window_size=1)
@@ -102,13 +102,13 @@ Chunk 1:
 
 Hasilnya: setiap chunk = satu transaksi utuh, merchant dan nominal tidak pernah terpisah.
 
-**Batu sandungan berikutnya (di luar scope chapter ini):** struktur ≠ makna. `\n` tidak tahu bahwa baris "GOFOOD" dan "MAKANAN TERNAK" adalah dua transaksi yang maknanya sama sekali tidak berhubungan — memotong berdasarkan struktur itu perkiraan yang cukup bagus, tapi bukan solusi sempurna. Versi berikutnya ([semantic chunking](../../resources/learning/glossary-rag-id.md#semantic-chunking) atau [agentic chunking](../../resources/learning/glossary-rag-id.md#agentic-chunking) — memotong di titik makna berubah) dicatat sebagai teaser untuk nanti, tidak dibangun sekarang.
+**Batu sandungan berikutnya (di luar scope chapter ini):** struktur ≠ makna. `\n` tidak tahu bahwa baris "GOFOOD" dan "MAKANAN TERNAK" adalah dua transaksi yang maknanya sama sekali tidak berhubungan — memotong berdasarkan struktur itu perkiraan yang cukup bagus, tapi bukan solusi sempurna. Versi berikutnya ([semantic chunking](../../../docs/mentor/resources/glossary-rag-id.md#semantic-chunking) atau [agentic chunking](../../../docs/mentor/resources/glossary-rag-id.md#agentic-chunking) — memotong di titik makna berubah) dicatat sebagai teaser untuk nanti, tidak dibangun sekarang.
 
 > **Catatan project:** Transaksi di aplikasi ini sudah berupa satu baris DB pendek — tidak ada yang perlu dipotong di situ. Yang benar-benar butuh chunking adalah teks sumber yang panjang, seperti narasi statement bank multi-halaman. Jadi modul chunking ini dibangun dan ditest sekarang terhadap teks statement asli, tapi baru benar-benar dipakai untuk retrieval di chapter berikutnya (Chapter 6).
 
 ### Re-ranking — kenapa juri kedua dibutuhkan
 
-**[Cosine top-K](../../resources/learning/glossary-rag-id.md#cosine-top-k) saja (baseline dari Chapter 3).** Embed query `"berapa pengeluaran makan bulan Maret?"`, cari [cosine similarity](../../resources/learning/glossary-rag-id.md#cosine-similarity) di `transaction_embeddings`, ambil 10 teratas.
+**[Cosine top-K](../../../docs/mentor/resources/glossary-rag-id.md#cosine-top-k) saja (baseline dari Chapter 3).** Embed query `"berapa pengeluaran makan bulan Maret?"`, cari [cosine similarity](../../../docs/mentor/resources/glossary-rag-id.md#cosine-similarity) di `transaction_embeddings`, ambil 10 teratas.
 
 ```
 Rank | tx_id | similarity | description                      | amount_idr
@@ -119,9 +119,9 @@ Rank | tx_id | similarity | description                      | amount_idr
   5  |  44   |   0.803    | ALFAMART CIPETE RAYA             |  47.000
 ```
 
-Akar soalnya, model embedding itu **[bi-encoder](../../resources/learning/glossary-rag-id.md#bi-encoder)** — dia meng-encode query dan tiap deskripsi transaksi **secara terpisah**, tidak pernah bareng-bareng. Hasilnya cuma membandingkan dua titik yang sudah dihitung duluan di ruang vektor. Kata "makan" dan "makanan ternak" berbagi cukup banyak akar kata sehingga posisinya berdekatan di ruang vektor — bi-encoder tidak pernah punya kesempatan mempertimbangkan bedanya secara langsung.
+Akar soalnya, model embedding itu **[bi-encoder](../../../docs/mentor/resources/glossary-rag-id.md#bi-encoder)** — dia meng-encode query dan tiap deskripsi transaksi **secara terpisah**, tidak pernah bareng-bareng. Hasilnya cuma membandingkan dua titik yang sudah dihitung duluan di ruang vektor. Kata "makan" dan "makanan ternak" berbagi cukup banyak akar kata sehingga posisinya berdekatan di ruang vektor — bi-encoder tidak pernah punya kesempatan mempertimbangkan bedanya secara langsung.
 
-**Re-rank top-10 pakai cross-encoder (hosted).** **[Cross-encoder](../../resources/learning/glossary-rag-id.md#cross-encoder)** membaca query dan dokumen kandidat **bersamaan**, dalam satu kali proses — jadi bisa benar-benar mempertimbangkan apakah "makanan ternak" itu menjawab pertanyaan tentang "makan" atau tidak. Polanya berbentuk corong ([funnel](../../resources/learning/glossary-rag-id.md#funnel)): bi-encoder yang murah-dan-lebar mengambil 10 kandidat dulu, baru cross-encoder yang mahal-dan-sempit menilai ulang 10 itu.
+**Re-rank top-10 pakai cross-encoder (hosted).** **[Cross-encoder](../../../docs/mentor/resources/glossary-rag-id.md#cross-encoder)** membaca query dan dokumen kandidat **bersamaan**, dalam satu kali proses — jadi bisa benar-benar mempertimbangkan apakah "makanan ternak" itu menjawab pertanyaan tentang "makan" atau tidak. Polanya berbentuk corong ([funnel](../../../docs/mentor/resources/glossary-rag-id.md#funnel)): bi-encoder yang murah-dan-lebar mengambil 10 kandidat dulu, baru cross-encoder yang mahal-dan-sempit menilai ulang 10 itu.
 
 ```
 ["berapa pengeluaran makan bulan Maret?" + "GOFOOD GEPREK BENSU GADING"]        → skor 0.94  (restoran makanan)
@@ -132,9 +132,9 @@ Hasil setelah re-ranking: transaksi pakan ternak (skor 0.12) tersingkir dari top
 
 Wajar untuk produksi, merepotkan untuk eval: cross-encoder berkualitas yang di-hosting (misalnya Cohere Rerank) itu berbayar dan butuh round-trip jaringan setiap kali dipanggil. Kalau kamu mau menjalankan eval harness berkali-kali sambil iterasi, tiap run bisa kena biaya atau kena rate limit.
 
-**[FlashRank](../../resources/learning/glossary-rag-id.md#flashrank) — ide sama tapi jalan lokal.** Model cross-encoder [MiniLM](../../resources/learning/glossary-rag-id.md#minilm) ~34 MB yang jalan di CPU lokal, tanpa API key, tanpa rate limit, hasilnya deterministik — bebas dijalankan ulang berkali-kali untuk eval. → *Ini yang dipakai chapter ini.*
+**[FlashRank](../../../docs/mentor/resources/glossary-rag-id.md#flashrank) — ide sama tapi jalan lokal.** Model cross-encoder [MiniLM](../../../docs/mentor/resources/glossary-rag-id.md#minilm) ~34 MB yang jalan di CPU lokal, tanpa API key, tanpa rate limit, hasilnya deterministik — bebas dijalankan ulang berkali-kali untuk eval. → *Ini yang dipakai chapter ini.*
 
-> **Temuan nyata dari eksperimen (bukan teori, ini kejadian betulan):** `ms-marco-MiniLM-L-12-v2` adalah model yang dilatih khusus Bahasa Inggris. Pada query Bahasa Indonesia, model ini justru **menurunkan** [P@5](../../resources/learning/glossary-rag-id.md#p-5) dari 0.657 menjadi 0.600 — dia tidak memahami kosakata keuangan Indonesia. Lihat bagian Kesalahan Umum untuk detailnya — ini salah satu temuan paling berharga di chapter ini.
+> **Temuan nyata dari eksperimen (bukan teori, ini kejadian betulan):** `ms-marco-MiniLM-L-12-v2` adalah model yang dilatih khusus Bahasa Inggris. Pada query Bahasa Indonesia, model ini justru **menurunkan** [P@5](../../../docs/mentor/resources/glossary-rag-id.md#p-5) dari 0.657 menjadi 0.600 — dia tidak memahami kosakata keuangan Indonesia. Lihat bagian Kesalahan Umum untuk detailnya — ini salah satu temuan paling berharga di chapter ini.
 
 ### Grounded Generation + Citations — dari dump data mentah sampai jawaban tervalidasi
 
@@ -150,9 +150,9 @@ Tapi baris data bukan jawaban. User nanya "berapa" — sebuah angka — bukan "i
 
 **Minta LLM merangkum jadi jawaban.** Kirim data ke model, minta dijumlahkan dan dijelaskan dengan bahasa biasa.
 
-Bahayanya, tanpa batasan yang ketat model bisa **[halusinasi](../../resources/learning/glossary-rag-id.md#hallucination)** — menyebut total yang tidak cocok dengan data yang dikasih (misalnya bilang "Rp 500.000" padahal datanya cuma Rp 202.500), atau bahkan menyebut transaksi yang sebenarnya tidak ada di data yang dikirim.
+Bahayanya, tanpa batasan yang ketat model bisa **[halusinasi](../../../docs/mentor/resources/glossary-rag-id.md#hallucination)** — menyebut total yang tidak cocok dengan data yang dikasih (misalnya bilang "Rp 500.000" padahal datanya cuma Rp 202.500), atau bahkan menyebut transaksi yang sebenarnya tidak ada di data yang dikirim.
 
-**[Grounding prompt](../../resources/learning/glossary-rag-id.md#grounding-prompt) — larang model menebak.** Instruksikan model secara eksplisit: jawab **hanya** dari data yang diberikan, dan boleh bilang "saya tidak tahu" ([`confident: false`](../../resources/learning/glossary-rag-id.md#confident-flag)) daripada menebak-nebak.
+**[Grounding prompt](../../../docs/mentor/resources/glossary-rag-id.md#grounding-prompt) — larang model menebak.** Instruksikan model secara eksplisit: jawab **hanya** dari data yang diberikan, dan boleh bilang "saya tidak tahu" ([`confident: false`](../../../docs/mentor/resources/glossary-rag-id.md#confident-flag)) daripada menebak-nebak.
 
 ```
 SYSTEM: "Jawab HANYA dari transaksi bernomor yang diberikan sebagai konteks.
@@ -162,7 +162,7 @@ SYSTEM: "Jawab HANYA dari transaksi bernomor yang diberikan sebagai konteks.
 
 Grounding prompt belum menutup celah terakhir: model kadang tetap menyebut `transaction_id` yang sebenarnya tidak pernah ada di konteks yang dikirim — angka yang dia pattern-match dari data latihannya atau digit terdekat, bukan sesuatu yang benar-benar dia baca.
 
-**Validasi tiap id yang disitasi terhadap konteks yang benar-benar dikirim.** Cek satu-satu setiap `cited_transaction_ids` terhadap kumpulan id yang benar-benar ada di prompt; kalau ada yang tidak ada, buang diam-diam (dan catat di log). → *Ini yang dipakai chapter ini* — disebut **[hallucination guard](../../resources/learning/glossary-rag-id.md#hallucination-guard)**.
+**Validasi tiap id yang disitasi terhadap konteks yang benar-benar dikirim.** Cek satu-satu setiap `cited_transaction_ids` terhadap kumpulan id yang benar-benar ada di prompt; kalau ada yang tidak ada, buang diam-diam (dan catat di log). → *Ini yang dipakai chapter ini* — disebut **[hallucination guard](../../../docs/mentor/resources/glossary-rag-id.md#hallucination-guard)**.
 
 ```python
 by_id = {42: (1, tx42), 43: (2, tx43), 47: (3, tx47)}
@@ -318,15 +318,15 @@ Semua detail test (mocked), skema Pydantic lengkap, dan port C# baris-per-baris 
 
 Beberapa keputusan optimisasi nyata yang diambil di chapter ini, dengan alasan konkretnya:
 
-1. **[FlashRank](../../resources/learning/glossary-rag-id.md#flashrank) lokal, bukan Cohere Rerank (hosted).** Konsepnya sama persis, bedanya cuma tempat jalannya. FlashRank jalan di CPU lokal (~34 MB model), gratis, tanpa rate limit, deterministik — cocok untuk eval harness yang mau dijalankan berkali-kali sambil iterasi. Cohere lebih akurat tapi trial tier-nya dibatasi 10 request/menit — menyulitkan proses benchmark berulang. `RerankerService` sengaja dibuat jadi lapisan tipis supaya kalau nanti mau ganti ke Cohere, tinggal ganti satu class.
+1. **[FlashRank](../../../docs/mentor/resources/glossary-rag-id.md#flashrank) lokal, bukan Cohere Rerank (hosted).** Konsepnya sama persis, bedanya cuma tempat jalannya. FlashRank jalan di CPU lokal (~34 MB model), gratis, tanpa rate limit, deterministik — cocok untuk eval harness yang mau dijalankan berkali-kali sambil iterasi. Cohere lebih akurat tapi trial tier-nya dibatasi 10 request/menit — menyulitkan proses benchmark berulang. `RerankerService` sengaja dibuat jadi lapisan tipis supaya kalau nanti mau ganti ke Cohere, tinggal ganti satu class.
 
-2. **Retrieve lebar ([top-10](../../resources/learning/glossary-rag-id.md#top-k)) dulu, baru re-rank ke sempit (top-3), bukan re-rank yang top-5 langsung.** Kalau kamu re-rank ulang 5 dokumen yang sama, hasilnya cuma **mengurutkan ulang** 5 itu — [MRR@5](../../resources/learning/glossary-rag-id.md#mrr-5) nyaris tidak berubah karena tidak ada kandidat baru yang masuk. Justru lift-nya datang dari corong yang lebih lebar: transaksi relevan yang tadinya ada di ranking ke-8 (tidak terlihat oleh baseline top-5) bisa "diangkat" masuk top-3 oleh cross-encoder. Ini trade-off recall-vs-precision klasik.
+2. **Retrieve lebar ([top-10](../../../docs/mentor/resources/glossary-rag-id.md#top-k)) dulu, baru re-rank ke sempit (top-3), bukan re-rank yang top-5 langsung.** Kalau kamu re-rank ulang 5 dokumen yang sama, hasilnya cuma **mengurutkan ulang** 5 itu — [MRR@5](../../../docs/mentor/resources/glossary-rag-id.md#mrr-5) nyaris tidak berubah karena tidak ada kandidat baru yang masuk. Justru lift-nya datang dari corong yang lebih lebar: transaksi relevan yang tadinya ada di ranking ke-8 (tidak terlihat oleh baseline top-5) bisa "diangkat" masuk top-3 oleh cross-encoder. Ini trade-off recall-vs-precision klasik.
 
 3. **Filter di level SQL (WHERE), bukan post-filter di Python.** Kalau kamu ambil top-10 global lalu baru buang baris yang bukan bulan Maret di kode Python, ada risiko top-10 globalnya memang didominasi bulan lain — hasil akhirnya bisa cuma 1 baris padahal database sebenarnya punya 50 transaksi Maret. Filter di `WHERE` SQL membuat pgvector meranking **di dalam** himpunan yang sudah difilter, jadi `LIMIT top_k` tetap berarti.
 
 4. **`retrieval_ms` dan `generation_ms` dipisah di response.** Ini investasi untuk chapter berikutnya (streaming) — dengan mengukur di mana latency sebenarnya berada (retrieval ~100ms vs generation ~2 detik), baru ada alasan konkret kenapa yang perlu di-streaming adalah fase generation-nya.
 
-5. **[Judge model](../../resources/learning/glossary-rag-id.md#judge-model) yang berbeda dari model generator saat evaluasi [faithfulness](../../resources/learning/glossary-rag-id.md#faithfulness).** Generator pakai Gemini, judge (penilai) pakai `gpt-4o-mini` dari provider lain. Kalau model yang sama dipakai untuk menilai jawabannya sendiri, hasilnya cenderung bias ([self-preference bias](../../resources/learning/glossary-rag-id.md#self-preference-bias)) — skornya jadi terlalu bagus dari kenyataan.
+5. **[Judge model](../../../docs/mentor/resources/glossary-rag-id.md#judge-model) yang berbeda dari model generator saat evaluasi [faithfulness](../../../docs/mentor/resources/glossary-rag-id.md#faithfulness).** Generator pakai Gemini, judge (penilai) pakai `gpt-4o-mini` dari provider lain. Kalau model yang sama dipakai untuk menilai jawabannya sendiri, hasilnya cenderung bias ([self-preference bias](../../../docs/mentor/resources/glossary-rag-id.md#self-preference-bias)) — skornya jadi terlalu bagus dari kenyataan.
 
 6. **Pin versi dependency dengan ketat, bukan `>=` tanpa batas atas.** `ragas>=0.2` (tanpa batas atas) ternyata resolve ke versi 0.4.x yang tidak kompatibel dengan `langchain` versi terbaru — dipin ulang jadi `ragas>=0.2,<0.3`. Lihat bagian Kesalahan Umum untuk cerita lengkap bug ini.
 
@@ -336,14 +336,14 @@ Beberapa keputusan optimisasi nyata yang diambil di chapter ini, dengan alasan k
 
 Aturan-aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing penting:
 
-- **[Grounding prompt](../../resources/learning/glossary-rag-id.md#grounding-prompt) yang eksplisit dan berlapis.** Bukan cuma bilang "jawab dari data ini," tapi juga: izinkan model bilang "saya tidak tahu" (`confident: false`), sediakan flag boolean yang bisa dicek program (bukan cuma teks bebas yang harus di-parse), dan larang model menaksir/mengarang.
-- **Selalu validasi sitasi terhadap konteks asli ([hallucination guard](../../resources/learning/glossary-rag-id.md#hallucination-guard)).** LLM bisa menyitasi dengan percaya diri padahal salah. Sebuah id yang tidak ada di konteks yang benar-benar dikirim, secara definisi adalah karangan — kalau dibiarkan lolos, user bisa melihat sitasi yang menunjuk ke transaksi yang salah atau bahkan tidak ada. Ini cuma beberapa baris kode, tapi jadi jawaban standar untuk pertanyaan interview "bagaimana kamu menangani halusinasi?"
+- **[Grounding prompt](../../../docs/mentor/resources/glossary-rag-id.md#grounding-prompt) yang eksplisit dan berlapis.** Bukan cuma bilang "jawab dari data ini," tapi juga: izinkan model bilang "saya tidak tahu" (`confident: false`), sediakan flag boolean yang bisa dicek program (bukan cuma teks bebas yang harus di-parse), dan larang model menaksir/mengarang.
+- **Selalu validasi sitasi terhadap konteks asli ([hallucination guard](../../../docs/mentor/resources/glossary-rag-id.md#hallucination-guard)).** LLM bisa menyitasi dengan percaya diri padahal salah. Sebuah id yang tidak ada di konteks yang benar-benar dikirim, secara definisi adalah karangan — kalau dibiarkan lolos, user bisa melihat sitasi yang menunjuk ke transaksi yang salah atau bahkan tidak ada. Ini cuma beberapa baris kode, tapi jadi jawaban standar untuk pertanyaan interview "bagaimana kamu menangani halusinasi?"
 - **Constructor injection untuk service yang komponennya perlu ditukar-tukar.** Memudahkan testing (tinggal suntik mock, tidak perlu `patch()` module-level) dan bikin kode siap untuk pola multi-agent di chapter mendatang.
 - **Kegagalan LLM harus mengembalikan HTTP 502, bukan 200 dengan jawaban kosong.** Kontrak error service ini eksplisit melarang 200-dengan-kosong — kalau dibiarkan, eval harness dan pemetaan error di sisi .NET API bisa salah kira request-nya sukses padahal gagal total.
 - **Kerjaan CPU-bound sinkron (seperti FlashRank) harus dilepas dari event loop** lewat `asyncio.to_thread` (Python) atau `Task.Run` (C#/.NET) — supaya satu request berat tidak memblokir semua request lain yang sedang dilayani server.
 - **Sebelum menulis skema ekstraksi/jawaban, daftar dulu tiap field: nama, tipe JSON, contoh nilai, dan alasan tipenya.** Kesalahan tipe di skema (misalnya `string` untuk angka) tidak menyebabkan error saat compile ataupun runtime — data-nya cuma diam-diam jadi salah di database. Mendaftar field satu-satu sebelum menulis kode adalah cara mencegah itu.
-- **"Kecil untuk dicari, besar untuk dibaca."** Prinsip [sentence-window chunking](../../resources/learning/glossary-rag-id.md#sentence-window-chunking) ini berlaku umum: unit yang dipakai untuk pencarian sebaiknya kecil dan presisi, tapi unit yang dikirim ke LLM untuk dibaca sebaiknya cukup besar supaya konteksnya lengkap.
-- **[Judge model](../../resources/learning/glossary-rag-id.md#judge-model) untuk evaluasi sebaiknya beda dari model yang dievaluasi**, untuk menghindari bias [self-preference](../../resources/learning/glossary-rag-id.md#self-preference-bias).
+- **"Kecil untuk dicari, besar untuk dibaca."** Prinsip [sentence-window chunking](../../../docs/mentor/resources/glossary-rag-id.md#sentence-window-chunking) ini berlaku umum: unit yang dipakai untuk pencarian sebaiknya kecil dan presisi, tapi unit yang dikirim ke LLM untuk dibaca sebaiknya cukup besar supaya konteksnya lengkap.
+- **[Judge model](../../../docs/mentor/resources/glossary-rag-id.md#judge-model) untuk evaluasi sebaiknya beda dari model yang dievaluasi**, untuk menghindari bias [self-preference](../../../docs/mentor/resources/glossary-rag-id.md#self-preference-bias).
 
 ---
 
@@ -351,11 +351,11 @@ Aturan-aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masi
 
 Ini bagian paling berharga — semua ini adalah bug **nyata** yang benar-benar kejadian selama chapter ini dikerjakan, bukan skenario teoretis:
 
-1. **[Cross-encoder](../../resources/learning/glossary-rag-id.md#cross-encoder) yang cuma paham Bahasa Inggris dipakai untuk query Bahasa Indonesia.** `ms-marco-MiniLM-L-12-v2` justru **menurunkan** [P@5](../../resources/learning/glossary-rag-id.md#p-5) dari 0.657 ke 0.600, dan salah satu query (`"gaji bulanan salary income"`) MRR-nya jatuh dari 1.00 ke **0.00** — cross-encoder-nya malah menyingkirkan hasil yang tadinya sudah benar dari [bi-encoder](../../resources/learning/glossary-rag-id.md#bi-encoder) (yang multilingual), karena dia tidak mengenali kosakata keuangan Indonesia sebagai relevan. **Pelajarannya:** re-ranking bisa memperburuk hasil kalau model yang dipakai tidak cocok bahasanya dengan data — ini bukan kegagalan, ini temuan yang harus didiagnosis dan dicatat, bukan diabaikan.
+1. **[Cross-encoder](../../../docs/mentor/resources/glossary-rag-id.md#cross-encoder) yang cuma paham Bahasa Inggris dipakai untuk query Bahasa Indonesia.** `ms-marco-MiniLM-L-12-v2` justru **menurunkan** [P@5](../../../docs/mentor/resources/glossary-rag-id.md#p-5) dari 0.657 ke 0.600, dan salah satu query (`"gaji bulanan salary income"`) MRR-nya jatuh dari 1.00 ke **0.00** — cross-encoder-nya malah menyingkirkan hasil yang tadinya sudah benar dari [bi-encoder](../../../docs/mentor/resources/glossary-rag-id.md#bi-encoder) (yang multilingual), karena dia tidak mengenali kosakata keuangan Indonesia sebagai relevan. **Pelajarannya:** re-ranking bisa memperburuk hasil kalau model yang dipakai tidak cocok bahasanya dengan data — ini bukan kegagalan, ini temuan yang harus didiagnosis dan dicatat, bukan diabaikan.
 
-2. **Baseline retrieval yang ternyata rusak karena konfigurasi index.** [MRR@5](../../resources/learning/glossary-rag-id.md#mrr-5) awalnya kelihatan cuma 0.476 — ternyata itu bug: [`IVFFlat probes=1`](../../resources/learning/glossary-rag-id.md#ivfflat) (default) cuma mencari di 1 dari 100 cluster index, jadi banyak hasil relevan tidak pernah "terlihat." Setelah di-fix jadi `probes=10`, baseline aslinya ternyata **1.000**. Bug konfigurasi index seperti ini gampang disalahartikan sebagai "model embedding-nya jelek," padahal masalahnya di pengaturan pencarian.
+2. **Baseline retrieval yang ternyata rusak karena konfigurasi index.** [MRR@5](../../../docs/mentor/resources/glossary-rag-id.md#mrr-5) awalnya kelihatan cuma 0.476 — ternyata itu bug: [`IVFFlat probes=1`](../../../docs/mentor/resources/glossary-rag-id.md#ivfflat) (default) cuma mencari di 1 dari 100 cluster index, jadi banyak hasil relevan tidak pernah "terlihat." Setelah di-fix jadi `probes=10`, baseline aslinya ternyata **1.000**. Bug konfigurasi index seperti ini gampang disalahartikan sebagai "model embedding-nya jelek," padahal masalahnya di pengaturan pencarian.
 
-3. **LLM menyitasi angka penanda konteks, bukan id transaksi aslinya.** Ada bug di mana LLM memasukkan angka marker `[2]` ke `cited_transaction_ids`, padahal seharusnya `id=24561` (id transaksi aslinya). Akibatnya, [hallucination guard](../../resources/learning/glossary-rag-id.md#hallucination-guard) membuang **semua** sitasi karena dianggap tidak valid — skor [faithfulness](../../resources/learning/glossary-rag-id.md#faithfulness) jadi 0.00 di mana-mana. Solusinya: perjelas instruksi di `SYSTEM_PROMPT` supaya tidak ambigu antara "nomor urutan konteks" dan "id transaksi asli."
+3. **LLM menyitasi angka penanda konteks, bukan id transaksi aslinya.** Ada bug di mana LLM memasukkan angka marker `[2]` ke `cited_transaction_ids`, padahal seharusnya `id=24561` (id transaksi aslinya). Akibatnya, [hallucination guard](../../../docs/mentor/resources/glossary-rag-id.md#hallucination-guard) membuang **semua** sitasi karena dianggap tidak valid — skor [faithfulness](../../../docs/mentor/resources/glossary-rag-id.md#faithfulness) jadi 0.00 di mana-mana. Solusinya: perjelas instruksi di `SYSTEM_PROMPT` supaya tidak ambigu antara "nomor urutan konteks" dan "id transaksi asli."
 
 4. **Tipe data tanggal yang salah dikirim ke database.** Kode mengirim tanggal sebagai *string* ke parameter SQL bertipe `::date`, padahal driver database (asyncpg) mengharapkan objek `datetime.date`. Error yang muncul membingungkan (`'str' object has no attribute 'toordinal'`) — solusinya `date.fromisoformat()` sebelum dikirim.
 
@@ -375,7 +375,7 @@ Ini bagian paling berharga — semua ini adalah bug **nyata** yang benar-benar k
 
 12. **Mengembalikan HTTP 200 dengan jawaban kosong saat LLM gagal**, alih-alih 502. Ini bikin sistem lain (eval harness, .NET API) mengira request-nya sukses padahal sebenarnya gagal total.
 
-13. **Pertanyaan superlatif/agregasi ("pengeluaran terbesar bulan ini") adalah kelemahan [RAG](../../resources/learning/glossary-rag-id.md#rag) yang sudah dikenal.** Top-3 hasil retrieval secara semantik belum tentu memuat nominal yang benar-benar paling besar — dalam eval nyata di chapter ini, skor faithfulness untuk pertanyaan tipe ini cuma 0.50, jauh di bawah pertanyaan lain yang skornya 1.00.
+13. **Pertanyaan superlatif/agregasi ("pengeluaran terbesar bulan ini") adalah kelemahan [RAG](../../../docs/mentor/resources/glossary-rag-id.md#rag) yang sudah dikenal.** Top-3 hasil retrieval secara semantik belum tentu memuat nominal yang benar-benar paling besar — dalam eval nyata di chapter ini, skor faithfulness untuk pertanyaan tipe ini cuma 0.50, jauh di bawah pertanyaan lain yang skornya 1.00.
 
 ---
 
@@ -394,13 +394,13 @@ Ini bagian paling berharga — semua ini adalah bug **nyata** yang benar-benar k
 
 | Metrik | Baseline | Setelah perubahan | Delta |
 |--------|----------|--------------------|-------|
-| [MRR@5](../../resources/learning/glossary-rag-id.md#mrr-5) (setelah fix bug probes) | 1.000 | 0.857 (setelah rerank) | -0.143 (lihat Kesalahan Umum #1) |
-| [P@5](../../resources/learning/glossary-rag-id.md#p-5) | 0.657 | 0.600 (setelah rerank) | -0.057 (lihat Kesalahan Umum #1) |
-| [RAGAS](../../resources/learning/glossary-rag-id.md#ragas) [faithfulness](../../resources/learning/glossary-rag-id.md#faithfulness) (5 jawaban) | — | **0.900** (target ≥ 0.80) | ✅ tercapai |
+| [MRR@5](../../../docs/mentor/resources/glossary-rag-id.md#mrr-5) (setelah fix bug probes) | 1.000 | 0.857 (setelah rerank) | -0.143 (lihat Kesalahan Umum #1) |
+| [P@5](../../../docs/mentor/resources/glossary-rag-id.md#p-5) | 0.657 | 0.600 (setelah rerank) | -0.057 (lihat Kesalahan Umum #1) |
+| [RAGAS](../../../docs/mentor/resources/glossary-rag-id.md#ragas) [faithfulness](../../../docs/mentor/resources/glossary-rag-id.md#faithfulness) (5 jawaban) | — | **0.900** (target ≥ 0.80) | ✅ tercapai |
 
-**Pelajaran terpenting chapter ini:** angka yang turun bukan berarti gagal. Delta P@5 dan MRR yang negatif setelah re-ranking justru jadi temuan diagnostik paling berharga — [cross-encoder](../../resources/learning/glossary-rag-id.md#cross-encoder) yang dipakai ternyata bias ke Bahasa Inggris, dan itu bisa dijelaskan dengan bukti konkret, bukan cuma "ya turun aja." Begitu juga bug [IVFFlat probes](../../resources/learning/glossary-rag-id.md#ivfflat): baseline yang kelihatan jelek ternyata masalah konfigurasi index, bukan masalah model.
+**Pelajaran terpenting chapter ini:** angka yang turun bukan berarti gagal. Delta P@5 dan MRR yang negatif setelah re-ranking justru jadi temuan diagnostik paling berharga — [cross-encoder](../../../docs/mentor/resources/glossary-rag-id.md#cross-encoder) yang dipakai ternyata bias ke Bahasa Inggris, dan itu bisa dijelaskan dengan bukti konkret, bukan cuma "ya turun aja." Begitu juga bug [IVFFlat probes](../../../docs/mentor/resources/glossary-rag-id.md#ivfflat): baseline yang kelihatan jelek ternyata masalah konfigurasi index, bukan masalah model.
 
-**Kalimat penutup untuk interview** (versi ringkas dari file asli): *"Saya membangun retrieval dua tahap — [pgvector](../../resources/learning/glossary-rag-id.md#pgvector) cosine search mengambil 10 kandidat, lalu cross-encoder lokal (FlashRank) menilai ulang berdasarkan query dan dokumen yang dibaca bersamaan. Saya juga menemukan dan mendiagnosis delta negatif: cross-encoder-nya bias ke Bahasa Inggris. Di atas retrieval itu, saya membangun endpoint `/ask` yang menjawab hanya dari data yang diambil, memvalidasi setiap sitasi supaya tidak ada id yang dikarang, dan mencapai skor faithfulness RAGAS 0.900 dengan judge model yang berbeda dari model generatornya."*
+**Kalimat penutup untuk interview** (versi ringkas dari file asli): *"Saya membangun retrieval dua tahap — [pgvector](../../../docs/mentor/resources/glossary-rag-id.md#pgvector) cosine search mengambil 10 kandidat, lalu cross-encoder lokal (FlashRank) menilai ulang berdasarkan query dan dokumen yang dibaca bersamaan. Saya juga menemukan dan mendiagnosis delta negatif: cross-encoder-nya bias ke Bahasa Inggris. Di atas retrieval itu, saya membangun endpoint `/ask` yang menjawab hanya dari data yang diambil, memvalidasi setiap sitasi supaya tidak ada id yang dikarang, dan mencapai skor faithfulness RAGAS 0.900 dengan judge model yang berbeda dari model generatornya."*
 
 **Lanjutannya:** chapter berikutnya (streaming) akan memanfaatkan fakta bahwa `generation_ms` jauh lebih besar dari `retrieval_ms` sebagai alasan untuk mulai men-streaming jawaban token demi token. Detail lengkap TODO steps, kode C# equivalent, test file, dan quiz sertifikasi ada di file asli: [PF-AI004-rag-reranking-generation.md](PF-AI004-rag-reranking-generation.md).
 
@@ -408,4 +408,4 @@ Ini bagian paling berharga — semua ini adalah bug **nyata** yang benar-benar k
 
 ## 📖 Glossary
 
-Semua istilah baru chapter ini (bi-encoder, cross-encoder, cosine similarity, citations, grounded generation, MRR, faithfulness, dll) sudah di-link langsung dari tiap kemunculan pertamanya di atas. Kalau mau lihat semuanya sekaligus (atau cari istilah yang belum sempat di-link), cek file terpisah supaya bisa dipakai ulang untuk chapter-chapter RAG berikutnya juga: **[Glossary RAG (Bahasa Indonesia)](../../resources/learning/glossary-rag-id.md)**.
+Semua istilah baru chapter ini (bi-encoder, cross-encoder, cosine similarity, citations, grounded generation, MRR, faithfulness, dll) sudah di-link langsung dari tiap kemunculan pertamanya di atas. Kalau mau lihat semuanya sekaligus (atau cari istilah yang belum sempat di-link), cek file terpisah supaya bisa dipakai ulang untuk chapter-chapter RAG berikutnya juga: **[Glossary RAG (Bahasa Indonesia)](../../../docs/mentor/resources/glossary-rag-id.md)**.

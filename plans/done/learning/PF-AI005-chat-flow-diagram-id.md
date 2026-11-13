@@ -190,4 +190,4 @@ Prinsip yang dibawa pulang: **uang mengalir di sekitar LLM, bukan melewatinya.**
 | Generate jawaban | Gemini 2.5 Flash stream | [main.py:329-338](../../../services/ai-service/app/main.py#L329-L338) | ~2,7 dtk, tercatat di Langfuse | narasi saja; angka dari SQL |
 | Guard | *(tidak ada di stream)* | — | — | **validasi marker post-stream → `verified`** |
 
-**Bacaan lanjut:** ladder lengkap tiga konsepnya (kenapa top-K tidak bisa menghitung, query understanding, streaming yang tidak bisa bohong) ada di [PF-AI005-PART2-answer-accuracy-todo.md](../../in-progress/learning/PF-AI005-PART2-answer-accuracy-todo.md) bagian 📖 Introduction; istilah-istilah RAG di [glossary-rag-id.md](../../resources/learning/glossary-rag-id.md).
+**Bacaan lanjut:** ladder lengkap tiga konsepnya (kenapa top-K tidak bisa menghitung, query understanding, streaming yang tidak bisa bohong) ada di [PF-AI005-PART2-answer-accuracy-todo.md](../../in-progress/learning/PF-AI005-PART2-answer-accuracy-todo.md) bagian 📖 Introduction; istilah-istilah RAG di [glossary-rag-id.md](../../../docs/mentor/resources/glossary-rag-id.md).

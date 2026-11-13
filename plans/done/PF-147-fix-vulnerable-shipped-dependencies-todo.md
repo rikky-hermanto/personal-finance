@@ -23,7 +23,7 @@ The 2026-10-15 audit found known vulnerabilities in three package sets. This tic
   > Verification note: `Microsoft.AspNetCore.OpenApi` 10.0.0 → 10.0.13 resolves `Microsoft.OpenApi` 2.12.2 (fixed in 2.7.5). The scan reports no vulnerable packages in any project. Tests: 431 passed, 0 failed, 9 skipped, run in the clean worktree.
 - [x] **npm (browser):** `react-router-dom` (and its `@remix-run/router` dependency) is upgraded to a fixed version within the 6.x line used by the app, with routes unchanged. `npm run lint`, `npx tsc --noEmit`, `npm run build` and the existing unit tests pass.
   > Verification note: `react-router-dom` 6.30.6, `@remix-run/router` 1.23.4. Lint 0 errors (9 existing warnings), `tsc` clean, build passes, `test:desk` 12 passed, `test:macro` 26 passed. The high-severity `@remix-run/router` XSS/open-redirect advisories are cleared. Two moderate `react-router` advisories remain that are fixed only in 7.x; recorded in `accepted-risks.md`. Routes were not clicked through in a browser.
-- [x] **npm (build-time):** every remaining `npm audit --omit=dev` finding that only runs at build time (for example `postcss`, `tailwindcss`, `micromatch`, `braces`) is listed in `docs/reference/accepted-risks.md` with package, advisory, why it cannot reach users, and the date, one line each. If `npm audit fix` (without `--force`) clears some safely, do that first.
+- [x] **npm (build-time):** every remaining `npm audit --omit=dev` finding that only runs at build time (for example `postcss`, `tailwindcss`, `micromatch`, `braces`) is listed in `docs/references/accepted-risks.md` with package, advisory, why it cannot reach users, and the date, one line each. If `npm audit fix` (without `--force`) clears some safely, do that first.
   > Verification note: `npm audit fix` crashes inside npm ("Cannot read properties of null (reading 'edgesOut')"), so targeted `npm update` was used instead. `npm audit --omit=dev` went from 20 findings to 2 (both `react-router`, documented). `tailwindcss-animate` was mis-filed under `dependencies` and moved to `devDependencies`. Dev-only findings from plain `npm audit` are also listed.
 - [x] **Python:** the production AI service no longer depends on the vulnerable `langgraph`, `langgraph-checkpoint`, `langgraph-sdk`, `langchain-core` and `langchain-anthropic` versions, OR each version that cannot be upgraded is listed in `accepted-risks.md` with a concrete reason (for example "upgrade breaks the ragas evaluation pin; eval-only, not in the production image"). `pip-audit` output is recorded in the plan notes.
   > Verification note: took the second branch. All five are accepted with a concrete reason (the 1.x line needs `langchain-google-genai` 4.x, which breaks `chat_model_factory.py`). `pip-audit` before and after is in the Execution Record below.
@@ -44,7 +44,7 @@ Treat each ecosystem as its own small change so that a failure in one does not b
 | `apps/frontend/package.json`, `package-lock.json` | Edit — `react-router-dom` upgrade; safe `npm audit fix` results |
 | `services/ai-service/pyproject.toml` (and lock or requirements files, if present) | Edit — runtime vs eval split and version bumps, if feasible |
 | `services/ai-service/app/` agent modules | Edit only if a version bump forces an API change; keep to the minimum |
-| `docs/reference/accepted-risks.md` | Edit — one row per accepted advisory (file created in PF-143; create if absent) |
+| `docs/references/accepted-risks.md` | Edit — one row per accepted advisory (file created in PF-143; create if absent) |
 
 ---
 
@@ -71,7 +71,7 @@ Upgrade `react-router-dom` within the 6.x line to the fixed release. Run `npm ru
 > **Why:** This is the only advisory in code that ships to the browser, so it is the one that matters most.
 
 ### [x] STEP 4 — Build-time npm advisories
-Run `npm audit fix` (never `--force`). For what remains, confirm each package is only used by the build or dev tooling (`npm ls <package>` shows it under devDependencies), then add one row each to `docs/reference/accepted-risks.md`.
+Run `npm audit fix` (never `--force`). For what remains, confirm each package is only used by the build or dev tooling (`npm ls <package>` shows it under devDependencies), then add one row each to `docs/references/accepted-risks.md`.
 
 > **Why:** Build-time advisories need a human-readable reason, not silence; otherwise they come back as unexplained red in every future audit.
 
@@ -121,14 +121,14 @@ State: .NET, npm and Python changes are done in `.worktrees/pf-147` and verified
 **Known defects to confirm:** (1) `react-router` still carries two moderate advisories fixed only in 7.x (`apps/frontend/package.json`); a mocked test cannot show whether any in-app link takes an unvetted path. (2) The langchain/langgraph set stays on old versions because the Google chat adapter (`services/ai-service/app/agents/chat_model_factory.py`) cannot move to 4.x without a rewrite.
 
 ### A. Before you start
-- ☑ `cd .worktrees/pf-147 && git status` shows branch `fix/pf-147-vulnerable-deps` with 5 changed files (csproj, `package.json`, `package-lock.json`, `pyproject.toml`, `docs/reference/accepted-risks.md`).
+- ☑ `cd .worktrees/pf-147 && git status` shows branch `fix/pf-147-vulnerable-deps` with 5 changed files (csproj, `package.json`, `package-lock.json`, `pyproject.toml`, `docs/references/accepted-risks.md`).
 - ☑ No services are needed for A–C; D needs `npm start`.
 
 ### B. Read the code
 - ☑ `git diff` on `PersonalFinance.Api.csproj`: only `Microsoft.AspNetCore.OpenApi` 10.0.0 → 10.0.13.
 - ☑ `git diff apps/frontend/package.json`: `react-router-dom` `^6.30.3`; `tailwindcss-animate` moved to devDependencies.
 - ☑ `git diff services/ai-service/pyproject.toml`: langgraph bounds unchanged, `langchain>=0.3,<1.0` added, ragas stack under a new `eval` extra.
-- ☑ `docs/reference/accepted-risks.md`: each row names the package, advisory, reason and date.
+- ☑ `docs/references/accepted-risks.md`: each row names the package, advisory, reason and date.
 
 ### C. Run the tests
 - ☑ `cd apps/api && dotnet test PersonalFinance.slnx` → 431 passed, 0 failed, 9 skipped.
@@ -152,7 +152,7 @@ State: .NET, npm and Python changes are done in `.worktrees/pf-147` and verified
 ## Execution Notes
 
 Model: **Opus 5.5** · Effort: **high**. Dependency upgrades across three stacks, where a silent behaviour change in the chat agents is the real risk.
-Before you start: none (PF-143 creates `docs/reference/accepted-risks.md`; create it here if that ticket has not run).
+Before you start: none (PF-143 creates `docs/references/accepted-risks.md`; create it here if that ticket has not run).
 
 ```
 /execute plans/in-progress/PF-147-fix-vulnerable-shipped-dependencies-todo.md

@@ -395,10 +395,10 @@ This task builds the second half — **re-ranking and grounded generation**, plu
   > Verification note: endpoint wired and import-clean; response shape and 502-on-exception path confirmed by reading `main.py`/`answerer.py` and the 3 passing `test_answerer.py` cases. Not exercised with a live LLM call (see STEP 9 note) — the citation-marker behavior depends on the LLM actually following `SYSTEM_PROMPT`, which is mocked in tests, not live-verified.
 - [x] Demo question works end-to-end: a food-spending question in Indonesian returns a correct IDR total with cited transactions
   > Met (2026-07-03): live curl to `POST /ask` with `{"query": "berapa total pengeluaran makan bulan Maret 2025?", "date_from": "2025-03-01", "date_to": "2025-03-31"}` returned `confident=true`, `"Total pengeluaran makan Anda pada bulan Maret 2025 adalah Rp 77.200,00 dari transaksi [1] dan [2]."` with 2 real cited transactions.
-- [x] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) `--rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md)
+- [x] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) `--rerank` runs retrieve-top-10 → rerank → MRR@5; the baseline vs re-ranked delta is recorded in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md)
   > Met: run live 2026-06-23 (see STEP 5) — P@5 baseline 0.657 → reranked 0.600 (delta **-0.057**), MRR@5 1.000 → 0.857. Negative delta from the English-only `ms-marco` cross-encoder mis-scoring Indonesian queries — a documented finding, not a blank. The metrics doc table was previously left stale ("not measured") despite this run existing; corrected in this session (2026-07-03) to reflect the real recorded numbers.
 - [x] [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) — RAGAS `Faithfulness` on 5 generated answers; mean score recorded (target ≥ 0.80)
-  > Met (2026-07-01): **mean faithfulness = 0.900** ≥ 0.80, live run with gpt-4o-mini judge over Gemini-generated answers against real Supabase data (4,467 embedded transactions). Recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md). See STEP 10 note for the three bugs the live run exposed (marker-vs-id citation, asyncpg date binding, fixture year).
+  > Met (2026-07-01): **mean faithfulness = 0.900** ≥ 0.80, live run with gpt-4o-mini judge over Gemini-generated answers against real Supabase data (4,467 embedded transactions). Recorded in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md). See STEP 10 note for the three bugs the live run exposed (marker-vs-id citation, asyncpg date binding, fixture year).
 - [x] [test_reranker.py](../../../services/ai-service/tests/test_reranker.py) + [test_answerer.py](../../../services/ai-service/tests/test_answerer.py) pass (mocked FlashRank / mocked provider — no real API calls in tests)
   > Verified: `pytest tests/test_reranker.py tests/test_answerer.py -v` → 6/6 pass.
 - [x] [pyproject.toml](../../../services/ai-service/pyproject.toml) updated: `flashrank` in dependencies; `ragas` + `langchain-openai` in the `dev` extra (eval-only)
@@ -435,7 +435,7 @@ Out of scope: streaming the answer (Chapter 5), hybrid BM25 + vector search and 
 | [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) | Edit — `--rerank` flag + baseline/reranked delta table |
 | [eval_faithfulness.py](../../../services/ai-service/evals/eval_faithfulness.py) | Create — RAGAS faithfulness on 5 generated answers |
 | [ask_questions.json](../../../services/ai-service/evals/ask_questions.json) | Create — 5 eval questions with expected-answer notes |
-| [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) | Edit — MRR delta, faithfulness score, /ask latency split |
+| [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md) | Edit — MRR delta, faithfulness score, /ask latency split |
 
  
 ## 📋 TODO
@@ -1232,7 +1232,7 @@ P@5   [reranked (10->5)]: 0.600
 
 > 🤔⁉️ **Finding (THINK-04 — failures are diagnostic signals):** Re-ranking with `ms-marco-MiniLM-L-12-v2` produced a *negative* delta on Indonesian queries. The `gaji bulanan salary income` query collapsed from MRR=1.00 to MRR=0.00 — the cross-encoder demoted every relevant salary/income result out of the top-5 entirely. This is the English-training-bias risk the plan anticipated: ms-marco is trained on English MS MARCO passages; it does not recognize Indonesian financial vocabulary as "relevant." The bi-encoder (OpenAI `text-embedding-3-small`) is multilingual and handles Indonesian well; the cross-encoder is not, and it overrides the bi-encoder's correct ranking with wrong scores.
 >
-> **This is a better interview story than a +0.1 lift:** "I measured a negative re-ranking delta and diagnosed it — the cross-encoder was English-only, overriding a multilingual bi-encoder that was already correct. I identified the fix: swap to a multilingual cross-encoder model." Next step: try FlashRank's multilingual model (check README table) or `cross-encoder/ms-marco-MiniLM-L-6-en-de` as a stepping stone. Recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+> **This is a better interview story than a +0.1 lift:** "I measured a negative re-ranking delta and diagnosed it — the cross-encoder was English-only, overriding a multilingual bi-encoder that was already correct. I identified the fix: swap to a multilingual cross-encoder model." Next step: try FlashRank's multilingual model (check README table) or `cross-encoder/ms-marco-MiniLM-L-6-en-de` as a stepping stone. Recorded in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 Extend [evals/eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) with a `--rerank` flag:
 
@@ -1312,7 +1312,7 @@ public static async Task Main(string[] args)
 }
 ```
 
-Run both modes back-to-back and record in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
+Run both modes back-to-back and record in [docs/operations/ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md):
 
 ```bash
 cd services/ai-service
@@ -1784,7 +1784,7 @@ PYTHONPATH=. pytest tests/test_answerer.py -v
 
 ### [x] STEP 9 — Wire `POST /ask` in [app/main.py](../../../services/ai-service/app/main.py)
 
-> **Verification note (updated 2026-07-03):** live curl smoke test run against the running service with 4,467 backfilled embeddings. All 5 questions from `ask_questions.json` returned correct results: food-Maret-2025 → confident=true, Rp 77,200 cited across 2 transactions; last-PLN-payment → confident=true, correct 2025-03-06 row cited; kopi-Maret-2025 → confident=false (genuinely no strong match that month); biggest-expense-Maret-2025 → confident=true, correct max cited; sewa-2031 adversarial → confident=false, no invented number. Queried the Langfuse public API directly (`GET /api/public/traces` + `/observations`) and confirmed `POST /ask` traces land with a nested `gemini-generate-json` GENERATION observation carrying `cost_usd`, token usage, and latency — tracing confirmed end-to-end. Full detail in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+> **Verification note (updated 2026-07-03):** live curl smoke test run against the running service with 4,467 backfilled embeddings. All 5 questions from `ask_questions.json` returned correct results: food-Maret-2025 → confident=true, Rp 77,200 cited across 2 transactions; last-PLN-payment → confident=true, correct 2025-03-06 row cited; kopi-Maret-2025 → confident=false (genuinely no strong match that month); biggest-expense-Maret-2025 → confident=true, correct max cited; sewa-2031 adversarial → confident=false, no invented number. Queried the Langfuse public API directly (`GET /api/public/traces` + `/observations`) and confirmed `POST /ask` traces land with a nested `gemini-generate-json` GENERATION observation carrying `cost_usd`, token usage, and latency — tracing confirmed end-to-end. Full detail in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 In the lifespan, after the existing embedder/retriever wiring:
 
@@ -1860,7 +1860,7 @@ Verify: the answer contains a real IDR total, `[n]` markers, `citations` lists r
 > - **asyncpg date-binding bug:** [retriever.py](../../../services/ai-service/app/services/retriever.py) passed date *strings* to a `$n::date` parameter; asyncpg's date codec expects `datetime.date` (`'str' object has no attribute 'toordinal'`). Fixed with `date.fromisoformat()`; the unit test that asserted the old string behavior was corrected per THINK-04.
 > - **Fixture year mismatch:** `ask_questions.json` asked about March 2026 (0 rows — data runs 2024-01 → 2026-01). Retargeted to March 2025.
 >
-> **Results:** food-Maret-2025 1.00 · last-PLN-payment 1.00 · kopi-Maret-2025 refusal→1.00 (correct — 0 coffee rows that month) · biggest-expense-Maret-2025 **0.50** (real finding: superlative/aggregation questions are a known RAG weakness — semantic top-3 ≠ actual max amount) · sewa-2031 adversarial refusal→1.00 (canary passed). Recorded in [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+> **Results:** food-Maret-2025 1.00 · last-PLN-payment 1.00 · kopi-Maret-2025 refusal→1.00 (correct — 0 coffee rows that month) · biggest-expense-Maret-2025 **0.50** (real finding: superlative/aggregation questions are a known RAG weakness — semantic top-3 ≠ actual max amount) · sewa-2031 adversarial refusal→1.00 (canary passed). Recorded in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 Add eval-only dependencies to the `dev` extra in [pyproject.toml](../../../services/ai-service/pyproject.toml):
 
@@ -2016,7 +2016,7 @@ public static class FaithfulnessEval
 > practice, and walking through it by hand is what makes RAGAS's internals legible rather than a
 > black box you just trust.
 
-Run and record the mean in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
+Run and record the mean in [docs/operations/ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md):
 
 ```bash
 PYTHONPATH=. python evals/eval_faithfulness.py
@@ -2029,7 +2029,7 @@ PYTHONPATH=. python evals/eval_faithfulness.py
 
 ### [x] STEP 11 — Update the metrics doc
 
-Append to [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
+Append to [docs/operations/ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md):
 
 ```markdown
 ## RAG Phase 2 (PF-AI004) — re-ranking + generation
@@ -2072,7 +2072,7 @@ git add services/ai-service/tests/test_retriever.py
 git add services/ai-service/evals/eval_retrieval.py
 git add services/ai-service/evals/eval_faithfulness.py
 git add services/ai-service/evals/ask_questions.json
-git add docs/performances/ai-observability-metrics.md
+git add docs/operations/ai-observability-metrics.md
 git status    # verify NO .env, NO credentials
 git commit -m "PF-AI004: RAG Phase 2 — chunking, FlashRank re-ranking, grounded /ask with citations"
 ```

@@ -92,7 +92,7 @@ This task builds the first half of the RAG pipeline — **embedding and retrieva
 6. Wire the `.NET` upload pipeline to call `/embed-transactions` after a successful insert batch.
 7. Build [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) — MRR measurement against 10 handwritten test queries.
 
-The deliverable is: a working semantic search over your own transactions, with MRR captured and the embedding cost-per-document added to [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+The deliverable is: a working semantic search over your own transactions, with MRR captured and the embedding cost-per-document added to [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 **Depends on:** PF-AI001 (reuses `estimate_cost_usd()` + Langfuse), PF-AI002 (the 20 eval fixtures become the Week 4 retrieval test corpus — label them well now).
 **Unblocks:** Week 4 RAG (re-ranking + generation), Week 5 Streaming (streams the grounded answer over SSE).
@@ -111,7 +111,7 @@ The deliverable is: a working semantic search over your own transactions, with M
 - [x] [eval_retrieval.py](../../../services/ai-service/evals/eval_retrieval.py) — runs 10 queries, computes MRR@5, prints table
 - [ ] MRR@5 ≥ 0.6 on the test set (baseline; target ≥ 0.8 after Week 4 re-ranking)
   > Not met: requires filling search_queries.json with real transaction IDs, running backfill_embeddings.py, then eval_retrieval.py
-- [x] [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) updated with: embedding cost/doc, search latency p50/p95 (cost populated; latency TBD after first run)
+- [x] [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md) updated with: embedding cost/doc, search latency p50/p95 (cost populated; latency TBD after first run)
 - [x] [test_embedder.py](../../../services/ai-service/tests/test_embedder.py) — 7 unit tests pass (mocked OpenAI + asyncpg)
 - [x] [test_retriever.py](../../../services/ai-service/tests/test_retriever.py) — 4 unit tests pass (mocked OpenAI + asyncpg)
 
@@ -149,7 +149,7 @@ Out of scope: re-ranking (Week 4), LLM synthesis (Week 4), streaming the answer 
 | [ILlmSearchClient.cs](../../../apps/api/src/PersonalFinance.Application/Interfaces/ILlmSearchClient.cs) | Create — interface (Application layer owns interfaces, ARCH-02) |
 | [Program.cs](../../../apps/api/src/PersonalFinance.Api/Program.cs) | Register `ILlmSearchClient` / `LlmSearchClient` |
 | [UploadTransactionsCommandHandler.cs](../../../apps/api/src/PersonalFinance.Application/Commands/UploadTransactionsCommandHandler.cs) | Add fire-and-forget call to `ILlmSearchClient.EmbedTransactionsAsync` after insert |
-| [ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md) | Add embedding cost/doc + search latency numbers |
+| [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md) | Add embedding cost/doc + search latency numbers |
 
 ## 📋 TODO
 
@@ -235,15 +235,15 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
 
     # Direct Postgres URL for asyncpg (pgvector operations bypass PostgREST)
-    # Local Supabase: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+    # Local Supabase: postgresql://postgres:postgres@127.0.0.1:54322/postgres  commit-skill:allow (local Supabase default)
     # Supabase Cloud: from Project Settings → Database → Connection string → URI
-    database_url: str = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+    database_url: str = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"  # commit-skill:allow (local Supabase default)
 ```
 
 Add to your `.env` file (not committed — already in `.gitignore`):
 ```
 OPENAI_API_KEY=sk-...
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres  # commit-skill:allow (local Supabase default)
 ```
 
 **C# equivalent** (Python `pydantic-settings` env-var binding → .NET `appsettings.json` + environment variable override):
@@ -1347,7 +1347,7 @@ cd services/ai-service
 PYTHONPATH=. python evals/eval_retrieval.py
 ```
 
-Record the MRR@5 in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md).
+Record the MRR@5 in [docs/operations/ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
 ### [x] STEP 14 — Commit
 

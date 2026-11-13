@@ -155,7 +155,7 @@ class SearchRequest(BaseModel):
     # (2026-07-24, eval_retrieval.py --all) measured hybrid UNDER pure vector
     # on this corpus (MRR@5 0.750 vs 0.771, P@5 0.467 vs 0.533): RRF pulls
     # bm25's noisier keyword matches into the merged top-5, displacing vector
-    # hits that were already perfect. See docs/mentor/advanced-rag-notes.md.
+    # hits that were already perfect. See docs/mentor/topics/advanced-rag-notes.md.
     search_mode: Literal["vector", "bm25", "hybrid"] = "vector"
 
 

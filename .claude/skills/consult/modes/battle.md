@@ -114,4 +114,4 @@ Use this exact structure regardless of lens:
 ---
 
 ### Step 6 — Save the verdict (optional, ask first)
-Ask the user if they want to persist the decision. If yes, write `plans/resources/reviews/{prefix}-verdict.md` using the output above as content.
+Ask the user if they want to persist the decision. If yes, write `docs/records/battle-plans/{prefix}-verdict.md` using the output above as content.

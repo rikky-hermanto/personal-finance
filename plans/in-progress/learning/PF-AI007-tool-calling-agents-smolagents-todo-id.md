@@ -4,7 +4,7 @@
 >
 > **Urutan baca:** masalah dulu → baru konsep → baru cara kerja → baru kode → baru optimisasi → baru best practice → baru kesalahan umum → baru ringkasan. Jangan loncat ke bagian Implementasi kalau tiga bagian pertama belum kebayang, nanti kodenya kelihatan seperti sihir.
 >
-> **Ketemu istilah asing di tengah baca?** Semua istilah baru dijelaskan pas pertama kali muncul, dan tiap istilah di-link langsung ke definisinya di [Glossary RAG](../../resources/learning/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik. (Namanya masih "Glossary RAG" karena historinya, tapi sudah dipakai bersama untuk semua chapter, termasuk chapter agent ini.)
+> **Ketemu istilah asing di tengah baca?** Semua istilah baru dijelaskan pas pertama kali muncul, dan tiap istilah di-link langsung ke definisinya di [Glossary RAG](../../../docs/mentor/resources/glossary-rag-id.md) — tinggal klik, tidak perlu scroll balik. (Namanya masih "Glossary RAG" karena historinya, tapi sudah dipakai bersama untuk semua chapter, termasuk chapter agent ini.)
 >
 > **Chapter ini belum dikerjakan (status: To Do).** Bagian Implementasi di bawah menjelaskan kode yang *akan* ditulis sesuai file plan asli — bukan kode yang sudah live dan sudah dites terhadap Supabase asli seperti PF-AI004. Bagian Kesalahan Umum juga diberi catatan khusus soal ini.
 
@@ -24,11 +24,11 @@ Target chapter ini: `POST /categorize-agent` dengan input yang sama seperti `/ca
 
 Tiga konsep baru menyelesaikan masalah di atas:
 
-1. **[Agent](../../resources/learning/glossary-rag-id.md#agent)** — bukan satu kali panggilan LLM, tapi sebuah **loop**: LLM lihat apa yang sudah dia tahu, mikir langkah berikutnya, panggil satu tool, lihat hasilnya, ulangi — sampai punya informasi yang cukup untuk menjawab. Pola loop ini punya nama baku: **[ReAct](../../resources/learning/glossary-rag-id.md#react)** (Reason → Act → Observe → ulangi).
+1. **[Agent](../../../docs/mentor/resources/glossary-rag-id.md#agent)** — bukan satu kali panggilan LLM, tapi sebuah **loop**: LLM lihat apa yang sudah dia tahu, mikir langkah berikutnya, panggil satu tool, lihat hasilnya, ulangi — sampai punya informasi yang cukup untuk menjawab. Pola loop ini punya nama baku: **[ReAct](../../../docs/mentor/resources/glossary-rag-id.md#react)** (Reason → Act → Observe → ulangi).
 
-2. **[`ToolCallingAgent`](../../resources/learning/glossary-rag-id.md#tool-calling-agent) vs [`CodeAgent`](../../resources/learning/glossary-rag-id.md#code-agent)** — smolagents (library yang dipakai chapter ini) punya dua varian agent. `CodeAgent` membiarkan LLM menulis kode Python bebas untuk memanggil tool — fleksibel, tapi berbahaya kalau jalan di server produksi (kode yang dihasilkan bisa memuat apa saja, termasuk perintah sistem yang merusak). `ToolCallingAgent` membatasi LLM cuma boleh mengeluarkan **panggilan tool berformat JSON** dari daftar yang sudah didaftarkan — ini yang aman untuk web service.
+2. **[`ToolCallingAgent`](../../../docs/mentor/resources/glossary-rag-id.md#tool-calling-agent) vs [`CodeAgent`](../../../docs/mentor/resources/glossary-rag-id.md#code-agent)** — smolagents (library yang dipakai chapter ini) punya dua varian agent. `CodeAgent` membiarkan LLM menulis kode Python bebas untuk memanggil tool — fleksibel, tapi berbahaya kalau jalan di server produksi (kode yang dihasilkan bisa memuat apa saja, termasuk perintah sistem yang merusak). `ToolCallingAgent` membatasi LLM cuma boleh mengeluarkan **panggilan tool berformat JSON** dari daftar yang sudah didaftarkan — ini yang aman untuk web service.
 
-3. **[Tool docstring sebagai skema](../../resources/learning/glossary-rag-id.md#tool-docstring-as-schema)** — docstring menjadi deskripsi utama setiap tool yang dipakai LLM untuk menentukan kapan tool perlu digunakan dan bagaimana tool itu dipanggil. Docstring bukan cuma dokumentasi buat manusia di sini — dia **adalah** instruksi yang dibaca mesin.
+3. **[Tool docstring sebagai skema](../../../docs/mentor/resources/glossary-rag-id.md#tool-docstring-as-schema)** — docstring menjadi deskripsi utama setiap tool yang dipakai LLM untuk menentukan kapan tool perlu digunakan dan bagaimana tool itu dipanggil. Docstring bukan cuma dokumentasi buat manusia di sini — dia **adalah** instruksi yang dibaca mesin.
 
 Diagram besar chapter ini — satu agent, tiga tool, loop ReAct maksimal 3 putaran:
 
@@ -82,11 +82,11 @@ Bagian ini menjelaskan tiap konsep dengan cara "tangga": mulai dari versi paling
 
 Ganjalannya, waktu tebakannya salah, tidak ada apa pun yang bisa dibuka untuk tahu kenapa. Model tidak pernah benar-benar mengecek 106 rule atau riwayat transaksi user — dia menebak murni dari untaian deskripsinya. Kasih dia `"GJ*GRAB CAR JAKARTA"` dan dia bisa saja bilang "Shopping"; tidak ada yang menunjukkan apa yang dia pertimbangkan atau cara mengoreksinya.
 
-**Kasih model tool.** Daripada menebak, biarkan model memanggil fungsi: cari rule yang cocok, cek transaksi mirip di riwayat. **[Tool calling](../../resources/learning/glossary-rag-id.md#tool-calling)** = LLM mengeluarkan permintaan terstruktur ("panggil `search_category_rules` dengan keyword='grab'"), kode aplikasi yang menjalankannya, hasilnya dikembalikan ke model.
+**Kasih model tool.** Daripada menebak, biarkan model memanggil fungsi: cari rule yang cocok, cek transaksi mirip di riwayat. **[Tool calling](../../../docs/mentor/resources/glossary-rag-id.md#tool-calling)** = LLM mengeluarkan permintaan terstruktur ("panggil `search_category_rules` dengan keyword='grab'"), kode aplikasi yang menjalankannya, hasilnya dikembalikan ke model.
 
 Tapi satu panggilan tool biasanya tidak cukup. Rule bisa saja mengembalikan "tidak ada yang cocok", dan model perlu *melihat hasil itu* baru memutuskan mencoba similarity search. Interaksi satu kali request–response tidak dapat menentukan langkah berikutnya berdasarkan hasil yang baru diperoleh.
 
-**Loop ReAct.** **[ReAct](../../resources/learning/glossary-rag-id.md#react)** (Reason + Act) menjalankan model dalam loop: amati hasil tool terakhir, pikirkan langkah berikutnya, panggil tool lagi, amati lagi — sampai punya informasi yang cukup untuk menjawab. smolagents yang menjalankan loop ini untukmu. → *Ini yang dipakai chapter ini.*
+**Loop ReAct.** **[ReAct](../../../docs/mentor/resources/glossary-rag-id.md#react)** (Reason + Act) menjalankan model dalam loop: amati hasil tool terakhir, pikirkan langkah berikutnya, panggil tool lagi, amati lagi — sampai punya informasi yang cukup untuk menjawab. smolagents yang menjalankan loop ini untukmu. → *Ini yang dipakai chapter ini.*
 
 > **Teaser, belum dibangun di sini:** Chapter 8 (LangGraph) mengubah loop implisit ini jadi graf state eksplisit dengan node routing dan retry — loop yang sama, tapi bisa diinspeksi dan dikendalikan.
 
@@ -120,7 +120,7 @@ Pelajaran yang bisa dibawa ke mana-mana: **membangun agent itu sebagian besar ke
 
 ### Kenapa `max_steps=3`
 
-Tiga tool-nya punya urutan yang disarankan lewat docstring: rules → history → daftar kategori. Tapi ini urutan *preferensi*, bukan rantai wajib — tiap putaran loop memanggil **satu** tool saja, dan yang memilih adalah LLM. Praktiknya 1–2 iterasi biasanya cukup: rule cocok atau tidak. `[max_steps](../../resources/learning/glossary-rag-id.md#max-steps)=3` membatasi loop yang kebablasan, di mana LLM terus memanggil tool yang sama dengan keyword berbeda-beda. Chapter 8 (LangGraph) menggantikan batas implisit ini dengan node routing `END` eksplisit — nanti kelihatan persis apa yang dia selesaikan.
+Tiga tool-nya punya urutan yang disarankan lewat docstring: rules → history → daftar kategori. Tapi ini urutan *preferensi*, bukan rantai wajib — tiap putaran loop memanggil **satu** tool saja, dan yang memilih adalah LLM. Praktiknya 1–2 iterasi biasanya cukup: rule cocok atau tidak. `[max_steps](../../../docs/mentor/resources/glossary-rag-id.md#max-steps)=3` membatasi loop yang kebablasan, di mana LLM terus memanggil tool yang sama dengan keyword berbeda-beda. Chapter 8 (LangGraph) menggantikan batas implisit ini dengan node routing `END` eksplisit — nanti kelihatan persis apa yang dia selesaikan.
 
 ---
 
@@ -211,7 +211,7 @@ Dua detail di blok ini yang gampang salah, dan dua-duanya gagal tanpa error:
 
 **Kedua, `tool_calls_count` diambil dari catatan langkah milik agent sendiri**, bukan diisi `0` lalu "nanti diisi pemanggil". Field angka yang isinya selalu 0 lebih berbahaya daripada tidak ada field sama sekali — bentuknya seperti hasil pengukuran, jadi tidak ada yang curiga.
 
-Perhatikan: `categorize()` di sini adalah fungsi **sinkron** — `ToolCallingAgent.run()` bawaan smolagents memang sinkron. Dipanggil langsung di dalam `async def` endpoint, dia akan menahan event loop selama agent berjalan (bisa 1–5 detik). Endpoint-nya membungkus panggilan ini dengan `asyncio.to_thread(...)` — pola yang sama dengan FlashRank di Chapter 4 ([lihat glossary](../../resources/learning/glossary-rag-id.md#asyncio-to-thread)).
+Perhatikan: `categorize()` di sini adalah fungsi **sinkron** — `ToolCallingAgent.run()` bawaan smolagents memang sinkron. Dipanggil langsung di dalam `async def` endpoint, dia akan menahan event loop selama agent berjalan (bisa 1–5 detik). Endpoint-nya membungkus panggilan ini dengan `asyncio.to_thread(...)` — pola yang sama dengan FlashRank di Chapter 4 ([lihat glossary](../../../docs/mentor/resources/glossary-rag-id.md#asyncio-to-thread)).
 
 **Menyalakan trace ke Langfuse** — cuma satu baris tambahan di startup, *setelah* OTLP exporter (dari PF-AI001) sudah dikonfigurasi:
 
@@ -375,4 +375,4 @@ Perhatikan baris pertama: patokannya **cocok persis dengan label yang diharapkan
 
 ## 📖 Glossary
 
-Istilah baru chapter ini (agent, ReAct, tool calling, `ToolCallingAgent`, `CodeAgent`, LiteLLM, docstring-as-schema, `max_steps`, span/trace) sudah di-link langsung dari tiap kemunculan pertamanya di atas, di kategori baru **"9. Agents & Tool Calling"**. Kalau mau lihat semuanya sekaligus (atau cari istilah dari chapter-chapter sebelumnya): **[Glossary RAG (Bahasa Indonesia)](../../resources/learning/glossary-rag-id.md)**.
+Istilah baru chapter ini (agent, ReAct, tool calling, `ToolCallingAgent`, `CodeAgent`, LiteLLM, docstring-as-schema, `max_steps`, span/trace) sudah di-link langsung dari tiap kemunculan pertamanya di atas, di kategori baru **"9. Agents & Tool Calling"**. Kalau mau lihat semuanya sekaligus (atau cari istilah dari chapter-chapter sebelumnya): **[Glossary RAG (Bahasa Indonesia)](../../../docs/mentor/resources/glossary-rag-id.md)**.

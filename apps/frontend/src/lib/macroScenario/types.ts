@@ -1,5 +1,5 @@
 // Macro Scenario Lab — domain types. Framework-free: no React, no DOM.
-// Ported from docs/reference/simulator-makro-v3.jsx.
+// Ported from docs/references/simulator-makro-v3.jsx.
 
 /** Exogenous drivers — the only things a user can move. Everything else is computed. */
 export interface MacroDrivers {

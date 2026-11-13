@@ -50,7 +50,7 @@ GEMINI_API_KEY=your-gemini-key-here
 # OPENAI_API_KEY=sk-...
 # EMBEDDING_MODEL=text-embedding-3-small  # optional override
 
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres  # commit-skill:allow (local Supabase default)
 ```
 
 ---
@@ -162,7 +162,7 @@ The **Provider / Model** header line makes MRR@5 numbers attributable to a speci
 
 ## Step 5 — Log the numbers
 
-Record MRR@5 + p50/p95 latency in [docs/performances/ai-observability-metrics.md](../../../docs/performances/ai-observability-metrics.md):
+Record MRR@5 + p50/p95 latency in [docs/operations/ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md):
 
 - Provider + model name
 - MRR@5 (macro avg)

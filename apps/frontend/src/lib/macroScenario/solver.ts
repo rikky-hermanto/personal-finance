@@ -1,5 +1,5 @@
 // Macro Scenario Lab — core solver. Framework-free, deterministic, no I/O.
-// Ported from docs/reference/simulator-makro-v3.jsx computeModel() (lines 25-205), split so this
+// Ported from docs/references/simulator-makro-v3.jsx computeModel() (lines 25-205), split so this
 // file owns only the iterative FX/inflation solve and the derived "results, not choices" state.
 // Instrument pricing lives in instruments.ts; stakeholder scoring + regime live in stakeholders.ts.
 //

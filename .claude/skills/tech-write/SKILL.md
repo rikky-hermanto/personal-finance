@@ -88,7 +88,7 @@ Use after finishing a sprint, closing a batch of tickets, or landing a significa
 | `README.md` | Features / "What's built" section | **Only if** README contains such a section; skip otherwise |
 | `docs/INDEX.md` | Add rows for any new docs files created since last sync | **Only if** new `.md` files were added under `docs/` |
 | `MEMORY.md` — the project memory (auto-loaded into context each session; if a memory directory exists for this project under `~/.claude/projects/`, read its MEMORY.md — otherwise skip) | "Project State" section — phase, completed milestones, active tasks | **Always** (skip if no memory directory exists) |
-| `docs/sprint-plan.md` and similar progress-tracking docs | Sprint/task counters and progress fractions, if the doc carries them | **Only if** the doc exists and contains counters that drifted |
+| `docs/records/sprint-plan.md` and similar progress-tracking docs | Sprint/task counters and progress fractions, if the doc carries them | **Only if** the doc exists and contains counters that drifted |
 
 **Do NOT touch in this mode:**
 - `plans/BOARD.md` — updated by the task workflow (`plan` / `execute` / `chores`), not here
@@ -108,7 +108,7 @@ Run these together before writing anything:
 4. Read `README.md` — check whether it has a status/features section
 5. Check `docs/INDEX.md` — see what's already indexed
 6. Read `MEMORY.md` "Project State" section (the project memory, if it exists — see Step 0)
-7. Check `docs/sprint-plan.md` and similar progress-tracking docs — if they carry sprint/task counters, include them in the sync sweep
+7. Check `docs/records/sprint-plan.md` and similar progress-tracking docs — if they carry sprint/task counters, include them in the sync sweep
 
 ---
 

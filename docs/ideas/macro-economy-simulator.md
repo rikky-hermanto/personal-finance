@@ -11,7 +11,7 @@ Saya ingin mengadopsi **logika domain** dari file referensi `simulator-makro-v3.
 
 1. **Ambil logikanya saja, buang seluruh lapisan visualnya.** File referensi memakai warna hex hardcoded, inline style, dan palet gelap yang tidak ada hubungannya dengan proyek ini. Semua itu dibuang. Jangan menyalin satu pun nilai hex, `style={{}}` object, atau nama token dari file itu.
 2. **UI harus lahir dari design system proyek ini.** Turunkan tema, tipografi, spacing, komponen, dan pola layout dari yang sudah ada di repo. Kalau proyek punya `<Card>`, `<Slider>`, `<StatTile>`, pakai itu. Kalau belum ada, buat mengikuti konvensi komponen yang sudah berjalan, bukan mengikuti file referensi.
-3. **Jangan sentuh file referensi.** Perlakukan sebagai spesifikasi read-only. Setelah selesai, pindahkan ke `docs/reference/` atau hapus — jangan biarkan tersisa sebagai komponen aktif.
+3. **Jangan sentuh file referensi.** Perlakukan sebagai spesifikasi read-only. Setelah selesai, pindahkan ke `docs/references/` atau hapus — jangan biarkan tersisa sebagai komponen aktif.
 4. **Jangan pasang dependensi baru** kecuali benar-benar tidak ada padanannya di repo. Kalau proyek sudah punya library chart, pakai itu; jangan tambah `recharts` hanya karena referensinya memakai itu.
 
 ## Fase 0 — Discovery, sebelum menulis kode apa pun

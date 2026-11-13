@@ -96,7 +96,7 @@ Tests
 
 ## CIO rulings (methodology review, `/cio` on 2026-10-25)
 
-Recorded here because the plan depends on them. The CIO read the rubric, `formulas.md` §1–2, `JourneyScoringService.cs` and the earlier CIO Review in [pm-journey-quests-analysis.md](../brainstorms/pm-journey-quests-analysis.md).
+Recorded here because the plan depends on them. The CIO read the rubric, `formulas.md` §1–2, `JourneyScoringService.cs` and the earlier CIO Review in [pm-journey-quests-analysis.md](../../docs/ideas/brainstorms/pm-journey-quests-analysis.md).
 
 Definitions to implement (one place in code, `JourneyScoringRules`):
 - **Consumption** = rows with Type `Expense` and a category outside {Investment, Savings Transfer, Investasi, Tabungan}.
@@ -156,8 +156,8 @@ Deliberately not done: quests, the recalculation trigger after uploads (plan 2),
 | `apps/frontend/src/components/assets/NoDebtsPrompt.tsx` | Create |
 | `apps/frontend/src/pages/assets/LiabilitiesTab.tsx` | Edit — empty state uses `NoDebtsPrompt` |
 | `apps/frontend/src/utils/journeyLabels.ts`, `components/journey/IndicatorScoreBar.tsx`, `components/journey/TierCard.tsx`, `pages/journey/AchievementsPage.tsx` | Edit — "Not evaluated" rendering and `debt_free` copy |
-| `docs/ideas/scoring-rubric.md` | Edit — version 2, changelog, definitions, bars, Audit Trail |
-| `docs/reference/finance-domain/formulas.md` | Edit — §1 notes, §2 table |
+| `docs/references/finance-domain/scoring-rubric.md` | Edit — version 2, changelog, definitions, bars, Audit Trail |
+| `docs/references/finance-domain/formulas.md` | Edit — §1 notes, §2 table |
 | `CLAUDE.md` | Edit — pyramid headlines (surgical edit: the file already has uncommitted changes) |
 | `docs/architecture/API-endpoints.md`, `docs/STATUS.md` | Edit — new endpoints, status line |
 
@@ -253,11 +253,11 @@ namespace PersonalFinance.Application.Services;
 
 /// <summary>
 /// Pure Journey scoring rules: no Supabase, no clock. Kept apart from JourneyScoringService so
-/// every rule can be tested with plain objects. Methodology: docs/ideas/scoring-rubric.md (v2).
+/// every rule can be tested with plain objects. Methodology: docs/references/finance-domain/scoring-rubric.md (v2).
 /// </summary>
 internal static class JourneyScoringRules
 {
-    // Source: docs/ideas/scoring-rubric.md v2, "Spending vs saving". These categories mean money
+    // Source: docs/references/finance-domain/scoring-rubric.md v2, "Spending vs saving". These categories mean money
     // moved to the future rather than consumed. spend_lt_income and liquid_savings_ratio leave them
     // out of expense; savings_rate counts only them. Only "Investment" is produced by a preset today.
     private static readonly HashSet<string> SavingsCategories = new(StringComparer.OrdinalIgnoreCase)
@@ -1447,7 +1447,7 @@ export const NOT_EVALUATED_ACTIONS: Record<string, { action: string; href: strin
 
 ---
 
-### [x] STEP 9 — Docs: `docs/ideas/scoring-rubric.md` (version 2)
+### [x] STEP 9 — Docs: `docs/references/finance-domain/scoring-rubric.md` (version 2)
 
 Make surgical edits (Edit tool). Leave every breakpoint table as is.
 
@@ -1522,7 +1522,7 @@ Everything before the date above.
 
 > **Note:** formulas.md (§1 notes + §2 table, dated 2026-10-25), CLAUDE.md pyramid headlines, and API-endpoints.md done. README.md pyramid block carries no indicator headline text, so no change there. The rubric changelog deploy-date fill-in and the STATUS.md line are STEP 12 items (deploy day).
 
-1. **`docs/reference/finance-domain/formulas.md`**
+1. **`docs/references/finance-domain/formulas.md`**
    - §1: in the Savings rate and Expense ratio rows, add "expense = consumption: money moved to saving or investing is excluded (rubric v2)"; in the DTI row, add "the Journey indicator divides by take-home income from bank statements, not gross; it reads higher (conservative)"; in the Liquid savings ratio row, say the denominator is consumption.
    - §2: replace the breakpoint table (use method names instead of line numbers, which drift) and update the "as of" date and `Last updated`:
 
@@ -1548,7 +1548,7 @@ Everything before the date above.
        ████████████████████     L1 · Foundations  — Cleared: spending ≤ 89% of income · Mastered: ≤ 80%
 ```
 
-   and add under the block: `Cleared = every live indicator scores ≥ 70; Mastered = score 100 (per indicator). Spending excludes money you invest or save. DTI is judged once debts are recorded or confirmed. Source: [scoring-rubric.md](docs/ideas/scoring-rubric.md).` Then `grep -n "Investing ≥15%\|debt-to-income < 20%" README.md docs -r`: if README.md carries the same block, align it the same way and keep its emojis.
+   and add under the block: `Cleared = every live indicator scores ≥ 70; Mastered = score 100 (per indicator). Spending excludes money you invest or save. DTI is judged once debts are recorded or confirmed. Source: [scoring-rubric.md](docs/references/finance-domain/scoring-rubric.md).` Then `grep -n "Investing ≥15%\|debt-to-income < 20%" README.md docs -r`: if README.md carries the same block, align it the same way and keep its emojis.
 
 3. **`docs/architecture/API-endpoints.md`**: after `GET /api/journey/quests` add `GET /api/journey/no-debts` (`GetNoDebts`), `PUT /api/journey/no-debts` (`ConfirmNoDebts`), `DELETE /api/journey/no-debts` (`ClearNoDebts`).
 
@@ -1593,7 +1593,7 @@ console.log(await call('GET', '/api/journey/no-debts'));    // null, and the sco
 
    If the key is stored differently, read the session from the app's Supabase client instead. Leave the flag **cleared** when done unless Rikky wants it set.
 4. **Recalculate** (Journey page, Recalculate), then `GET /api/journey/state`. Check: `manageable_dti` and `appropriate_insurance` levels are `L2`; reload the page and confirm an unevaluated indicator still reads `no_data`; check the SQL for `achievements` and the stored `indicator_scores`. Also check the snapshot rule: `select indicator_code, snapshot_date from journey_indicator_snapshots where snapshot_date = current_date` must not list `manageable_dti` while it is `no_data`, and no row from an earlier day changed.
-5. **Empty-state UI.** The owner has a liability, so the prompt is hidden for them (correct). To see the prompt, sign in as a user with no liabilities (the disposable "empty" test user of the PF-S08 harness, see `playwright.pf-s08.config.ts` and [pf-s08-cashflow-pilot.md](../../docs/runbooks/pf-s08-cashflow-pilot.md)), or use dev tools to inspect it. Do **not** delete the owner's liability. Check: prompt shows "I have no debts"; after pressing it, the date and "Undo" show; Journey shows the debt row without "Not evaluated" and the level card shows a score; after "Undo" it returns to "Not evaluated · update your debts" in neutral grey, and today's snapshot row for `manageable_dti` is gone.
+5. **Empty-state UI.** The owner has a liability, so the prompt is hidden for them (correct). To see the prompt, sign in as a user with no liabilities (the disposable "empty" test user of the PF-S08 harness, see `playwright.pf-s08.config.ts` and [pf-s08-cashflow-pilot.md](../../docs/operations/runbooks/pf-s08-cashflow-pilot.md)), or use dev tools to inspect it. Do **not** delete the owner's liability. Check: prompt shows "I have no debts"; after pressing it, the date and "Undo" show; Journey shows the debt row without "Not evaluated" and the level card shows a score; after "Undo" it returns to "Not evaluated · update your debts" in neutral grey, and today's snapshot row for `manageable_dti` is gone.
 6. **Record** in "Before / after" (Execution Notes): the after scores, the date, which achievements are now unlocked (especially `debt_free`, `graduated_l2`, `consistent_investor`), and whether any was earned on empty or unknown data. Report it; do not delete anything.
 7. Fill the deploy date into the rubric changelog ("Version 2 — …") and the "as of" date in `formulas.md`. Add a dated line to `docs/STATUS.md` in the style of the existing 2026-10-25 entry.
 8. Regenerate the board: `node "$HOME/.claude/skills/loop-lib/scripts/board.mjs" --root . --write`.
