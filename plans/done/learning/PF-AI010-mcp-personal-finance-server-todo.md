@@ -1,5 +1,5 @@
 ---
-id: PF-AI009
+id: PF-AI010
 size: L
 flags: [Ready]
 sensitive: []
@@ -19,19 +19,19 @@ approved:
   at-label: 2026-10-21 23:01 Asia/Makassar
   budgetOverride: true
 run:
-  worktree: .worktrees/pf-ai009
-  branch: loop/pf-ai009
+  worktree: .worktrees/pf-ai010
+  branch: loop/pf-ai010
   slot: 1
   fixRounds: 0
   segments: 0
-  checkpoint: .loop/runs/PF-AI009/checkpoint.json
-  logs: .loop/runs/PF-AI009/
+  checkpoint: .loop/runs/PF-AI010/checkpoint.json
+  logs: .loop/runs/PF-AI010/
   verdict: pass
 ---
 
-# PF-AI009 — Model Context Protocol (MCP) Server
+# PF-AI010 — Model Context Protocol (MCP) Server
 
-> **Learning Phase:** Phase 3 · Chapter 9 of 12 · Day ~60 of 90
+> **Learning Phase:** Phase 3 · Chapter 10 of 15 · Day ~60 of 90
 > **Status:** Ready to review (merged in PR #87; manual Claude Desktop test pending)
 > **Started:** —
 > **Planned from branch:** main
@@ -168,7 +168,7 @@ Chapters 1–8 built a complete RAG + agent stack within one service. MCP lifts 
 4. **Stretch: 2-agent MCP workflow** — an orchestrator agent dispatches calls to your MCP server to answer a multi-step financial question
 
 **Depends on:** PF-AI003 (`RetrievalService`, pgvector semantic search — `search_transactions_semantic` reuses it directly)
-**Unblocks:** Chapter 10 demo Loom (the MCP server is the "look at what I built" segment)
+**Unblocks:** Chapter 13 demo Loom (the MCP server is the "look at what I built" segment)
 
 ## ✅ Acceptance Criteria
 
@@ -1200,7 +1200,7 @@ git add services/ai-service/app/config.py
 git add services/ai-service/pyproject.toml
 git add services/ai-service/tests/test_mcp_server.py
 git status    # verify NO .env, NO claude_desktop_config.json
-git commit -m "PF-AI009: MCP server — get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic (FastMCP SSE)"
+git commit -m "PF-AI010: MCP server — get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic (FastMCP SSE)"
 ```
 
 ### [x] STEP 10 — Stretch: 2-agent MCP workflow
@@ -1377,10 +1377,10 @@ PYTHONPATH=. python scratch/mcp_agent_demo.py
 
 ### [x] STEP 11 — Log progress
 
-> **Done:** logged a Chapter 9 MCP session to `docs/mentor/progress.md` (2026-10-21, Day 148) and ticked the "Build the MCP server" item on the Phase 3 Chapter 9 checklist. Written directly in the tracker's existing journal format rather than via the interactive `/mentor log` command, which could conflict with the loop's own plan/board bookkeeping.
+> **Done:** logged a Chapter 10 MCP session to `docs/mentor/progress.md` (2026-10-21, Day 148) and ticked the "Build the MCP server" item on the Phase 3 Chapter 10 checklist. Written directly in the tracker's existing journal format rather than via the interactive `/mentor log` command, which could conflict with the loop's own plan/board bookkeeping.
 
 ```
-/mentor log Built personal-finance MCP server: 4 tools (get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic), FastMCP SSE mounted at /mcp on AI service port 8000, Claude Desktop configured and tested end-to-end, stretch 2-agent demo. Chapter 9 complete.
+/mentor log Built personal-finance MCP server: 4 tools (get_transactions, get_cashflow_summary, get_pyramid_scores, search_transactions_semantic), FastMCP SSE mounted at /mcp on AI service port 8000, Claude Desktop configured and tested end-to-end, stretch 2-agent demo. Chapter 10 complete.
 ```
 
 ## 📌 Notes
@@ -1391,7 +1391,7 @@ PYTHONPATH=. python scratch/mcp_agent_demo.py
 - **Windows Claude Desktop config path.** `%APPDATA%\Claude\claude_desktop_config.json` = `C:\Users\rikky\AppData\Roaming\Claude\claude_desktop_config.json`. Restart Claude Desktop after every config edit.
 - **Auth is deliberately deferred.** When PF-S08 wires Supabase Auth, the MCP SSE endpoint will need a bearer token guard + RLS enforcement. It's a 3-line FastAPI middleware addition once the auth plumbing exists. Note it; don't build it now.
 - **THINK-05 (frozen contract).** The MCP tool schemas are a public interface. Once Claude Desktop (or another agent) starts using your MCP tools, renaming a return field (e.g., `account` → `bank`) breaks any prompt or workflow that references that field name. Treat tool schemas as stable as `TransactionDto` fields.
-- **Stretch: MCP Resources.** If you go further after the stretch agent demo, expose `finance://pyramid-scores` as a Resource (read-only URI-addressed data the AI fetches proactively) alongside the `get_pyramid_scores` Tool (an action it calls on demand). Resources vs Tools = GET vs POST in REST: Resources are for data that's already computed; Tools are for live operations. Interesting interview angle; defer to after Chapter 12.
+- **Stretch: MCP Resources.** If you go further after the stretch agent demo, expose `finance://pyramid-scores` as a Resource (read-only URI-addressed data the AI fetches proactively) alongside the `get_pyramid_scores` Tool (an action it calls on demand). Resources vs Tools = GET vs POST in REST: Resources are for data that's already computed; Tools are for live operations. Interesting interview angle; defer to after Chapter 15.
 
 ## 📚 Resources / Theory to Learn
 
@@ -1420,14 +1420,14 @@ Organized by concept — read when building the relevant step, not all upfront.
 
 ## 🧠 Learning Strategy
 
-**Daily loop for Chapter 9:**
+**Daily loop for Chapter 10:**
 
 - **Day 1 (2.5h):** Steps 0–2 — MCP concepts + quickstart + schema table. Done when the inspector shows your hello tool and the schema table is written from memory.
 - **Day 2 (3h):** Steps 3–6 — Build all 4 tools, all tests green. Done when `PYTHONPATH=. pytest tests/test_mcp_server.py -v` is clean.
 - **Day 3 (2h):** Steps 7–8 — Wire to FastAPI, configure Claude Desktop. Done when all 4 tools appear in Claude Desktop and the "makan bulan ini" demo works.
 - **Day 4 (1h):** Step 9 + optional stretch 10. Commit, log.
 
-**The 5 principles applied to Chapter 9:**
+**The 5 principles applied to Chapter 10:**
 
 1. **Active retrieval:** Step 0's three questions, written from memory. The non-obvious one: why does `list[dict]` as a return type produce an opaque schema that hurts tool reliability?
 2. **Project-first:** The quickstart (Step 1) is theory-that-runs — not reading. By end of Day 1 you've seen a real MCP JSON-RPC handshake in the inspector.
@@ -1652,18 +1652,18 @@ Mocks can't tell you whether the model picks the right tool. Use the same demo p
 
 ### H. Optional stretch
 
-- ☐ Run the 2-agent demo: it lives in `.worktrees/pf-ai009/services/ai-service/scratch/mcp_agent_demo.py` (gitignored, so it is not on `main`). Copy it somewhere safe before the worktree is removed, then run `PYTHONPATH=. python scratch/mcp_agent_demo.py` with a real `ANTHROPIC_API_KEY`.
-- ☐ Anthropic MCP quickstart and Academy series (Chapter 9 checklist items in `docs/mentor/progress.md`).
+- ☐ Run the 2-agent demo: it lives in `.worktrees/pf-ai010/services/ai-service/scratch/mcp_agent_demo.py` (gitignored, so it is not on `main`). Copy it somewhere safe before the worktree is removed, then run `PYTHONPATH=. python scratch/mcp_agent_demo.py` with a real `ANTHROPIC_API_KEY`.
+- ☐ Anthropic MCP quickstart and Academy series (Chapter 10 checklist items in `docs/mentor/progress.md`).
 
 ### I. Decide and close
 
 - ☐ Tools 1, 2 and 3 work end to end. Tool 4 failure is recorded.
 - ☐ Decide on `get_pyramid_scores`: either accept the ticket with a follow-up ticket (fix the route to `/api/journey/state` and give the MCP server a way to authenticate as the owner), or hold the ticket until it is fixed.
-- ☐ Tick the matching items in `docs/mentor/progress.md` (Chapter 9: "Test from Claude Desktop").
-- ☐ **Do not run `/loop-accept PF-AI009`.** It would try to merge `loop/pf-ai009`, which already went to `main` through PR #87. Tell Claude "PF-AI009 passed review": it will move the plan to `plans/done/learning/`, update the board, and remove the `loop/pf-ai009` branch and `.worktrees/pf-ai009` worktree.
+- ☐ Tick the matching items in `docs/mentor/progress.md` (Chapter 10: "Test from Claude Desktop").
+- ☐ **Do not run `/loop-accept PF-AI010`.** It would try to merge `loop/pf-ai010`, which already went to `main` through PR #87. Tell Claude "PF-AI010 passed review": it will move the plan to `plans/done/learning/`, update the board, and remove the `loop/pf-ai010` branch and `.worktrees/pf-ai010` worktree.
 
 ## Loop Notes
-- 2026-10-21 22:27 Asia/Makassar Loop-Failed: executor exited 1 after 0 min. Worktree and branch kept (.worktrees/pf-ai009).
+- 2026-10-21 22:27 Asia/Makassar Loop-Failed: executor exited 1 after 0 min. Worktree and branch kept (.worktrees/pf-ai010).
 - 2026-10-21 22:46 Asia/Makassar Segment 1: implemented all 4 MCP tools (`app/mcp_server.py`), 7 unit tests, and wired the SSE sub-app into `main.py`. Full suite 358 passed. Reconciled stale-plan drift: fastmcp 4.x uses `http_app(transport="sse")` (no `sse_app()`); `httpx`/`net_api_base_url` already present; RetrievalService is now owner-scoped (PF-S15) so semantic search passes a resolved `owner_id`; MCP tools use a dedicated asyncpg pool. STEPS 8/10/11 (Claude Desktop end-to-end, stretch demo, /mentor log) need a live stack / interactive machine — deferred to manual follow-up. Code left uncommitted for the loop's verifier.
-- 2026-10-21 22:53 Asia/Makassar Loop-Failed: gate "executor" failed again with the same output (stopped at once). Worktree and branch kept (.worktrees/pf-ai009).
+- 2026-10-21 22:53 Asia/Makassar Loop-Failed: gate "executor" failed again with the same output (stopped at once). Worktree and branch kept (.worktrees/pf-ai010).
 - 2026-10-22 15:33 Asia/Makassar Verifier PASS 9/9 (hand run, 2026-10-22); only manual Claude Desktop follow-up remains

@@ -65,7 +65,7 @@ The entire 12-chapter build arc on one page (chapters are paced by progress, not
 | 3 | 8 | 3.3 | LangGraph: state + routing + memory | Financial Health Advisor (multi-step) | Saran keuangan multi-langkah berbasis data live user dengan memori sesi | LangGraph graph, tools wired to data layer | "Multi-step agent: analyze → gaps → recommend → drilldown; checkpointer memory; tool-failure fallback" | ✅ (accepted 2026-09-15; deferred checks retained) |
 | 3 | 8 | 3.4 | Agentic reasoning on core product engine | Journey Quest Agent | Buat quest keuangan yang dihitung dari data transaksi aktual, bukan aturan statis | `app/agents/quest_agent.py` | "Agent quantifies quests from live txn history, not static rules" | ⚪ (PF-121) |
 | 3 | 8 | 3.5 | Autonomous (non-reactive) agent | Monthly Financial Review Agent | Laporan keuangan bulanan otomatis: anomali + narasi + 3 action items | Scheduled run (post auth) | "Autonomous month-end report: anomaly detection + narrative + 3 action items" | ⚪ (PF-120, needs PF-S08) |
-| 3 | 9 | 3.6 | Model Context Protocol | Personal-finance MCP server | Ekspos data keuangan ke Claude Desktop atau MCP client mana pun | MCP server (Python SDK) | "Claude Desktop / any MCP client can query my finance data live" | ⚪ (PF-AI009) |
+| 3 | 9 | 3.6 | Model Context Protocol | Personal-finance MCP server | Ekspos data keuangan ke Claude Desktop atau MCP client mana pun | MCP server (Python SDK) | "Claude Desktop / any MCP client can query my finance data live" | ⚪ (PF-AI010) |
 | 3 | 9 | 3.7 | Multi-agent + MCP orchestration | LangGraph agent calling MCP server as a tool | Orkestrasi dua agen via protokol interoperabilitas standar | 2-agent workflow | "Multi-agent orchestration over a standard interop protocol" | ⚪ |
 
 ---
@@ -134,12 +134,12 @@ Phase 3, Chapters 7–8 ──────────────────�
   ↓
   both logged to Langfuse      →  traces are demo material
 
-Phase 3, Chapter 9 ─────────────────────────────────────────────────────
+Phase 3, Chapter 10 ─────────────────────────────────────────────────────
   MCP server                   →  wraps data layer + /search retriever
   ↓
   2-agent + MCP workflow        →  LangGraph agent uses MCP as tool (stretch)
 
-Chapters 10–12 ─────────────────────────────────────────────────────────
+Chapters 13–15 ─────────────────────────────────────────────────────────
   blog post + Loom             →  proof artifacts go public
   cert (Databricks / AI-102)   →  signal booster
   applications                 →  5–10 high-fit roles
@@ -161,7 +161,7 @@ The PF-AI series is the delivery vehicle for this map (one ticket per chapter). 
 | [PF-AI006](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) | Advanced RAG patterns | UC-2.14 | Done hybrid scope; window/merge deferred |
 | [PF-AI007](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) | smolagents Categorizer Agent | UC-3.1, UC-2.16 (agent half) | In Progress; implemented, live smoke partial |
 | [PF-AI008](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md) | LangGraph Financial Health Advisor | UC-3.3 | Accepted 2026-09-15; deferred checks retained |
-| [PF-AI009](../../plans/backlog/learning/PF-AI009-mcp-personal-finance-server-todo.md) | MCP server | UC-3.6 | To Do |
+| [PF-AI010](../../plans/done/learning/PF-AI010-mcp-personal-finance-server-todo.md) | MCP server | UC-3.6 | To Do |
 | PF-118 | Semantic categorization fallback | UC-2.7 | Ready ⚠️ board also lists it Obsolete — reconcile |
 | PF-119 | Upload Processing Agent | UC-3.2 | ⚠️ board shows Done but no agent code exists — verify |
 | PF-120 | Monthly Financial Review Agent | UC-3.5 | Blocked on PF-S08 (auth) ⚠️ board double-lists — reconcile |
@@ -461,7 +461,7 @@ Run the eval harness against each variant. Pick the winning combination as the p
 
 ## Phase 3 — Specialization: Agents, Orchestration, MCP 🎯
 
-**Chapters 7–9. The Tier 3 → Tier 4 jump.**
+**Chapters 7–10. The Tier 3 → Tier 4 jump.**
 
 ---
 
@@ -581,7 +581,7 @@ Test with: "I want to improve my financial health, where should I start?" → ex
 
 ---
 
-### Chapter 9 — Model Context Protocol
+### Chapter 10 — Model Context Protocol
 
 > "MCP is Anthropic's tool/agent interop standard, adopted across the industry." — curriculum
 
@@ -603,7 +603,7 @@ Test from Claude Desktop: connect to the MCP server, list tools, invoke `get_pyr
 
 **Staff framing:** Frame this as an interop/platform decision, not a demo — why a standard protocol over a bespoke API, and what it means for a team to expose capabilities once and have any client consume them. That platform-thinking, tied to your architecture/TL background, is the Staff-level read at Grafana and Datadog.
 
-**Next (PF-AI009):** Chapter 9 core, ~4–6 hours. On the must-ship floor.
+**Next (PF-AI010):** Chapter 10 core, ~4–6 hours. On the must-ship floor.
 
 ---
 
@@ -615,7 +615,7 @@ Test from Claude Desktop: connect to the MCP server, list tools, invoke `get_pyr
 
 **Builds on:** UC-3.3 (LangGraph agent) + UC-3.6 (MCP server). Anthropic MCP Series from Academy.
 
-**Next:** Chapter 9 stretch, ~2 hours after both UC-3.3 and UC-3.6 are working.
+**Next:** Chapter 10 stretch, ~2 hours after both UC-3.3 and UC-3.6 are working.
 
 ---
 
@@ -632,7 +632,7 @@ These are noted for completeness, not for scheduling:
 
 ---
 
-## Chapters 10–12 — Positioning & Proof
+## Chapters 13–15 — Positioning & Proof
 
 **These chapters don't add features — they convert the built features into interview-ready artifacts.** (In flight early: PF-131 intro blog draft exists; Hashnode Pro 301 blocker flagged.)
 
@@ -661,7 +661,7 @@ Platform: dev.to (free, good SEO) or personal blog. Link from GitHub README.
 
 ---
 
-### STAR Stories (5 prepared before Chapter 11 interviews)
+### STAR Stories (5 prepared before Chapter 14 interviews)
 
 | Story | Draws on |
 |-------|----------|
@@ -673,7 +673,7 @@ Platform: dev.to (free, good SEO) or personal blog. Link from GitHub README.
 
 ---
 
-### Certification (Chapter 10 — pick one)
+### Certification (Chapter 13 — pick one)
 
 | Option | Cost | Signal |
 |--------|------|--------|

@@ -264,7 +264,7 @@
   <header>
     <div class="h-left">
       <div class="h-title">Personal Finance — AI System <span class="dim">· Target Architecture</span></div>
-      <div class="h-sub" id="h-sub">AI Learning Track · PF-AI001–PF-AI009 · click any node to open it</div>
+      <div class="h-sub" id="h-sub">AI Learning Track · PF-AI001–PF-AI010 · click any node to open it</div>
     </div>
     <div class="h-right">
       <div class="legend">
@@ -402,8 +402,8 @@
       files: ["apps/frontend/src/pages/"], tickets: [] },
     { id: "A3", parent: "clients", x: 40, y: 370, w: 220, h: 100, icon: "🖥️", title: "Claude Desktop / MCP client", subtitle: "external MCP client", status: "planned",
       badges: ["MCP protocol"],
-      detail: "Any MCP-compatible client — Claude Desktop, or another agent — connecting to the personal-finance MCP server once PF-AI009 ships. Not built yet.",
-      files: [], tickets: ["PF-AI009"] },
+      detail: "Any MCP-compatible client — Claude Desktop, or another agent — connecting to the personal-finance MCP server once PF-AI010 ships. Not built yet.",
+      files: [], tickets: ["PF-AI010"] },
 
     { id: "B1", parent: "api", x: 340, y: 20, w: 230, h: 114, icon: "🧩", title: "API Controllers", subtitle: ".NET 10 · CQRS / MediatR", status: "live",
       badges: [".NET 10", "MediatR"],
@@ -459,7 +459,7 @@
     { id: "D4", parent: "agents", x: 990, y: 610, w: 260, h: 122, icon: "🔗", title: "MCP Server", subtitle: "4 discoverable finance tools", status: "planned",
       badges: ["get_transactions", "get_pyramid_scores", "search_transactions_semantic", "get_cashflow_summary"],
       detail: "Exposes the same underlying capabilities (transactions, pyramid scores, semantic search, cashflow summary) as discoverable MCP tools instead of hand-wired endpoints — callable from Claude Desktop or any other MCP client.",
-      files: ["plans/backlog/learning/PF-AI009-mcp-personal-finance-server-todo.md"], tickets: ["PF-AI009"] },
+      files: ["plans/backlog/learning/PF-AI010-mcp-personal-finance-server-todo.md"], tickets: ["PF-AI010"] },
 
     { id: "E1", parent: "models", x: 1340, y: 20, w: 230, h: 92, icon: "✨", title: "Gemini 2.5 Flash", subtitle: "primary LLM — extraction, chat, agents", status: "live",
       badges: ["primary"],
@@ -872,7 +872,7 @@
     currentView = "overview";
     clearCanvas();
     document.getElementById("breadcrumb").classList.remove("show");
-    document.getElementById("h-sub").textContent = "AI Learning Track · PF-AI001–PF-AI009 · click any node to open it";
+    document.getElementById("h-sub").textContent = "AI Learning Track · PF-AI001–PF-AI010 · click any node to open it";
     document.getElementById("empty-hint").textContent = "click a node to explore · drag a node to move it · drag empty space to pan · scroll to zoom";
 
     var maxX = 0, maxY = 0;

@@ -119,7 +119,7 @@ More context is not better. Four failures to recognize:
 
 | Failure | What happens | The fix used or available here |
 |---|---|---|
-| Poisoning | Retrieved text contains an instruction and the model follows it (a transfer memo saying "ignore previous rules") | Spotlighting with `<data>` markers, plus the input and output guards from PF-AI011 |
+| Poisoning | Retrieved text contains an instruction and the model follows it (a transfer memo saying "ignore previous rules") | Spotlighting with `<data>` markers, plus the input and output guards from PF-AI009 |
 | Distraction | Irrelevant rows pull the answer off target | Smaller top-K, re-ranking, metadata filters from the planner |
 | Confusion | Too many tools, or two tools that overlap, and the model picks the wrong one | Fewer tools with descriptions that say when not to use them |
 | Clash | Two parts of the context disagree (an old memory and a fresh row) | Decide which source wins and say so in the system prompt |
@@ -201,7 +201,7 @@ These are the only two project tasks in the three skim topics. Neither needs a p
 1. **Write the one-page context write-up.** Title: "How this project decides what enters the
    context window". Cover `/ask`, the advisor and the categorizer: what goes in, what stays out,
    and why. Most of the content is on this page already. It becomes an interview answer and feeds
-   the case-study page in Chapter 10. Save it next to this file.
+   the case-study page in Chapter 13. Save it next to this file.
 2. **Measure before deciding on caching.** Count the tokens in the system prompts for `/ask`, the
    advisor and the Superbank extraction (Langfuse shows input tokens per call). Write down which,
    if any, pass the minimum cacheable length, and how often the same prefix repeats within five
@@ -216,7 +216,7 @@ These are the only two project tasks in the three skim topics. Neither needs a p
 - **Google AI docs** — *Context caching* for the Gemini API.
 - This repo: [answerer.py](../../../services/ai-service/app/services/answerer.py),
   [query_planner.py](../../../services/ai-service/app/services/query_planner.py),
-  [PF-AI011](../../../plans/done/learning/PF-AI011-ai-security-governance-todo.md) for spotlighting and guards.
+  [PF-AI009](../../../plans/done/learning/PF-AI009-ai-security-governance-todo.md) for spotlighting and guards.
 
 ## Self-check
 

@@ -162,11 +162,14 @@ Phase 2 — Streaming + Agents (Days 31–60)
   Chapter 7: First Agent — smolagents                {status}
   Chapter 8: LangGraph Multi-Agent                   {status}
 
-Phase 3 — MCP + Positioning + Apply (Days 61–90)
-  Chapter 9: Model Context Protocol (MCP)            {status}
-  Chapter 10: Public Presence + Certification        {status}
-  Chapter 11: Interview Prep                         {status}
-  Chapter 12: Active Applications                    {status}
+Phase 3 — Security, MCP, Deployment, Positioning, Apply (Days 61–90)
+  Chapter 9: AI Security + Guardrails                {status}
+  Chapter 10: Model Context Protocol (MCP)           {status}
+  Chapter 11: Human-in-the-Loop + Feedback Loop      {status}
+  Chapter 12: Deployment + LLMOps + Evals in CI      {status}
+  Chapter 13: Public Presence + Certification        {status}
+  Chapter 14: Interview Prep                         {status}
+  Chapter 15: Active Applications                    {status}
 
 ### Recent Activity (last 7 days)
 {last 5 log entries from progress.md, formatted as bullet list}
@@ -333,7 +336,7 @@ Output:
 
 Honest rules for cert evaluation:
 - DeepLearning.AI short courses: always HIGH signal, FREE, slot per the Tier 1 table in `learning-path.md` (mostly Chapters 6–8)
-- Databricks GenAI Engineer Associate: HIGH for AI Eng roles, $200, recommend Chapter 10 (Public Presence + Certification)
+- Databricks GenAI Engineer Associate: HIGH for AI Eng roles, $200, recommend Chapter 13 (Public Presence + Certification)
 - Azure AI-102: MEDIUM-HIGH, especially if targeting Azure-stack companies; builds on Rikky's existing Azure depth
 - AWS ML Specialty: MEDIUM, more traditional ML than GenAI — not a priority for this pivot
 - Cloud-generic certs (AWS SAA, Azure Fundamentals): LOW for this pivot — Rikky already has strong cloud depth, this adds nothing
@@ -981,23 +984,37 @@ If `docs/mentor/progress.md` doesn't exist, create it:
 
 ## Phase 3 Task Checklist (Days 61–90)
 
-### Chapter 9: Model Context Protocol (MCP)
+### Chapter 9: AI Security + Guardrails
+- [ ] Red-team baseline, input scanner, output guard, PII masking
+- [ ] Injection eval and threat-model doc
+
+### Chapter 10: Model Context Protocol (MCP)
 - [ ] Anthropic MCP quickstart + Anthropic Academy MCP Series
 - [ ] Personal-finance MCP server: get_transactions, get_pyramid_scores, search_transactions_semantic, get_cashflow_summary
 - [ ] Test from Claude Desktop (or another MCP client)
 
-### Chapter 10: Public Presence + Certification
+### Chapter 11: Human-in-the-Loop + Feedback Loop
+- [ ] Approval before the categorizer writes, with a retry-safe write
+- [ ] MCP tools read-only, enforced by a test
+- [ ] Feedback loop: suggested vs kept categories into the eval set
+
+### Chapter 12: Deployment + LLMOps + Evals in CI
+- [ ] AI service on a public URL with API key, rate limits and a budget alert
+- [ ] Response cache and one-page cost write-up
+- [ ] Small eval subset as a blocking CI gate
+
+### Chapter 13: Public Presence + Certification
 - [ ] Write technical blog post: "Building a Production LLM Pipeline for Indonesian Bank Statement Parsing"
 - [ ] Publish on dev.to or personal blog
 - [ ] Study + pass Databricks GenAI Engineer Associate cert (or Azure AI-102)
 - [ ] Update LinkedIn headline and About to reflect AI Engineering pivot
 
-### Chapter 11: Interview Prep
+### Chapter 14: Interview Prep
 - [ ] Write 5 STAR stories from personal-finance project
 - [ ] Prepare 3 architectural deep-dives (tool_use decision, RAG design, multi-provider factory)
 - [ ] Practice: "explain your AI pipeline in 5 minutes" — record and review
 
-### Chapter 12: Active Applications
+### Chapter 15: Active Applications
 - [ ] Scan for AI Engineering roles at async-first remote companies (career-ops tooling lives in the career-ops project — handled separately)
 - [ ] Apply to 5-10 high-fit roles (4.0+ score)
 - [ ] Engage in AI engineering communities (Discord, Twitter/X, LinkedIn)

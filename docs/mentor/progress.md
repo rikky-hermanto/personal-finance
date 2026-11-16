@@ -111,26 +111,43 @@
 
 ## Phase 3 Task Checklist (Days 61–90)
 
-### Chapter 9: Model Context Protocol (MCP)
+> Chapters renumbered on 2026-11-16 to follow the run order. Entries in the activity log below use the new numbers; plan IDs follow the chapter (PF-AI009 = Ch9, and so on).
+
+### Chapter 9: AI Security + Guardrails ✅ DONE (2026-10-21, PF-AI009)
+- [x] Red-team baseline, spotlighting, input scanner, output guard, PII masking
+- [x] Injection eval: 88% blocked, hold-out reported separately, 0 false alarms
+- [x] Threat-model doc
+
+### Chapter 10: Model Context Protocol (MCP)
 - [ ] Complete Anthropic MCP quickstart (~30 min, server up first, spec later)
 - [ ] Complete Anthropic Academy MCP Series
 - [x] Build personal-finance MCP server exposing: `get_transactions`, `get_pyramid_scores`, `search_transactions_semantic`, `get_cashflow_summary`
 - [ ] Test from Claude Desktop or another MCP client
 - [ ] Stretch: build a 2-agent workflow where one agent calls your MCP server as a tool
 
-### Chapter 10: Public Presence + Certification
+### Chapter 11: Human-in-the-Loop + Feedback Loop
+- [ ] Approval before the categorizer writes, with a retry-safe write (PF-AI011)
+- [ ] MCP tools read-only, enforced by a test (PF-AI011)
+- [ ] Feedback loop: suggested vs kept categories into the eval set
+
+### Chapter 12: Deployment + LLMOps + Evals in CI
+- [ ] AI service on a public URL with API key, rate limits and a budget alert (PF-AI012)
+- [ ] Response cache and one-page cost write-up
+- [ ] Small eval subset as a blocking CI gate
+
+### Chapter 13: Public Presence + Certification
 - [ ] Write technical blog post: "Building a Production LLM Pipeline for Indonesian Bank Statement Parsing"
 - [ ] Publish on dev.to or personal blog
 - [ ] Study + pass Databricks GenAI Engineer Associate OR Azure AI-102
 - [ ] Update LinkedIn headline and About section
 
-### Chapter 11: Interview Prep
+### Chapter 14: Interview Prep
 - [ ] Write 5 STAR+R stories from personal-finance project
 - [ ] Prepare 3 architectural deep-dives (tool_use, RAG, multi-provider factory)
 - [ ] Record and review practice presentations (Loom)
 - [ ] Prep answers: RAG vs fine-tuning, hallucination handling, cost control at scale
 
-### Chapter 12: Active Applications
+### Chapter 15: Active Applications
 - [ ] Run `/career-ops scan` targeting AI Engineering roles
 - [ ] Evaluate with `/career-ops offer` — only apply to 4.0+ scores
 - [ ] Send 5+ applications to high-fit roles with tailored CV + cover letter
@@ -326,7 +343,7 @@
 **Retros (blockers & surprises):**
 - None — clean session. Meta/tooling work, no pipeline build, no API calls.
 
-**Note (honest framing):** This is learning-infrastructure, not a curriculum chapter task — same class as the Day 6 / Day 10 tooling days. It does *adjacently* sharpen one AI-Eng interview proof point though: cost-aware orchestration / multi-agent tiering maps directly to the Chapter 11 prep question *"How do you keep LLM costs under control at scale?"* — worth keeping as a talking point, not a chapter tick.
+**Note (honest framing):** This is learning-infrastructure, not a curriculum chapter task — same class as the Day 6 / Day 10 tooling days. It does *adjacently* sharpen one AI-Eng interview proof point though: cost-aware orchestration / multi-agent tiering maps directly to the Chapter 14 prep question *"How do you keep LLM costs under control at scale?"* — worth keeping as a talking point, not a chapter tick.
 
 **Remaining for next session:**
 - The Chapter-3 close-out is still pending and is the actual blocker on Phase-1 completion: fill `evals/search_queries.json` with real transaction IDs from Supabase Studio → `python scripts/backfill_embeddings.py` → `python evals/eval_retrieval.py` → record MRR@5, then commit PF-AI003
@@ -794,20 +811,20 @@
 **Session: PF-139 shipped end-to-end; certification learning paths authored; two new curriculum chapters drafted (security/governance, deployment/LLMOps) — still off the Chapter 7/8 critical path**
 
 - Shipped PF-139 (contextual chat follow-up suggestions) fully: `FollowUpSuggester` service (Gemini, temperature 0) generating 3 self-contained follow-up chips after each answer streams; `POST /ask/followups` endpoint; frontend fires the call after SSE `done`, aborts stale requests when a new question is in flight, falls back to static example chips on any provider failure/timeout/unconfident answer. Live-verified against the running service (a real Gemini call), not just unit-mocked. Deviation logged: `MAX_OUTPUT_TOKENS` raised 200→2048 after live testing showed `gemini-2.5-flash`'s thinking pass exhausted the smaller cap before producing visible JSON — matches `journey_advisor.py`'s existing cap for the same model. 8 new unit tests pass. Committed `8d207b05`, pushed.
-- Researched and authored two certification learning-path docs — [cert-path-databricks-genai.md](cert-path-databricks-genai.md) and [cert-path-gcp-pmle.md](cert-path-gcp-pmle.md) — with real exam domain weights, a gap analysis mapped against shipped PF-AI tickets (PF-009/PF-011 structured output, PF-AI001–010 RAG/agents/eval work), and phased study plans. This is genuinely **Chapter 10 scope** ("Study + pass Databricks GenAI Engineer Associate OR Azure AI-102") done ahead of sequence — Chapters 8 and 9 haven't started yet. Committed `353a6356`, pushed.
-- Drafted two new learning plans extending the curriculum past Chapter 12: [PF-AI011-ai-security-governance-todo.md](../../plans/backlog/learning/PF-AI011-ai-security-governance-todo.md) (prompt injection, PII, secrets, guardrails) and [PF-AI012-deployment-llmops-todo.md](../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (public URL, CI/CD ship stage, caching, cost story) — both `Status: To Do`, no implementation started. Neither is currently represented in `learning-path.md`'s Chapter 1–12 structure. Committed `159f7196` alongside the PF-AI008 (LangGraph advisor) diagram, pushed.
+- Researched and authored two certification learning-path docs — [cert-path-databricks-genai.md](cert-path-databricks-genai.md) and [cert-path-gcp-pmle.md](cert-path-gcp-pmle.md) — with real exam domain weights, a gap analysis mapped against shipped PF-AI tickets (PF-009/PF-011 structured output, PF-AI001–010 RAG/agents/eval work), and phased study plans. This is genuinely **Chapter 13 scope** ("Study + pass Databricks GenAI Engineer Associate OR Azure AI-102") done ahead of sequence — Chapters 8 and 9 haven't started yet. Committed `353a6356`, pushed.
+- Drafted two new learning plans extending the curriculum: [PF-AI009-ai-security-governance-todo.md](../../plans/done/learning/PF-AI009-ai-security-governance-todo.md) (prompt injection, PII, secrets, guardrails) and [PF-AI012-deployment-llmops-todo.md](../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (public URL, CI/CD ship stage, caching, cost story) — both `Status: To Do`, no implementation started. Neither is currently represented in `learning-path.md`'s Chapter 1–15 structure. Committed `159f7196` alongside the PF-AI008 (LangGraph advisor) diagram, pushed.
 
 **Chapter 7 (PF-AI007) checklist progress:** unchanged from Day 75 — `[!] STEP 7` (5-transaction smoke test with the prose-scan fix) is still not re-run. **This is the actual gate on Chapter 7 closing and Chapter 8 starting**, and none of today's three commits touch it.
 
 **Retros (blockers & surprises):**
-- **Working ahead on Chapter 10 (certs) while Chapter 7 is still open.** Not a mistake, but worth naming plainly per the "be honest" rule: today's most visible output (cert docs, two new draft chapters) doesn't move the actual next gate. With the 90-day target dated 2026-08-25, the sequencing risk is spending research time on Chapter 10/11-adjacent material while Chapters 7–9 sit unclosed.
-- **PF-AI011/PF-AI012 aren't wired into the canonical curriculum doc yet.** They exist as standalone plan files, but `learning-path.md` (this skill's task-level source of truth) still only lists Chapters 1–12. Worth a deliberate decision — fold them in as Chapters 13–14, or keep them as an unscheduled backlog — rather than leaving two `Status: To Do` plans disconnected from the tracked path.
+- **Working ahead on Chapter 13 (certs) while Chapter 7 is still open.** Not a mistake, but worth naming plainly per the "be honest" rule: today's most visible output (cert docs, two new draft chapters) doesn't move the actual next gate. With the 90-day target dated 2026-08-25, the sequencing risk is spending research time on Chapter 13/14-adjacent material while Chapters 7–10 sit unclosed.
+- **PF-AI009/PF-AI012 aren't wired into the canonical curriculum doc yet.** They exist as standalone plan files, but `learning-path.md` (this skill's task-level source of truth) still only lists Chapters 1–15. Worth a deliberate decision — fold them in as Chapters 13–14, or keep them as an unscheduled backlog — rather than leaving two `Status: To Do` plans disconnected from the tracked path.
 - None — the PF-139 build itself was clean; the only recorded deviation (`MAX_OUTPUT_TOKENS`) was caught and fixed the same session, per the plan file's own note.
 
 **Remaining for next session:**
 - **Priority 1, unchanged since Day 75:** re-run `scripts/test_agent.py` for all 5 transactions with the prose-scan fix in place, confirm 5/5, close Chapter 7 STEP 7
 - Once Chapter 7 formally closes: Chapter 8 (PF-AI008 — LangGraph) is next; the "bulan itu" conversation-memory case (Day 48) and today's diagram are already pre-loaded
-- Decide whether PF-AI011/PF-AI012 get folded into `learning-path.md` as Chapters 13–14, or stay an unscheduled backlog
+- Decide whether PF-AI009/PF-AI012 get folded into `learning-path.md` as Chapters 13–14, or stay an unscheduled backlog
 
 **Streak: 1 day** (gap in logging 2026-08-10 → 2026-08-11, reconstructed above; 2026-08-12 logged same-day)
 
@@ -815,7 +832,7 @@
 
 **Session: Gap explained — CV refinement + starting job applications; resuming Chapter 7**
 
-- No pivot-curriculum build work 2026-08-13 → 2026-08-16. Time went to refining the CV and starting to send job applications — this maps to Chapter 10 (public presence) and Chapter 12 (active applications) tasks, not off-curriculum drift, done ahead of sequence same as the Day-78 cert docs. Detailed CV/application tracking stays in career-ops (out of scope for this log).
+- No pivot-curriculum build work 2026-08-13 → 2026-08-16. Time went to refining the CV and starting to send job applications — this maps to Chapter 13 (public presence) and Chapter 15 (active applications) tasks, not off-curriculum drift, done ahead of sequence same as the Day-78 cert docs. Detailed CV/application tracking stays in career-ops (out of scope for this log).
 - Resuming the curriculum today, picking up exactly where Day 78 left off.
 
 **Chapter 7 (PF-AI007) checklist status:** unchanged from Day 78 — `[!] STEP 7` (5-transaction smoke test with the prose-scan fix) still not re-run. This remains the actual gate on Chapter 7 closing and Chapter 8 starting.
@@ -907,7 +924,7 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - Langfuse ingestion was eventual; waited for both generation observations and the completed request root. Dashboard stayed on Loading, but API verified all 14 observations.
 - Existing PII test and four venv dependency conflicts remain; the full dev install failed on litellm/Cargo. Preserved eval bounds. Local OTEL metrics collector was unavailable independently of Langfuse tracing.
 
-**Remaining for next session:** Start Chapter 9's MCP server/tool integration learning milestone. Keep the above evaluation and environment debt visible for a separately scoped follow-up. Chapter 7's prior smoke gate is not silently marked passed.
+**Remaining for next session:** Start Chapter 10's MCP server/tool integration learning milestone. Keep the above evaluation and environment debt visible for a separately scoped follow-up. Chapter 7's prior smoke gate is not silently marked passed.
 
 **Streak:** 1 logged day; earlier gaps remain historical. This closure records accepted delivery, not completion of every optional/deferred evaluation.
 
@@ -921,7 +938,7 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - 2026-10-08: moved plans into repo-root status folders (`55153fbd`) and synced the architecture docs, STATUS and sprint plan against the code (`cf1308f1`, 39 files).
 - 2026-10-09: started PF-S08/S09 (Supabase Auth plus Cashflow ownership) in a worktree and ran the app locally with two disposable test users.
 
-**Chapter checklist progress:** none ticked. This period was product and platform work. It feeds the Chapter 9 MCP server, which needs owner-scoped data, but closes no curriculum task.
+**Chapter checklist progress:** none ticked. This period was product and platform work. It feeds the Chapter 10 MCP server, which needs owner-scoped data, but closes no curriculum task.
 
 **Retros (blockers & surprises):**
 - **Logging gap:** about three weeks of work went unlogged because it happened in Codex, outside the `/mentor log` habit. → **Fix:** this retroactive entry. Run `/mentor log` at the end of a session, whichever tool was used.
@@ -938,7 +955,7 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - 2026-10-14: studied Addy Osmani's loop-engineering essays and compared his model with my own. Conclusion: the loop is for feature delivery, not only chores. Design: the owner writes a high-level epic, the loop clarifies it, plans it into backlog specs, executes in a worktree and verifies, with three owner gates.
 - 2026-10-15: configured loop engineering in this repo (`bc1b9b6f`: epics, plan, execute, verify, review, `/loop-standup`). Planned PF-S15 to resume AI chat owner-scoped after auth, reviewed it with `/consult`, and executed phase 1.
 
-**Concept learned:** after PF-S08 the AI service can no longer read the database as a superuser. The .NET API forwards each chat call with an internal API key plus a signed 60-second owner token, and the AI service reads as that user under RLS. The pattern is short-lived, scoped credentials between services, not one shared admin key. This is also groundwork the Chapter 9 MCP server needs.
+**Concept learned:** after PF-S08 the AI service can no longer read the database as a superuser. The .NET API forwards each chat call with an internal API key plus a signed 60-second owner token, and the AI service reads as that user under RLS. The pattern is short-lived, scoped credentials between services, not one shared admin key. This is also groundwork the Chapter 10 MCP server needs.
 
 **Retros (blockers & surprises):**
 - **AI routes ignored ownership:** `/search`, `/ask` and `/embed-transactions` had no owner filter, and the browser called the AI service directly. → **Fix:** PF-S15 moved every chat call behind `/api/chat/*`.
@@ -967,10 +984,10 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 
 ### 2026-10-17 — Day 144
 
-**Session: learning backlog triage, PF-AI011 replanned and Ready**
+**Session: learning backlog triage, PF-AI009 replanned and Ready**
 
-- Ran `/loop-standup` on the learning backlog. The order is now **PF-AI011 (AI security and governance) first**, ahead of PF-AI009 (MCP). Reason: AI chat now runs on real transactions with no prompt-injection or PII guard. PF-AI012 (deployment) depends on PF-AI011, and PF-AI006-PART2 waits for a product decision.
-- Audited the PF-AI011 plan against the post-auth code and fixed it before execution:
+- Ran `/loop-standup` on the learning backlog. The order is now **PF-AI009 (AI security and governance) first**, ahead of PF-AI010 (MCP). Reason: AI chat now runs on real transactions with no prompt-injection or PII guard. PF-AI012 (deployment) depends on PF-AI009, and PF-AI006-PART2 waits for a product decision.
+- Audited the PF-AI009 plan against the post-auth code and fixed it before execution:
   - The baseline no longer writes fake attack rows into the real transactions table.
   - Blocked input returns 400 `input_flagged` instead of looking like a 502 outage.
   - The output guard now works on streamed answers.
@@ -978,22 +995,22 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
   - Four code samples were corrected (Langfuse v3 API, the `+62` phone regex, a case-insensitive delimiter strip, and the step 10 commands).
   - Four held-out attacks were added, so the 80% block rate isn't measured only on the attacks the patterns were written for.
   - Marked Ready for the loop (size L, opus/high).
-- Built sequence diagrams for the six PF-AI011 use cases: [diagram-ai-security-governance-sequence.html](../architecture/sequences/diagram-ai-security-governance-sequence.html).
+- Built sequence diagrams for the six PF-AI009 use cases: [diagram-ai-security-governance-sequence.html](../architecture/sequences/diagram-ai-security-governance-sequence.html).
 - Catch-up: logged Sep 26 to Oct 16 from Claude and Codex history (entries above).
 
 **Retros (blockers & surprises):**
-- **Plans go stale when the platform moves:** PF-AI011 was written on 2026-10-08, before auth landed, and would have broken if run as written. → **Fix:** re-audit any learning plan older than the last platform change before executing it.
-- **Quota again:** one PF-AI011 eval run needs about 24 LLM calls against the free limit of 20 a day. The harness now accounts for this.
+- **Plans go stale when the platform moves:** PF-AI009 was written on 2026-10-08, before auth landed, and would have broken if run as written. → **Fix:** re-audit any learning plan older than the last platform change before executing it.
+- **Quota again:** one PF-AI009 eval run needs about 24 LLM calls against the free limit of 20 a day. The harness now accounts for this.
 
 **Remaining for tomorrow:**
-- Start PF-AI011 (`/loop-run PF-AI011` or `/execute`). Do STEP 0, the red-team baseline, before any defence code.
+- Start PF-AI009 (`/loop-run PF-AI009` or `/execute`). Do STEP 0, the red-team baseline, before any defence code.
 - Settle the LLM quota question (Gemini billing or an Anthropic key). It now blocks three separate evals.
 
 **Streak: 2 days** (2026-10-16 and 2026-10-17)
 
 ### 2026-10-19 → 2026-10-21 — Days 146–148 *(10-19 and 10-20 logged from the plan, run logs and git)*
 
-**Session: PF-AI011 (Chapter 9.5, AI security and guardrails) built, verified and merged**
+**Session: PF-AI009 (Chapter 9, AI security and guardrails) built, verified and merged**
 
 - 2026-10-19: red-teamed my own chat before writing any defence. Wrote 12 attack fixtures, 4 hold-out attacks (written before any scanner pattern existed) and 20 normal Indonesian queries. The live baseline ran through a stub-retriever harness, so no attack row touched the real transactions table.
 - 2026-10-19 to 10-20: shipped the controls in the AI service, the .NET proxy and the chat UI:
@@ -1012,7 +1029,7 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 
 **Concept learned:** a guardrail needs two numbers, the block rate and the false-alarm rate, and the block rate means little on the attacks the patterns were written for. The 0 of 4 hold-out result is the real answer to "did you just write regexes for your own test set?". The regex scanner is a thin first layer; spotlighting carries most of the defence against text other people wrote.
 
-**Chapter 9.5 checklist progress:**
+**Chapter 9 checklist progress:**
 - [x] Red-team baseline (in-memory harness, no writes to real data)
 - [x] Spotlighting in the shared context formatter, the follow-up prompt and both system prompts
 - [x] Input scanner, 400 `input_flagged` end to end (AI service → .NET proxy → chat UI)
@@ -1036,9 +1053,9 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 
 **Streak: 3 days** (2026-10-19 to 2026-10-21)
 
-### 2026-10-21 — Day 148 — Chapter 9 MCP server built (PF-AI009)
+### 2026-10-21 — Day 148 — Chapter 10 MCP server built (PF-AI010)
 
-**Session: PF-AI009 (Chapter 9, Model Context Protocol) built through the loop**
+**Session: PF-AI010 (Chapter 10, Model Context Protocol) built through the loop**
 
 - Built the personal-finance MCP server: `app/mcp_server.py` exposing four typed tools over FastMCP — `get_transactions` (filtered SQL with parametrized WHERE + a hard 100-row cap), `get_cashflow_summary` (totals grouped by category in SQL for this_month/last_month/this_year), `get_pyramid_scores` (httpx call to the .NET `GET /api/journey/scores`, so .NET keeps owning the scoring logic), and `search_transactions_semantic` (reuses the PF-AI003 `RetrievalService`, capped at top_k=20).
 - Mounted it on the existing FastAPI app at `/mcp` over SSE so Claude Desktop connects to the already-running service and shares its asyncpg pool — no second process.
@@ -1053,7 +1070,7 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 - STEP 8 — install/configure Claude Desktop (`%APPDATA%\Claude\claude_desktop_config.json`, SSE URL `http://localhost:8000/mcp`), start the full stack with real data, and run the four demo prompts end-to-end. This is a GUI + live-data step with no automatable path in the loop.
 - Run the Anthropic MCP quickstart / Academy series and the stretch demo interactively (need an API key and the MCP Inspector).
 
-**Chapter 9 checklist progress:**
+**Chapter 10 checklist progress:**
 - [x] Build the MCP server exposing the four tools (code + tests + SSE mount)
 - [ ] Test from Claude Desktop (manual, STEP 8)
 - [ ] Anthropic MCP quickstart + Academy series (manual)
@@ -1066,8 +1083,8 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 **Session: checked the learning path against ten agentic AI concepts and updated the curriculum**
 
 - Compared the "10 Essential Agentic AI Concepts to Know in 2026" PDF with [ai-engineer-learning-path.md](../mentor/ai-engineer-learning-path.md). Result: 4 concepts covered (context engineering, guardrails and permissions, agent evals, observability), 3 partly covered (loop design, memory architecture, orchestration patterns), 3 missing as named topics (harness engineering, tool design, human-in-the-loop).
-- Added topics 15 (tool design) and 16 (human-in-the-loop) to Chapter 9, and topic 17 (three agent-design write-ups) to Chapter 10. Added a stop condition and max-steps item to topic 7, a concept coverage table, and updated the remaining schedule.
-- Added a tool-design pass (section G2) to the PF-AI009 owner review checklist, and matching lines to the mentor task file for Chapters 7, 9 and 10.
+- Added topics 15 (tool design) and 16 (human-in-the-loop) to what are now Chapters 10 and 11, and topic 17 (three agent-design write-ups) to Chapter 13. Added a stop condition and max-steps item to topic 7, a concept coverage table, and updated the remaining schedule.
+- Added a tool-design pass (section G2) to the PF-AI010 owner review checklist, and matching lines to the mentor task file for Chapters 7, 9 and 10.
 - Confirmed the `loop-run` fix from 2026-10-21 is in place: the child processes use `--permission-mode auto` with the engine deny list, and the 23 loop tests pass.
 
 **Concept learned:** the model never sees tool code, only the name, description and parameter schema. Mocked tests prove the wiring, but only a real client shows whether the model picks the right tool, so tool design needs its own pass.
@@ -1077,7 +1094,7 @@ The user then requested a live check. Ran the opt-in `scripts/smoke_advisor_gemi
 
 **Remaining for tomorrow:**
 - Get the PF-AI007 smoke test from 2 of 5 to 5 of 5, then run the five agent scenarios (needs paid LLM quota).
-- Finish the PF-AI009 owner review checklist (Claude Desktop, demo prompts, then section G2).
-- Answer the PF-AI011 STEP 0 recall questions.
+- Finish the PF-AI010 owner review checklist (Claude Desktop, demo prompts, then section G2).
+- Answer the PF-AI009 STEP 0 recall questions.
 
 **Streak: 1 day** (no log entries between 2026-10-22 and 2026-10-23)

@@ -70,7 +70,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# PF-AI009 — the MCP server mounted at /mcp over SSE. Built once at import so its
+# PF-AI010 — the MCP server mounted at /mcp over SSE. Built once at import so its
 # session-manager lifespan can be driven from the main FastAPI lifespan below.
 _mcp_app = mcp_server.http_app(path="/", transport="sse")
 
@@ -117,7 +117,7 @@ async def lifespan(app: FastAPI):
         settings.embedding_provider, embed_provider.model,
     )
 
-    # PF-AI009 — wire the MCP tools. RetrievalService opens per-request owner
+    # PF-AI010 — wire the MCP tools. RetrievalService opens per-request owner
     # connections, so there is no single pool to borrow; the MCP tools get a
     # dedicated asyncpg pool. Resolve the one local owner for semantic search
     # (PF-S15 made the retriever owner-scoped).
@@ -198,7 +198,7 @@ _OWNER_AGENT_ROUTES = {"/advisor", "/categorize-agent"}
 @app.middleware("http")
 async def pilot_access_gate(request: Request, call_next):
     if request.url.path == "/health" or request.url.path.startswith("/mcp"):
-        # PF-AI009: the MCP SSE sub-app mounted at /mcp inherits the service's
+        # PF-AI010: the MCP SSE sub-app mounted at /mcp inherits the service's
         # no-auth local posture (a bearer guard is deferred to PF-S08).
         return await call_next(request)
     if request.url.path in _OWNER_CHAT_ROUTES:
@@ -227,7 +227,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# PF-AI009 — mount the MCP SSE sub-app. Its lifespan is driven from the main
+# PF-AI010 — mount the MCP SSE sub-app. Its lifespan is driven from the main
 # lifespan above (async with _mcp_app.lifespan(app)).
 app.mount("/mcp", _mcp_app)
 
@@ -480,7 +480,7 @@ async def search_transactions(
 
 
 def _reject_flagged_query(query: str) -> None:
-    """PF-AI011 input guard: scan the raw query before any LLM call (the planner is one).
+    """PF-AI009 input guard: scan the raw query before any LLM call (the planner is one).
 
     Runs on the raw text so the scanner sees the attack before masking can mangle it, and
     outside the handlers' broad `except Exception` so the 400 is not turned into a 502.

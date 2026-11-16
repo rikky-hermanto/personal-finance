@@ -19,7 +19,7 @@ Confirmed today during `/mentor blog post` run:
 
 ## Objective
 
-Extend the `/mentor` skill with two new argument modes — `blog` and `blog post` — that automate the editorial pipeline defined in [docs/ideas/blogs/blogging-plan.md](../../docs/ideas/blogs/blogging-plan.md). The `blog` mode drafts a publish-ready blog post from the activity logs and learning plans; the `blog post` mode pushes the draft to Hashnode via GraphQL API and logs the live URL back to `docs/mentor/progress.md`. This closes Chapter 10 ("Public Presence") of the 90-day AI Engineering pivot.
+Extend the `/mentor` skill with two new argument modes — `blog` and `blog post` — that automate the editorial pipeline defined in [docs/ideas/blogs/blogging-plan.md](../../docs/ideas/blogs/blogging-plan.md). The `blog` mode drafts a publish-ready blog post from the activity logs and learning plans; the `blog post` mode pushes the draft to Hashnode via GraphQL API and logs the live URL back to `docs/mentor/progress.md`. This closes Chapter 13 ("Public Presence") of the 90-day AI Engineering pivot.
 
 ## Acceptance Criteria
 
@@ -140,7 +140,7 @@ Create [docs/ideas/blogs/README.md](../../docs/ideas/blogs/README.md) with the 8
 3. **Scrub** — privacy gate: no company names, no real financial data, no secrets
 4. **Polish** — one self-edit pass (`/tech-write` for structure/voice)
 5. **Publish** — run `/mentor blog post` → Hashnode (canonical) → cross-post dev.to
-6. **Close** — paste URL back via `/mentor log "Published: {url}"` · tick Chapter 10
+6. **Close** — paste URL back via `/mentor log "Published: {url}"` · tick Chapter 13
 ```
 
 > **Why:** This README is the durable state that `blog` and `blog post` modes read across sessions to find the next post and record published URLs. Without it, every session starts blind.
@@ -423,7 +423,7 @@ Verify:
 - [ ] `https://rikky.hashnode.dev/eval-harness` returns the post live
 - [ ] `docs/ideas/blogs/README.md` row #0 shows `Published` + the URL
 - [ ] `docs/mentor/progress.md` has the URL logged under today's date
-- [ ] Chapter 10 checklist in progress.md gets a partial tick ("Write technical blog post ✅")
+- [ ] Chapter 13 checklist in progress.md gets a partial tick ("Write technical blog post ✅")
 
 > **Why:** Post #0 is the flagship — it converts cold readers to the series, so it gets a manual review pass before going live. This step proves the full pipeline works before the cadence begins.
 

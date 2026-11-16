@@ -1,4 +1,4 @@
-"""Deterministic guardrails (PF-AI011): input scanner, output guard, spotlighting.
+"""Deterministic guardrails (PF-AI009): input scanner, output guard, spotlighting.
 
 The false-positive cases matter most. A scanner that rejects normal Indonesian queries is a
 broken product feature, and these tests are the regression net for every future pattern.

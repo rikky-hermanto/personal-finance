@@ -246,7 +246,7 @@ GrabFood match was excluded as a different product line.
 **Contrast — the degraded case.** If step 2's similarity search had thrown (DB hiccup), the tool would have returned `"Similarity search unavailable."` instead of raising ([similarity.py:474-483](../../../services/ai-service/app/agents/tools/similarity.py#L474-L483)) — the loop keeps running, but the LLM now has only rules (empty) + vocabulary to reason from. It would likely land on `CATEGORY: Other`, `CONFIDENCE: 0.5`, with reasoning citing the missing evidence — the same shape `_parse_result` falls back to when the text is malformed, just arrived at *honestly* through the LLM's own words instead of the parser's defaults.
 
 **Depends on:** PF-AI003 (pgvector + `/search` endpoint — `find_similar_transactions` calls it directly), PF-AI001 (Langfuse + OTel setup — traces hook into the existing OTLP pipeline).
-**Unblocks:** Chapter 8 (LangGraph Financial Advisor — you'll understand exactly what LangGraph adds to this simpler loop), Chapter 9 (MCP server — `search_category_rules` becomes an MCP tool in that chapter).
+**Unblocks:** Chapter 8 (LangGraph Financial Advisor — you'll understand exactly what LangGraph adds to this simpler loop), Chapter 10 (MCP server — `search_category_rules` becomes an MCP tool in that chapter).
 
 ## ✅ Acceptance Criteria
 
@@ -1362,7 +1362,7 @@ git commit -m "PF-AI007: Chapter 7 — Transaction Categorizer Agent (smolagents
 - **Why not LangChain / LlamaIndex for this chapter?** Those frameworks arrive in Chapter 8+ (LangGraph) and later. Building in raw smolagents first means you understand what the frameworks abstract. "I know what LangGraph adds because I built the raw version first" is a stronger position than "I just used LangChain from day one."
 - **THINK-05 (frozen contract):** `CategorizeAgentRequest` and `CategorizeAgentResponse` are new contract surface. When .NET grows a `/categorize-agent` proxy (future feature, not in this chapter), freeze these fields and update [ai-service.md](../../../.claude/rules/ai-service.md).
 - **Next chapter (8 — LangGraph):** the `CategorizerAgent` becomes one *node* in the Financial Advisor graph. The 3 tools become graph tools. `max_steps=3` becomes explicit `END` routing. You'll understand what LangGraph adds — and why — because you've now seen what it replaces.
-- **Deferred:** conversation memory within a categorization session (Chapter 8), MCP server exposing tools to Claude Desktop (Chapter 9), streaming the reasoning steps token-by-token (Chapter 5 streaming applies to `/ask` first).
+- **Deferred:** conversation memory within a categorization session (Chapter 8), MCP server exposing tools to Claude Desktop (Chapter 10), streaming the reasoning steps token-by-token (Chapter 5 streaming applies to `/ask` first).
 
 ## 📝 Knowledge Check
 

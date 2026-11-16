@@ -288,7 +288,7 @@ can diff.**
 Investment module (retrieving relevant portfolio commentary or instrument facts before the AI
 portfolio review writes its narrative, instead of that review's current single-call approach); a
 `get_transactions_semantic` MCP tool exposing this same retriever to an external MCP client
-(tracked in PF-AI009).
+(tracked in PF-AI010).
 
 ---
 

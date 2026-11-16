@@ -1,7 +1,7 @@
 # PF-AI006 — Advanced RAG Patterns
 
 > ⚠️ **RE-SCOPE (2026-07-23): chapter ini dipangkas jadi Hybrid Search saja.**
-> Sentence-window retrieval (STEP 4) dan auto-merging (STEP 5) — beserta tabel `statement_chunks` di Part 2 migration STEP 2, backfill script, dan varian eval `sentence_window` — **dipindah ke [PF-AI006-PART2](../../backlog/learning/PF-AI006-PART2-sentence-window-automerging-todo.md)** (deferred). Alasannya: hybrid search menjawab kelemahan produksi yang nyata di `/ask` sekarang; dua teknik lainnya butuh data source baru (teks naratif statement PDF) untuk usecase yang belum jadi kebutuhan produk. Materi STEP 4–5 di bawah **sengaja tidak dihapus** — PART2 merujuk ke sini sebagai satu-satunya sumber. Yang dieksekusi di tiket ini: STEP 0–3 + STEP 6 (tanpa varian `sentence_window`) + STEP 7–10.
+> Sentence-window retrieval (STEP 4) dan auto-merging (STEP 5) — beserta tabel `statement_chunks` di Part 2 migration STEP 2, backfill script, dan varian eval `sentence_window` — **dipindah ke [PF-AI006-PART2](../../cancelled/learning/PF-AI006-PART2-sentence-window-automerging-todo.md)** (deferred). Alasannya: hybrid search menjawab kelemahan produksi yang nyata di `/ask` sekarang; dua teknik lainnya butuh data source baru (teks naratif statement PDF) untuk usecase yang belum jadi kebutuhan produk. Materi STEP 4–5 di bawah **sengaja tidak dihapus** — PART2 merujuk ke sini sebagai satu-satunya sumber. Yang dieksekusi di tiket ini: STEP 0–3 + STEP 6 (tanpa varian `sentence_window`) + STEP 7–10.
 >
 > **Learning Phase:** Phase 2 · Chapter 6 of 12 · Day ~38 of 90
 > **Status:** Done (hybrid-search scope) — live-verified 2026-07-24. Docker/Supabase started, migration applied, full eval run against real data. **Result: `hybrid` did NOT beat `vector` on this corpus — production default stays `vector`.** See STEP 7 and `docs/mentor/topics/advanced-rag-notes.md`.
@@ -216,7 +216,7 @@ WHAT CHAPTER 6 ADDS (the three techniques, independently switchable)
 3. **Auto-merging retrieval** — hierarchical extension of `statement_chunks` (parent_id + level). When ≥ threshold fraction of a parent chunk's sentences are independently retrieved, the parent context replaces them. Prevents the LLM from receiving 4 fragmented sentence snippets from the same paragraph when the full paragraph is the better answer.
 
 **Depends on:** PF-AI004 (chunker.py, reranker.py, answerer.py, eval harness, P@5 + faithfulness baseline numbers — all must exist before measuring lift)
-**Unblocks:** Chapter 7 (agents build retrieval tools from this hardened pipeline), Chapter 10 blog post (the comparison table across all RAG variants is the article's headline).
+**Unblocks:** Chapter 7 (agents build retrieval tools from this hardened pipeline), Chapter 13 blog post (the comparison table across all RAG variants is the article's headline).
 
 ## ✅ Acceptance Criteria
 
@@ -1562,7 +1562,7 @@ queries revealed; what you'd do if you had 2x more query examples; which
 technique had the best ROI (lift / implementation cost ratio).]
 ```
 
-> **Why this write-up matters:** Chapter 10 requires a technical blog post. This document is the first draft. The four paragraphs above become the "Advanced RAG Patterns" section of "Building a Production LLM Pipeline for Indonesian Bank Statement Parsing." Writing it now, while the details are hot, costs 20 minutes — writing it cold at Chapter 10 costs 3 hours.
+> **Why this write-up matters:** Chapter 13 requires a technical blog post. This document is the first draft. The four paragraphs above become the "Advanced RAG Patterns" section of "Building a Production LLM Pipeline for Indonesian Bank Statement Parsing." Writing it now, while the details are hot, costs 20 minutes — writing it cold at Chapter 13 costs 3 hours.
 
 
 ### [!] STEP 9 — Full test pass + commit
@@ -1614,7 +1614,7 @@ git commit -m "PF-AI006: Advanced RAG — hybrid BM25+vector (RRF), sentence-win
 - **THINK-05 reminder:** `AskRequest` / `AskResponse` fields added in Chapter 4 are now frozen contract surface if the .NET side has consumed them. `search_mode` is a Python-internal field and does not appear in the `/ask` response — no contract change.
 - **Sentence-window `window_size=2`** means ±2 sentences (up to 5 sentences total per window). For bank statement PDFs that are 1–3 sentences per "paragraph", this is appropriate. Statement narrative-heavy banks (Superbank) may benefit from `window_size=3`.
 - **Next chapter (7 — Agents):** The `DocumentRetriever` and `AutoMergingRetriever` become *tools* that a smolagents or LangGraph agent will call. The constructor-injection pattern (both services take `DocumentRetriever` as a dependency) means the agent can swap strategies by passing a different retriever — same lesson as Chapter 4's `AnswerService`.
-- **Deferred:** streaming `/ask` over SSE (Chapter 5), conversation memory (Chapter 8), the `/search` endpoint for document chunks as a UI feature (Chapter 9/10 scope).
+- **Deferred:** streaming `/ask` over SSE (Chapter 5), conversation memory (Chapter 8), the `/search` endpoint for document chunks as a UI feature (Chapter 10/13 scope).
 
 ## 📚 Resources / Theory to Learn
 

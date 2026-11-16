@@ -1,4 +1,4 @@
-# PF-AI010 — Categorization Eval Harness (real-LLM input → expected accuracy)
+# PF-AI008b — Categorization Eval Harness (real-LLM input → expected accuracy)
 
 > **GitHub Issue:** _(none — local plans are the working system)_
 > **Status:** Done
@@ -54,8 +54,7 @@ Deliberately **not** doing: no changes to `Categorizer`, `/categorize`, or any p
 
 ```bash
 # Local Supabase must be up (supabase start)
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  -c "SELECT DISTINCT category FROM category_rules WHERE category IS NOT NULL ORDER BY 1;"
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -c "SELECT DISTINCT category FROM category_rules WHERE category IS NOT NULL ORDER BY 1;"  # local Supabase CLI default credentials, commit-skill:allow
 ```
 
 Copy the output — it becomes `default_categories` in Step 2.
@@ -653,8 +652,7 @@ Edit `evals/categorize_cases.json`. Append an object to `cases`:
 passes to `/categorize`. Re-check it whenever category rules change:
 
 ```bash
-psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-  -c "SELECT DISTINCT category FROM category_rules WHERE category IS NOT NULL ORDER BY 1;"
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -c "SELECT DISTINCT category FROM category_rules WHERE category IS NOT NULL ORDER BY 1;"  # local Supabase CLI default credentials, commit-skill:allow
 ```
 
 ## Running

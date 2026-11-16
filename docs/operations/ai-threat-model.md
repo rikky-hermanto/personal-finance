@@ -1,8 +1,8 @@
-# AI Service Threat Model — PF-AI011
+# AI Service Threat Model — PF-AI009
 
 > Scope: the chat path (`/ask`, `/ask/stream`, `/ask/followups`) and the categorizer agent.
 > Method: attack the unprotected system first, ship the controls, measure again.
-> Written 2026-10-19. Plan: `plans/done/learning/PF-AI011-ai-security-governance-todo.md`.
+> Written 2026-10-19. Plan: `plans/done/learning/PF-AI009-ai-security-governance-todo.md`.
 
 ## How the numbers were produced
 

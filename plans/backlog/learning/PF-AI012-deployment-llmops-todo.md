@@ -1,10 +1,10 @@
 # PF-AI012 — Deployment & LLMOps (Public URL, CI/CD Ship Stage, Caching, Cost Story)
 
-> **Learning Phase:** Phase 3 · Chapter 9.75 (after PF-AI011, before Ch10 Positioning) · Day ~80+ of 90
+> **Learning Phase:** Phase 3 · Chapter 12 (after PF-AI009, before Ch13 Positioning) · Day ~80+ of 90
 > **Status:** To Do
 > **Started:** —
 > **Planned from branch:** main
-> **Depends on:** PF-AI011 merged (never expose an unguarded `/ask` publicly with a paid LLM key)
+> **Depends on:** PF-AI009 merged (never expose an unguarded `/ask` publicly with a paid LLM key)
 > **Pivot goal:** "Actually ship" is the final hiring criterion — a model on localhost is a notebook with extra steps. This chapter puts the AI service on a public URL behind real cost controls, adds the CD half that CI has always been missing, and ships a response cache that attacks the exact quota wall (Gemini 20 req/day) that has blocked three chapters' evals. The deliverable: a live URL, a deploy pipeline, and a one-page cost story.
 
 # 📑 Table of Contents
@@ -45,7 +45,7 @@
 
 ## High level — what is this?
 
-Everything built in Chapters 1–9 runs on `localhost`. This chapter moves one service — the Python
+Everything built in Chapters 1–10 runs on `localhost`. This chapter moves one service — the Python
 AI service — onto the public internet the way a production team would: a hardened container image,
 pushed to a registry by CI, deployed by a pipeline (not by hand), talking to a cloud Postgres with
 *anonymized* data, gated by an API key and a rate limit, with a cache in front of the paid LLM
@@ -105,7 +105,7 @@ and point the Container App at the new tag. The deployed service now provably *i
 image tag is the commit SHA, so every running container traces back to an exact commit. Auth from
 GitHub to Azure uses **OIDC federation** (GitHub mints a short-lived token Azure trusts) instead
 of a long-lived service-principal secret sitting in repo settings — the same "no durable secrets"
-habit PF-AI011 just installed, applied to CI. *This is what ships.*
+habit PF-AI009 just installed, applied to CI. *This is what ships.*
 
 ▶ **Read for this concept:** [Deploy to Azure Container Apps from GitHub Actions](https://learn.microsoft.com/en-us/azure/container-apps/github-actions) + [GitHub OIDC to Azure](https://learn.microsoft.com/en-us/azure/developer/github/connect-from-azure-openid-connect)
 
@@ -140,7 +140,7 @@ miss each other despite meaning the same thing.
 
 **Just make it public.** The URL works, anyone can try the demo. Anyone includes scripts: a
 public endpoint that spends your Gemini/Anthropic budget on every request is a wallet with an
-open API. This isn't hypothetical abuse-hardening — it's the LLMOps twin of PF-AI011's security
+open API. This isn't hypothetical abuse-hardening — it's the LLMOps twin of PF-AI009's security
 work: there, the attacker wanted your data; here, they want your invoice.
 
 **Three cheap layers.** An **API-key check** (a single demo key in an env var, checked by
@@ -579,11 +579,11 @@ cd apps/frontend && npm run lint && cd ../../../.claude
 ```
 
 > **Why:** This log entry is the "actually ship" proof point in one sentence — it goes almost
-> verbatim into the CV bullet and the Chapter 10 blog post.
+> verbatim into the CV bullet and the Chapter 13 blog post.
 
 ## 📌 Notes
 
-- **Hard dependency:** PF-AI011 merged first. The public URL exposes `/ask`; it must be the
+- **Hard dependency:** PF-AI009 merged first. The public URL exposes `/ask`; it must be the
   guarded version.
 - **Free-tier quota reality:** the deployed demo shares the same Gemini free-tier key unless
   upgraded — the cache and rate limit *reduce* burn but don't remove the 20 req/day wall. If the

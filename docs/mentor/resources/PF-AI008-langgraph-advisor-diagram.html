@@ -131,7 +131,7 @@ const GROUPS = [
     desc:'The ReAct loop made explicit as a graph. Three nodes and one conditional edge: call_agent invokes ChatAnthropic with the tools bound, should_continue routes to fallback (error set), tools (last AIMessage carries tool_calls) or END, and tools always cycles back to agent so the LLM reasons over what came back. Every piece is a plain function, testable without an LLM or a network call.'},
   {id:'tools', w:230, h:96, icon:'🔧', color:'#e0a94d', status:'progress',
     title:'Data-fetch tools', subtitle:'4 @tool async functions over httpx',
-    desc:'Four @tool-decorated async functions that ToolNode dispatches from the LLM’s tool_calls. They call the real .NET API rather than the database, so pyramid scoring, category aggregation and net-worth allocation stay in the .NET services. Docstrings matter: they ARE the tool descriptions the model reads when deciding what to call. These same functions become MCP tools in Chapter 9 with minimal change.'},
+    desc:'Four @tool-decorated async functions that ToolNode dispatches from the LLM’s tool_calls. They call the real .NET API rather than the database, so pyramid scoring, category aggregation and net-worth allocation stay in the .NET services. Docstrings matter: they ARE the tool descriptions the model reads when deciding what to call. These same functions become MCP tools in Chapter 10 with minimal change.'},
   {id:'memory', w:230, h:96, icon:'💾', color:'#4d9fe0', status:'progress',
     title:'Session memory', subtitle:'MemorySaver checkpointer keyed by thread_id',
     desc:'State that survives between separate HTTP requests. The checkpointer saves the graph state after every run and loads it back before the next one, keyed by thread_id — which AdvisorService maps straight from session_id. Pass the same session_id on turn 2 and the agent resumes where turn 1 stopped instead of re-fetching. This is what closes the "berapa gaji bulan itu" reference-resolution gap that the stateless /ask chat could not.'},
@@ -143,7 +143,7 @@ const GROUPS = [
     desc:'Proof the thing works. Unit tests mock httpx and test should_continue as a pure function — no LLM, no network. The five written scenarios are evaluated manually against the live service, with Langfuse traces as the evidence: S4 turn 2 must show zero get_spending_by_category calls, which is the session-memory claim made falsifiable. Results land in docs/operations/ai-observability-metrics.md.'},
   {id:'later', w:230, h:96, icon:'🚀', color:'#6b6c74', status:'planned',
     title:'Deferred / later chapters', subtitle:'SSE streaming, MCP, PostgresSaver, multi-agent',
-    desc:'Explicitly out of scope for Chapter 8, listed so the boundary is visible rather than implied. Chapter 5 swaps ainvoke for astream_events to stream over SSE (the node/graph structure does not change — only transport). Chapter 9 republishes these tools as MCP tools. PostgresSaver is a one-class swap when process-scoped memory stops being acceptable. Multi-agent supervision is Phase 3.'},
+    desc:'Explicitly out of scope for Chapter 8, listed so the boundary is visible rather than implied. Chapter 5 swaps ainvoke for astream_events to stream over SSE (the node/graph structure does not change — only transport). Chapter 10 republishes these tools as MCP tools. PostgresSaver is a one-class swap when process-scoped memory stops being acceptable. Multi-agent supervision is Phase 3.'},
 ];
 
 const GROUP_EDGES = [
@@ -154,7 +154,7 @@ const GROUP_EDGES = [
   ['graph','evals'],
   ['tools','netapi'],
   ['memory','later', true],  // MemorySaver → PostgresSaver, dashed = deferred
-  ['evals','later', true],   // traces → the Chapter 10 blog-post demo material
+  ['evals','later', true],   // traces → the Chapter 13 blog-post demo material
 ];
 
 const LEAF = {
@@ -204,7 +204,7 @@ const LEAF = {
   ],
   later: [
     {icon:'📡', title:'SSE streaming (Chapter 5)', sub:'ainvoke → astream_events', status:'planned', desc:'Only the transport changes — the nodes, edges and state stay exactly as built here. That is the payoff of putting a service wrapper in front of the graph.'},
-    {icon:'🔌', title:'MCP tools (Chapter 9)', sub:'the same 4 tools, republished', status:'planned', desc:'MCP tools are HTTP calls with a name schema, which is already what these are. The state shape from this chapter is reused too.'},
+    {icon:'🔌', title:'MCP tools (Chapter 10)', sub:'the same 4 tools, republished', status:'planned', desc:'MCP tools are HTTP calls with a name schema, which is already what these are. The state shape from this chapter is reused too.'},
     {icon:'🐘', title:'PostgresSaver', sub:'persistent checkpointer', status:'planned', desc:'Swaps in for MemorySaver when losing sessions on restart stops being acceptable. One class, same API.'},
     {icon:'👥', title:'Multi-agent supervision', sub:'Phase 3, not Chapter 8', status:'planned', desc:'One agent, four tools, three nodes is the whole of Chapter 8. Building a supervisor graph before the single-agent graph is solid is the named anti-pattern.'},
     {icon:'📉', title:'Per-holding investment return', sub:'a new .NET aggregation endpoint', status:'planned', desc:'The data gap behind get_investment_summary’s workaround. Flagged in the plan’s Notes, deliberately not built inside an AI-service chapter.'},

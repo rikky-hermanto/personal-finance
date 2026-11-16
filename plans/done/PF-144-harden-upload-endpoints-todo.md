@@ -117,7 +117,7 @@ Before you start: none.
 
 ## ✅ Owner Review Checklist (G3)
 
-**State:** all seven steps are done in worktree `.worktrees/pf-144-hand` on branch `fix/pf-144-harden-upload-endpoints`, uncommitted. `dotnet test` (471 passed, 9 skipped) and `pytest` (366 passed) are green. Ticket tracking did not start: `run.mjs start --hand` refused because slot 1 is held by PF-AI009, so this plan is still in `backlog/` and the board is not updated. Not checked: a live upload through the browser, and a real timeout against a crafted PDF.
+**State:** all seven steps are done in worktree `.worktrees/pf-144-hand` on branch `fix/pf-144-harden-upload-endpoints`, uncommitted. `dotnet test` (471 passed, 9 skipped) and `pytest` (366 passed) are green. Ticket tracking did not start: `run.mjs start --hand` refused because slot 1 is held by PF-AI010, so this plan is still in `backlog/` and the board is not updated. Not checked: a live upload through the browser, and a real timeout against a crafted PDF.
 
 **Known defects to confirm:**
 - `TransactionsController.WithinParseBudgetAsync`: the interfaces take no cancellation token, so on timeout the request stops waiting but the abandoned parse keeps running on a thread-pool thread until it finishes. A mocked test cannot show real CPU cost; the plan allowed `WaitAsync` for this case.

@@ -108,7 +108,7 @@ Run `git status` and `git diff --stat`; expect exactly the four files above. Do 
 - This repository is public. If any step would put a real name into command output, a commit message or this plan, stop and use line numbers instead.
 - Other E-001 slices (upload hardening, local network, sign-in rules, dependencies, low items, third-party note, re-audit) are separate tickets; later slices add their accepted items to `docs/references/accepted-risks.md`.
 - Related: PF-127 (PII redaction of tracked files before open-sourcing) covers the same area. If PF-127 already scrubbed some of these files, STEP 3 simply finds fewer matches.
-- Execution: `STATUS.md` has no security or risks section, so it was not linked. The loop engine refused the hand start (slot 1 held by PF-AI009 until its G3 review), so this ran in the main checkout with no ticket tracking; the plan is still in `backlog/`.
+- Execution: `STATUS.md` has no security or risks section, so it was not linked. The loop engine refused the hand start (slot 1 held by PF-AI010 until its G3 review), so this ran in the main checkout with no ticket tracking; the plan is still in `backlog/`.
 - Execution: `git status` also shows changes from other work in the same checkout (`TransactionsController.cs`, `Program.cs`, `supabase-migration.md`, `supabase/config.toml`, and the PF-146 plan). They are not part of this ticket and must not be committed with it.
 
 ## Execution Notes

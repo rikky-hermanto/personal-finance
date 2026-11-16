@@ -21,13 +21,13 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 3. **RAG third** — pgvector is already in your schema. RAG is the #1 applied skill in current AI Eng JDs and the foundation agents will build on.
 4. **Streaming fourth** — production UX pattern; cheap to add once RAG works.
 5. **Agents + MCP fifth** — frameworks make sense only after you have a real retrieval system to wrap. smolagents before LangGraph (smaller surface), MCP after LangGraph.
-6. **Harden before going public** (added 2026-10-17) — security and guardrails (Ch9.5), then deployment, LLMOps and evals in CI (Ch9.75). Ch9.5 runs *before* Ch9 MCP, because AI chat is live on real data with no guard.
-7. **Public proof next** — a blog post with your benchmark numbers is worth more than a cert alone. Publish the first post early, in parallel with Ch9.5.
+6. **Harden before going public** (added 2026-10-17) — security and guardrails (Ch9), then deployment, LLMOps and evals in CI (Ch12). Ch9 runs *before* Ch10 MCP, because AI chat is live on real data with no guard.
+7. **Public proof next** — a blog post with your benchmark numbers is worth more than a cert alone. Publish the first post early, in parallel with Ch9.
 8. **Certification last** — signal booster, not the foundation. Never cert-first.
 
-**Run order from 2026-10-17:** close Ch7 + agent eval → Ch9.5 → Ch9 → Ch9.75 → Ch10–12. Target dates live in the curriculum doc's *Remaining schedule* section.
+**Run order (chapters renumbered 2026-11-16 to match it):** close Ch7 + agent eval → Ch9 → Ch10 → Ch11 → Ch12 → Ch13–15. Target dates live in the curriculum doc's *Remaining schedule* section.
 
-**Fine-tuning, LoRA/QLoRA, SageMaker, RLHF** → deferred to month 4+. Revisit only if a specific JD demands it. (Guardrails and AI CI/CD are no longer deferred; they are Ch9.5–9.75.)
+**Fine-tuning, LoRA/QLoRA, SageMaker, RLHF** → deferred to month 4+. Revisit only if a specific JD demands it. (Guardrails and AI CI/CD are no longer deferred; they are Ch9 and Ch12.)
 
 ---
 
@@ -231,39 +231,12 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ## Phase 3 — MCP + Positioning + Apply (Days 61–90)
 
-### Chapter 9: Model Context Protocol (MCP)
-**Theme:** Ship an MCP server. Wire it to a client. Signal you live on the frontier.
-
-**Why it matters:** MCP is Anthropic's tool/agent interop standard, adopted across the industry in 2025. Roles at Anthropic, Grafana, Datadog explicitly mention it. After this chapter, you have a personal-finance MCP server that Claude Desktop (or any MCP client) can call — a uniquely demonstrable artifact.
-
-**Tasks:**
-- Complete Anthropic MCP quickstart (~30 min, server up first, spec later)
-- Complete Anthropic Academy *MCP Series*
-- Build a personal-finance MCP server exposing:
-  - `get_transactions` (with date/category filters)
-  - `get_pyramid_scores`
-  - `search_transactions_semantic` (uses your Chapter 3-4 RAG retriever)
-  - `get_cashflow_summary`
-- Test from Claude Desktop or another MCP client
-- Tool-design pass *(added 2026-10-24)*: ask the demo questions, check which tool the model chose, rewrite any description that misled it, and make every error say what to do next (PF-AI009 checklist section G2). Resource: Anthropic, *Writing effective tools for AI agents*
-- Human-in-the-loop *(added 2026-10-24)*: add a LangGraph `interrupt` so the categorizer agent asks for approval before it writes a category. Keep the MCP tools read-only. Resource: LangGraph human-in-the-loop docs
-- Stretch: build a 2-agent workflow where one agent calls your MCP server as a tool
-
-**Definition of done:** Claude Desktop (or any MCP client) can connect to your server, list tools, and successfully invoke them against your real finance data.
-
-**Resources:**
-- Anthropic MCP quickstart: https://modelcontextprotocol.io/quickstart
-- Anthropic MCP Series: https://anthropic.skilljar.com/
-- MCP Python SDK: https://github.com/modelcontextprotocol/python-sdk
-
----
-
-### Chapter 9.5: AI Security + Guardrails *(added 2026-10-17 · runs before Chapter 9)*
+### Chapter 9: AI Security + Guardrails *(added 2026-10-17)*
 **Theme:** Attack your own AI before anyone else does. Then defend it, and measure the defence.
 
 **Why it matters:** AI chat went live on real transactions on 2026-10-16 with no prompt-injection guard and no PII masking. Guardrails show up in AI Engineer job posts as a core skill. "I red-teamed my own RAG and measured the block rate" is a rare, concrete interview answer.
 
-**Plan:** [PF-AI011](../../../plans/done/learning/PF-AI011-ai-security-governance-todo.md) (Done: merged to main 2026-10-21; only the STEP 0 recall is still open)
+**Plan:** [PF-AI009](../../../plans/done/learning/PF-AI009-ai-security-governance-todo.md) (Done: merged to main 2026-10-21; only the STEP 0 recall is still open)
 
 **Tasks:**
 - Red-team baseline first: direct injection on `/ask`, indirect injection via a poisoned transfer memo, scaffold leaks. Use the in-memory harness; never write attack rows to the real transactions table
@@ -283,12 +256,57 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Chapter 9.75: Deployment + LLMOps + Evals in CI *(added 2026-10-17)*
+### Chapter 10: Model Context Protocol (MCP)
+**Theme:** Ship an MCP server. Wire it to a client. Signal you live on the frontier.
+
+**Why it matters:** MCP is Anthropic's tool/agent interop standard, adopted across the industry in 2025. Roles at Anthropic, Grafana, Datadog explicitly mention it. After this chapter, you have a personal-finance MCP server that Claude Desktop (or any MCP client) can call — a uniquely demonstrable artifact.
+
+**Tasks:**
+- Complete Anthropic MCP quickstart (~30 min, server up first, spec later)
+- Complete Anthropic Academy *MCP Series*
+- Build a personal-finance MCP server exposing:
+  - `get_transactions` (with date/category filters)
+  - `get_pyramid_scores`
+  - `search_transactions_semantic` (uses your Chapter 3-4 RAG retriever)
+  - `get_cashflow_summary`
+- Test from Claude Desktop or another MCP client
+- Tool-design pass *(added 2026-10-24)*: ask the demo questions, check which tool the model chose, rewrite any description that misled it, and make every error say what to do next (PF-AI010 checklist section G2). Resource: Anthropic, *Writing effective tools for AI agents*
+- Stretch: build a 2-agent workflow where one agent calls your MCP server as a tool
+
+**Definition of done:** Claude Desktop (or any MCP client) can connect to your server, list tools, and successfully invoke them against your real finance data.
+
+**Resources:**
+- Anthropic MCP quickstart: https://modelcontextprotocol.io/quickstart
+- Anthropic MCP Series: https://anthropic.skilljar.com/
+- MCP Python SDK: https://github.com/modelcontextprotocol/python-sdk
+
+---
+
+### Chapter 11: Human-in-the-Loop + Feedback Loop *(added 2026-10-24 and 2026-11-10)*
+**Theme:** An agent that writes to real data needs a point where you say yes or no, and every answer you give should feed the eval set.
+
+**Plan:** [PF-AI011](../../../plans/backlog/learning/PF-AI011-human-in-the-loop-category-approval-todo.md) (human-in-the-loop part; the feedback loop is not planned yet)
+
+**Tasks:**
+- Human-in-the-loop: a LangGraph `interrupt` so the categorizer agent asks for approval before it writes a category; accept, edit or reject
+- Make that write safe to retry: a repeated or resumed run never writes twice and never overwrites a newer manual edit
+- Keep the MCP tools read-only, enforced by a test
+- Feedback loop: record the category the AI suggested vs the one you kept, turn disagreements into eval rows, thumbs up or down on `/ask`, one synthetic eval set
+
+**Definition of done:** A suggested category changes nothing until you approve it, a repeated approval writes once, and a disagreement shows up as a new eval row.
+
+**Resources:**
+- LangGraph human-in-the-loop docs
+- Eugene Yan: *Patterns for Building LLM-based Systems & Products* (the data flywheel)
+
+---
+
+### Chapter 12: Deployment + LLMOps + Evals in CI *(added 2026-10-17)*
 **Theme:** Move from "I built it" to "I run it": public, protected, budgeted and regression-gated.
 
 **Why it matters:** Nothing is deployed yet, so "deployed an AI service" can't be claimed. Cost control and continuous evaluation are the skills recruiters say separate strong AI Engineering candidates from the rest.
 
-**Plan:** [PF-AI012](../../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (depends on PF-AI011). The evals-in-CI task is not in PF-AI012 yet; add it when that plan is re-audited.
+**Plan:** [PF-AI012](../../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (depends on PF-AI009). The evals-in-CI task is not in PF-AI012 yet; add it when that plan is re-audited.
 
 **Tasks:**
 - AI service on a public URL: Azure Container Apps + ACR, deployed by GitHub Actions, Supabase Cloud with anonymized data
@@ -305,7 +323,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Chapter 10: Public Presence + Certification
+### Chapter 13: Public Presence + Certification
 **Theme:** Make your work findable. Add the credential if ROI is there.
 
 **Tasks:**
@@ -334,7 +352,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Chapter 11: Interview Prep
+### Chapter 14: Interview Prep
 **Theme:** Translate the build into interview-ready stories.
 
 **Tasks:**
@@ -359,7 +377,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ---
 
-### Chapter 12: Active Applications
+### Chapter 15: Active Applications
 **Theme:** Ship applications like you ship code — deliberate, not spam.
 
 **Tasks:**
@@ -386,7 +404,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 | LangChain for LLM Application Development | DeepLearning.AI | 4h | Chapter 8 |
 | LangGraph: Multi-Agent Workflows | DeepLearning.AI | 3h | Chapter 8 |
 | Building and Evaluating Advanced RAG Applications | DeepLearning.AI | 3h | Chapter 6 |
-| Anthropic MCP Series | Anthropic Academy | ~4h | Chapter 9 |
+| Anthropic MCP Series | Anthropic Academy | ~4h | Chapter 10 |
 | Generative AI with Large Language Models | Coursera/DeepLearning.AI | 16h | optional Phase 4 background |
 
 ### Tier 2 — Pick One (Paid, High Signal)

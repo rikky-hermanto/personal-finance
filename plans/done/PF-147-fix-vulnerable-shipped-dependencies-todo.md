@@ -111,7 +111,7 @@ Findings worth knowing:
 - Production code (`app/services/advisor.py`) imports `langfuse.langchain`, which needs the `langchain` package. It used to be installed only through the ragas stack, so a `pip install .` image would have failed on that import. `langchain>=0.3,<1.0` is now declared explicitly in `pyproject.toml`.
 - `npm audit fix` crashes inside npm; targeted `npm update` and `npm install` were used.
 - The Python 1.x upgrade was tried and reverted: `langchain-google-genai` 4.x drops `google.api_core`, which `chat_model_factory.py` imports. That is an agent rewrite, so it is out of scope here.
-- Tracking: `start --hand` refused (slot 1 held by PF-AI009 until its G3 review). The work is on branch `fix/pf-147-vulnerable-deps` in `.worktrees/pf-147`. This plan is still in `backlog/` and the board was not updated; `sync` was not run. Nothing is committed.
+- Tracking: `start --hand` refused (slot 1 held by PF-AI010 until its G3 review). The work is on branch `fix/pf-147-vulnerable-deps` in `.worktrees/pf-147`. This plan is still in `backlog/` and the board was not updated; `sync` was not run. Nothing is committed.
 - Follow-ups to consider: constrain quest/insight deeplinks to paths starting with a single `/`; a ticket to port `chat_model_factory.py` to `langchain-google-genai` 4.x and then to langgraph 1.x; a React Router 7 migration.
 
 ## ✅ Owner Review Checklist (G3)

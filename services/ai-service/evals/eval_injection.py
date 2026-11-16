@@ -1,4 +1,4 @@
-"""Security eval for the AI service's prompt-injection controls (PF-AI011).
+"""Security eval for the AI service's prompt-injection controls (PF-AI009).
 
 Two halves, one script:
 

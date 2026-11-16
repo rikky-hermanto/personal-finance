@@ -30,7 +30,7 @@ PF-AI005-PART2 code is complete; formal numeric evaluation/metrics remain deferr
 
 ## Sprint 4 — Hardening
 
-OTel/LGTM, Langfuse, extraction/retrieval/categorization evaluators and provider error handling exist. These do not establish full production readiness: auth/tenant isolation, prompt-injection/PII guardrails (PF-AI011), response caching, rate limiting and public deployment/CD (PF-AI012) remain planned. No n8n orchestration is wired into application ingestion.
+OTel/LGTM, Langfuse, extraction/retrieval/categorization evaluators and provider error handling exist. These do not establish full production readiness: auth/tenant isolation, prompt-injection/PII guardrails (PF-AI009), response caching, rate limiting and public deployment/CD (PF-AI012) remain planned. No n8n orchestration is wired into application ingestion.
 
 ## Features beyond the original sprint proposal
 

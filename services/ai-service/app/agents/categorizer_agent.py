@@ -176,7 +176,7 @@ class CategorizerAgent:
         """Run the agent for one transaction. Synchronous — call via asyncio.to_thread,
         inside a bound OwnerContext (app/agents/owner_context.py)."""
         agent = self._new_agent()
-        # PF-AI011: identifiers (NIK, phone, account, email) never reach the provider, the Langfuse
+        # PF-AI009: identifiers (NIK, phone, account, email) never reach the provider, the Langfuse
         # trace or the logs. Merchant names pass through, so categorization keeps its signal.
         masked = mask_pii(description)
         task = (

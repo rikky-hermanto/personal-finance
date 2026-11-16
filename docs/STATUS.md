@@ -38,7 +38,7 @@ The latest recorded feature before that was **PF-141 — opt-in Jev residual cat
 - **Hybrid retrieval (PF-AI006):** vector, PostgreSQL full-text (`bm25` mode name), and RRF hybrid modes exist. Recorded July 24 benchmark favored vector (MRR@5 0.771 vs hybrid 0.750); coded default remains vector. This is corpus-specific historical evidence.
 - **Categorizer agent (PF-AI007):** separate `/categorize-agent` endpoint with smolagents rules/history/vocabulary tools. Does not replace upload categorization. Since PF-S15 each request binds the caller's own rules (private rules over shared presets), categories and owner-scoped similarity search, and gets a fresh agent. Gated by `AI_AGENTS_ENABLED`; internal only, with no .NET or UI caller. The PF-AI007 plan remains in progress with partial, quota-limited live smoke evidence.
 - **Financial advisor (PF-AI008):** separate `/advisor` LangGraph endpoint, four .NET-backed tools, process-memory sessions, bounded calls/timeouts and fallback. Since PF-S15 it is reached through `POST /api/chat/advisor` (gated by `AiChat:AgentsEnabled` and `AI_AGENTS_ENABLED`); its tools call the API with the caller's own token and its memory is keyed by user plus session. No UI calls it yet. On Gemini 3 models it returns its fallback reply, because the installed `langchain-google-genai` drops thought signatures. Closed by user acceptance September 15; second-turn/scenario/visual dashboard checks were deferred. Requested dates enter prompts rather than structured tool filters.
-- **Categorization evaluator (PF-AI010):** implemented with recorded August 5 baseline in `services/ai-service/evals/results/20260805-categorize-eval.md`; its plan says Done despite the old board's To Do entry.
+- **Categorization evaluator (PF-AI008b):** implemented with recorded August 5 baseline in `services/ai-service/evals/results/20260805-categorize-eval.md`; its plan says Done despite the old board's To Do entry.
 - **Jev (PF-141):** independent opt-in `/categorize` backend, closed vocabulary, explicit threshold, abstention, bounded timeout and .NET rule-seeding guard. Never allows automatic Jev rule creation. A versioned evaluator with 100 held-out cases plus 20 tuning cases exists; live evaluation, calibrated threshold, rollout and savings evidence remain pending. Bulk preview Suggest and agent endpoint are unaffected.
 
 ## Ingestion boundaries
@@ -65,7 +65,7 @@ Development uses Supabase CLI (Postgres 17, API 54321, DB 54322, Studio 54323). 
 
 ## Remaining scope
 
-- AI security/governance and deployment work (PF-AI011/012) remain planned. Authentication and per-user isolation are done locally (PF-S08/S09, PF-S15); public signup and the cloud rollout are not.
+- AI security/governance and deployment work (PF-AI009/012) remain planned. Authentication and per-user isolation are done locally (PF-S08/S09, PF-S15); public signup and the cloud rollout are not.
 - PF-S15 follow-ups: decimal chat totals end to end (FIN-01), the advisor on Gemini 3, the API-to-AI keep-alive race, agent stdout logging, and checking the agent's category against the caller's vocabulary.
 - Durable webhook extraction and upload-status realtime completion (PF-S11/S12).
 - Trading Desk Pre-Trade/Journal and gated trade-plan persistence (PF-134), deferred risk rules (PF-135).

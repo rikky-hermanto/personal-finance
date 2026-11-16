@@ -1,5 +1,5 @@
 ---
-id: PF-AI011
+id: PF-AI009
 type: feature
 size: L
 flags: [Ready]
@@ -20,20 +20,20 @@ approved:
   at-label: 2026-10-20 11:13 Asia/Makassar
   budgetOverride: true
 run:
-  worktree: .worktrees/pf-ai011
-  branch: loop/pf-ai011
+  worktree: .worktrees/pf-ai009
+  branch: loop/pf-ai009
   slot: 1
   fixRounds: 0
   segments: 0
-  checkpoint: .loop/runs/PF-AI011/checkpoint.json
-  logs: .loop/runs/PF-AI011/
+  checkpoint: .loop/runs/PF-AI009/checkpoint.json
+  logs: .loop/runs/PF-AI009/
   verdict: pass
 ---
 
-# PF-AI011 — AI Security & Governance (Prompt Injection, PII, Secrets, Guardrails)
+# PF-AI009 — AI Security & Governance (Prompt Injection, PII, Secrets, Guardrails)
 
-> **Learning Phase:** Phase 3 · Chapter 9.5 (between Ch9 MCP and Ch10 Positioning) · Day ~76+ of 90
-> **Status:** In Progress · hand run in `.worktrees/pf-ai011`, implementation done, awaiting verification
+> **Learning Phase:** Phase 3 · Chapter 9 (before Ch10 MCP and Ch13 Positioning) · Day ~76+ of 90
+> **Status:** In Progress · hand run in `.worktrees/pf-ai009`, implementation done, awaiting verification
 > **Started:** 2026-10-19
 > **Planned from branch:** main
 > **Revised:** 2026-10-17 — readiness audit against the post-PF-S08/S15 code. Chat now reaches the AI service only through the .NET proxy, so the plan gains .NET and frontend changes for the new error codes. The baseline no longer writes poisoned rows into real data. Spotlighting moves into the shared `_format_context` and also covers follow-ups. The Langfuse call uses the v3 API, and the phone regex is fixed. A hold-out attack set and a streaming output guard are added. STEP 7 is now a check, because `appsettings.Development.json` is already gitignored. Full list in the Notes section, under "Audit 2026-10-17".
@@ -252,7 +252,7 @@ deterministic scanner/guard/masker services (STEPs 3–4), then wiring through t
 the .NET proxy and the chat UI (STEP 5). The secrets check (STEP 7) is independent and can run
 any day. Deliberately not built: NER name detection, a guardrails framework dependency, auth and
 row-level security (PF-S08/S15 shipped those), and masking for upload extraction and embeddings
-(documented as residual risk). PF-AI011 must complete before PF-AI012 exposes any endpoint
+(documented as residual risk). PF-AI009 must complete before PF-AI012 exposes any endpoint
 publicly.
 
 ## 📂 Affected Files
@@ -765,7 +765,7 @@ context cases.
 Complete [ai-threat-model.md](../../../docs/operations/ai-threat-model.md) with this structure:
 
 ```markdown
-# AI Service Threat Model — PF-AI011
+# AI Service Threat Model — PF-AI009
 
 ## Surfaces & threats found
 | # | Surface | Threat (OWASP LLM Top 10) | Demonstrated? |
@@ -780,7 +780,7 @@ Complete [ai-threat-model.md](../../../docs/operations/ai-threat-model.md) with 
 
 > **Why:** This is the exact artifact the roadmap's Stage 6 names ("document a threat you found
 > in your own system and the control you added") and it doubles as the seed for a blog post in
-> Chapter 10. The *residual risks* section is what separates a senior write-up from a checkbox
+> Chapter 13. The *residual risks* section is what separates a senior write-up from a checkbox
 > exercise — knowing what you didn't cover, and why, is the skill being demonstrated.
 
 ### [x] STEP 10 — Commit + log progress
@@ -797,7 +797,7 @@ Complete [ai-threat-model.md](../../../docs/operations/ai-threat-model.md) with 
 Then commit with `/commit` (no AI attribution trailer) and log with the `/mentor` skill, for example:
 
 ```text
-/mentor log shipped PF-AI011: red-teamed /ask (X/12 attacks landed pre-fix), shipped spotlighting + injection scanner + PII masker + output guard, moved .NET dev keys to user-secrets, eval: Y% block rate / Z% FP, threat model doc written
+/mentor log shipped PF-AI009: red-teamed /ask (X/12 attacks landed pre-fix), shipped spotlighting + injection scanner + PII masker + output guard, moved .NET dev keys to user-secrets, eval: Y% block rate / Z% FP, threat model doc written
 ```
 
 > **Why:** The log entry carries the interview numbers. Same-day rule: chapter isn't done until
@@ -970,6 +970,6 @@ overlap, so the chapter can run before or after the E-001 grill.
 </details>
 
 ## Loop Notes
-- 2026-10-20 11:17 Asia/Makassar hand run: implementation done in .worktrees/pf-ai011 (uncommitted); STEP 0 and the STEP 10 mentor log are the owner's; gitleaks not run locally. Awaiting verification.
+- 2026-10-20 11:17 Asia/Makassar hand run: implementation done in .worktrees/pf-ai009 (uncommitted); STEP 0 and the STEP 10 mentor log are the owner's; gitleaks not run locally. Awaiting verification.
 - 2026-10-21 Asia/Makassar: STEP 7 closed. gitleaks clean on full history and the uncommitted files after allowlisting 2 pre-existing false positives in `.gitleaks.toml`.
-- 2026-10-21 21:13 Asia/Makassar Verified: gates green (pytest 351, dotnet 431/9 skipped, desk+macro vitest, lint, tsc, gitleaks) and the separate /loop-verify (opus, high) passed 12/12 ACs. Hand-run verifier dropped --permission-prompts (unsupported by Claude Code 2.1.207). One commit on loop/pf-ai011: 1ad33dbd.
+- 2026-10-21 21:13 Asia/Makassar Verified: gates green (pytest 351, dotnet 431/9 skipped, desk+macro vitest, lint, tsc, gitleaks) and the separate /loop-verify (opus, high) passed 12/12 ACs. Hand-run verifier dropped --permission-prompts (unsupported by Claude Code 2.1.207). One commit on loop/pf-ai009: 1ad33dbd.

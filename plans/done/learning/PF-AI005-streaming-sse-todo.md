@@ -185,7 +185,7 @@ This chapter:
 4. **Adds a live Transactions subscription via Supabase Realtime** — installs `@supabase/supabase-js` (pre-empting PF-S09), enables Realtime on `public.transactions` with a migration, and subscribes to INSERT events: committing an upload pops a toast and invalidates the transactions query in real time.
 
 **Depends on:** PF-AI004 (`POST /ask`, `AnswerService`, `RerankerService`, `app.state.reranker`, `app.state.answerer` — must be wired before `POST /ask/stream` can be built in Step 5)
-**Unblocks:** Chapter 8 (LangGraph agent needs a streaming interface); Chapter 10 demo Loom (the "RAG chat: ask and see it stream" segment requires this chapter)
+**Unblocks:** Chapter 8 (LangGraph agent needs a streaming interface); Chapter 13 demo Loom (the "RAG chat: ask and see it stream" segment requires this chapter)
 
 ## ✅ Acceptance Criteria
 
@@ -1556,9 +1556,9 @@ git commit -m "PF-AI005: streaming SSE — /ask/stream, React chat UI, Supabase 
 - **Langfuse is manual, per-method.** PF-AI001 instrumented each provider method by hand (`langfuse.start_observation` / `update` / `end`) — nothing auto-instruments new methods. `stream_generate()` carries its own generation span; without it, streamed calls silently vanish from the cost dashboard.
 - **Truncation policy for streams.** The ai-service rule "treat `max_tokens` as a hard error" targets extraction, where partial data poisons dedup. Mid-stream chat truncation can't be un-sent — so we log a warning and record the stop reason in Langfuse metadata instead of raising. Documented deviation, not an oversight.
 - **VITE_AI_SERVICE_URL env var.** The frontend's [.env](../../../apps/frontend/.env) needs this for direct AI service access. It's new — add it to [.env.example](../../../apps/frontend/.env.example) as well. Don't commit real values.
-- **TTFT is the demo metric.** For the Chapter 10 Loom demo, the streaming segment is most effective if you visibly delay the question and let the viewer watch the first token appear in ~150ms. Quote TTFT in the demo narration.
+- **TTFT is the demo metric.** For the Chapter 13 Loom demo, the streaming segment is most effective if you visibly delay the question and let the viewer watch the first token appear in ~150ms. Quote TTFT in the demo narration.
 - **Supabase Realtime prerequisites — two independent gates.** The table must be in the `supabase_realtime` publication (the Step 9 migration — nothing was in it before), AND RLS must allow the subscriber to `SELECT` the row (`allow_all_transactions USING (true)` covers local dev). Either one missing = SUBSCRIBED channel, zero events, no error.
-- **Deferred:** streaming the categorization step (not needed — it's fast), streaming the portfolio review (Chapter 10 demo), conversation history (Chapter 8), .NET `/ask/stream` proxy with auth (PF-S08), upload-status Realtime (PF-S11 — needs the status table + writeback that ticket builds).
+- **Deferred:** streaming the categorization step (not needed — it's fast), streaming the portfolio review (Chapter 13 demo), conversation history (Chapter 8), .NET `/ask/stream` proxy with auth (PF-S08), upload-status Realtime (PF-S11 — needs the status table + writeback that ticket builds).
 - **THINK-05 (frozen contract):** `AskRequest` / `AskResponse` / `Citation` were frozen when `.NET` could proxy `/ask`. The streaming endpoint introduces a new SSE protocol — document it separately if `.NET` ever proxies `/ask/stream`.
 
 

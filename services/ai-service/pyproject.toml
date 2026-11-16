@@ -44,7 +44,7 @@ dependencies = [
     # Runtime advisor adapter; 3.x+ drops the client chat_model_factory.py relies on.
     "langchain-google-genai>=2.0,<3.0",
     "httpx>=0.27",
-    # PF-AI009: MCP server (FastMCP over SSE) co-located on the AI service.
+    # PF-AI010: MCP server (FastMCP over SSE) co-located on the AI service.
     "fastmcp>=2.0",
 ]
 

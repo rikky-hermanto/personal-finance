@@ -35,7 +35,7 @@ schema, global AI provider replacement and autonomous learning of merchant rules
 | `services/ai-service/evals/{eval_categorize.py,scoring_categorize.py,categorize_cases.json}` | Existing baseline harness supports Gemini/Anthropic, alternative accepted labels, per-case vocabulary, cost/latency and simple confidence diagnostics. Extend it, do not duplicate it. |
 | `apps/api/tests/PersonalFinance.Tests/Services/{LlmCategorizationClientTests,CategorizationLayerTests}.cs` | Existing consumer and pipeline regression seams, including low-confidence categorization without seeding. |
 
-Related history: completed PF-103 and PF-122 plans; PF-AI010 learning plan reports
+Related history: completed PF-103 and PF-122 plans; PF-AI008b learning plan reports
 Done and its code exists, although BOARD still lists it pending. Do not change
 that unrelated status without reconciliation. `docs/STATUS.md` is older context.
 The audit did not measure cost/latency; no savings are established yet.
@@ -191,7 +191,7 @@ Do not wire production selection yet.
   254-category limit, exact probability validation, five-second overall deadline,
   zero SDK retries, per-call observations, and mocked concurrency/failure tests.
 
-### STEP 3 — Extend PF-AI010 evaluator and compare
+### STEP 3 — Extend PF-AI008b evaluator and compare
 
 Extend `evals/eval_categorize.py`, `scoring_categorize.py`, existing cases and
 `tests/test_scoring_categorize.py`. Keep historical CLI choices compatible; add
@@ -302,7 +302,7 @@ required in v1; offline paired evaluation avoids doubling production requests.
   precision / 50% coverage targets above are proposed release criteria for review.
 - Initial scope assumes residual `/categorize`, not the visible bulk Suggest button.
   Extending the merchant-suggestion path is a separate follow-up with rule/PII risks.
-- PF-AI010 code is reusable; no dependency on unfinished smolagents learning work.
+- PF-AI008b code is reusable; no dependency on unfinished smolagents learning work.
 - Before processing real customer records, settle data minimization/retention and
   processor handling. No regulatory compliance certification is implied here.
 

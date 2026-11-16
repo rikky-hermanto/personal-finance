@@ -8,7 +8,7 @@
 >
 > There is nothing to build. No math is needed. **Time:** one evening for this page, one for the
 > fine-tuning doc. **Read first** in this folder: the other docs use its vocabulary. The curriculum
-> schedules it as topic 24, so the deadline is before Chapter 11, but nothing stops you reading it
+> schedules it as topic 24, so the deadline is before Chapter 14, but nothing stops you reading it
 > earlier. The fine-tuning half is the last doc in the folder, [08](08-fine-tuned-llms.md).
 
 ## What you will be able to do

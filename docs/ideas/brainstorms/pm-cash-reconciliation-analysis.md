@@ -63,7 +63,7 @@ Kredivo and Akulaku (BNPL) are not relevant to cash and were skipped.
 | **Pain severity** | 2/5 | The total is already correct. Only attribution is missing. The owner is QRIS-first and the local data has no ATM rows. |
 | **Market differentiation** | 3/5 | The matching of itemized cash to its withdrawal is uncommon, but it is the least valuable part. The accounting result is standard (YNAB, Goodbudget). |
 | **Foundation fit** | 2/5 | Helpful: `wallet` account type, `account_id` on transactions, `Withdrawing` category, `/parse-image`, running-balance view. Missing: manual entry, transfer flag, parent link, an externally reachable webhook (stack is local-only, per STATUS.md), a receipt prompt. |
-| **Scope realism** | 3/5 | Scored on the MVP cut (2 + 3), roughly 3–5 days. The full idea would be 1/5. STATUS.md already lists Trading Desk Pre-Trade/Journal, PF-AI011/012 security and PF-S11/S12 as open. |
+| **Scope realism** | 3/5 | Scored on the MVP cut (2 + 3), roughly 3–5 days. The full idea would be 1/5. STATUS.md already lists Trading Desk Pre-Trade/Journal, PF-AI009/012 security and PF-S11/S12 as open. |
 | **User discovery** | 1/5 | Needs a new habit with no forcing function and is not on the Journey home page. |
 
 **Total: 11/25.** Pain severity is below 3, so this is a No-Go regardless of total. The total alone lands in the 10–14 band (No-Go until prerequisites are met).

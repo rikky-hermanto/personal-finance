@@ -370,9 +370,9 @@
       files: [], tickets: [] },
 
     // ---------------- Photo capture ----------------
-    { id: "T2", parent: "capture", col: 0, row: 0, icon: "🛡️", title: "AI service security", subtitle: "PF-AI011, before anything is public", status: "planned",
-      detail: "PF-AI012 lists PF-AI011 as its dependency: injection defence and permission boundaries before a public URL exists. A receipt photo is untrusted input going to a vision model.",
-      files: [], tickets: ["PF-AI011"] },
+    { id: "T2", parent: "capture", col: 0, row: 0, icon: "🛡️", title: "AI service security", subtitle: "PF-AI009, before anything is public", status: "planned",
+      detail: "PF-AI012 lists PF-AI009 as its dependency: injection defence and permission boundaries before a public URL exists. A receipt photo is untrusted input going to a vision model.",
+      files: [], tickets: ["PF-AI009"] },
     { id: "T1", parent: "capture", col: 0, row: 1, icon: "🌐", title: "Public HTTPS URL", subtitle: "PF-122 / PF-AI012; stack is local-only", status: "planned",
       detail: "Telegram can only call a public URL. The stack runs locally and the cloud rollout is not done, so the bot needs a deployed or tunnelled API first. Deployment tickets exist: PF-122 (Cloudflare Pages, Supabase Cloud, Koyeb, Render) and PF-AI012 (public URL, CD, response cache).",
       files: ["plans/backlog/learning/PF-AI012-deployment-llmops-todo.md"], tickets: ["PF-122", "PF-AI012"] },

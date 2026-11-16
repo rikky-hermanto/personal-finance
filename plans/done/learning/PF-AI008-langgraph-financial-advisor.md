@@ -11,7 +11,7 @@ PF-AI008 is closed for the learning/product-validation scope at the user's reque
 
 **Deferred, not completion blockers under this decision:** successful live second-turn answer and refetch assessment; the complete five-scenario run; visual Langfuse dashboard confirmation; billed cost and aggregate latency benchmarks; full .NET-backed HTTP validation. The existing merchant-suggester PII failure, four venv dependency conflicts, and unavailable local OTEL metrics collector remain recorded issues. Chapter 7's earlier smoke-test debt is unchanged. No further live calls are needed to close this task. Commit and push are now explicitly authorized by the user, superseding earlier no-commit instructions for this closing turn.
 
-**Next learning milestone:** Chapter 9 — Model Context Protocol (MCP); expose existing Personal Finance capabilities as tools and verify them from an MCP client. No Chapter 9 implementation is included in this closure.
+**Next learning milestone:** Chapter 10 — Model Context Protocol (MCP); expose existing Personal Finance capabilities as tools and verify them from an MCP client. No Chapter 10 implementation is included in this closure.
 > **Pivot goal:** Build a multi-step conversational agent with LangGraph — state, conditional routing, tool use, conversation memory, and error handling. After this chapter, you have the dominant agent framework in current AI Eng JDs checked off with a real, demo-able artifact grounded in your own financial data.
 
 # 📑 Table of Contents
@@ -284,7 +284,7 @@ run and loads it back in before the next one, keyed by an opaque `thread_id` you
 `config`. Pass the same `thread_id` (mapped from `session_id`) on turn 2, and LangGraph resumes
 exactly where turn 1 left off — no re-fetching, no repeated context. *This is what the chapter
 ships.* **Teaser, not taught here:** `MemorySaver` is in-process only; a production deployment swaps
-in `PostgresSaver` with a one-line change — Chapter 9's MCP tools reuse this same state shape.
+in `PostgresSaver` with a one-line change — Chapter 10's MCP tools reuse this same state shape.
 
 ▶ **Watch/read for this concept:** persistence + `thread_id` → https://langchain-ai.github.io/langgraph/concepts/persistence/
 
@@ -433,7 +433,7 @@ contract, not theory.
 **Relationship to existing `/journey/advise`:** that endpoint stays unchanged — it serves the quest-card UI. The new `/advisor` serves a conversational chat UI (built in Chapter 5). Both endpoints coexist; Chapter 5 will stream `/advisor` over SSE.
 
 **Depends on:** Chapter 7 (smolagents — agent mental model). LangGraph builds on it as "industrial smolagents."
-**Unblocks:** Chapter 9 (MCP server — the tools you build here become MCP tools), Chapter 10 (blog post — the LangGraph traces are demo material).
+**Unblocks:** Chapter 10 (MCP server — the tools you build here become MCP tools), Chapter 13 (blog post — the LangGraph traces are demo material).
 
 ## ✅ Acceptance Criteria
 
@@ -465,7 +465,7 @@ Original implementation checklist; checked entries are historical. The revision 
 
 **Configurable LangChain chat adapter (revised 2026-09-15).** Follow `AI_PROVIDER` and `AI_MODEL` through a small chat factory: Gemini uses `ChatGoogleGenerativeAI`, Anthropic uses `ChatAnthropic`. Bind the same tools after construction. Only the selected provider's key is needed; Gemini is the project default. The existing extraction `ProviderFactory` stays unchanged because its contract is structured extraction rather than chat/tool messages. See R1–R5 for the authoritative pending work and budget controls. The earlier Anthropic-only implementation is historical behavior, not a LangGraph requirement.
 
-**Tools call the .NET API, not the database directly — and reuse what already exists.** The agent's tools use httpx to call real, existing routes: `GET /api/journey/state`, `GET /api/transactions/aggregated`, `GET /api/networth/current`, `GET /api/networth/allocation`. There is no dedicated `/api/investments/summary` or `/api/transactions/cashflow-summary` endpoint — rather than inventing new .NET surface out of scope for an AI-service chapter, the tools compose the closest existing data (see Step 4 and the Notes section). This keeps the data layer in .NET and makes the tools composable — the same tools become MCP tools in Chapter 9 with minimal change.
+**Tools call the .NET API, not the database directly — and reuse what already exists.** The agent's tools use httpx to call real, existing routes: `GET /api/journey/state`, `GET /api/transactions/aggregated`, `GET /api/networth/current`, `GET /api/networth/allocation`. There is no dedicated `/api/investments/summary` or `/api/transactions/cashflow-summary` endpoint — rather than inventing new .NET surface out of scope for an AI-service chapter, the tools compose the closest existing data (see Step 4 and the Notes section). This keeps the data layer in .NET and makes the tools composable — the same tools become MCP tools in Chapter 10 with minimal change.
 
 **MemorySaver for session memory — not a database.** `MemorySaver` is an in-memory checkpointer, scoped to the process lifetime. For this project's personal-use scale, that's correct. The interview framing: "I use MemorySaver for development; production would swap in `PostgresSaver` or `RedisSaver` with one line change — LangGraph's checkpointer API is storage-agnostic."
 
@@ -473,7 +473,7 @@ Original implementation checklist; checked entries are historical. The revision 
 
 **`date_from`/`date_to` fold into the prompt, not into tool arguments.** The .NET dashboard endpoint doesn't take an arbitrary date range (it takes `year`/`month`/`months` — see Step 4), so a user-specified period is appended to the query text the agent sees rather than threaded through the tools as structured args. It's a deliberate simplification for this chapter, not an oversight — see Step 6.
 
-Out of scope: streaming the advisor over SSE (Chapter 5 builds that), multi-agent collaboration (Chapter 8 is a single-agent graph), MCP wiring (Chapter 9), replacing the existing quest-card endpoint. Don't touch `app/services/journey_advisor.py`.
+Out of scope: streaming the advisor over SSE (Chapter 5 builds that), multi-agent collaboration (Chapter 8 is a single-agent graph), MCP wiring (Chapter 10), replacing the existing quest-card endpoint. Don't touch `app/services/journey_advisor.py`.
 
 ## 📂 Affected Files
 
@@ -886,7 +886,7 @@ public class AdvisorToolsTests
 }
 ```
 
-> **Why tools call the .NET API instead of the DB directly?** Business logic — pyramid scoring, category aggregation, net worth allocation — lives in the .NET services. Bypassing them and hitting the DB directly would duplicate logic and break when those services evolve. It also makes the tools trivially MCP-compatible in Chapter 9: MCP tools are just HTTP calls with a name schema, same as these.
+> **Why tools call the .NET API instead of the DB directly?** Business logic — pyramid scoring, category aggregation, net worth allocation — lives in the .NET services. Bypassing them and hitting the DB directly would duplicate logic and break when those services evolve. It also makes the tools trivially MCP-compatible in Chapter 10: MCP tools are just HTTP calls with a name schema, same as these.
 
 > **Why `@tool` instead of `BaseTool` subclass?** The decorator form is correct for functions with clear signatures. `BaseTool` is for tools with complex init or async streaming — not needed here. LangGraph's `ToolNode` handles both forms identically.
 
@@ -1472,7 +1472,7 @@ Run these manually against the live service, then inspect Langfuse traces for:
 
 Record pass/fail per scenario in [ai-observability-metrics.md](../../../docs/operations/ai-observability-metrics.md).
 
-> **Why manual eval instead of an automated harness?** Agent outputs are free-text and grounding is context-dependent — LLM-as-judge is the right evaluator, but it's a Chapter 6/Advanced skill. For now, manual pass/fail per written criterion is honest and sufficient. The traces are the evidence. If you ship a blog post in Chapter 10, the Langfuse screenshots from S4 (zero re-fetch in turn 2) are compelling demo material.
+> **Why manual eval instead of an automated harness?** Agent outputs are free-text and grounding is context-dependent — LLM-as-judge is the right evaluator, but it's a Chapter 6/Advanced skill. For now, manual pass/fail per written criterion is honest and sufficient. The traces are the evidence. If you ship a blog post in Chapter 13, the Langfuse screenshots from S4 (zero re-fetch in turn 2) are compelling demo material.
 
 ---
 
@@ -1536,7 +1536,7 @@ Leave changes uncommitted for review. The current handoff does not authorize sta
 - **Only the selected provider's key is required (R1–R3 implemented 2026-09-15).** `AI_PROVIDER=gemini` uses `GEMINI_API_KEY`; Anthropic is an explicit alternative. Missing Anthropic access is not a learning prerequisite, and quota exhaustion must not trigger a paid-provider fallback.
 - **THINK-05 new contract surface.** `AdvisorRequest`/`AdvisorResponse` are new fields. When `.NET` grows a `/advisor` proxy for the chat UI, those field names freeze. Add a note in [ai-service.md](../../../.claude/rules/ai-service.md) at that point.
 - **Chapter 5 upgrade path.** When Chapter 5 adds SSE streaming, `AdvisorService.ask()` switches from `ainvoke` to `astream_events`, yielding token deltas as they arrive. The node/graph structure is unchanged; only the transport layer changes. That's the value of the service wrapper abstraction.
-- **Deferred:** multi-agent collaboration (supervisor + specialist agents), streaming SSE (Chapter 5), MCP tool wiring (Chapter 9 — these tools become MCP tools with minimal change), persistent checkpointer with Postgres, a real per-holding investment-return endpoint.
+- **Deferred:** multi-agent collaboration (supervisor + specialist agents), streaming SSE (Chapter 5), MCP tool wiring (Chapter 10 — these tools become MCP tools with minimal change), persistent checkpointer with Postgres, a real per-holding investment-return endpoint.
 
 ## 📝 Knowledge Check
 

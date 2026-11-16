@@ -35,7 +35,7 @@ That's it. It reads your progress, figures out where you are in the 90-day plan,
 
 ## The 90-Day Plan (overview)
 
-12 chapters across 3 phases. Chapters are paced by progress, not calendar weeks.
+15 chapters across 3 phases (renumbered 2026-11-16 to follow the run order; plan IDs follow the chapter). Chapters are paced by progress, not calendar weeks.
 
 ### Phase 1 — Foundation + RAG (Days 1–30)
 | Chapter | Theme | Goal |
@@ -53,13 +53,16 @@ That's it. It reads your progress, figures out where you are in the 90-day plan,
 | 7 | First Agent — smolagents | Transaction Categorizer Agent with Langfuse traces |
 | 8 | LangGraph Multi-Agent | Financial Health Advisor agent with tool use |
 
-### Phase 3 — MCP + Positioning + Apply (Days 61–90)
+### Phase 3 — Security, MCP, Deployment, Positioning, Apply (Days 61–90)
 | Chapter | Theme | Goal |
 |---|---|---|
-| 9 | Model Context Protocol (MCP) | Personal-finance MCP server callable from Claude Desktop |
-| 10 | Public Presence + Certification | Blog post live + Databricks or Azure AI-102 cert passed |
-| 11 | Interview Prep | 5 STAR stories + 3 deep-dives rehearsed |
-| 12 | Active Applications | 5+ high-fit applications sent |
+| 9 | AI Security + Guardrails | Injection eval with a measured block rate, PII masking, threat model |
+| 10 | Model Context Protocol (MCP) | Personal-finance MCP server callable from Claude Desktop, plus a tool-design pass |
+| 11 | Human-in-the-Loop + Feedback Loop | Approval before the agent writes, a retry-safe write, corrections feeding the eval set |
+| 12 | Deployment + LLMOps + Evals in CI | Public URL, budget alert, cost write-up, evals as a CI gate |
+| 13 | Public Presence + Certification | Blog post live, agent-design write-ups, case-study page, cert decision |
+| 14 | Interview Prep | STAR stories, deep-dives, system design and take-home practice |
+| 15 | Active Applications | 5+ high-fit applications sent |
 
 Full detail: [`.agents/skills/mentor/learning-path.md`](../../.agents/skills/mentor/learning-path.md)
 
@@ -119,10 +122,12 @@ One row per learning plan. When a plan changes status folder, update its row her
 | PF-AI006 Advanced RAG patterns | [plan](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo.md) · [id](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo-id.md) · [id v2](../../plans/done/learning/PF-AI006-advanced-rag-patterns-todo-id-v2.md) | [quiz](quizzes/pf-ai006-advanced-rag-patterns.html) | [diagram](resources/diagram-pf-ai006-rag-patterns.html) · [notes](topics/advanced-rag-notes.md) |
 | PF-AI007 Tool-calling agents | [plan](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo.md) · [id](../../plans/in-progress/learning/PF-AI007-tool-calling-agents-smolagents-todo-id.md) | [quiz](quizzes/pf-ai007-tool-calling-agents-smolagents.html) | [diagram](resources/diagram-pf-ai007-agent-loop.html) · [topic 06](topics/06-ai-agents-and-agentic-workflows.md) |
 | PF-AI008 LangGraph advisor | [plan](../../plans/done/learning/PF-AI008-langgraph-financial-advisor.md) · [id](../../plans/done/learning/PF-AI008-langgraph-financial-advisor-id.md) | [quiz](quizzes/pf-ai008-langgraph-financial-advisor.html) | [diagram](resources/PF-AI008-langgraph-advisor-diagram.html) · [evidence](resources/evidence/) |
-| PF-AI009 MCP server | [plan](../../plans/done/learning/PF-AI009-mcp-personal-finance-server-todo.md) · [id](../../plans/done/learning/PF-AI009-mcp-personal-finance-server-todo-id.md) | [quiz](quizzes/pf-ai009-mcp-personal-finance-server.html) | |
-| PF-AI010 Categorization eval harness | [plan](../../plans/done/learning/PF-AI010-categorization-eval-harness-todo.md) | | |
-| PF-AI011 AI security + governance | [plan](../../plans/done/learning/PF-AI011-ai-security-governance-todo.md) | [quiz](quizzes/pf-ai011-ai-security-governance.html) | [threat model](../operations/ai-threat-model.md) |
+| PF-AI008b Categorization eval harness | [plan](../../plans/done/learning/PF-AI008b-categorization-eval-harness-todo.md) | | |
+| PF-AI009 AI security + governance | [plan](../../plans/done/learning/PF-AI009-ai-security-governance-todo.md) | [quiz](quizzes/pf-ai009-ai-security-governance.html) | [threat model](../operations/ai-threat-model.md) |
+| PF-AI010 MCP server | [plan](../../plans/done/learning/PF-AI010-mcp-personal-finance-server-todo.md) · [id](../../plans/done/learning/PF-AI010-mcp-personal-finance-server-todo-id.md) | [quiz](quizzes/pf-ai010-mcp-personal-finance-server.html) | |
+| PF-AI011 Human-in-the-loop category approval | [plan](../../plans/backlog/learning/PF-AI011-human-in-the-loop-category-approval-todo.md) | | |
 | PF-AI012 Deployment + LLMOps | [plan](../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) | [quiz](quizzes/pf-ai012-deployment-llmops.html) | |
+| PF-AI013 Agent-design write-ups | [plan](../../plans/backlog/learning/PF-AI013-agent-design-writeups-todo.md) | | |
 
 ---
 
@@ -165,7 +170,7 @@ Any sync to the `career-ops` project is handled separately and is out of scope f
 **Free first — always:**
 - DeepLearning.AI short courses (LangChain, LangGraph, RAG) — slotted across Chapters 6–8, ~10h total
 
-**Pick one paid cert (Chapter 10):**
+**Pick one paid cert (Chapter 13):**
 - **Databricks GenAI Engineer Associate** (~$200) — highest signal for AI Eng roles
 - **Azure AI Engineer Associate AI-102** (~$165) — good if targeting Azure-stack companies; builds on your existing Azure background
 

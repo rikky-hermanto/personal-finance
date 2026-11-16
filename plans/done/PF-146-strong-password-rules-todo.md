@@ -80,7 +80,7 @@ Add a checklist line to the cloud-migration runbook: "In the Supabase Cloud dash
 
 ## ✅ Owner Review Checklist (G3)
 
-State: config.toml and the cloud checklist are edited but uncommitted in the main checkout. The ticket was not moved (`start --hand` refused: slot 1 is held by PF-AI009). The verifier could not run the local Auth test because the Docker engine did not come up.
+State: config.toml and the cloud checklist are edited but uncommitted in the main checkout. The ticket was not moved (`start --hand` refused: slot 1 is held by PF-AI010). The verifier could not run the local Auth test because the Docker engine did not come up.
 
 ### A. Before you start
 - ☐ Start Docker Desktop and wait until `docker ps` works.

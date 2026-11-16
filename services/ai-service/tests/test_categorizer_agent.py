@@ -151,7 +151,7 @@ def test_categorize_raises_agent_rate_limited_error_on_quota_exhaustion(mock_mod
 @patch("app.agents.categorizer_agent.ToolCallingAgent")
 @patch("app.agents.categorizer_agent.LiteLLMModel")
 def test_categorize_task_carries_masked_identifiers_not_the_digits(mock_model_cls, mock_agent_cls, caplog):
-    # PF-AI011: NIK, phone, account and email never reach the provider or the logs.
+    # PF-AI009: NIK, phone, account and email never reach the provider or the logs.
     import logging
 
     mock_agent = MagicMock()

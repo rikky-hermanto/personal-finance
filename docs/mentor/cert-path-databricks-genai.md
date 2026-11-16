@@ -1,7 +1,7 @@
 # Learning Path — Databricks Certified Generative AI Engineer Associate
 
 > Sertifikasi tier **S+** untuk profil kamu — materinya (RAG, LLM app design, prompt engineering,
-> evaluation, governance) hampir 1:1 dengan yang sudah dibangun di project ini (PF-AI001–PF-AI010).
+> evaluation, governance) hampir 1:1 dengan yang sudah dibangun di project ini (PF-AI001–PF-AI008b).
 > Ini target JANGKA PENDEK: effort-to-signal ratio terbaik, bisa siap dalam 4–6 minggu.
 >
 > Disusun: 2026-08-12 · Verifikasi ulang exam guide resmi sebelum daftar: https://www.databricks.com/learn/certification/genai-engineer-associate
@@ -47,9 +47,9 @@ melakukannya* (Vector Search, MLflow, Model Serving, Unity Catalog).
   `tool_use` + forced `tool_choice`, dua-duanya di balik satu `LlmProvider` protocol
   (**PF-009, PF-011** — dari track produk Sprint 1, bukan track belajar PF-AI) → Domain 3
 - ✅ Agents & tool calling (PF-AI007 smolagents, PF-AI008 LangGraph) → Domain 1, 3
-- ✅ Evaluation harness, F1 metrics, LLM-as-judge concept (PF-AI002, PF-AI010) → Domain 6
+- ✅ Evaluation harness, F1 metrics, LLM-as-judge concept (PF-AI002, PF-AI008b) → Domain 6
 - ✅ Observability: cost/latency/token per call via Langfuse (PF-AI001) → Domain 6
-- ✅ AI security & governance concepts (PF-AI011 done 2026-10-21) → Domain 5
+- ✅ AI security & governance concepts (PF-AI009 done 2026-10-21) → Domain 5
 
 > Catatan: structured output adalah satu-satunya item di daftar ini yang datang dari track produk
 > (Sprint 1), bukan track belajar PF-AI. Nilainya justru tinggi untuk Domain 3 — bobot terbesar
@@ -97,9 +97,9 @@ Dibagi dua kategori, karena nilainya beda jauh:
 
 ### Fase 3 — Agent Layer + Deployment + Governance (Minggu 4)
 - [ ] **Mosaic AI Agent Framework** — bangun 1 agent, bandingkan langsung dengan pola LangGraph di PF-AI008
-- [ ] **Agent Evaluation** — LLM judges bawaan + custom scorer; petakan ke eval harness PF-AI002/PF-AI010 kamu
+- [ ] **Agent Evaluation** — LLM judges bawaan + custom scorer; petakan ke eval harness PF-AI002/PF-AI008b kamu
 - [ ] **AI Gateway** — rate limiting, logging, fallback provider (analog dengan provider abstraction kamu)
-- [ ] **MCP server integration** di Databricks — kamu sudah punya konteksnya dari PF-AI009
+- [ ] **MCP server integration** di Databricks — kamu sudah punya konteksnya dari PF-AI010
 - [ ] Deploy custom pyfunc model (RAG chain) ke Model Serving endpoint
 - [ ] Foundation Model API: pay-per-token vs provisioned throughput — kapan pakai yang mana (soal favorit)
 - [ ] Inference tables untuk monitoring production

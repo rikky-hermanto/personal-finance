@@ -106,7 +106,7 @@ async def test_aggregate_zero_rows_refuses_without_narration():
     service._provider.generate_json.assert_not_called()   # no narration on empty result
 
 
-# ── PF-AI011: spotlighting, masking, output guard ────────────────────────────
+# ── PF-AI009: spotlighting, masking, output guard ────────────────────────────
 
 def _poisoned(tid: int, description: str) -> SearchResult:
     return SearchResult(

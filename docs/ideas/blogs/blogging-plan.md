@@ -2,7 +2,7 @@
 
 ## Context
 
-You're 21 days into a documented **90-day backend → AI engineering pivot** (Day 0 = 2026-05-27, target ~2026-08-25), aiming for AI eng roles at async-first companies. You want to build an internet presence by blogging the process — but you don't need to *create* content, you need to *publish* what you've already written. The journey is logged in unusual depth: a day-by-day diary with "interview-ready answer" blocks, four shipped+measured AI milestones, a signature framework, and a teaching method. The work here is **editorial extraction + a sustainable publishing system**, not writing from a blank page. Blogging is also already milestone **Chapter 10 ("Public Presence")** in your own plan, so this closes a loop you set yourself.
+You're 21 days into a documented **90-day backend → AI engineering pivot** (Day 0 = 2026-05-27, target ~2026-08-25), aiming for AI eng roles at async-first companies. You want to build an internet presence by blogging the process — but you don't need to *create* content, you need to *publish* what you've already written. The journey is logged in unusual depth: a day-by-day diary with "interview-ready answer" blocks, four shipped+measured AI milestones, a signature framework, and a teaching method. The work here is **editorial extraction + a sustainable publishing system**, not writing from a blank page. Blogging is also already milestone **Chapter 13 ("Public Presence")** in your own plan, so this closes a loop you set yourself.
 
 **Decisions locked (your answers):**
 - **Goal:** Land an AI engineering role — posts are proof-of-skill artifacts for recruiters/hiring managers.
@@ -62,7 +62,7 @@ Posts 0–6 are mined from **already-shipped** work (real runway, low risk); 7+ 
 | 5 | *Re-ranking: when your retriever is confidently wrong* | Concept Ladder | [PF-AI004](../../../plans/done/learning/PF-AI004-rag-reranking-generation.md) | Bi-encoder vs cross-encoder; FlashRank; the real finding that English-bias ranked "cattle feed" above "food delivery" on a Bahasa query. |
 | 6 | *Citation guards: stopping the LLM from citing rows it never saw* | Build Log | [PF-AI004](../../../plans/done/learning/PF-AI004-rag-reranking-generation.md) | Grounded generation + the hallucination guard that drops cited IDs not in context. Practical, defensible. |
 | **7 — Flagship #2** | *The gate, not the loop, is the design* | Short Take→Deep | [closed-loop-ai-engineering.md](docs/architecture/closed-loop-ai-engineering.md) | Your most ownable thought-leadership idea — eval-gated self-correcting loops, the extraction⇄balance-reconciliation example. Signals systems-level seniority. |
-| 8+ | Live journey | any | PF-AI005 streaming, PF-AI007/008 agents, PF-AI009 MCP | Document as you ship — keeps the series current through Phases 2–3. |
+| 8+ | Live journey | any | PF-AI005 streaming, PF-AI007/008 agents, PF-AI010 MCP | Document as you ship — keeps the series current through Phases 2–3. |
 
 **Order rationale:** Lead with depth, not a manifesto — cold dev.to/Hashnode readers arrive via tags (`#ai`, `#rag`, `#python`), so post #0 must teach something before it earns the click; its outro then converts them to the series and the origin post (#1).
 
@@ -75,7 +75,7 @@ Posts 0–6 are mined from **already-shipped** work (real runway, low risk); 7+ 
 3. **🔒 Scrub gate (required — see below).**
 4. **Polish** — one self-edit pass (invoke the `tech-write` skill for structure/voice).
 5. **Publish** — Hashnode (canonical) → dev.to (`canonical_url`) → one LinkedIn/X distribution snippet.
-6. **Close the loop** — paste the published URL back into [progress.md](docs/mentor/progress.md) and the calendar; tick Chapter 10 when the flagship is live.
+6. **Close the loop** — paste the published URL back into [progress.md](docs/mentor/progress.md) and the calendar; tick Chapter 13 when the flagship is live.
 
 ---
 
@@ -116,5 +116,5 @@ The `docs/ideas/blogs/` folder is already scaffolded but empty — that's the ho
 - `docs/ideas/blogs/_template.md` exists with the 3 archetypes.
 - Flagship draft (`docs/ideas/blogs/<date>-eval-harness.md`) is complete, **passes the scrub checklist**, and includes real metrics + C# parallels.
 - A setup checklist lets you publish to Hashnode + dev.to with a working `canonical_url` and an "AI Engineering Pivot" series.
-- Once live: the flagship URL is logged back in [progress.md](docs/mentor/progress.md) and Chapter 10 is ticked.
+- Once live: the flagship URL is logged back in [progress.md](docs/mentor/progress.md) and Chapter 13 is ticked.
 - Hiring-goal check: every post ends with a "what this proves I can do" line + the GitHub repo link; the bio links the series.

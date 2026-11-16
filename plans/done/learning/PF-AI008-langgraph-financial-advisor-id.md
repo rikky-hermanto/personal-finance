@@ -572,7 +572,7 @@ database
 
 Ini menghindari duplikasi business logic di AI service.
 
-Tool juga menjadi kandidat yang baik untuk diekstrak menjadi MCP tools pada Chapter 9.
+Tool juga menjadi kandidat yang baik untuk diekstrak menjadi MCP tools pada Chapter 10.
 
 ---
 
@@ -1375,7 +1375,7 @@ AI service tidak boleh menduplikasi:
 - category aggregation,
 - net-worth allocation logic.
 
-Selain menghindari duplikasi, pola ini menjaga compatibility dengan rencana MCP di Chapter 9.
+Selain menghindari duplikasi, pola ini menjaga compatibility dengan rencana MCP di Chapter 10.
 
 ---
 
@@ -1748,7 +1748,7 @@ Tambahkan detail aktual hanya setelah hasil eval dan trace benar-benar tersedia.
 
 # 27. Road Ahead
 
-Chapter berikutnya adalah **Chapter 9 — MCP**.
+Chapter berikutnya adalah **Chapter 10 — MCP**.
 
 Empat tool yang dibangun di sini sengaja memiliki boundary yang sederhana:
 

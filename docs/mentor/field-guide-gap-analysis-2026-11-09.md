@@ -110,7 +110,7 @@ Each gap lists what the guide says, what this repo has today, and the smallest v
 
 **What we have.** Langfuse records cost and latency per call. [PF-AI012](../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) plans a TTL response cache and a one-page cost breakdown. There is no time-to-first-token measurement on the streaming endpoint, and the chat path has no runtime fallback: [chat_model_factory.py](../../services/ai-service/app/agents/chat_model_factory.py) stops immediately on a quota error with no alternate provider. Rule 7 of the curriculum records that the free-tier cap blocked three evals at once in October, which is the exact failure a fallback addresses.
 
-**Smallest version.** Fold into Chapter 9.75. Measure time to first token and per-step latency for `/ask/stream` and the advisor. Route categorization to the cheapest model that passes its eval, and keep the stronger model for advice. Add a fallback to the second provider on a quota error. Write a cost-per-query table and a "1M queries a day" estimate. About 1.5 days.
+**Smallest version.** Fold into Chapter 12. Measure time to first token and per-step latency for `/ask/stream` and the advisor. Route categorization to the cheapest model that passes its eval, and keep the stronger model for advice. Add a fallback to the second provider on a quota error. Write a cost-per-query table and a "1M queries a day" estimate. About 1.5 days.
 
 ### G3. Model upgrades gated by evals
 
@@ -124,7 +124,7 @@ Each gap lists what the guide says, what this repo has today, and the smallest v
 
 **What the guide says.** A distinct round, mostly at senior level, with a five-step structure: frame the problem, sketch the architecture, deep dive (RAG, tools, memory, evaluation, safety), trade-offs and failure modes, then a summary with risks. Common mistakes: no eval or monitoring plan, ignoring cost, putting control flow in prompts, choosing agents because they are exciting.
 
-**What we have.** Chapter 11 has STAR stories and three architectural deep dives of this project. There is no practice on unfamiliar design questions.
+**What we have.** Chapter 14 has STAR stories and three architectural deep dives of this project. There is no practice on unfamiliar design questions.
 
 **Smallest version.** Six timed designs, 45 minutes each, out loud and recorded: a document Q&A system at 10M documents, a chat assistant at 1M daily users (cost), a multi-step agent workflow (email or scheduling), a pipeline that processes 10K uploaded payslips and IDs a month (close to this project), cross-conversation memory, and policy-violation detection. Read Chip Huyen's *Building a Generative AI Platform* and two of the guide's case studies (Doctolib's agent graph, Uber's GenAI Gateway) first.
 
@@ -158,7 +158,7 @@ Each gap lists what the guide says, what this repo has today, and the smallest v
 - **P2. Multi-agent orchestration (topic 11).** Multi-agent systems appear in 26% of Agentic postings and CrewAI or AutoGen in 23%. The guide also warns against using multiple agents without a reason. So the useful version is a measured comparison: the same scenarios run single-agent and orchestrator-worker, compared on quality, tokens and latency. That gives a "when not to use multi-agent" answer with numbers. Promote it from stretch only if you target Agentic titles specifically.
 - **P3. Agent reliability.** The theory list asks about infinite loops, termination conditions, tool retries and idempotency, and sandboxing. Stop conditions (topic 7) and human-in-the-loop (topic 16) cover most of it. Add one item to topic 16: make the categorizer's write safe to retry.
 - **P4. Public proof.** Nothing is published, and two blog drafts have waited since June. The guide's portfolio advice: a project page with problem, user, input, output, demo, architecture, tests, evaluation and limitations, plus a 60-second pitch. Add an "AI engineering in this repo" case-study page with the numbers table and links to the eval results, and publish the eval-harness post.
-- **P5. The guardrail hold-out number.** [PF-AI011](../../plans/done/learning/PF-AI011-ai-security-governance-todo.md) blocked 0 of 4 held-out attacks. Don't present the guardrails as a success. Present them honestly: the pattern scanner did not generalize, here is why pattern guards fail on unseen attacks, and here is what you would add next. That is a stronger interview answer than a clean number.
+- **P5. The guardrail hold-out number.** [PF-AI009](../../plans/done/learning/PF-AI009-ai-security-governance-todo.md) blocked 0 of 4 held-out attacks. Don't present the guardrails as a success. Present them honestly: the pattern scanner did not generalize, here is why pattern guards fail on unseen attacks, and here is what you would add next. That is a stronger interview answer than a clean number.
 
 ## What to keep skipping
 
@@ -182,16 +182,16 @@ Not applied yet. The curriculum file has uncommitted edits (the new Plan column)
 
 | Change | Chapter | Size |
 |---|---|---|
-| New topic 18: feedback loop (suggested vs kept categories into the eval set, thumbs on `/ask`), shipped with topic 16 | Ch9 | ~2 days |
-| New topic 19: cost and latency engineering (TTFT, per-step latency, model routing, quota fallback, cost per query, 1M-user estimate) | Ch9.75, inside PF-AI012 | ~1.5 days |
-| New topic 20: model upgrade gated by evals | Ch9.75, with topic 14 | ~0.5 day + quota |
-| New topic 21: six timed AI system design practices | Ch11 | 6 × 1 hour |
-| New topic 22: two timed take-homes with README and video | Ch11 | 2 × 5 hours |
-| New topic 23: Python live coding without AI, twice a week | Ch11, starting now | 2 × 45 min a week |
-| New topic 24: LLM fundamentals and the fine-tuning answer | Skim, before Ch11 | 2 evenings |
-| Topic 11 (multi-agent) from stretch to required, as a measured single vs multi comparison | Ch9 | ~1.5 days, Agentic only |
-| Topic 16 gains "make the categorizer write safe to retry" | Ch9 | small |
-| Chapter 10 gains an AI case-study page in the repo | Ch10 | ~half a day |
+| New topic 18: feedback loop (suggested vs kept categories into the eval set, thumbs on `/ask`), shipped with topic 16 | Ch11 | ~2 days |
+| New topic 19: cost and latency engineering (TTFT, per-step latency, model routing, quota fallback, cost per query, 1M-user estimate) | Ch12, inside PF-AI012 | ~1.5 days |
+| New topic 20: model upgrade gated by evals | Ch12, with topic 14 | ~0.5 day + quota |
+| New topic 21: six timed AI system design practices | Ch14 | 6 × 1 hour |
+| New topic 22: two timed take-homes with README and video | Ch14 | 2 × 5 hours |
+| New topic 23: Python live coding without AI, twice a week | Ch14, starting now | 2 × 45 min a week |
+| New topic 24: LLM fundamentals and the fine-tuning answer | Skim, before Ch14 | 2 evenings |
+| Topic 11 (multi-agent) from stretch to required, as a measured single vs multi comparison | Ch10 | ~1.5 days, Agentic only |
+| Topic 16 gains "make the categorizer write safe to retry" | Ch11 | small |
+| Chapter 13 gains an AI case-study page in the repo | Ch13 | ~half a day |
 
 Suggested order: close P1 (agent eval) → topics 16 and 18 together → PF-AI012 with 19 and 20 → case-study page and the first published post → topics 21, 22 and 24. Topic 23 runs in the background from now on.
 

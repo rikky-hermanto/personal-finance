@@ -41,7 +41,7 @@ Source of truth: **README.md** (repo root). Use this exact language:
 | 5 | *Re-ranking: when your retriever is confidently wrong* | Concept Ladder | `plans/done/learning/PF-AI004-rag-reranking-generation.md` | Bi-encoder vs cross-encoder; FlashRank; English-bias on Bahasa queries finding. |
 | 6 | *Citation guards: stopping the LLM from citing rows it never saw* | Build Log | `plans/done/learning/PF-AI004-rag-reranking-generation.md` | Grounded generation + hallucination guard. |
 | 7 | *The gate, not the loop, is the design* | Short Take → Deep | `docs/architecture/closed-loop-ai-engineering.md` | Flagship #2. Eval-gated self-correcting loops. Systems-level seniority signal. |
-| 8+ | Live journey posts | any | PF-AI005 streaming, PF-AI007/008 agents, PF-AI009 MCP | Document as shipped — keeps series current through Phases 2–3. |
+| 8+ | Live journey posts | any | PF-AI005 streaming, PF-AI007/008 agents, PF-AI010 MCP | Document as shipped — keeps series current through Phases 2–3. |
 
 ### ✏️ Drafting
 

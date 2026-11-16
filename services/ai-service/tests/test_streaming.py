@@ -222,7 +222,7 @@ async def test_ask_stream_aggregate_zero_rows_refuses():
     assert done["total_idr"] == 0.0
 
 
-# ── PF-AI011: input guard and output guard on the stream ─────────────────────
+# ── PF-AI009: input guard and output guard on the stream ─────────────────────
 
 @pytest.mark.anyio
 async def test_ask_stream_flagged_query_is_400_and_planner_never_called():

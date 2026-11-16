@@ -1,6 +1,6 @@
-# PF-AI009 — Chapter 9: Model Context Protocol (MCP) Server (Versi Belajar)
+# PF-AI010 — Chapter 10: Model Context Protocol (MCP) Server (Versi Belajar)
 
-> **Ini bukan plan baru.** Ini adalah tulisan ulang dari [PF-AI009-mcp-personal-finance-server-todo.md](PF-AI009-mcp-personal-finance-server-todo.md), disusun ulang supaya urutannya mengikuti cara otak belajar hal baru — bukan urutan implementasi. Semua fakta, kode, dan keputusan desain yang disebutkan di sini diambil apa adanya dari file asli. File asli tetap jadi rujukan resmi untuk TODO steps, acceptance criteria, dan quiz — dokumen ini cuma versi "supaya nyantol dulu di kepala."
+> **Ini bukan plan baru.** Ini adalah tulisan ulang dari [PF-AI010-mcp-personal-finance-server-todo.md](PF-AI010-mcp-personal-finance-server-todo.md), disusun ulang supaya urutannya mengikuti cara otak belajar hal baru — bukan urutan implementasi. Semua fakta, kode, dan keputusan desain yang disebutkan di sini diambil apa adanya dari file asli. File asli tetap jadi rujukan resmi untuk TODO steps, acceptance criteria, dan quiz — dokumen ini cuma versi "supaya nyantol dulu di kepala."
 >
 > **Urutan baca:** masalah dulu → baru konsep → baru cara kerja → baru kode → baru optimisasi → baru best practice → baru kesalahan umum → baru ringkasan. Jangan loncat ke bagian Implementasi kalau tiga bagian pertama belum kebayang, nanti kodenya kelihatan seperti sihir.
 >
@@ -147,7 +147,7 @@ app.mount("/mcp", mcp_app)
 
 `set_pool(pool)` dan `set_retriever(retriever)` dipanggil di lifespan yang sama, setelah pool dan `RetrievalService` yang sudah ada dibuat — MCP server berbagi keduanya lewat module-level global, bukan koneksi kedua.
 
-Kode lengkap ketiga tool lainnya (`get_cashflow_summary`, `search_transactions_semantic`), semua test unit (mocked, tanpa panggilan asli ke Supabase/httpx/LLM), port C# baris-per-baris untuk tiap blok, konfigurasi Claude Desktop (SSE + fallback stdio), dan script demo 2-agent stretch ada di file asli: [PF-AI009-mcp-personal-finance-server-todo.md](PF-AI009-mcp-personal-finance-server-todo.md), STEP 2–10.
+Kode lengkap ketiga tool lainnya (`get_cashflow_summary`, `search_transactions_semantic`), semua test unit (mocked, tanpa panggilan asli ke Supabase/httpx/LLM), port C# baris-per-baris untuk tiap blok, konfigurasi Claude Desktop (SSE + fallback stdio), dan script demo 2-agent stretch ada di file asli: [PF-AI010-mcp-personal-finance-server-todo.md](PF-AI010-mcp-personal-finance-server-todo.md), STEP 2–10.
 
 ---
 
@@ -221,7 +221,7 @@ Aturan yang dipegang selama membangun chapter ini, dan kenapa masing-masing pent
 
 **Kalimat penutup untuk interview** (target dari plan asli, dipakai setelah chapter ini selesai): *"Saya membangun personal-finance MCP server yang mengekspos 4 tool bertipe — query transaksi dengan pre-filter SQL, ringkasan cashflow per periode, skor tier pyramid via .NET API, dan semantic search yang memakai ulang retriever pgvector dari Chapter 3. Saya mount di service FastAPI yang sudah ada lewat SSE transport dan mengonfigurasi Claude Desktop untuk memakainya. Keputusan desain kuncinya adalah menempatkan MCP server bersama AI service supaya berbagi asyncpg connection pool dan RetrievalService, bukan membangun proses standalone — prinsip batas Clean Architecture yang sama, diterapkan ke MCP. Claude Desktop sekarang bisa menjawab 'berapa pengeluaranku untuk makan bulan ini?' lewat panggilan tool nyata, bukan halusinasi."*
 
-**Lanjutannya:** Chapter 10 (Public Presence + Certification) menjadikan MCP server ini bagian dari demo yang ditunjukkan — "lihat apa yang saya bangun." Detail lengkap TODO steps, port C# baris-per-baris, semua kode test, dan Knowledge Check quiz ada di file asli: [PF-AI009-mcp-personal-finance-server-todo.md](PF-AI009-mcp-personal-finance-server-todo.md).
+**Lanjutannya:** Chapter 13 (Public Presence + Certification) menjadikan MCP server ini bagian dari demo yang ditunjukkan — "lihat apa yang saya bangun." Detail lengkap TODO steps, port C# baris-per-baris, semua kode test, dan Knowledge Check quiz ada di file asli: [PF-AI010-mcp-personal-finance-server-todo.md](PF-AI010-mcp-personal-finance-server-todo.md).
 
 ---
 
