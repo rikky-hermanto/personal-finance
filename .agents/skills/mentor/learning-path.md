@@ -285,7 +285,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 ### Chapter 11: Human-in-the-Loop + Feedback Loop *(added 2026-10-24 and 2026-11-10)*
 **Theme:** An agent that writes to real data needs a point where you say yes or no, and every answer you give should feed the eval set.
 
-**Plan:** [PF-AI011](../../../plans/backlog/learning/PF-AI011-human-in-the-loop-category-approval-todo.md) (human-in-the-loop part; the feedback loop is not planned yet)
+**Plan:** [PF-AI011](../../../plans/backlog/learning/PF-AI011-human-in-the-loop-category-approval-todo.md) (human-in-the-loop) · [PF-AI011b](../../../plans/backlog/learning/PF-AI011b-feedback-loop-eval-set-todo.md) (feedback loop)
 
 **Tasks:**
 - Human-in-the-loop: a LangGraph `interrupt` so the categorizer agent asks for approval before it writes a category; accept, edit or reject
@@ -306,7 +306,7 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 **Why it matters:** Nothing is deployed yet, so "deployed an AI service" can't be claimed. Cost control and continuous evaluation are the skills recruiters say separate strong AI Engineering candidates from the rest.
 
-**Plan:** [PF-AI012](../../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (depends on PF-AI009). The evals-in-CI task is not in PF-AI012 yet; add it when that plan is re-audited.
+**Plan:** [PF-AI012](../../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) (depends on PF-AI009) · [PF-AI012b](../../../plans/backlog/learning/PF-AI012b-evals-ci-cost-latency-model-upgrade-todo.md) (evals in CI, cost and latency engineering, eval-gated model upgrade)
 
 **Tasks:**
 - AI service on a public URL: Azure Container Apps + ACR, deployed by GitHub Actions, Supabase Cloud with anonymized data
@@ -325,6 +325,8 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ### Chapter 13: Public Presence + Certification
 **Theme:** Make your work findable. Add the credential if ROI is there.
+
+**Plan:** [PF-AI013](../../../plans/backlog/learning/PF-AI013-agent-design-writeups-todo.md) (agent-design write-ups) · [PF-AI013b](../../../plans/backlog/learning/PF-AI013b-public-presence-case-study-todo.md) (first post, case-study page, full post and demo, certification decision)
 
 **Tasks:**
 - Write and publish technical blog post:
@@ -355,6 +357,8 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 ### Chapter 14: Interview Prep
 **Theme:** Translate the build into interview-ready stories.
 
+**Plan:** [PF-AI014](../../../plans/backlog/learning/PF-AI014-interview-practice-todo.md) (live coding from now, fundamentals skim, stories, six system designs, two take-homes)
+
 **Tasks:**
 - Write 5 STAR+R stories (use `/career-ops interview-prep`):
   1. tool_use vs JSON mode decision (architecture trade-off)
@@ -379,6 +383,8 @@ The sequencing is deliberate, and was finalized 2026-05-28 against the compiled 
 
 ### Chapter 15: Active Applications
 **Theme:** Ship applications like you ship code — deliberate, not spam.
+
+**Plan:** [PF-AI015](../../../plans/backlog/learning/PF-AI015-active-applications-todo.md) (readiness gate and weekly record; the work itself runs in career-ops)
 
 **Tasks:**
 - Run `/career-ops scan` targeting AI Engineering roles

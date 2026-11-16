@@ -93,7 +93,7 @@ Deliberately not in this plan: a React approval card and saving "suggested vs ke
 
 | File | Change |
 |------|--------|
-| `supabase/migrations/{timestamp}_pf_ai014_checked_transaction_category.sql` | Create — `apply_transaction_category` compare-and-set function and its grants |
+| `supabase/migrations/{timestamp}_pf_ai011_checked_transaction_category.sql` | Create — `apply_transaction_category` compare-and-set function and its grants |
 | `apps/api/src/PersonalFinance.Application/Commands/UpdateTransactionCategoryCommand.cs` | Create — command, result enum |
 | `apps/api/src/PersonalFinance.Application/Commands/UpdateTransactionCategoryCommandHandler.cs` | Create — calls the function, publishes the recalculation event |
 | `apps/api/src/PersonalFinance.Application/Validators/UpdateTransactionCategoryCommandValidator.cs` | Create — id, lengths, category in the owner's list |
@@ -159,7 +159,7 @@ Write the answers into this plan's Notes before continuing: the class that calls
 
 ### [ ] STEP 2 — Migration: a compare-and-set function for one transaction's category
 
-Create `supabase/migrations/{timestamp}_pf_ai014_checked_transaction_category.sql` (use the `db-migrate` skill for the timestamp and apply step). Copy the `REVOKE` and `GRANT EXECUTE` lines from the pattern migration found in STEP 1.
+Create `supabase/migrations/{timestamp}_pf_ai011_checked_transaction_category.sql` (use the `db-migrate` skill for the timestamp and apply step). Copy the `REVOKE` and `GRANT EXECUTE` lines from the pattern migration found in STEP 1.
 
 ```sql
 -- PF-AI011: change one transaction's category only if it still holds the value the caller saw.
@@ -674,7 +674,7 @@ Record the five results in Notes with the date. If the provider quota blocks ste
 ## 📌 Notes
 
 - **Paused reviews do not survive a restart.** The graph uses `MemorySaver`, like the advisor. A lost review costs one model call to redo and never leaves a half-finished write. A Postgres checkpointer needs a new dependency and tables; plan it with PF-AI012, where the service also gets more than one worker.
-- **Topic 18 is not in this plan.** The decision (accept, edit, reject) is exactly the feedback event topic 18 wants. Here it is only logged. Topic 18 adds the table that keeps suggested vs kept, the React approval card and the eval export.
+- **Topic 18 is not in this plan.** The decision (accept, edit, reject) is exactly the feedback event topic 18 wants. Here it is only logged. Topic 18 has its own plan, [PF-AI011b](PF-AI011b-feedback-loop-eval-set-todo.md), which adds the table that keeps suggested vs kept and the eval export, and stores this plan's decisions in its STEP 7. The React approval card is still unplanned.
 - **There was no way to edit a saved transaction's category before this plan.** The new `PATCH` endpoint is also the natural backend for a manual edit in the UI later; it already refuses stale writes.
 - `amount_idr` reaches the categorizer as a float because the existing `categorize` signature takes one and uses it only as prompt text. It is never summed, compared or written here. The FIN-01 follow-up for chat totals is unrelated.
 - The MCP server still resolves a single local owner and bypasses RLS on its direct queries. That is unchanged and remains the PF-AI010 follow-up; the read-only transaction narrows what a mistake there could do.

@@ -126,8 +126,13 @@ One row per learning plan. When a plan changes status folder, update its row her
 | PF-AI009 AI security + governance | [plan](../../plans/done/learning/PF-AI009-ai-security-governance-todo.md) | [quiz](quizzes/pf-ai009-ai-security-governance.html) | [threat model](../operations/ai-threat-model.md) |
 | PF-AI010 MCP server | [plan](../../plans/done/learning/PF-AI010-mcp-personal-finance-server-todo.md) · [id](../../plans/done/learning/PF-AI010-mcp-personal-finance-server-todo-id.md) | [quiz](quizzes/pf-ai010-mcp-personal-finance-server.html) | |
 | PF-AI011 Human-in-the-loop category approval | [plan](../../plans/backlog/learning/PF-AI011-human-in-the-loop-category-approval-todo.md) | | |
+| PF-AI011b Feedback loop into the eval set | [plan](../../plans/backlog/learning/PF-AI011b-feedback-loop-eval-set-todo.md) | | |
 | PF-AI012 Deployment + LLMOps | [plan](../../plans/backlog/learning/PF-AI012-deployment-llmops-todo.md) | [quiz](quizzes/pf-ai012-deployment-llmops.html) | |
+| PF-AI012b Evals in CI, cost and latency, model upgrade | [plan](../../plans/backlog/learning/PF-AI012b-evals-ci-cost-latency-model-upgrade-todo.md) | | |
 | PF-AI013 Agent-design write-ups | [plan](../../plans/backlog/learning/PF-AI013-agent-design-writeups-todo.md) | | |
+| PF-AI013b Public presence + case-study page | [plan](../../plans/backlog/learning/PF-AI013b-public-presence-case-study-todo.md) | | |
+| PF-AI014 Interview practice | [plan](../../plans/backlog/learning/PF-AI014-interview-practice-todo.md) | | |
+| PF-AI015 Active applications | [plan](../../plans/backlog/learning/PF-AI015-active-applications-todo.md) | | |
 
 ---
 
