@@ -41,7 +41,7 @@ const navSections = [
     level: 'L3', label: 'Growth', color: 'rgb(56 142 60)',
     items: [
       { id: 'investment', label: 'Investments',   icon: TrendingUp, path: '/investment', matchPrefix: '/investment', live: true  },
-      { id: 'big-purchases', label: 'Big Purchases', icon: ShoppingBag, path: '/big-purchases', matchPrefix: '/big-purchases', live: false },
+      { id: 'big-purchases', label: 'Big Purchases', icon: ShoppingBag, path: '/big-purchases', matchPrefix: '/big-purchases', live: true },
     ],
   },
   {

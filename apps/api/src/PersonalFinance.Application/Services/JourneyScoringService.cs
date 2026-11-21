@@ -57,7 +57,35 @@ public class JourneyScoringService(
         var today = DateOnly.FromDateTime(time.GetLocalNow().DateTime);
 
         var inputs = await LoadInputsAsync(userId, today, ct);
+        var indicators = ComputeIndicators(inputs);
 
+        var levelScores = ComputeLevelScores(indicators);
+        var totalScore = levelScores.Values.Any() ? Math.Round(levelScores.Values.Average(), 2) : 0m;
+        var currentLevel = DetermineCurrentLevel(levelScores, indicators);
+
+        await PersistStateAsync(userId, currentLevel, totalScore, levelScores, indicators, startedAt, ct);
+        await PersistSnapshotsAsync(userId, indicators, ct);
+        var achievements = await EvaluateAchievementsAsync(userId, indicators, ct);
+
+        logger.LogInformation("Journey recalculated: level={Level} score={Score}", currentLevel, totalScore);
+
+        var state = new JourneyStateDto(currentLevel, totalScore, levelScores, indicators, achievements, startedAt);
+        return new JourneyRecalculation(state, inputs with { Indicators = indicators });
+    }
+
+    /// <summary>The same inputs and indicators a recalculation computes, with no writes: no state, no
+    /// snapshots, no achievements. For read-only consumers such as the Big Purchases foundation check (PF-154).</summary>
+    public async Task<ScoringSnapshot> LoadSnapshotAsync(Guid userId, CancellationToken ct = default)
+    {
+        var today = DateOnly.FromDateTime(time.GetLocalNow().DateTime);
+        var inputs = await LoadInputsAsync(userId, today, ct);
+        return inputs with { Indicators = ComputeIndicators(inputs) };
+    }
+
+    // The indicator list for one pass, stars applied. Shared by RecalculateWithSnapshotAsync and
+    // LoadSnapshotAsync so the read-only snapshot can never drift from what scoring persists.
+    private List<IndicatorScoreDto> ComputeIndicators(ScoringSnapshot inputs)
+    {
         var indicators = new List<IndicatorScoreDto>
         {
             ComputeSpendLtIncome(inputs),
@@ -72,20 +100,7 @@ public class JourneyScoringService(
 
         // Stars are recognition on every live indicator, derived from the same rubric breakpoints
         // as the score (StarRungs). They carry no points (G2).
-        indicators = indicators.Select(i => i with { Stars = StarRungs.StarsFor(i.Code, i.Score, i.Status) }).ToList();
-
-        var levelScores = ComputeLevelScores(indicators);
-        var totalScore = levelScores.Values.Any() ? Math.Round(levelScores.Values.Average(), 2) : 0m;
-        var currentLevel = DetermineCurrentLevel(levelScores, indicators);
-
-        await PersistStateAsync(userId, currentLevel, totalScore, levelScores, indicators, startedAt, ct);
-        await PersistSnapshotsAsync(userId, indicators, ct);
-        var achievements = await EvaluateAchievementsAsync(userId, indicators, ct);
-
-        logger.LogInformation("Journey recalculated: level={Level} score={Score}", currentLevel, totalScore);
-
-        var state = new JourneyStateDto(currentLevel, totalScore, levelScores, indicators, achievements, startedAt);
-        return new JourneyRecalculation(state, inputs with { Indicators = indicators });
+        return indicators.Select(i => i with { Stars = StarRungs.StarsFor(i.Code, i.Score, i.Status) }).ToList();
     }
 
     // ─── Load once ───────────────────────────────────────────────────────────────
@@ -288,7 +303,7 @@ public class JourneyScoringService(
     }
 
     // The three months before "today", exactly as the service used (today.AddMonths(-1..-3)).
-    private static List<DateTime> MonthsBack(DateOnly today)
+    internal static List<DateTime> MonthsBack(DateOnly today)
     {
         var anchor = today.ToDateTime(TimeOnly.MinValue);
         return Enumerable.Range(1, 3).Select(i => anchor.AddMonths(-i)).ToList();

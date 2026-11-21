@@ -30,6 +30,9 @@ import AssetsAccountsTab from '@/pages/assets/AccountsTab';
 import InvestmentsTab from '@/pages/assets/InvestmentsTab';
 import PropertiesTab from '@/pages/assets/PropertiesTab';
 import LiabilitiesTab from '@/pages/assets/LiabilitiesTab';
+import BigPurchasesLayout from '@/pages/big-purchases/BigPurchasesLayout';
+import PlansTab from '@/pages/big-purchases/PlansTab';
+import AchievedTab from '@/pages/big-purchases/AchievedTab';
 import InvestmentLayout from '@/pages/investment/InvestmentLayout';
 import InvestmentHome from '@/pages/investment/InvestmentHome';
 import InvestmentWizard from '@/pages/investment/InvestmentWizard';
@@ -108,6 +111,12 @@ const App = () => (
                 <Route path="investments" element={<InvestmentsTab />} />
                 <Route path="properties" element={<PropertiesTab />} />
                 <Route path="liabilities" element={<LiabilitiesTab />} />
+              </Route>
+              {/* Big Purchases on the shared Goal model (PF-154, Growth · L3) */}
+              <Route path="/big-purchases" element={<BigPurchasesLayout />}>
+                <Route index element={<Navigate to="/big-purchases/plans" replace />} />
+                <Route path="plans" element={<PlansTab />} />
+                <Route path="achieved" element={<AchievedTab />} />
               </Route>
               <Route path="/investment" element={<InvestmentLayout />}>
                 <Route index element={<Navigate to="/investment/overview" replace />} />

@@ -63,6 +63,25 @@ rate estimate.
 
 ---
 
+## Purchase costs: property and vehicles (PF-154)
+
+The product **never stores or computes these rates**. Big Purchases asks the user to enter amounts from their quote or invoice.
+These rows exist so that any future rate hint goes through FIN-06 first. Most are set regionally, so a single national number would be wrong anyway.
+
+| Cost | Who usually pays | Set by | Status |
+|---|---|---|---|
+| BPHTB (land and building acquisition duty) | Buyer | Regency or city regulation under UU 1/2022 (HKPD) | ⚠ not verified: rate, deduction (NPOPTKP) and region vary |
+| PPh final on transfer of land/buildings | Seller (negotiable) | PP 34/2016 as amended | ⚠ not verified |
+| PPN on new property from a developer | Buyer | UU PPN; incentive schemes change by year | ⚠ not verified: check whether an incentive applies on the purchase date |
+| Notary / PPAT fees | Buyer and seller by agreement | Professional fee | ⚠ not a tax; varies |
+| BBNKB (vehicle title transfer duty) | Buyer | Provincial regulation under UU 1/2022, plus opsen from 2025 | ⚠ not verified |
+| PKB (annual vehicle tax) | Owner | Provincial regulation, plus opsen | ⚠ not verified |
+| PPnBM (luxury goods sales tax, vehicles) | Inside the OTR price | PP 74/2021 as amended | ⚠ not verified |
+
+**OTR price:** an on-the-road quote often already includes BBNKB and the first year's PKB. The UI asks the user to check rather than assuming either way.
+
+---
+
 ## What this means for features
 
 | If the product does this | Then it must account for |

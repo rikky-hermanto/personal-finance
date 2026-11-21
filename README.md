@@ -78,6 +78,7 @@ Each level unlocks naturally from the one below. The app tracks your score acros
 | Feature | Status |
 |---|---|
 | Investment portfolio (IDX, funds, bonds, crypto, P2P) | ✅ Live |
+| Big Purchases (land, a car, study, a wedding) with a foundation check | ✅ Live |
 | Savings Goals | 🔜 Soon |
 
 ### L4 · Freedom — *Build passive income*

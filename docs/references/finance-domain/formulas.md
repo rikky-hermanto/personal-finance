@@ -18,6 +18,7 @@
 6. [Allocation and concentration](#6-allocation-and-concentration)
 7. [Freedom / FIRE math](#7-freedom--fire-math)
 8. [Inflation and real values](#8-inflation-and-real-values)
+9. [Goal funding](#9-goal-funding)
 
 ---
 
@@ -240,3 +241,39 @@ present_value = future_amount / (1 + inflation)^years
 
 Any projection longer than ~5 years shown in nominal rupiah without a real-terms companion
 figure overstates the outcome. State the inflation assumption used, on screen, every time.
+
+---
+
+## 9. Goal funding
+
+Used by Goals (PF-154 Big Purchases first). All money is `decimal`; dates are Asia/Jakarta calendar dates.
+
+| Metric | Formula | Notes |
+|--------|---------|-------|
+| Allocated | `Σ goal_contributions.amount` | Withdrawals are negative rows. Never stored; always summed on read. |
+| Effective target | `target × growth_factor(g, months_left)` when the user set a price-growth rate `g` and `months_left ≥ 1`, else `target` | Rounded half away from zero to Rp 0.01. |
+| Growth factor | `(1+g)^Y × (1 + g × r/12)`, `Y = ⌊months/12⌋`, `r = months mod 12` | Annual compounding on whole years, linear for the part-year. Decimal-exact; no `Math.Pow`. `g` is the user's assumption; the product has no default (FIN-02). |
+| Remaining | `max(effective_target − allocated, 0)` | |
+| Surplus | `max(allocated − effective_target, 0)` | Over-funded goals show it; % can exceed 100. |
+| % complete | `allocated / effective_target × 100`, truncated to 0.1 | Truncated so 99.96% never displays as 100% while money is still owed. |
+| Months left | `(ty − cy)×12 + (tm − cm) − (td < cd ? 1 : 0)` | Whole months from today to the target date. Negative = target passed. |
+| Monthly needed | `⌈remaining / months_left⌉` to whole rupiah, only when `months_left ≥ 1` and `remaining > 0` | Straight-line: today's prices (unless `g` set), **no investment returns assumed**. Rounded up so following it never falls short. |
+| Timeline | `funded` (remaining 0) · `no_date` · `overdue` (target < today) · `due_soon` (months_left < 1) · `scheduled` | `due_soon` and `overdue` show the remaining as a lump sum instead of a monthly figure. |
+| Pace | `Σ contributions in the 3 complete calendar months before this month / 3` | Only when the first contribution predates that window (≥ 3 months of history). Hidden when ≤ 0. |
+| Reach month | `this month + ⌈remaining / pace⌉` | Shown as "around Mon YYYY". Above 600 months (a display cap, not a finance threshold), the text reads "more than 50 years". |
+
+### Foundation check (Big Purchases gate)
+
+A Big Purchase sits on L3, so it is checked against L1 and L2 using the live scoring code and its bars
+(`JourneyScoringService.Score*` ≥ 70, the rubric's Cleared bar). The check is advisory and never blocks saving.
+
+| Check | Input | Passes when |
+|-------|-------|-------------|
+| Spending | `spend_lt_income` | evaluated and score ≥ 70 (consumption ≤ 89% of income) |
+| Cover after earmarks | `(liquid_total − earmarked_in_savings) / avg_monthly_consumption` | `ScoreLiquidSavings(months) ≥ 70` (≥ 2.1 months); every savings valuation fresh (G6) |
+| Debt | `manageable_dti` | evaluated and score ≥ 70 (≤ 29.6%) |
+| Post-purchase debt (per goal, if an instalment is planned) | `(Σ liabilities.monthly_payment + planned_instalment) / avg_monthly_income` | `ScoreDti(ratio) ≥ 70` |
+
+`earmarked_in_savings` = Σ contributions of active goals whose `held_in_account_id` is a savings account, capped at `liquid_total`.
+State: any evaluated check fails → `not_recommended_yet`; else any input missing or stale → `not_evaluated`; else `clear`.
+This is stricter than level graduation (which ignores `no_data` indicators): a big purchase with unknown debt is exactly the case not to clear (CIO, PF-154).

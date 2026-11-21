@@ -100,12 +100,17 @@ export default {
 				'garden-sway': {
 					from: { backgroundPosition: '0 0' },
 					to: { backgroundPosition: '-1536px 0' }
+				},
+				'goal-drawer-in': {
+					from: { opacity: '0', transform: 'translateY(10px)' },
+					to: { opacity: '1', transform: 'translateY(0)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'garden-sway': 'garden-sway 1.8s steps(8) infinite'
+				'garden-sway': 'garden-sway 1.8s steps(8) infinite',
+				'goal-drawer-in': 'goal-drawer-in 300ms cubic-bezier(.16,1,.3,1)'
 			}
 		}
 	},

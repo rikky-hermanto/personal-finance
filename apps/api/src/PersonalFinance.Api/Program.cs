@@ -220,6 +220,10 @@ namespace PersonalFinance.Api
             // Macro Scenario Lab (PF-140)
             builder.Services.AddScoped<IMacroScenarioService, MacroScenarioService>();
 
+            // Big Purchases on the shared Goal model (PF-154)
+            builder.Services.AddScoped<IGoalService, GoalService>();
+            builder.Services.AddScoped<IFoundationCheckService, FoundationCheckService>();
+
             // Journey module
             // "Today" and "this month" are the owner's calendar (Asia/Jakarta), not the host's UTC.
             builder.Services.AddSingleton<TimeProvider>(AppTimeProvider.Jakarta());
@@ -306,7 +310,8 @@ namespace PersonalFinance.Api
                               path.StartsWithSegments("/api/investments") ||
                               path.StartsWithSegments("/api/journey") ||
                               path.StartsWithSegments("/api/desk") ||
-                              path.StartsWithSegments("/api/macro-scenarios");
+                              path.StartsWithSegments("/api/macro-scenarios") ||
+                              path.StartsWithSegments("/api/goals");  // PF-154: owner-only RLS, composite FKs
                 // PF-S15: chat forwards to owner-scoped AI routes; ChatController also 404s when off.
                 var chatRoute = aiChatEnabled && path.StartsWithSegments("/api/chat");
                 var allowed = cashflowPilotEnabled && (path.StartsWithSegments("/api/transactions") &&

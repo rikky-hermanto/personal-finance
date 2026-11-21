@@ -15,7 +15,8 @@
     "test:macro": "vitest run src/lib/macroScenario",
     "test:journey": "vitest run src/lib/journey",
     "test:accounts": "vitest run src/lib/accounts",
-    "test:networth": "vitest run src/lib/netWorth"
+    "test:networth": "vitest run src/lib/netWorth",
+    "test:goals": "vitest run src/lib/goals"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

@@ -94,6 +94,7 @@ public sealed class CashflowPilotBoundaryTests
     [InlineData("/api/investments/setups")]
     [InlineData("/api/desk/state")]
     [InlineData("/api/macro-scenarios")]
+    [InlineData("/api/goals")]
     public async Task OwnerScopedModule_MissingToken_ReturnsUnauthorized(string path)
     {
         using var factory = CreateFactory();

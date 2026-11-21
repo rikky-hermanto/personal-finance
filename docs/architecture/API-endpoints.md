@@ -78,6 +78,16 @@ Route constraints below (`:guid` / `:int`) describe parameter types; omit the co
 | GET | `/api/journey/no-debts` | GetNoDebts |
 | PUT | `/api/journey/no-debts` | ConfirmNoDebts |
 | DELETE | `/api/journey/no-debts` | ClearNoDebts |
+| GET | `/api/goals?kind&status&page&pageSize` | List (status `open`, `closed` or one status; pageSize clamped 1–200; carries `foundation` and, for `open`, the `summary`) |
+| POST | `/api/goals/preview` | Preview (read-only GoalMath on a draft; writes nothing) |
+| GET | `/api/goals/{id:guid}` | Get |
+| POST | `/api/goals` | Create (kind `big_purchase`; tier, owner and colour set server-side) |
+| PUT | `/api/goals/{id:guid}` | Update (full body including `status`) |
+| DELETE | `/api/goals/{id:guid}` | Delete (cascades contributions and cost items) |
+| PUT | `/api/goals/{id:guid}/cost-items` | ReplaceCostItems (target becomes cash needed, loan principal excluded) |
+| GET | `/api/goals/{id:guid}/contributions?page&pageSize` | Contributions (newest first) |
+| POST | `/api/goals/{id:guid}/contributions` | AddContribution (negative = withdrawal; 400 when allocated would drop below zero) |
+| DELETE | `/api/goals/{id:guid}/contributions/{contributionId:guid}` | DeleteContribution |
 | GET | `/api/liabilities` | GetAll |
 | POST | `/api/liabilities` | Create |
 | PUT | `/api/liabilities/{id:guid}` | Update |
