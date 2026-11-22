@@ -47,3 +47,30 @@ async def test_pilot_gate_allows_payload_only_advice_routes_with_internal_key(mo
             # Authenticated malformed input reaches validation, not the provider.
             response = await client.post(path, json={}, headers={"X-Internal-Api-Key": "test-internal-key"})
             assert response.status_code == 422, path
+
+
+@pytest.mark.asyncio
+async def test_mcp_closed_by_default(monkeypatch):
+    """PF-156: /mcp reads owner transactions, so it must not answer on a public URL."""
+    monkeypatch.setattr(settings, "mcp_enabled", False)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        assert (await client.get("/mcp/")).status_code == 404
+        assert (await client.get("/mcp")).status_code == 404
+        assert (await client.get("/mcp/messages/")).status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_mcp_enabled_requires_internal_key(monkeypatch):
+    monkeypatch.setattr(settings, "mcp_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "test-internal-key")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        assert (await client.get("/mcp/")).status_code == 401
+        assert (await client.get("/mcp/", headers={"X-Internal-Api-Key": "wrong"})).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_mcp_enabled_without_configured_key_stays_closed(monkeypatch):
+    monkeypatch.setattr(settings, "mcp_enabled", True)
+    monkeypatch.setattr(settings, "internal_api_key", "")
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        assert (await client.get("/mcp/", headers={"X-Internal-Api-Key": ""})).status_code == 401

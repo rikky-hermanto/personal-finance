@@ -86,7 +86,7 @@ async def lifespan(app: FastAPI):
     embed_provider = create_embedding_provider(settings)
     app.state.embedder = EmbeddingService(provider=embed_provider, db_url=settings.database_url)
     app.state.retriever = RetrievalService(provider=embed_provider, db_url=settings.database_url)
-    app.state.reranker = RerankerService()
+    app.state.reranker = RerankerService(cache_dir=settings.flashrank_cache_dir)
     # Query router: one temperature-0 planner call classifies intent + extracts filters;
     # aggregate questions go to deterministic SQL, lookups keep the retrieve→rerank funnel.
     app.state.planner = QueryPlanner(provider=provider)
@@ -154,19 +154,22 @@ resource = Resource(attributes={
     SERVICE_NAME: settings.otel_service_name
 })
 
-# Tracing
-provider = TracerProvider(resource=resource)
-# Note: insecure=True is required since we're talking to Alloy over local network without TLS
-span_exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint, insecure=True)
-processor = BatchSpanProcessor(span_exporter)
-provider.add_span_processor(processor)
-trace.set_tracer_provider(provider)
+# PF-156: OTEL_ENABLED=false skips export where no collector runs (Cloud Run). Without a
+# provider, FastAPIInstrumentor and LoggingInstrumentor fall back to the no-op tracer.
+if settings.otel_enabled:
+    # Tracing
+    provider = TracerProvider(resource=resource)
+    # Note: insecure=True is required since we're talking to Alloy over local network without TLS
+    span_exporter = OTLPSpanExporter(endpoint=settings.otel_exporter_otlp_endpoint, insecure=True)
+    processor = BatchSpanProcessor(span_exporter)
+    provider.add_span_processor(processor)
+    trace.set_tracer_provider(provider)
 
-# Metrics
-metric_exporter = OTLPMetricExporter(endpoint=settings.otel_exporter_otlp_endpoint, insecure=True)
-reader = PeriodicExportingMetricReader(metric_exporter)
-meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
-metrics.set_meter_provider(meter_provider)
+    # Metrics
+    metric_exporter = OTLPMetricExporter(endpoint=settings.otel_exporter_otlp_endpoint, insecure=True)
+    reader = PeriodicExportingMetricReader(metric_exporter)
+    meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
+    metrics.set_meter_provider(meter_provider)
 
 # Logging
 LoggingInstrumentor().instrument(set_logging_format=True)
@@ -197,9 +200,16 @@ _OWNER_AGENT_ROUTES = {"/advisor", "/categorize-agent"}
 
 @app.middleware("http")
 async def pilot_access_gate(request: Request, call_next):
-    if request.url.path == "/health" or request.url.path.startswith("/mcp"):
-        # PF-AI010: the MCP SSE sub-app mounted at /mcp inherits the service's
-        # no-auth local posture (a bearer guard is deferred to PF-S08).
+    if request.url.path == "/health":
+        return await call_next(request)
+    if request.url.path == "/mcp" or request.url.path.startswith("/mcp/"):
+        # PF-156: the MCP tools read owner transactions, so /mcp is closed unless
+        # MCP_ENABLED is set, and even then it needs the internal API key.
+        if not settings.mcp_enabled:
+            return JSONResponse({"detail": "Not found"}, status_code=404)
+        supplied = request.headers.get("x-internal-api-key", "")
+        if not settings.internal_api_key or not secrets.compare_digest(supplied, settings.internal_api_key):
+            return JSONResponse({"detail": "Internal authentication required"}, status_code=401)
         return await call_next(request)
     if request.url.path in _OWNER_CHAT_ROUTES:
         if not settings.ai_chat_enabled:

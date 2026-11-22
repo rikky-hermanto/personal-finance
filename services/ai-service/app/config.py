@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:7208", "http://localhost:8080"]
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
     otel_service_name: str = "ai-service"
+    # PF-156: false where no OTLP collector runs (Cloud Run); the local default stays on.
+    otel_enabled: bool = True
+    # PF-156: the MCP SSE sub-app (/mcp) reads owner transactions. Off unless explicitly
+    # enabled, and when on it still requires the internal API key.
+    mcp_enabled: bool = False
+    # PF-156: the Docker image bakes the reranker model here; /tmp on Cloud Run lives in RAM.
+    flashrank_cache_dir: str = "/tmp/flashrank"
 
     # Langfuse — AI observability
     langfuse_public_key: str = ""
