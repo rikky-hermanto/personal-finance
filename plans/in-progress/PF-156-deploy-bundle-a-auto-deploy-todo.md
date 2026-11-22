@@ -1,3 +1,33 @@
+---
+id: PF-156
+size: L
+flags: [Ready]
+sensitive: [secrets]
+rework: 0
+loopFailures: 0
+review: none
+recommended:
+  model: opus
+  effort: high
+  estimate5h: null
+  estimateWeek: null
+approved:
+  model: sonnet
+  effort: high
+  by: owner
+  at: 2026-11-22T09:14:20Z
+  at-label: 2026-11-22 17:14 Asia/Makassar
+  budgetOverride: true
+run:
+  worktree: .worktrees/pf-156
+  branch: loop/pf-156
+  slot: 1
+  fixRounds: 0
+  segments: 0
+  checkpoint: .loop/runs/PF-156/checkpoint.json
+  logs: .loop/runs/PF-156/
+---
+
 # PF-156 — Deploy Bundle A (Vercel + Cloud Run + Supabase Cloud) with auto deploy on merge
 
 > **GitHub Issue:** (to create: `[PF-156] Deploy Bundle A with auto deploy on merge to main`)
@@ -17,17 +47,29 @@ The step-by-step commands live in [deployment-bundle-a-runbook.md](../../docs/id
 ## Acceptance Criteria
 
 - [ ] `https://<app>.vercel.app` loads, the demo account signs in, and Journey, Cashflow, Assets and Investment pages show synthetic data.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] A CSV import (`bca-sample.csv`), a PDF upload and one AI chat question all work end to end in the cloud.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] `GET <api>/health/live` returns 200, and `GET <api>/health` reports Database and AI Service as Healthy, with no Grafana entry.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] `GET <ai>/mcp/` returns 404 from the public internet.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] Public signup on the Supabase Cloud project is rejected.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] Both Cloud Run services run with `max-instances=1`, and a GCP budget alert exists.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] No secret appears in the repo, the image layers (`appsettings.Development.json`, `.env`), or the workflow logs.
+  > Not met yet: verified locally that the API image has no `appsettings.Development.json` and the AI image has no `.env`, and the secret scanner is clean on the new files. Workflow logs cannot be checked until the first deploy runs.
 - [ ] Merging a PR that touches only `apps/frontend/` redeploys only the frontend. The `plan` job summary shows `ai-service=false, api=false`.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] Merging a PR that touches `apps/api/` builds and deploys a new `pf-api` revision tagged with the merge commit SHA, after CI is green.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] A red CI run on `main` triggers no deploy.
+  > Not met yet: needs the cloud deployment (Phase 2 and 3).
 - [ ] Measured cold start and AI service peak RAM are written into the comparison doc in place of the ⚠ guesses.
+  > Not met yet: local idle RAM (404 MiB) and time to healthy (about 15 s) are in the comparison doc. Cloud cold start and peak RAM during chat need the deployment (STEP 14).
 - [ ] Local `npm start` and `docker compose up` behave exactly as before (Grafana check, OTel export, MCP available when enabled).
+  > Not met yet: `HealthEndpointTests` prove Development keeps the Grafana check and OTel is on by default, and the pilot-gate tests prove `/mcp` opens with `MCP_ENABLED=true` plus the key. Not run side by side with `npm start`. Intended change: a local MCP client now has to send `X-Internal-Api-Key`.
 
 ## Approach
 
@@ -69,7 +111,7 @@ The workflow only swaps container images. Env vars and secrets stay in Cloud Run
 
 ## Phase 1 — Code changes (one PR)
 
-### [ ] STEP 1 — API: liveness endpoint and a Grafana check that only exists locally
+### [x] STEP 1 — API: liveness endpoint and a Grafana check that only exists locally
 
 In `Program.cs`, replace the health-check registration (currently lines 106–113):
 
@@ -97,7 +139,7 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => fa
 
 ---
 
-### [ ] STEP 2 — API: OTel on/off switch
+### [x] STEP 2 — API: OTel on/off switch
 
 Wrap the whole OpenTelemetry block (`AddOpenTelemetry()` and `builder.Logging.AddOpenTelemetry(...)`) in:
 
@@ -114,7 +156,7 @@ if (builder.Configuration.GetValue("OTEL_ENABLED", true))
 
 ---
 
-### [ ] STEP 3 — API: tests for STEP 1 and STEP 2
+### [x] STEP 3 — API: tests for STEP 1 and STEP 2
 
 Create `apps/api/tests/PersonalFinance.Tests/Infrastructure/HealthEndpointTests.cs`. Reuse the `WebApplicationFactory<PersonalFinance.Api.Program>` configuration pattern from `Authentication/CashflowPilotBoundaryTests.cs`, with `OTEL_ENABLED=false` in the in-memory config.
 
@@ -133,7 +175,7 @@ public async Task Startup_OtelDisabled_ServesRequests()
 
 ---
 
-### [ ] STEP 4 — AI service: close `/mcp` unless explicitly enabled
+### [x] STEP 4 — AI service: close `/mcp` unless explicitly enabled
 
 In `config.py`, add:
 
@@ -166,7 +208,7 @@ Keep `app.mount("/mcp", _mcp_app)` and its lifespan wiring as they are, because 
 
 ---
 
-### [ ] STEP 5 — AI service: `/mcp` gate tests
+### [x] STEP 5 — AI service: `/mcp` gate tests
 
 Add to `tests/test_pilot_gate.py`:
 
@@ -193,7 +235,7 @@ async def test_mcp_enabled_requires_internal_key(monkeypatch):
 
 ---
 
-### [ ] STEP 6 — AI service: OTel switch and flashrank cache dir
+### [x] STEP 6 — AI service: OTel switch and flashrank cache dir
 
 In `main.py`, wrap the tracing and metrics setup (the `TracerProvider` through `metrics.set_meter_provider(...)` lines) in `if settings.otel_enabled:`. Leave `LoggingInstrumentor` and `FastAPIInstrumentor` as they are, because without a provider they use the no-op tracer.
 
@@ -208,7 +250,7 @@ app.state.reranker = RerankerService(cache_dir=settings.flashrank_cache_dir)
 
 ---
 
-### [ ] STEP 7 — Images: bake the model and keep dev files out
+### [x] STEP 7 — Images: bake the model and keep dev files out
 
 In `services/ai-service/Dockerfile`, after `RUN pip install --no-cache-dir .`:
 
@@ -239,7 +281,7 @@ Append to `apps/api/.dockerignore`:
 
 ---
 
-### [ ] STEP 8 — Frontend SPA fallback and docs
+### [x] STEP 8 — Frontend SPA fallback and docs
 
 Create `apps/frontend/vercel.json`:
 
@@ -256,7 +298,9 @@ In `services/ai-service/.env.example`, add `MCP_ENABLED=false` and `OTEL_ENABLED
 
 ---
 
-### [ ] STEP 9 — Phase 1 gate
+### [!] STEP 9 — Phase 1 gate
+
+> **Failure:** partial. Done: backend build (0 errors) and tests (875 passed, 9 skipped), frontend lint (0 errors, 9 existing warnings), both tsc projects, `npm run build`, full pytest (367 passed), both images built, and the AI container run against local Supabase (`/health` 200, `/mcp/` 404, idle RAM 404 MiB, about 15 s to healthy). Open: the owner reviews and merges the PR, the `npm start` side-by-side check with a real MCP client, and peak RAM during chat (needs a Gemini key and data, moved to STEP 14). gitleaks runs in CI on the PR.
 
 ```bash
 # from repo root; ci-check skill runs all CI gates
@@ -274,7 +318,9 @@ Then run the stack locally with `npm start` and confirm that nothing changed: `/
 
 These steps need the owner's accounts, card and dashboards. An agent can run the `gcloud` and `supabase` commands once the owner has logged in, but cannot click through dashboards or enter the card.
 
-### [ ] STEP 10 — Supabase Cloud project, schema and Auth
+### [!] STEP 10 — Supabase Cloud project, schema and Auth
+
+> **Skipped:** needs the owner: `supabase login` (browser) and confirmation before the first `db push` to a cloud project.
 
 Follow runbook Langkah 3: create the project in Singapore, run `supabase link` and `supabase db push`, turn off signup and anonymous sign-ins, set the password policy, and record the URL, keys, JWT key type and session pooler string.
 
@@ -283,7 +329,9 @@ Follow runbook Langkah 3: create the project in Singapore, run `supabase link` a
 
 ---
 
-### [ ] STEP 11 — GCP project, budget, registry and secrets
+### [!] STEP 11 — GCP project, budget, registry and secrets
+
+> **Skipped:** needs the owner: Google Cloud CLI is not installed, a billing account with a card, and `gcloud auth login`.
 
 Follow runbook Langkah 4 and 5: billing link, enabled APIs, the $2 budget alert, the Artifact Registry repo with its cleanup policy, the `pf-run` service account, and the six Secret Manager secrets. Use fresh random values for the internal key and the signing secret.
 
@@ -292,7 +340,9 @@ Follow runbook Langkah 4 and 5: billing link, enabled APIs, the $2 budget alert,
 
 ---
 
-### [ ] STEP 12 — First manual deploy of the AI service and API
+### [!] STEP 12 — First manual deploy of the AI service and API
+
+> **Skipped:** prerequisite STEP 9 (PR merge) and STEP 11 (GCP access) are not done, plus a Gemini key from AI Studio.
 
 Follow runbook Langkah 6 to 8, using the full commit SHA as the image tag. Set `OTEL_ENABLED: "false"` in both env files, with `--memory` for `pf-ai` from the STEP 9 measurement. Deploy `pf-ai` first, then `pf-api`.
 
@@ -301,7 +351,9 @@ Follow runbook Langkah 6 to 8, using the full commit SHA as the image tag. Set `
 
 ---
 
-### [ ] STEP 13 — Vercel, CORS and Auth URLs
+### [!] STEP 13 — Vercel, CORS and Auth URLs
+
+> **Skipped:** needs the owner: Vercel CLI is not installed and `vercel login` needs a browser; prerequisite STEP 12.
 
 Follow runbook Langkah 9 and 10: import the repo with Root Directory `apps/frontend` and the `VITE_*` env vars, then set `Cors__AllowedOrigins__0` on `pf-api` and the Supabase Site URL and Redirect URLs to the production domain.
 
@@ -310,7 +362,9 @@ Follow runbook Langkah 9 and 10: import the repo with Root Directory `apps/front
 
 ---
 
-### [ ] STEP 14 — Demo account, synthetic data and smoke test
+### [!] STEP 14 — Demo account, synthetic data and smoke test
+
+> **Skipped:** prerequisite STEP 13 failed (no cloud deployment yet).
 
 Follow runbook Langkah 11 and 12. Create the demo user, load category rules, import synthetic CSVs, and add assets, liabilities and investments until L1 to L3 and at least one quest show. Then run the smoke table and record cold start and RAM in the comparison doc.
 
@@ -321,7 +375,9 @@ Follow runbook Langkah 11 and 12. Create the demo user, load category rules, imp
 
 ## Phase 3 — Auto deploy on merge to `main`
 
-### [ ] STEP 15 — Workload Identity Federation and GitHub settings
+### [!] STEP 15 — Workload Identity Federation and GitHub settings
+
+> **Skipped:** prerequisite STEP 12 (Cloud Run services must exist) and a Vercel token the owner creates in the dashboard.
 
 Follow runbook Langkah 15b and 15d: the `pf-deployer` service account with `run.developer`, `artifactregistry.writer` and `serviceAccountUser` on `pf-run`; the OIDC pool restricted to this repo and `refs/heads/main`; the `production` environment with no required reviewers; and its variables and secrets. Set `DEPLOY_ENABLED=true` last.
 
@@ -330,7 +386,9 @@ Follow runbook Langkah 15b and 15d: the `pf-deployer` service account with `run.
 
 ---
 
-### [ ] STEP 16 — Hand frontend deploys to the workflow
+### [!] STEP 16 — Hand frontend deploys to the workflow
+
+> **Skipped:** prerequisite STEP 15; first Vercel deploys must work through git before main deploys are handed to Actions.
 
 Add the `git` block to `apps/frontend/vercel.json` (runbook Langkah 15c) in a small PR:
 
@@ -346,7 +404,9 @@ Add the `git` block to `apps/frontend/vercel.json` (runbook Langkah 15c) in a sm
 
 ---
 
-### [ ] STEP 17 — Prove the pipeline
+### [!] STEP 17 — Prove the pipeline
+
+> **Skipped:** prerequisite STEP 15 and STEP 16.
 
 1. Run Actions > Deploy > Run workflow with `force` ticked. Every job must go green.
 2. Merge a frontend-only PR. The `plan` summary must show `ai-service=false, api=false, frontend=true`.
@@ -403,3 +463,47 @@ Before you start: STEP 14 smoke test passes.
 - The AI service peak RAM exceeds 2 GiB, which changes the Cloud Run sizing and possibly the bundle choice.
 - `supabase db push` against the cloud project wants to apply a migration that drops or rewrites data.
 - Any step would put a real bank statement or a real credential into the cloud deployment.
+
+## ✅ Owner Review Checklist (G3)
+
+State: Phase 1 code is done in `.worktrees/pf-156` on branch `loop/pf-156`, with all local gates green. Nothing is deployed. Phase 2 and 3 need your accounts and logins first. The verifier could not check anything cloud-side.
+
+### A. Before you start
+
+- ☐ Check out the branch or open the PR for `loop/pf-156`. Pass: the diff touches only the files in the Affected Files table, plus the plan copy.
+- ☐ Have Docker Desktop and local Supabase running (`npx supabase status` shows it running).
+
+### B. Read the code
+
+- ☐ `services/ai-service/app/main.py`, `pilot_access_gate`. Pass: `/mcp` and `/mcp/...` return 404 unless `MCP_ENABLED` is true, and 401 without the right `X-Internal-Api-Key` when it is.
+- ☐ `apps/api/src/PersonalFinance.Api/Program.cs`. Pass: Grafana is added only in Development or when `Monitoring:GrafanaHealthUrl` is set, the OTel block sits inside `if (OTEL_ENABLED)`, and `/health/live` uses `Predicate = _ => false`.
+- ☐ `services/ai-service/Dockerfile` and both `.dockerignore` files. Pass: the model is baked into `/opt/flashrank`, and `.env` and `appsettings.Development.json` are excluded.
+
+### C. Run the tests
+
+- ☐ `cd apps/api && dotnet test PersonalFinance.slnx`. Pass: 875 passed, 9 skipped, 0 failed (6 of them in `HealthEndpointTests`).
+- ☐ `cd services/ai-service && .venv/Scripts/python -m pytest -q`. Pass: 367 passed.
+
+### D. Start the stack and check
+
+- ☐ `npm start`, then `curl http://localhost:7208/health`. Pass: Database, AI Service and Grafana Monitoring are all listed.
+- ☐ `curl http://localhost:7208/health/live`. Pass: `Healthy`.
+- ☐ `curl -i http://localhost:8000/mcp/`. Pass: 404 with the default `.env`. Set `MCP_ENABLED=true`, restart, and connect MCP Inspector with the `X-Internal-Api-Key` header. Pass: the tool list loads.
+- ☐ Open Grafana at `http://localhost:3000`. Pass: fresh API and AI service traces still arrive.
+
+### E. Cloud checks (after Phase 2 and 3)
+
+- ☐ Every acceptance criterion marked "Not met yet" above, using the runbook's smoke table (Langkah 12) and pipeline test (Langkah 15e).
+
+### F. Optional
+
+- ☐ Measure peak RAM during one chat question locally with `docker stats`, then pick `--memory` for `pf-ai`.
+
+### G. Decide and close
+
+- ☐ Phase 1 is accepted when B to D pass. Merge the PR yourself. Do not run `/loop-accept`, because the branch goes in through a PR. Then tell Claude to continue with Phase 2 once `gcloud`, `supabase` and `vercel` are logged in.
+- ☐ The whole ticket is accepted when every acceptance criterion is ticked. Then ask Claude to move the plan to `done/` and remove the worktree and branch.
+
+
+## Loop Notes
+- 2026-11-22 17:58 Asia/Makassar Phase 1 STEP 1-8 done, all local gates green, images built; STEP 9 awaits PR merge; Phase 2-3 blocked on owner logins (gcloud, supabase, vercel)
