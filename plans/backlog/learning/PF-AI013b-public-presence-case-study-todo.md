@@ -123,7 +123,7 @@ The draft is from 2026-06-24. Since then the eval harness grew (categorization, 
 ls services/ai-service/evals/ services/ai-service/evals/results/
 grep -n "accuracy\|%\|\$" docs/ideas/blogs/2026-06-24-eval-harness.md | head -40
 grep -n "PF-131" plans/BOARD.md
-cat plans/in-progress/PF-131*.md | head -40
+cat plans/backlog/PF-131*.md | head -40
 ```
 
 List every number and every file name in the draft, and check each against the results files. Fix what changed. Decide the platform from the blogging plan and the state of PF-131; if the automation is not ready, publish by hand and do not wait for it.

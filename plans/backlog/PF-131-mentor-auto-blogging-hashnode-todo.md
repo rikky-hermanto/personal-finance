@@ -1,6 +1,6 @@
 # PF-131 — Mentor Auto-Blogging: Draft → Hashnode Pipeline
 
-> **Status:** In Progress (publishing blocked — see STEP 1)
+> **Status:** Backlog (moved back from In Progress 2026-11-21; publishing blocked — see STEP 1)
 > **Started:** 2026-06-24
 > **Planned from branch:** main
 

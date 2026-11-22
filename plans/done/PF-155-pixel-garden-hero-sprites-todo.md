@@ -1,7 +1,7 @@
 # PF-155 — Pixel-art plant for the Journey garden hero
 
 > **GitHub Issue:** #120
-> **Status:** In Progress (implemented; STEP 7 e2e not run; awaiting owner review)
+> **Status:** Done (owner accepted 2026-11-21)
 > **Started:** 2026-11-10 (planned)
 > **Planned from branch:** main
 > **Board objective:** The Journey garden shows a pixel-art plant that sways in the wind and drops leaves when you tap it, instead of a plain emoji.
@@ -30,8 +30,8 @@ The method is the one used by the MIT-licensed [pixel-plays](https://github.com/
 
 ## Acceptance Criteria
 
-- [ ] `/journey` shows a pixel-art tree for the current level in place of the emoji, with crisp (not blurred) pixels, readable in light and dark theme.
-  > Not met (not verified on the real page): the hero change is in place and passes lint, tsc and build, and the same `PixelPlant` renders crisp on light and dark in a browser harness, but `/journey` itself needs sign-in and the API and no stack was running. Confirm it in step D of the review checklist.
+- [x] `/journey` shows a pixel-art tree for the current level in place of the emoji, with crisp (not blurred) pixels, readable in light and dark theme.
+  > Owner checked on the real page and accepted on 2026-11-21. Earlier note: not verified on the real page at implementation time: the hero change is in place and passes lint, tsc and build, and the same `PixelPlant` renders crisp on light and dark in a browser harness, but `/journey` itself needs sign-in and the API and no stack was running. Confirm it in step D of the review checklist.
 - [x] **Visual checklist passes** on the contact sheet (STEP 2), for all 20 sprites:
   - The canopy reads as clumps of leaves in at least four distinct tones, lit from the top-left, with a dark underside. It does not read as a few shaded balls.
   - The silhouette is irregular, with small gaps and loose leaves at the edge.
@@ -230,9 +230,9 @@ Leave the surrounding `AnimatePresence` / `motion.div`, the peak-stage logic and
 
 ---
 
-### [ ] STEP 7 — Repair the two stale hero specs
+### [x] STEP 7 — Repair the two stale hero specs
 
-> **Not done:** the two specs are replaced exactly as written, but they were not run. Their check needs the full stack and sign-in, and no stack was running (the API on port 7208 was down, and port 8080, the Playwright base URL, is held by an unrelated Keycloak server on this machine). Run them as step E of the review checklist, then tick this step.
+> **Closed 2026-11-21:** the owner reviewed and accepted the work. Earlier note: the two specs are replaced exactly as written, but they were not run. Their check needs the full stack and sign-in, and no stack was running (the API on port 7208 was down, and port 8080, the Playwright base URL, is held by an unrelated Keycloak server on this machine). Run them as step E of the review checklist, then tick this step.
 
 In `apps/frontend/e2e/journey.spec.ts`, replace the tests `Living Garden hero renders all 5 plants` and `Clicking plant L2 scrolls to tier card L2` with:
 
@@ -325,7 +325,7 @@ This plan runs in two sessions. The first ends at the STEP 2 gate with one pilot
 
 ## ✅ Owner Review Checklist (G3)
 
-> **State:** STEPs 1 to 6 and 8 are done and verified (lint, both tsc configs, 27 journey tests, build, and a 22-check browser run of the real component). STEP 7 is edited but not run. Nothing is committed. **Not verified:** the real `/journey` page (it needs sign-in and the API, and no stack was running) and the two e2e specs. **Known gap to confirm:** the art is chunkier and cleaner than your Pixel Play screenshot (see the pilot log).
+> **State (closed 2026-11-21, owner accepted):** STEPs 1 to 6 and 8 are done and verified (lint, both tsc configs, 27 journey tests, build, and a 22-check browser run of the real component). STEP 7 is edited but not run. Nothing is committed. **Not verified:** the real `/journey` page (it needs sign-in and the API, and no stack was running) and the two e2e specs. **Known gap to confirm:** the art is chunkier and cleaner than your Pixel Play screenshot (see the pilot log).
 
 ### A. Before you start
 
