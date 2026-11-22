@@ -109,6 +109,8 @@ Soal lisensi: Hobby hanya untuk **non-commercial personal use**. Demo portfolio 
 
 **Yang harus diukur dulu:** RAM AI service saat idle dan saat chat/agent berjalan. Angka ini menentukan apakah opsi 512 MB (Render, Koyeb) masih layak dipertimbangkan.
 
+**Hasil ukur lokal (2026-11-22, PF-156):** image AI service (dengan model flashrank di dalamnya) berukuran 1.56 GB. Container memakai sekitar **404 MiB saat idle** dan butuh sekitar 15 detik dari start sampai `/health` menjawab, termasuk koneksi ke Postgres. RAM puncak saat chat belum diukur, karena butuh Gemini key dan data. Dengan idle 404 MiB, opsi 512 MB hampir pasti OOM begitu chat berjalan, jadi Render Free dan Koyeb Free tetap dicoret untuk AI service. Cloud Run dimulai dengan `--memory=2Gi`, lalu diturunkan ke `1Gi` kalau puncak di Cloud Run Metrics di bawah 700 MiB.
+
 ### 3.4 Database + Auth + Storage + Realtime
 
 | | **Supabase Cloud Free** | Supabase Cloud Pro | Self-host Supabase di VM | Neon / Postgres lain |

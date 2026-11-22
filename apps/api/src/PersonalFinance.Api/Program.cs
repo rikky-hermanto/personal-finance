@@ -107,38 +107,48 @@ namespace PersonalFinance.Api
                                  builder.Configuration["ConnectionStrings:Default"] ?? 
                                  "Host=localhost;Database=personal_finance;Username=postgres;Password=postgres_password_here";
 
-            builder.Services.AddHealthChecks()
+            var healthChecks = builder.Services.AddHealthChecks()
                 .AddNpgSql(connectionString, name: "Database")
-                .AddUrlGroup(new Uri($"{builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000"}/health"), name: "AI Service")
-                .AddUrlGroup(new Uri("http://localhost:3000/api/health"), name: "Grafana Monitoring");
+                .AddUrlGroup(new Uri($"{builder.Configuration["AiService:BaseUrl"] ?? "http://localhost:8000"}/health"), name: "AI Service");
+
+            // PF-156: Grafana only exists in the local monitoring stack; in the cloud the check would always fail.
+            var grafanaHealthUrl = builder.Configuration["Monitoring:GrafanaHealthUrl"]
+                ?? (builder.Environment.IsDevelopment() ? "http://localhost:3000/api/health" : null);
+            if (!string.IsNullOrWhiteSpace(grafanaHealthUrl))
+                healthChecks.AddUrlGroup(new Uri(grafanaHealthUrl), name: "Grafana Monitoring");
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
-            // OpenTelemetry Configuration
-            var otelEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
-            var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? "api";
-
-            builder.Services.AddOpenTelemetry()
-                .ConfigureResource(resource => resource.AddService(serviceName))
-                .WithTracing(tracing => tracing
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddNpgsql()
-                    .AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint)))
-                .WithMetrics(metrics => metrics
-                    .AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation()
-                    .AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint)));
-
-            builder.Logging.AddOpenTelemetry(logging =>
+            // OpenTelemetry Configuration.
+            // PF-156: OTEL_ENABLED=false turns export off where no collector runs (Cloud Run).
+            // Same intent as the OTel spec's OTEL_SDK_DISABLED; a named flag keeps the local default on.
+            if (builder.Configuration.GetValue("OTEL_ENABLED", true))
             {
-                logging.IncludeFormattedMessage = true;
-                logging.IncludeScopes = true;
-                logging.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
-                logging.AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint));
-            });
+                var otelEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4317";
+                var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? "api";
+
+                builder.Services.AddOpenTelemetry()
+                    .ConfigureResource(resource => resource.AddService(serviceName))
+                    .WithTracing(tracing => tracing
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation()
+                        .AddNpgsql()
+                        .AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint)))
+                    .WithMetrics(metrics => metrics
+                        .AddAspNetCoreInstrumentation()
+                        .AddHttpClientInstrumentation()
+                        .AddRuntimeInstrumentation()
+                        .AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint)));
+
+                builder.Logging.AddOpenTelemetry(logging =>
+                {
+                    logging.IncludeFormattedMessage = true;
+                    logging.IncludeScopes = true;
+                    logging.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName));
+                    logging.AddOtlpExporter(options => options.Endpoint = new Uri(otelEndpoint));
+                });
+            }
 
 
             builder.Services.AddSupabase(builder.Configuration);
@@ -391,6 +401,8 @@ namespace PersonalFinance.Api
             {
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
             }).AllowAnonymous();
+            // PF-156: liveness for platforms and smoke tests. Runs no checks, so it never depends on the DB or AI service.
+            app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false }).AllowAnonymous();
 
             app.Run();
         }

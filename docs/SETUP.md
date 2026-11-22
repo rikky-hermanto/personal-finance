@@ -43,7 +43,9 @@ Configure the following locally without copying credentials into documentation o
 | AI generation | `AI_PROVIDER=gemini|anthropic`, matching API key, matching `AI_MODEL` |
 | AI embeddings | `EMBEDDING_PROVIDER=gemini|openai` (default Gemini), matching key, optional `EMBEDDING_MODEL`, `DATABASE_URL` |
 | LangGraph tools | `NET_API_BASE_URL` (default `http://localhost:7208`) |
-| Tracing | OTEL endpoint/service name; optional Langfuse host/public/secret keys |
+| Tracing | OTEL endpoint/service name; `OTEL_ENABLED` (API and AI service, default `true`; `false` where no collector runs); optional Langfuse host/public/secret keys |
+| Health | API `/health` checks Database and AI Service, plus Grafana in Development or when `Monitoring:GrafanaHealthUrl` is set; `/health/live` runs no checks |
+| AI MCP server | `MCP_ENABLED` (default `false`). When `true`, `/mcp` requires the `X-Internal-Api-Key` header |
 | Residual categorization | `CATEGORIZATION_BACKEND=llm` by default; Jev requires separate key, pinned model and calibrated threshold after evaluation |
 
 Obtain local Supabase keys from `rtk proxy npx supabase status` after startup; keep service-role/secret keys server-side. The frontend Supabase module throws when its URL or anon key is missing. The frontend example currently uses HTTPS 7209 for the API; use the protocol/port of your selected API launch profile (HTTP 7208 is used below).
@@ -119,6 +121,8 @@ Embedding storage is `vector(1536)`. Changing embedding provider/model requires 
 Dockerfiles exist for all three applications, but `docker compose up --build` is not a verified complete Supabase deployment. Current Compose does not inject the API Supabase settings, AI `DATABASE_URL`/`NET_API_BASE_URL`/embedding/Langfuse/Jev settings, or frontend Supabase/AI build variables. Inside a container, localhost points to that container. Frontend Vite values must be set at build time. The AI Dockerfile also installs the package before copying its app sources; verify packaged dependencies and runtime imports when preparing deployment.
 
 Use the host development path above. Container deployment hardening remains separate work; no configuration changes were made by this documentation sync.
+
+Cloud deployment (Vercel, Cloud Run and Supabase Cloud, with auto deploy on merge to `main`) is planned in PF-156. Steps: [deployment-bundle-a-runbook.md](ideas/deployment-bundle-a-runbook.md).
 
 ## Stop and verify
 
