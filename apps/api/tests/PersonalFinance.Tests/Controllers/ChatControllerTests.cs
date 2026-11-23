@@ -210,6 +210,22 @@ public sealed class ChatControllerTests
     }
 
     [Fact]
+    public async Task Advisor_SessionIdWithIllegalCharacters_ReturnsBadRequest()
+    {
+        // Arrange
+        var fake = new FakeChatClient();
+        using var factory = CreateFactory(chatEnabled: true, fake, agentsEnabled: true);
+
+        // Act
+        var response = await Client(factory, signedIn: true).PostAsJsonAsync("/api/chat/advisor",
+            new { query = "ok", session_id = "a b" });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Null(fake.LastAdvisor);
+    }
+
+    [Fact]
     public async Task Advisor_FlagsOn_ForwardsSnakeCaseBodyAndReturnsAnswer()
     {
         // Arrange

@@ -399,6 +399,7 @@ async def advisor(
     user_token: str = Depends(require_user_token),
 ) -> AdvisorResponse:
     """Stateful financial advisor — multi-step, tool-grounded, session-persistent."""
+    _reject_flagged_query(request.query)
     try:
         return await _advisor.ask(request, owner_id=owner_id, user_token=user_token)
     except Exception as exc:

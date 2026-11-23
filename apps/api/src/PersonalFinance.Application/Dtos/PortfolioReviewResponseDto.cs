@@ -11,5 +11,7 @@ public record PortfolioReviewResponseDto(
     JsonObject? Scenarios,
     JsonObject? ResilienceTest,
     JsonObject? DecisionTree,
-    JsonObject? RecommendedPortfolio
+    JsonObject? RecommendedPortfolio,
+    string? Provider = null,   // set by the AI service: which provider and model produced the review (PF-157)
+    string? Model = null
 );

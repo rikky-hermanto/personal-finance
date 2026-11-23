@@ -8,6 +8,8 @@ from smolagents import tool
 
 from app.agents.owner_context import current_owner_context
 from app.observability import langfuse
+from app.services.answerer import _spotlight
+from app.services.pii_masker import mask_pii
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +54,7 @@ def find_similar_transactions(description: str) -> str:
             result = "No similar past transactions found."
         else:
             lines = [
-                f"  [{i+1}] '{r.description}' — {r.category or 'uncategorized'} "
+                f"  [{i+1}] {_spotlight(mask_pii(r.description))} — {r.category or 'uncategorized'} "
                 f"(similarity={r.similarity:.2f})"
                 for i, r in enumerate(results)
             ]

@@ -62,3 +62,42 @@ public class IPortfolioReviewClientContractTests
         Assert.NotNull(dto);
     }
 }
+
+public class PortfolioReviewResponseProvenanceTests
+{
+    // Same options PortfolioReviewClient uses to read the AI service's response.
+    private static readonly System.Text.Json.JsonSerializerOptions ClientJson = new()
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+    };
+
+    [Fact]
+    public void Deserialize_ServiceResponseWithProviderAndModel_MapsBothFields()
+    {
+        // Arrange
+        const string json = "{\"diagnostics\":{},\"provider\":\"gemini\",\"model\":\"gemini-2.5-flash\"}";
+
+        // Act
+        var dto = System.Text.Json.JsonSerializer.Deserialize<PortfolioReviewResponseDto>(json, ClientJson);
+
+        // Assert
+        Assert.NotNull(dto);
+        Assert.Equal("gemini", dto!.Provider);
+        Assert.Equal("gemini-2.5-flash", dto.Model);
+    }
+
+    [Fact]
+    public void Deserialize_ResponseWithoutProvenance_LeavesFieldsNull()
+    {
+        // Arrange
+        const string json = "{\"diagnostics\":{}}";
+
+        // Act
+        var dto = System.Text.Json.JsonSerializer.Deserialize<PortfolioReviewResponseDto>(json, ClientJson);
+
+        // Assert
+        Assert.Null(dto!.Provider);
+        Assert.Null(dto.Model);
+    }
+}

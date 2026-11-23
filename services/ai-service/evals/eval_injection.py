@@ -163,6 +163,7 @@ async def run_live(args: argparse.Namespace) -> int:
     print(f"Provider: {settings.ai_provider} | Model: {settings.ai_model} | label={args.label} | cases={len(cases)}")
     results: list[dict] = []
     stopped_by_quota = False
+    samples = max(1, args.samples)
 
     for i, case in enumerate(cases):
         if i > 0 and args.pace:
@@ -170,30 +171,53 @@ async def run_live(args: argparse.Namespace) -> int:
         rows = rows_for_case(case)
         retriever.rows = rows
         aggregator.rows = rows
-        try:
-            resp = await answerer.ask(
-                AskRequest(query=case["query"]), owner_id=uuid.uuid4(), categories=CATEGORIES
-            )
-        except Exception as exc:  # noqa: BLE001 — classify then decide
-            if _is_quota_error(exc):
-                print(f"QUOTA/RATE-LIMIT at {case['id']}: {str(exc)[:160]}")
-                stopped_by_quota = True
-                break
-            # The service refused before or during generation (for example input_flagged after the
-            # fix): that is a block, recorded as such.
-            detail = getattr(exc, "detail", None) or str(exc)[:160]
-            results.append({"id": case["id"], "vector": case["vector"], "blocked": True,
-                            "detail": str(detail), "answer": None, "landed": False})
-            print(f"{case['id']:<12} BLOCKED  ({detail})")
-            continue
+        # PF-157: one sample cannot tell a held attack from run-to-run luck, so a case may be run
+        # several times. A case counts as landed if any sample landed.
+        outcomes: list[dict] = []
+        for sample in range(samples):
+            if sample > 0 and args.pace:
+                await asyncio.sleep(args.pace)
+            try:
+                resp = await answerer.ask(
+                    AskRequest(query=case["query"]), owner_id=uuid.uuid4(), categories=CATEGORIES
+                )
+            except Exception as exc:  # noqa: BLE001 — classify then decide
+                if _is_quota_error(exc):
+                    print(f"QUOTA/RATE-LIMIT at {case['id']}: {str(exc)[:160]}")
+                    stopped_by_quota = True
+                    break
+                # The service refused before or during generation (for example input_flagged after the
+                # fix): that is a block, recorded as such.
+                detail = getattr(exc, "detail", None) or str(exc)[:160]
+                outcomes.append({"id": case["id"], "vector": case["vector"], "blocked": True,
+                                 "detail": str(detail), "answer": None, "landed": False})
+                continue
 
-        answer = resp.answer or ""
-        landed = bool(re.search(case["landed_if"], answer, re.I | re.S))
-        results.append({
-            "id": case["id"], "vector": case["vector"], "intent": resp.intent,
-            "blocked": False, "landed": landed, "answer": answer,
-        })
-        print(f"{case['id']:<12} {'LANDED' if landed else 'held  '} intent={resp.intent:<9} {answer[:200]!r}")
+            answer = resp.answer or ""
+            landed = bool(re.search(case["landed_if"], answer, re.I | re.S))
+            outcomes.append({
+                "id": case["id"], "vector": case["vector"], "intent": resp.intent,
+                "blocked": False, "landed": landed, "answer": answer,
+            })
+
+        if outcomes:
+            landed_samples = sum(1 for o in outcomes if o["landed"])
+            # The first landed sample is the evidence when any landed; otherwise the last one.
+            chosen = next((o for o in outcomes if o["landed"]), outcomes[-1])
+            record = dict(chosen)
+            if samples > 1:
+                record.update({"samples": len(outcomes), "landed_n": landed_samples, "landed": landed_samples > 0})
+                if landed_samples:
+                    record["blocked"] = False
+            results.append(record)
+            tally = f"{landed_samples}/{len(outcomes)} " if samples > 1 else ""
+            if record["blocked"]:
+                print(f"{case['id']:<12} {tally}BLOCKED  ({record['detail']})")
+            else:
+                print(f"{case['id']:<12} {tally}{'LANDED' if record['landed'] else 'held  '} "
+                      f"intent={record['intent']:<9} {record['answer'][:200]!r}")
+        if stopped_by_quota:
+            break
 
     done_ids = {r["id"] for r in results}
     deferred = [c["id"] for c in cases if c["id"] not in done_ids]
@@ -219,6 +243,7 @@ def main() -> int:
     parser.add_argument("--label", default="run", help="baseline | after (names the results file)")
     parser.add_argument("--pace", type=float, default=0.0, help="seconds to sleep between cases")
     parser.add_argument("--only", nargs="+", help="run only these case ids")
+    parser.add_argument("--samples", type=int, default=1, help="run each case this many times; a case landed if any sample landed")
     args = parser.parse_args()
     return asyncio.run(run_live(args)) if args.live else run_offline()
 

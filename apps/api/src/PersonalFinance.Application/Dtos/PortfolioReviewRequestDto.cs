@@ -6,7 +6,5 @@ public record PortfolioReviewRequestDto(
     string SnapshotLabel,
     decimal? TotalValue,
     string Currency,
-    List<InvestmentHoldingDto> Holdings,
-    string? Provider = null,
-    string? Model = null
+    List<InvestmentHoldingDto> Holdings
 );

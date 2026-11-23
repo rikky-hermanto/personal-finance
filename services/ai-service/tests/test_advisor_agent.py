@@ -344,3 +344,28 @@ async def test_tools_send_the_callers_own_token_through_the_graph(harness):
         await _ask(service, AdvisorRequest(query="q"), owner=other)
     get.assert_awaited_once_with(
         "/api/journey/state", headers={"Authorization": f"Bearer {fake_jwt(str(other))}"})
+
+
+def test_system_prompt_holds_no_hardcoded_financial_threshold():
+    from app.agents.financial_advisor import SYSTEM_PROMPT
+
+    for stale in ("3-month", "< 20%", "≥15%", "spending < income"):
+        assert stale not in SYSTEM_PROMPT
+
+
+def test_system_prompt_uses_the_rubric_wording_and_never_treats_unscored_as_passed():
+    from app.agents.financial_advisor import SYSTEM_PROMPT
+
+    assert "70 or more" in SYSTEM_PROMPT
+    assert "mastered at 100" in SYSTEM_PROMPT
+    assert "has not been evaluated" in SYSTEM_PROMPT
+
+
+def test_system_prompt_does_not_read_a_tier_average_as_cleared():
+    # /cio PF-157: level_scores is an average of indicators, so 70 or more is not proof of "cleared",
+    # and current_level is floored at 1 so it cannot prove L1 is cleared.
+    from app.agents.financial_advisor import SYSTEM_PROMPT
+
+    flat = " ".join(SYSTEM_PROMPT.split())   # the prompt wraps lines; compare as running text
+    assert "does not prove it is cleared" in flat
+    assert "current_level is never below 1" in flat

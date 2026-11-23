@@ -31,7 +31,9 @@ public sealed record FollowUpChatRequest(
 
 public sealed record AdvisorChatRequest(
     [property: Required, StringLength(1000, MinimumLength = 1), JsonPropertyName("query")] string Query,
-    [property: StringLength(100), JsonPropertyName("session_id")] string? SessionId = null,
+    // Validation attributes sit on the parameter (no property: target): MVC validates records through
+    // their constructor parameters and ignores property-targeted attributes (PF-157).
+    [StringLength(100), RegularExpression(@"^[A-Za-z0-9_-]+$")] [property: JsonPropertyName("session_id")] string? SessionId = null,
     [property: RegularExpression(@"^\d{4}-\d{2}-\d{2}$"), JsonPropertyName("date_from")] string? DateFrom = null,
     [property: RegularExpression(@"^\d{4}-\d{2}-\d{2}$"), JsonPropertyName("date_to")] string? DateTo = null);
 

@@ -50,8 +50,6 @@ export interface RunReviewBody {
   label: string;
   totalValue?: number;
   currency?: string;
-  provider?: string;
-  model?: string;
 }
 
 const json = (r: Response) => {

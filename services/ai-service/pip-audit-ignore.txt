@@ -1,0 +1,13 @@
+# One advisory id per line. Every id here must also have a row in docs/references/accepted-risks.md.
+# Source: pip-audit on requirements.txt, 2026-11-23 (PF-157). All are fixed only on langchain/langgraph 1.x.
+PYSEC-2026-83     # langgraph 0.6.x, fixed on 1.x only (PF-147)
+PYSEC-2026-2573   # langgraph-checkpoint
+PYSEC-2026-2574   # langgraph-checkpoint
+PYSEC-2026-2194   # langgraph-sdk
+PYSEC-2026-2575   # langgraph-sdk
+PYSEC-2026-4240   # langgraph-sdk
+PYSEC-2026-2193   # langchain-core
+PYSEC-2026-2562   # langchain-core
+PYSEC-2026-2556   # langchain-anthropic
+PYSEC-2026-2192   # langchain
+PYSEC-2026-77     # langchain-text-splitters

@@ -19,6 +19,7 @@ from app.agents.tools.category_rules import search_category_rules
 from app.agents.tools.similarity import find_similar_transactions
 from app.config import settings
 from app.observability import langfuse
+from app.services.answerer import SPOTLIGHT_CLAUSE, _spotlight
 from app.services.pii_masker import mask_pii
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,7 @@ Strategy — follow this order:
 
 CRITICAL: CATEGORY must exactly match one name from list_all_categories().
 Never invent a category name. If truly uncertain, use 'Other'."""
+_SYSTEM_PROMPT += "\n\n" + SPOTLIGHT_CLAUSE
 
 
 @dataclass
@@ -121,6 +123,18 @@ def _scan_prose_for_category(raw: str) -> str | None:
     return None
 
 
+def _canonical_category(category: str) -> str | None:
+    """The owner's spelling of `category`, or None when it is not in their vocabulary.
+
+    With no vocabulary bound there is nothing to check against, so the value passes through
+    unchanged (the endpoint always binds one; this only matters for scripts).
+    """
+    valid = get_categories()
+    if not valid:
+        return category
+    return {c.lower(): c for c in valid}.get(category.strip().lower())
+
+
 def _parse_result(raw: str, tool_calls_count: int = 0) -> CategorizationResult:
     """Parse the agent's final text into a structured result.
 
@@ -136,10 +150,19 @@ def _parse_result(raw: str, tool_calls_count: int = 0) -> CategorizationResult:
             key, _, value = line.partition(":")
             lines[key.strip("* ").upper()] = value.strip()
     category = lines.get("CATEGORY") or _scan_prose_for_category(raw) or "Other"
+    confidence = _safe_float(lines.get("CONFIDENCE", ""))
+    canonical = _canonical_category(category)
+    if canonical is None:
+        logger.warning("agent returned a category outside the owner's vocabulary: replaced with Other")
+        return CategorizationResult(
+            category="Other", confidence=min(confidence, 0.3),
+            reasoning="The suggested category is not in your category list.",
+            tool_calls_count=tool_calls_count,
+        )
     return CategorizationResult(
-        category=category,
-        confidence=_safe_float(lines.get("CONFIDENCE", "")),
-        reasoning=lines.get("REASONING", raw[:200]),
+        category=canonical,
+        confidence=confidence,
+        reasoning=lines.get("REASONING", raw[:200])[:300],
         tool_calls_count=tool_calls_count,
     )
 
@@ -181,7 +204,7 @@ class CategorizerAgent:
         masked = mask_pii(description)
         task = (
             f"Categorize this bank transaction:\n"
-            f"  Description: {masked}\n"
+            f"  Description: {_spotlight(masked)}\n"
             f"  Bank: {wallet}\n"
             f"  Amount (IDR): {amount_idr:,.0f}"
         )

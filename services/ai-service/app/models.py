@@ -102,8 +102,6 @@ class PortfolioReviewRequest(BaseModel):
     total_value: Decimal | None = None
     currency: str = "IDR"
     holdings: list[PortfolioHolding]
-    provider: str | None = None   # override AI_PROVIDER per-call
-    model: str | None = None
 
 
 # 7-section analysis response — each section is a flexible dict so the schema
@@ -117,6 +115,8 @@ class PortfolioReviewResponse(BaseModel):
     resilience_test: dict
     decision_tree: dict
     recommended_portfolio: dict
+    provider: str = ""    # which provider and model produced this review (set by the service, PF-157)
+    model: str = ""
 
 
 # ── RAG: Embeddings + Search ──────────────────────────────────────────────────
@@ -277,7 +277,7 @@ class CategorizeAgentResponse(BaseModel):
 class AdvisorRequest(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     query: str = Field(..., min_length=1, max_length=1000)
-    session_id: str | None = None          # if None, a new session is created
+    session_id: str | None = Field(default=None, max_length=100, pattern=r"^[A-Za-z0-9_-]+$")  # None = new session
     date_from: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     date_to:   str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
 

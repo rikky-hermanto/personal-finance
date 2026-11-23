@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { getSetup, runReview } from '@/api/investmentApi';
 import { ARCHETYPES } from '@/data/archetypes';
+import InvestmentReviewDisclaimer from '@/components/investment/InvestmentReviewDisclaimer';
 
 const InvestmentSetupDetail = () => {
   const { setupId } = useParams<{ setupId: string }>();
@@ -100,6 +101,7 @@ const InvestmentSetupDetail = () => {
             <Input id="tv" type="number" value={totalValue} onChange={e => setTotalValue(e.target.value)} placeholder="e.g. 100000000" />
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
+          <InvestmentReviewDisclaimer />
           <Button size="sm" disabled={reviewMutation.isPending} onClick={() => reviewMutation.mutate()}>
             {reviewMutation.isPending
               ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />

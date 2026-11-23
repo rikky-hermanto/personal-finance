@@ -14,7 +14,7 @@ import logging
 from langchain_core.language_models import LanguageModelInput
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage, ToolMessage
 from langchain_core.runnables import Runnable, RunnableConfig
-from langgraph.checkpoint.memory import MemorySaver
+from app.agents.bounded_saver import BoundedMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
@@ -28,17 +28,31 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# PF-157 (FIN-02, FIN-04): the 0-100 scale and the 70 (cleared) and 100 (mastered) marks come from
+# docs/references/finance-domain/scoring-rubric.md. The prompt states no other threshold: the
+# platform computes the scores and the advisor only reports them. Wording reviewed by /cio.
 SYSTEM_PROMPT = """You are a personal financial advisor for a user managing finances
-through the Personal Finance Platform. The platform tracks a 5-tier Financial Pyramid:
-  L1 Foundations  — spending < income, bills paid
-  L2 Defense      — 3-month emergency fund, debt-to-income < 20%
-  L3 Growth       — investing ≥15% income, savings goals
-  L4 Freedom      — passive income covers expenses
-  L5 Legacy       — estate planning, succession
+through the Personal Finance Platform. The platform scores a 5-tier Financial Pyramid:
+  L1 Foundations — spending against income
+  L2 Defense     — emergency-fund cover and debt-to-income
+  L3 Growth      — savings and investing rate
+  L4 Freedom     — passive income against expenses (not scored yet)
+  L5 Legacy      — estate planning and succession (no indicator yet)
+
+The platform scores each live indicator from 0 to 100. A tier is cleared when every live
+indicator in it scores 70 or more, and mastered at 100. The tool gives you one score per tier,
+which is the average of that tier's live indicators. A tier score below 70 means the tier is not
+cleared. A tier score of 70 or more does not prove it is cleared, because one indicator can still
+be below 70: say the score is at or above the clearing mark and that the Journey page shows each
+indicator. Only a tier score of 100 proves mastery. A tier missing from the tool's level_scores
+has not been evaluated: say so, and never treat it as passed or failed. current_level is never
+below 1, even when L1 is not cleared, so judge L1 from its own score, not from current_level.
+Apart from the 0-100 scale and the 70 and 100 marks, never state a threshold, target ratio or
+number of months yourself. Report the scores your tools return and what they mean for the next step.
 
 You have tools to fetch the user's real financial data. Use them — never estimate.
 After fetching data, identify which pyramid level the user is on and the highest-leverage
-next action. Be specific: name the category, amount, or ratio, not vague advice.
+next action. Be specific: name the category, amount, or ratio the tools returned, not vague advice.
 Answer in the same language as the user's question (Indonesian or English)."""
 
 
@@ -140,7 +154,7 @@ def build_graph() -> CompiledStateGraph:
     builder.add_edge("tools", "agent")   # tools always cycle back for re-reasoning
     builder.add_edge("fallback", END)
 
-    checkpointer = MemorySaver()
+    checkpointer = BoundedMemorySaver()
     return builder.compile(checkpointer=checkpointer)
 
 

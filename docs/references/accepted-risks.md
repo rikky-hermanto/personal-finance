@@ -21,7 +21,9 @@ Known dependency advisories that are deliberately left open, with the reason eac
 
 ### Python: `services/ai-service`
 
-Every advisory below is fixed only on the 1.x line of the package. Moving to 1.x needs `langchain-google-genai` 4.x, which no longer ships `google.api_core`, and `app/agents/chat_model_factory.py` patches that client directly (`ResourceExhausted`, `client.generate_content`). That is an agent rewrite, so it is a separate ticket, not part of PF-147. Tried on 2026-10-22: the dependency install resolved, but the advisor tests failed at import. Exposure in this deployment: the AI service runs locally for the single owner, the agents only receive the owner's own data and a signed owner token, and the advisories concern checkpoint/SDK/serialization paths that the app does not expose to third parties. Revisit when the AI service is deployed.
+Every advisory below is fixed only on the 1.x line of the package. Moving to 1.x needs `langchain-google-genai` 4.x, which no longer ships `google.api_core`, and `app/agents/chat_model_factory.py` patches that client directly (`ResourceExhausted`, `client.generate_content`). That is an agent rewrite, so it is a separate ticket, not part of PF-147. Tried on 2026-10-22: the dependency install resolved, but the advisor tests failed at import. Exposure, updated 2026-11-23 (PF-157): the earlier reasoning, "runs locally for the single owner", ended when PF-156 deployed the AI service. What still limits the exposure is that **production keeps `AI_AGENTS_ENABLED=false` and `AiChat__AgentsEnabled=false`** (both default to off, and `docs/ideas/deployment-bundle-a-runbook.md` sets both to "false"; turning them on is described in `docs/operations/runbooks/pf-s08-cashflow-pilot.md`), so the advisor and its `langgraph` code are not reachable from the internet. **Enabling agents in production requires the `langchain`/`langgraph` 1.x migration first.** The agents only receive the owner's own data and a signed owner token, and the advisories concern checkpoint, SDK and serialization paths that the app does not expose to third parties.
+
+PF-157 locked the runtime dependencies in `services/ai-service/requirements.txt` (hashed; the Docker image and CI install from it). `pip-audit` on that lock reports only the advisories in the table below. Their ids are listed in `services/ai-service/pip-audit-ignore.txt`, which the weekly `security-audit` workflow reads, so a new advisory fails the audit while these stay quiet. Every id in that file must have a row here. Everything else the 2026-11-23 evaluation flagged (`python-multipart`, `urllib3`, `aiohttp`, `cryptography`, `litellm`, `pyasn1`, `pydantic-settings`) is fixed by the lock resolving to current versions.
 
 | Package (installed) | Advisory (fixed in) | Date |
 |---------------------|---------------------|------|
@@ -33,5 +35,9 @@ Every advisory below is fixed only on the 1.x line of the package. Moving to 1.x
 | `langchain` 0.3.30 | PYSEC-2026-2192 (1.3.9). Declared explicitly in PF-147 because `langfuse.langchain` needs it; it used to arrive only through the eval stack. | 2026-10-22 |
 | `langchain-text-splitters` 0.3.11 | PYSEC-2026-77 (1.1.2) | 2026-10-22 |
 | `setuptools` 65.5.0 | PYSEC-2022-43012, PYSEC-2025-49, PYSEC-2026-1918, PYSEC-2026-3447. Only the bootstrap copy that `python -m venv` installs; it is not an app dependency and the runtime image does not run it. | 2026-10-22 |
+
+### npm: `zod` (PF-157)
+
+`zod` was a high advisory in `npm audit --omit=dev` (memory exhaustion on oversized collections, client-side). It is **fixed, not accepted**: `zod` 4.6.7 and `@hookform/resolvers` 5.9.2, migrated on 2026-11-23. Only `GoalFormDialog.tsx` and `LoginPage.tsx` use it and neither needed code changes. `react-router` stays accepted as recorded above.
 
 The eval-only stack (`ragas`, `langchain-openai`, `langchain-community`, plus `datasets`, `fsspec`, `diskcache`) is now the `eval` extra in `pyproject.toml`. It is not in the production image or the `dev` install, so its own advisories (for example `ragas` PYSEC-2026-3046/3047) do not ship. Install it only to run `evals/`.

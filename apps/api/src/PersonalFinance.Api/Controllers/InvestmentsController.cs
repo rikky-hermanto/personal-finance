@@ -82,8 +82,7 @@ public class InvestmentsController(IMediator mediator, Supabase.Client supabase)
     public async Task<IActionResult> RunReview(Guid id, [FromBody] RunReviewRequest body)
     {
         var snapshot = await mediator.Send(new RunPortfolioReviewCommand(
-            id, body.Label, body.TotalValue, body.Currency ?? "IDR",
-            body.Provider, body.Model));
+            id, body.Label, body.TotalValue, body.Currency ?? "IDR"));
         return Ok(ToSnapshotDto(snapshot));
     }
 
@@ -122,7 +121,5 @@ public record UpsertHoldingsRequest(List<InvestmentHoldingDto> Holdings);
 public record RunReviewRequest(
     string Label,
     decimal? TotalValue = null,
-    string? Currency = "IDR",
-    string? Provider = null,
-    string? Model = null
+    string? Currency = "IDR"
 );

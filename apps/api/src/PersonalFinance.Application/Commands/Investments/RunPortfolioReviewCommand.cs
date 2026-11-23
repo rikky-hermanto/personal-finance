@@ -7,7 +7,5 @@ public record RunPortfolioReviewCommand(
     Guid SetupId,
     string Label,
     decimal? TotalValue = null,
-    string Currency = "IDR",
-    string? Provider = null,
-    string? Model = null
+    string Currency = "IDR"
 ) : IRequest<InvestmentSnapshot>;

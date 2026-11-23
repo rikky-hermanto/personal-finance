@@ -10,8 +10,8 @@
     "id": "S2",
     "query": "Dana darurat saya sudah cukup belum?",
     "session_id": null,
-    "expected_behavior": "Agent fetches pyramid_scores (L2 indicator) + cashflow_summary (monthly expenses). Computes 3-month target vs actual savings. States whether the gap is positive or negative with IDR amounts.",
-    "pass_criteria": "Answer includes a 3-month target calculation (3 × monthly expense) and compares it to actual emergency fund balance."
+    "expected_behavior": "Agent fetches pyramid_scores (L2 indicator) + cashflow_summary (monthly expenses). Reports the L2 score from get_pyramid_scores and relates it to the cleared mark (70) and the mastered mark (100) without computing a months target of its own. If L2 is at or above 70, says the Journey page shows each indicator. If L2 is missing, says it has not been evaluated.",
+    "pass_criteria": "Answer reports the L2 score returned by the tool and relates it to 70 (cleared) and 100 (mastered). It states no months target or ratio of its own and does not call a tier cleared on an average of 70 or more alone."
   },
   {
     "id": "S3",

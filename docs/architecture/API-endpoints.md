@@ -168,7 +168,7 @@ Returns message + confirmed inserted transactions (or an empty list when all dup
 | POST | `/parse-image` | Multipart PNG/JPEG/WebP + optional bank_hint, 10 MiB limit |
 | POST | `/categorize` | Closed-vocabulary request, independent llm/jev backend; response category/confidence/rule_seed_allowed |
 | POST | `/suggest-categories` | Merchant batch → suggestion list |
-| POST | `/portfolio-review` | Seven-section analysis; optional provider/model override |
+| POST | `/portfolio-review` | Seven-section analysis. Returns `provider` and `model` from the service's own settings; the request no longer takes them (PF-157) |
 | POST | `/embed-transactions` | Item batch → embedded/skipped/model; asyncpg upsert |
 | POST | `/search` | Vector/full-text/hybrid retrieval, metadata filters, optional rerank |
 | POST | `/ask` | Routed aggregate/lookup answer + citations/timing/verification |
@@ -198,7 +198,19 @@ For aggregate answers the numeric value comes from SQL, but verified does not va
 
 `/ask/followups` accepts question, answer, optional intent/total_idr and up to five context rows. Returns `{questions}`. Frontend aborts/times out optional suggestions and falls back to static chips.
 
-`/advisor` accepts query, optional session_id/date_from/date_to and returns answer/session_id/steps_taken. Sessions are process-local MemorySaver threads. Dates are prompt context rather than tool arguments. The transaction chat UI calls ask/stream, not advisor.
+`/advisor` accepts query, optional session_id/date_from/date_to and returns answer/session_id/steps_taken. Sessions are process-local threads in a bounded saver (at most 200, oldest dropped). `session_id` must match `^[A-Za-z0-9_-]+$` and be at most 100 characters (422 from the AI service, 400 from the .NET API). A query the injection scanner flags returns 400 `input_flagged`. Dates are prompt context rather than tool arguments. The transaction chat UI calls ask/stream, not advisor.
+
+### Rate limits (PF-157)
+
+`/api/chat/*` and `POST /api/investments/setups/{id}/review` are limited per signed-in user, in memory (each API instance counts alone). Over the limit the API answers **429** with a `Retry-After` header in seconds and the body `{"code":"rate_limited"}`. Other users and every other route are unaffected. Anonymous callers share one bucket per remote address.
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `AiRateLimit:PerMinute` | 20 | Requests per user per minute (a chat turn is about two requests) |
+| `AiRateLimit:PerDay` | 500 | Requests per user per day |
+| `AiRateLimit:MaxConcurrent` | 3 | Open requests per user at once, so streams count while they run |
+
+A user's limits are read when their bucket is first created, so a changed value applies to buckets created after the change.
 
 ## Errors and development examples
 

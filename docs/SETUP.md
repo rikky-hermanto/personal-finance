@@ -23,6 +23,8 @@ rtk proxy services/ai-service/.venv/Scripts/python.exe -m pip install -e './serv
 
 Use an existing virtual environment when available. The AI package deliberately bounds parts of the LangGraph/LangChain/evaluation dependency stack; do not remove those bounds to resolve installation failures without checking compatibility.
 
+`services/ai-service/requirements.txt` is the hashed production lock (runtime dependencies only). The Docker image and CI install from it. Regenerate it from `services/ai-service` with `uv pip compile pyproject.toml --python-version 3.12 --python-platform linux --generate-hashes -o requirements.txt`. Local development still uses `pip install -e ".[dev]"` as above. See PF-157.
+
 Copy example files only when the destination does not already exist; preserve your local settings:
 
 ```powershell

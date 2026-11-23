@@ -184,3 +184,29 @@ def test_portfolio_review_request_model_valid():
 def test_portfolio_holding_asset_class_validation():
     h = PortfolioHolding(name="BBCA", asset_class="equity")
     assert h.asset_class == "equity"
+
+
+@pytest.mark.asyncio
+async def test_portfolio_reviewer_reports_the_services_own_provider_and_model(mock_provider, sample_request):
+    # PF-157: provenance is the service's configuration, not anything the caller sent.
+    from app.config import settings
+
+    response = await PortfolioReviewer(provider=mock_provider).review(sample_request)
+
+    assert response.provider == settings.ai_provider
+    assert response.model == settings.ai_model
+
+
+def test_portfolio_review_request_no_longer_carries_provider_or_model():
+    assert "provider" not in PortfolioReviewRequest.model_fields
+    assert "model" not in PortfolioReviewRequest.model_fields
+
+
+def test_review_prompt_is_an_educational_analyst_not_an_authority():
+    # PF-157 /compliance: no institutional-authority persona, no imperative advice, no guarantees.
+    from app.services.portfolio_reviewer import REVIEW_SYSTEM_PROMPT
+
+    assert "senior portfolio strategist" not in REVIEW_SYSTEM_PROMPT
+    assert "top-tier" not in REVIEW_SYSTEM_PROMPT
+    assert "actionable" not in REVIEW_SYSTEM_PROMPT
+    assert "never promise or guarantee a return" in REVIEW_SYSTEM_PROMPT

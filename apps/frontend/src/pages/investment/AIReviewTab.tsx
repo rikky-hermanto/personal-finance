@@ -6,6 +6,7 @@ import { ARCHETYPES } from '@/data/archetypes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight } from 'lucide-react';
+import InvestmentReviewDisclaimer from '@/components/investment/InvestmentReviewDisclaimer';
 
 const AIReviewTab = () => {
   const navigate = useNavigate();
@@ -35,9 +36,12 @@ const AIReviewTab = () => {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="max-w-4xl mx-auto">
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-sm text-muted-foreground mb-2">
           Select a portfolio to run or view an AI review.
         </p>
+        <div className="mb-4">
+          <InvestmentReviewDisclaimer />
+        </div>
         <div className="grid gap-3">
           {setups.map((setup: InvestmentSetupDto) => {
             const arch = ARCHETYPES.find(a => a.id === setup.archetypeId);

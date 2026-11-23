@@ -1,5 +1,6 @@
 import { createContext, createElement, useContext, useRef, useState, type ReactNode } from 'react';
-import { streamAsk, fetchFollowUps, ChatRefusalError, type ContextItem } from '@/api/chatApi';
+import { streamAsk, fetchFollowUps, ChatRefusalError, ChatRateLimitedError, type ContextItem } from '@/api/chatApi';
+import { rateLimitMessage } from '@/lib/chat/rateLimitMessage';
 
 const REFUSAL_MESSAGE = 'Pertanyaan ini tidak bisa diproses. Coba tanyakan dengan kata lain.';
 
@@ -126,6 +127,10 @@ export const ChatSessionProvider = ({ children }: { children: ReactNode }) => {
         },
         onError: (err) => {
           setStreaming(false);
+          if (err instanceof ChatRateLimitedError) {
+            patchLast(() => ({ error: true, followUps: [], content: rateLimitMessage(err.retryAfterSeconds), contexts: undefined }));
+            return;
+          }
           if (err instanceof ChatRefusalError) {
             // Replace, never append: an output_flagged stream already put tokens on screen,
             // and those are exactly the text the guard decided must not be shown.

@@ -117,7 +117,7 @@ The .NET API maps these HTTP status codes to user-visible errors:
 | Scenario                        | Status | Response body key         |
 |---------------------------------|--------|---------------------------|
 | Invalid request (missing fields) | 422   | Pydantic validation detail |
-| Chat question flagged by the injection scanner (`/ask`, `/ask/stream`) | 400 | `"input_flagged"` — the .NET proxy maps it to 400 `{"code": "input_flagged"}`, never 502 |
+| Chat question flagged by the injection scanner (`/ask`, `/ask/stream`, `/advisor`) | 400 | `"input_flagged"` — the .NET proxy maps it to 400 `{"code": "input_flagged"}`, never 502 |
 | LLM returned malformed output   | 502    | `"llm_parse_error"`       |
 | Anthropic API unreachable       | 502    | `"provider_unavailable"`  |
 | max_tokens truncation           | 502    | `"response_truncated"`    |

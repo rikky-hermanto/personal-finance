@@ -250,6 +250,7 @@ namespace PersonalFinance.Api
                 var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
                 if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
             });
+            builder.Services.AddAiRateLimiting(builder.Configuration);
             builder.Services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssemblyContaining<Program>();
@@ -299,6 +300,7 @@ namespace PersonalFinance.Api
             app.UseApiExceptionHandler();  
 
             app.UseAuthentication();
+            app.UseRateLimiter();  // PF-157: after authentication so the limiter sees the verified user
             app.Use(async (context, next) =>
             {
                 // Fail closed: only owner-scoped modules are served.

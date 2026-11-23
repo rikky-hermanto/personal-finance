@@ -44,6 +44,14 @@ export class ChatRefusalError extends Error {
   }
 }
 
+/** The API refused the call because this account asked too often (429). */
+export class ChatRateLimitedError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super("rate_limited");
+    this.name = "ChatRateLimitedError";
+  }
+}
+
 function errorDetail(data: string): string | undefined {
   try {
     const parsed: unknown = JSON.parse(data);
@@ -95,6 +103,10 @@ async function openAskStream(
     openWhenHidden: true,   // don't pause when tab is hidden
     async onopen(response) {
       if (response.ok && response.headers.get("content-type")?.startsWith("text/event-stream")) return;
+      if (response.status === 429) {
+        const wait = Number(response.headers.get("Retry-After"));
+        throw new ChatRateLimitedError(Number.isFinite(wait) && wait > 0 ? wait : 5);
+      }
       // The API answers a flagged question with 400 {"code":"input_flagged"} (the .NET proxy
       // writes the key in lower case; read both spellings so a casing change cannot break this).
       if (response.status === 400) {

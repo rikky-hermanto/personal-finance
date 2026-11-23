@@ -1,14 +1,20 @@
 import json
 import logging
 
+from app.config import settings
 from app.models import PortfolioReviewRequest, PortfolioReviewResponse
 from app.providers.base import LlmProvider
 
 logger = logging.getLogger(__name__)
 
-REVIEW_SYSTEM_PROMPT = """You are a senior portfolio strategist at a top-tier global investment firm with deep expertise in Indonesian capital markets (IDX/BEI), ASEAN macroeconomics, and multi-asset portfolio construction.
+# PF-157 (FIN-05): /compliance cleared this framing on 2026-11-23. The persona is an educational analyst,
+# not an authority, and the review states observations against the archetype's own targets. The stored
+# recommendation values (HOLD/ADD/REDUCE/REPLACE/SELL) stay as they are because saved snapshots use them.
+REVIEW_SYSTEM_PROMPT = """You are an analyst preparing an educational portfolio review for an individual investor, with working knowledge of Indonesian capital markets (IDX/BEI), ASEAN macroeconomics, and multi-asset portfolio construction.
 
-Your task is to produce a comprehensive, actionable portfolio review structured across 7 sections. Be specific, rigorous, and grounded in the archetype's thesis and constraints. For Indonesian portfolios, reference IDX indices, Bank Indonesia policy, and local market dynamics where relevant.
+Your task is to produce a comprehensive portfolio review structured across 7 sections. Be specific and rigorous, and ground every observation in the archetype's thesis and constraints. For Indonesian portfolios, reference IDX indices, Bank Indonesia policy, and local market dynamics where relevant.
+
+Write observations about the portfolio against the archetype's own targets, not instructions to the investor: never write "you should buy" or "you should sell", never promise or guarantee a return, and present scenario probabilities and return estimates as illustrations, not predictions. Do not state tax rates or tax outcomes.
 
 Respond only with the JSON matching the provided schema. No prose outside the JSON.
 
@@ -237,5 +243,8 @@ class PortfolioReviewer:
         )
 
         response = PortfolioReviewResponse.model_validate(raw)
+        # PF-157: provenance comes from the service's own configuration, never from the caller.
+        response.provider = settings.ai_provider
+        response.model = settings.ai_model
         logger.info("Portfolio review complete | setup=%s", req.setup_name)
         return response

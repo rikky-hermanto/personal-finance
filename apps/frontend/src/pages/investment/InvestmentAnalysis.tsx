@@ -10,6 +10,7 @@ import ScenariosSection from '@/components/investment/analysis/ScenariosSection'
 import ResilienceSection from '@/components/investment/analysis/ResilienceSection';
 import DecisionTreeSection from '@/components/investment/analysis/DecisionTreeSection';
 import RecommendedPortfolioSection from '@/components/investment/analysis/RecommendedPortfolioSection';
+import InvestmentReviewDisclaimer from '@/components/investment/InvestmentReviewDisclaimer';
 
 const InvestmentAnalysis = () => {
   const { setupId, snapshotId } = useParams<{ setupId: string; snapshotId: string }>();
@@ -40,6 +41,10 @@ const InvestmentAnalysis = () => {
               </p>
             )}
           </div>
+        </div>
+
+        <div className="mb-6">
+          <InvestmentReviewDisclaimer />
         </div>
 
         {isLoading && (

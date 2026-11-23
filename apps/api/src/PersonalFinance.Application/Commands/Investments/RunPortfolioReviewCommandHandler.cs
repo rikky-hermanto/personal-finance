@@ -50,9 +50,7 @@ public class RunPortfolioReviewCommandHandler(
             SnapshotLabel: request.Label,
             TotalValue: request.TotalValue,
             Currency: request.Currency,
-            Holdings: holdingDtos,
-            Provider: request.Provider,
-            Model: request.Model
+            Holdings: holdingDtos
         );
 
         var reviewResponse = await reviewClient.ReviewAsync(reviewReq, cancellationToken);
@@ -68,8 +66,8 @@ public class RunPortfolioReviewCommandHandler(
             SnapshotDate = DateOnly.FromDateTime(DateTime.UtcNow),
             TotalValue = request.TotalValue,
             Currency = request.Currency,
-            AiProvider = request.Provider ?? "gemini",
-            AiModel = request.Model ?? "gemini-2.5-flash",
+            AiProvider = reviewResponse.Provider ?? "unknown",
+            AiModel = reviewResponse.Model ?? "unknown",
             AnalysisJson = analysisJson,
             CreatedAt = DateTime.UtcNow,
         };

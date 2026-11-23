@@ -43,6 +43,11 @@
 | 2 | **Spotlighting:** every retrieved description is wrapped in `<data>…</data>`, forged markers are stripped case-insensitively, and both system prompts say quoted data is never an instruction. Applied inside `_format_context` (used by `/ask`, `/ask/stream` and the aggregate narration) and in the follow-up prompt. Retrieved text that matches a scanner pattern is **tagged** `security.context_flagged` in Langfuse, never blocked, so a transfer memo cannot switch the chat off. | `answerer.py`, `followup_suggester.py`, `guardrails.py` |
 | 3 | `PiiMasker` replaces NIK, phone (including `+62`), cue-worded account numbers and emails with typed placeholders before the text reaches the model, the Langfuse input and the logs. Merchant names and bare reference numbers pass through. Citations shown to the user keep the original text. | `pii_masker.py`, `answerer.py`, `followup_suggester.py`, `categorizer_agent.py` |
 | 4 | `OutputGuard` replaces an answer that leaks the scaffold with a refusal on `/ask`. On `/ask/stream`, where tokens are already sent, it ends the stream with `event: error` `{"detail":"output_flagged"}` and the chat replaces the streamed text. | `guardrails.py`, `answerer.py`, `main.py`, `useChatSession.ts` |
+| 1 | **`/advisor` gets the same input guard** as the chat (400 `input_flagged`) and a `session_id` pattern (`^[A-Za-z0-9_-]+$`, at most 100 characters, checked in both the .NET DTO and the AI service). PF-157. | `main.py`, `models.py`, `AiChatDtos.cs` |
+| 2–3 | **Categorizer agent:** past descriptions returned by `find_similar_transactions` are masked and spotlighted, the task description is spotlighted, the system prompt carries the spotlight clause, and a category outside the owner's vocabulary becomes `Other` with confidence at most 0.3. PF-157. | `similarity.py`, `categorizer_agent.py` |
+| — | **Cost and abuse:** a per-user rate limit on `/api/chat/*` and the portfolio review (20 a minute, 500 a day, 3 at once; `AiRateLimit:*`), 429 with `Retry-After` and `{"code":"rate_limited"}`. In-memory, so one API instance counts alone (deployment uses `--max-instances=1`). PF-157. | `AiRateLimiting.cs`, `Program.cs`, `rateLimitMessage.ts` |
+| — | **Bounded advisor memory:** at most 200 sessions are kept; the least recently written is dropped. PF-157. | `bounded_saver.py`, `financial_advisor.py` |
+| — | **The offline injection eval is a CI gate:** `pytest` fails when the tuned fixtures' block rate falls under 80% or a benign query is flagged. The live run accepts `--samples`. PF-157. | `tests/test_injection_eval_gate.py`, `eval_injection.py` |
 | 1–2 | Flagged requests carry a `security.flagged` tag in Langfuse (v3 client). Rule names only; the query text is never logged. This is the audit trail for "how often are we attacked". | `guardrails.record_flag` |
 
 ## Before and after
@@ -99,7 +104,10 @@ Read this carefully before quoting it:
   - Langfuse cloud traces of those calls.
   Revisit each if the provider's retention terms change or the data classification tightens.
 - **`/advisor` is not spotlighted.** Its tools return aggregates, not description text (checked 2026-10-17).
-  Re-check if a tool starts returning descriptions.
+  Re-check if a tool starts returning descriptions. Since PF-157 its query goes through the input scanner.
+- **The CI gate pins the tuned fixtures only.** The hold-out set (0/4) is reported but not gated, so the gate
+  stops a regression and says nothing about unseen phrasings. A single removed pattern may not trip it: the
+  tuned rate is 88% against an 80% target.
 - **Masking is regex, with recall below 100%.** An account number without a cue word (`rek`, `norek`, …)
   is treated as a reference number and passes through, on purpose.
 - **Output guard is a scaffold-leak check only.** It does not detect a fabricated answer; citation
