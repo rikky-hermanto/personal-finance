@@ -1506,9 +1506,9 @@ langgraph==0.6.11 \
     --hash=sha256:49268de69d85b7db3da9e2ca582a474516421c1c44be5cff390416cfa6967faa \
     --hash=sha256:cd5373d0a59701ab39c9f8af33a33c5704553de815318387fa7f240511e0efd7
     # via ai-service (pyproject.toml)
-langgraph-checkpoint==3.0.1 \
-    --hash=sha256:59222f875f85186a22c494aedc65c4e985a3df27e696e5016ba0b98a5ed2cee0 \
-    --hash=sha256:9b04a8d0edc0474ce4eaf30c5d731cee38f11ddff50a6177eead95b5c4e4220b
+langgraph-checkpoint==4.1.1 \
+    --hash=sha256:25d29144b082827218e7bc3f1e9b0566a4bb007895cd6cc26f66a8428739f56e \
+    --hash=sha256:6c2bdb530c91f91d7d9c1bd100925d0fc4f498d418c17f3587d1526279482a25
     # via
     #   langgraph
     #   langgraph-prebuilt
