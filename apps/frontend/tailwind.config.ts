@@ -101,6 +101,11 @@ export default {
 					from: { backgroundPosition: '0 0' },
 					to: { backgroundPosition: '-1536px 0' }
 				},
+				// Two-frame pixel scenes on the Journey pyramid. --scene-w is the rendered width of one frame.
+				'pyramid-step': {
+					from: { backgroundPosition: '0 0' },
+					to: { backgroundPosition: 'calc(var(--scene-w) * -2) 0' }
+				},
 				'goal-drawer-in': {
 					from: { opacity: '0', transform: 'translateY(10px)' },
 					to: { opacity: '1', transform: 'translateY(0)' }
@@ -110,6 +115,7 @@ export default {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'garden-sway': 'garden-sway 1.8s steps(8) infinite',
+				'pyramid-step': 'pyramid-step 1.1s steps(2) infinite',
 				'goal-drawer-in': 'goal-drawer-in 300ms cubic-bezier(.16,1,.3,1)'
 			}
 		}
