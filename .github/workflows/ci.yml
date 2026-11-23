@@ -55,6 +55,7 @@ jobs:
       - run: npm run test:accounts
       - run: npm run test:networth
       - run: npm run test:goals
+      - run: npm run test:import
       - run: npm run build
 
   ai-service:

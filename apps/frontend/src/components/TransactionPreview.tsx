@@ -1,8 +1,9 @@
 import { useState, useMemo, useLayoutEffect, useRef } from 'react';
 import { Transaction } from '@/types/Transaction';
-import { Edit2, Check, Send, Hash, TrendingUp, TrendingDown, Wallet, ChevronsUpDown, Loader2, Sparkles } from 'lucide-react';
+import { Edit2, Check, Send, Hash, TrendingUp, TrendingDown, Wallet, ChevronsUpDown, Loader2, Sparkles, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/format';
+import { findRowProblems, splitZeroAmountRows, summarizeImport } from '@/lib/importPreview/importPreview';
 import * as transactionsApi from '@/api/transactionsApi';
 import DataTable, { DataTableColumn } from '@/components/DataTable';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -150,11 +151,14 @@ const parseAmountInput = (s: string): number =>
   parseFloat(s.replace(/\./g, '').replace(',', '.')) || 0;
 
 const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileName }: TransactionPreviewProps) => {
-  const [editedTransactions, setEditedTransactions] = useState<Transaction[]>(transactions);
+  const [{ kept: initialRows, skipped: zeroAmountRows }] = useState(() => splitZeroAmountRows(transactions));
+  const [editedTransactions, setEditedTransactions] = useState<Transaction[]>(initialRows);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editSnapshot, setEditSnapshot] = useState<Transaction | null>(null);
   const [editedIds, setEditedIds] = useState<Set<string>>(new Set());
-  const [invalidIds, setInvalidIds] = useState<Set<string>>(new Set());
+  // When set, the table shows only these rows. Captured once so a row stays visible after its last
+  // missing field is filled in, instead of vanishing under the user's cursor mid-edit.
+  const [fixFilterIds, setFixFilterIds] = useState<Set<string> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
   const [applyToSimilarMap, setApplyToSimilarMap] = useState<Record<string, boolean>>({});
@@ -268,22 +272,24 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const newTransactions = useMemo(() => editedTransactions.filter(t => !t.isDuplicate), [editedTransactions]);
   const duplicateTransactions = useMemo(() => editedTransactions.filter(t => t.isDuplicate), [editedTransactions]);
 
-  const summary = useMemo(() => {
-    const income = newTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const expenses = newTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    // Net Balance = sum of real income + sum of real expenses.
-    return { 
-      income, 
-      expenses, 
-      balance: income + expenses, 
-      totalTransactions: newTransactions.length 
-    };
-  }, [newTransactions]);
+  const summary = useMemo(() => summarizeImport(newTransactions), [newTransactions]);
+
+  // Live: recomputed on every edit, so the list below shrinks as the user fixes rows.
+  const problems = useMemo(() => findRowProblems(newTransactions), [newTransactions]);
+  const problemById = useMemo(() => new Map(problems.map(p => [p.tx.id, p])), [problems]);
+  const rowNumberById = useMemo(() => new Map(newTransactions.map((t, i) => [t.id, i + 1])), [newTransactions]);
+
+  const tableRows = useMemo(
+    () => (fixFilterIds ? newTransactions.filter(t => fixFilterIds.has(t.id)) : newTransactions),
+    [newTransactions, fixFilterIds]
+  );
+
+  const showOnlyProblemRows = () => setFixFilterIds(new Set(problems.map(p => p.tx.id)));
+
+  const fixRow = (tx: Transaction) => {
+    setFixFilterIds(prev => prev ?? new Set(problems.map(p => p.tx.id)));
+    startEdit(tx);
+  };
 
   const uncategorizedCount = useMemo(
     () => newTransactions.filter(t => t.category === 'Uncategorized').length,
@@ -296,13 +302,11 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
       return;
     }
 
-    const invalid = newTransactions.filter(t => !t.date || !t.category || !t.description.trim());
-    if (invalid.length > 0) {
-      setInvalidIds(new Set(invalid.map(t => t.id)));
-      setApiError(`${invalid.length} row(s) have missing required fields — fix them before submitting.`);
+    if (problems.length > 0) {
+      showOnlyProblemRows();
+      setApiError(null);
       return;
     }
-    setInvalidIds(new Set());
 
     setIsSubmitting(true);
     setApiError(null);
@@ -365,6 +369,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const selectCls = 'bg-muted border border-border rounded text-foreground text-xs px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring w-full';
 
   const columns: DataTableColumn<Transaction>[] = [
+    { key: 'row', label: '#', className: 'w-14' },
     { key: 'date', label: 'Date', className: 'w-32' },
     { key: 'description', label: 'Description' },
     { key: 'category', label: 'Category', className: 'w-48', getValue: (tx) => tx.category },
@@ -408,7 +413,8 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
   const renderRow = (tx: Transaction) => {
     const isEditing = editingId === tx.id;
     const isEdited = editedIds.has(tx.id);
-    const isInvalid = invalidIds.has(tx.id);
+    const problem = problemById.get(tx.id);
+    const isInvalid = !!problem;
     const categoryOptions = [...new Set([...CORE_CATEGORIES, ...customCategories, tx.category])].sort();
 
     return (
@@ -420,6 +426,9 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         aiSuggestedIds.has(tx.id) && !isEditing && !isEdited && !isInvalid && "border-l-violet-400/50",
         !isEditing && !isEdited && !isInvalid && !aiSuggestedIds.has(tx.id) && "border-l-transparent",
       )}>
+        <td className="px-4 py-2 whitespace-nowrap font-mono text-[10px] text-muted-foreground/60 tabular-nums">
+          {rowNumberById.get(tx.id)}
+        </td>
         <td className="px-4 py-2 whitespace-nowrap">
           {isEditing
             ? <input type="date" value={toISODate(tx.date)} onChange={(e) => handleFieldChange(tx.id, 'date', e.target.value)} className={cn(selectCls, "w-32")} autoFocus />
@@ -428,7 +437,9 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         <td className="px-4 py-2">
           {isEditing
             ? <input type="text" value={tx.description} onChange={(e) => handleFieldChange(tx.id, 'description', e.target.value)} className={selectCls} />
-            : <span className="text-xs text-foreground/70 max-w-xs truncate block">{tx.description}</span>}
+            : tx.description?.trim()
+              ? <span className="text-xs text-foreground/70 max-w-xs truncate block">{tx.description}</span>
+              : <span className="text-xs italic text-destructive">Description missing</span>}
         </td>
         <td className="px-4 py-2 whitespace-nowrap">
           {isEditing ? (
@@ -485,7 +496,12 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
             </div>
           ) : (
             <span
-              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground"
+              className={cn(
+                "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium",
+                problem?.missing.includes('category')
+                  ? "bg-destructive/10 text-destructive"
+                  : "bg-secondary text-secondary-foreground"
+              )}
               title={aiSuggestedIds.has(tx.id) ? 'Suggested by AI — tap edit to change' : undefined}
             >
               {aiSuggestedIds.has(tx.id) && (
@@ -493,7 +509,7 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
               )}
               {isAiLoading && tx.category === 'Uncategorized'
                 ? <span className="animate-pulse">Uncategorized</span>
-                : tx.category}
+                : tx.category || 'Category missing'}
             </span>
           )}
         </td>
@@ -528,6 +544,14 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         <p className="text-xs text-muted-foreground">
           <strong className="text-foreground">{newTransactions.length}</strong> new transactions ready to import.
           {duplicateTransactions.length > 0 && <span className="ml-1 text-muted-foreground/60">{duplicateTransactions.length} duplicates skipped.</span>}
+          {zeroAmountRows.length > 0 && (
+            <span
+              className="ml-1 text-muted-foreground/60"
+              title={zeroAmountRows.map(t => `${formatDate(t.date)} · ${t.description}`).join('\n')}
+            >
+              {zeroAmountRows.length} zero-amount {zeroAmountRows.length === 1 ? 'row' : 'rows'} skipped (nothing to record).
+            </span>
+          )}
         </p>
       </div>
 
@@ -564,9 +588,16 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
         <div className="flex items-center justify-between bg-card/40 border border-border/50 rounded-lg px-3 py-2.5">
           <div className="flex-1 min-w-0 pr-2">
             <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-widest mb-0.5">Net Balance</p>
-            <AutoScalingText className={cn(summary.balance >= 0 ? 'text-income' : 'text-expense')}>
-              {summary.balance >= 0 ? '+' : ''}{formatCurrency(summary.balance)}
+            <AutoScalingText className={cn(summary.netBalance >= 0 ? 'text-income' : 'text-expense')}>
+              {summary.netBalance >= 0 ? '+' : ''}{formatCurrency(summary.netBalance)}
             </AutoScalingText>
+            <p
+              className="mt-0.5 text-[9px] text-muted-foreground/70 truncate"
+              title="Opening balance + income + expenses + transfers. Compare this with the last running balance in your file."
+            >
+              incl. transfers {formatCurrency(summary.transfers)}
+              {summary.openingBalance !== 0 && ` · opening ${formatCurrency(summary.openingBalance)}`}
+            </p>
           </div>
           <Wallet className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" strokeWidth={2} />
         </div>
@@ -616,10 +647,58 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
               >×</button>
             </div>
           )}
+          {(problems.length > 0 || fixFilterIds) && (
+            <div
+              role="alert"
+              className={cn(
+                "shrink-0 rounded-md border px-3 py-2 text-xs",
+                problems.length > 0
+                  ? "border-destructive/40 bg-destructive/5"
+                  : "border-success/40 bg-success/5"
+              )}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <p className={cn("flex items-center gap-1.5 font-medium", problems.length > 0 ? "text-destructive" : "text-success")}>
+                  {problems.length > 0 ? (
+                    <><AlertTriangle className="w-3.5 h-3.5" />{problems.length} {problems.length === 1 ? 'row needs' : 'rows need'} fixing before you can submit</>
+                  ) : (
+                    <><Check className="w-3.5 h-3.5" />All rows fixed — ready to submit</>
+                  )}
+                </p>
+                {fixFilterIds ? (
+                  <button onClick={() => setFixFilterIds(null)} className="text-muted-foreground hover:text-foreground underline underline-offset-2">
+                    Show all {newTransactions.length} rows
+                  </button>
+                ) : (
+                  <button onClick={showOnlyProblemRows} className="text-muted-foreground hover:text-foreground underline underline-offset-2">
+                    Show only these rows
+                  </button>
+                )}
+              </div>
+              {problems.length > 0 && (
+                <ul className="mt-1.5 max-h-24 overflow-y-auto divide-y divide-destructive/10">
+                  {problems.map(p => (
+                    <li key={p.tx.id} className="flex items-center gap-3 py-1">
+                      <span className="font-mono tabular-nums text-muted-foreground w-14 shrink-0">Row {p.rowNumber}</span>
+                      <span className="font-mono tabular-nums text-muted-foreground w-24 shrink-0">{p.tx.date ? formatDate(p.tx.date) : '—'}</span>
+                      <span className="truncate flex-1 text-foreground/80">{p.tx.description?.trim() || '(no description)'}</span>
+                      <span className="text-destructive shrink-0">missing {p.missing.join(', ')}</span>
+                      <button
+                        onClick={() => fixRow(p.tx)}
+                        className="shrink-0 px-2 py-0.5 rounded border border-border bg-muted text-foreground hover:bg-accent transition-colors"
+                      >
+                        Fix
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           <div className="flex-1 min-h-0">
             <DataTable
               columns={columns}
-              rows={newTransactions}
+              rows={tableRows}
               height="100%"
               emptyMessage="No new transactions found."
               renderRow={renderRow}
@@ -637,7 +716,8 @@ const TransactionPreview = ({ transactions, onConfirm, onBack, fileHash, fileNam
                     </button>
                     <button
                       onClick={handleSubmit}
-                      disabled={isSubmitting || newTransactions.length === 0}
+                      disabled={isSubmitting || newTransactions.length === 0 || problems.length > 0}
+                      title={problems.length > 0 ? `Fix the ${problems.length} highlighted row(s) first` : undefined}
                       className="px-3 py-1.5 rounded-md text-xs font-medium bg-foreground text-background hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
                     >
                       <Send className="w-3 h-3" strokeWidth={1.5} />

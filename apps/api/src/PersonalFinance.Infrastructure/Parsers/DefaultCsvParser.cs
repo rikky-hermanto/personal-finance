@@ -63,6 +63,7 @@ public class DefaultCsvParser : IBankStatementParser
             }
 
             string? accountName = GetFieldValue(normalizedDict, "Wallet", "BankAccount", "Bank", "Account");
+            var categoryValue = GetFieldValue(normalizedDict, "Category");
             var parsedBalance = ParseNullableDecimal(GetFieldValue(normalizedDict, "Balance", "RunningBalance", "StatementBalance", "BankRunningBalance"));
             var transaction = new TransactionDto
             {
@@ -71,7 +72,8 @@ public class DefaultCsvParser : IBankStatementParser
                 Remarks = remarks,
                 Flow = GetFieldValue(normalizedDict, "Flow") ?? "DB",
                 Type = GetFieldValue(normalizedDict, "Type") ?? "Expense",
-                Category = GetFieldValue(normalizedDict, "Category") ?? "Uncategorized",
+                // An empty cell comes back as "" (not null), so `??` alone left blank categories blank.
+                Category = string.IsNullOrWhiteSpace(categoryValue) ? "Uncategorized" : categoryValue,
                 AccountName = string.IsNullOrEmpty(accountName) ? "-" : accountName,
                 AmountIdr = ParseAmount(GetFieldValue(normalizedDict, "Amount(IDR)", "AmountIDR", "Amount")),
                 Currency = GetFieldValue(normalizedDict, "Currency") ?? "IDR",

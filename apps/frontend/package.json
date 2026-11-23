@@ -16,7 +16,8 @@
     "test:journey": "vitest run src/lib/journey",
     "test:accounts": "vitest run src/lib/accounts",
     "test:networth": "vitest run src/lib/netWorth",
-    "test:goals": "vitest run src/lib/goals"
+    "test:goals": "vitest run src/lib/goals",
+    "test:import": "vitest run src/lib/importPreview"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

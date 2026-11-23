@@ -144,6 +144,20 @@ public class DefaultCsvParserTests
     }
 
     [Fact]
+    public async Task ParseAsync_EmptyCategoryCell_DefaultsToUncategorized()
+    {
+        // Arrange — master CSV rows such as "Initial Balance" have a blank Category cell
+        var csv = BuildCsv("1/1/24 9:00 AM", "Initial Balance", "", "CR", "", "", "", "", "", "169338655.95", "IDR");
+
+        // Act
+        var result = await _parser.ParseAsync(csv);
+
+        // Assert — a blank cell must not reach the preview as an empty category
+        Assert.Single(result);
+        Assert.Equal("Uncategorized", result[0].Category);
+    }
+
+    [Fact]
     public async Task ParseAsync_MasterSpreadsheetSchema_AllFieldsMapped()
     {
         // Arrange — full master schema with all columns present
