@@ -5,7 +5,11 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LivingGardenHero } from '@/components/journey/LivingGardenHero';
-import { TierCard } from '@/components/journey/TierCard';
+import { PixelPyramid } from '@/components/journey/PixelPyramid';
+import { LevelDetailCard } from '@/components/journey/LevelDetailCard';
+import { JourneyTrail } from '@/components/journey/JourneyTrail';
+import { JourneyModeSwitch } from '@/components/journey/JourneyModeSwitch';
+import { useJourneyMode } from '@/hooks/use-journey-mode';
 import { QuestCard } from '@/components/journey/QuestCard';
 import { HarvestPanel } from '@/components/journey/HarvestPanel';
 import {
@@ -21,6 +25,7 @@ import type { Harvest, QuestBoard } from '@/types/Journey';
 
 export const JourneyPage = () => {
   const queryClient = useQueryClient();
+  const [mode, setMode] = useJourneyMode();
 
   const { data: state, isLoading: stateLoading } = useQuery({
     queryKey: ['journey-state'],
@@ -147,15 +152,21 @@ export const JourneyPage = () => {
         />
       )}
 
-      {/* Hero (left) + Tier Cards (right) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-1">
-          <LivingGardenHero state={state} topQuest={topQuest} />
+      {/* Hero: Pyramid mode (pyramid + level card) or Growing plant mode (garden + trail).
+          Both use the same columns and minimum height, sized by the plant layout, so switching never moves the page. */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:min-h-[520px]">
+        <div className="md:col-span-1 flex flex-col">
+          <JourneyModeSwitch mode={mode} onChange={setMode} />
+          {mode === 'pyramid' ? (
+            <div className="flex-1 flex items-center justify-center pb-4">
+              <PixelPyramid state={state} />
+            </div>
+          ) : (
+            <LivingGardenHero state={state} topQuest={topQuest} />
+          )}
         </div>
-        <div className="md:col-span-2 space-y-2">
-          {['L1', 'L2', 'L3', 'L4', 'L5'].map((lvl) => (
-            <TierCard key={lvl} level={lvl} state={state} />
-          ))}
+        <div className="md:col-span-2 md:pt-2">
+          {mode === 'pyramid' ? <LevelDetailCard state={state} /> : <JourneyTrail state={state} />}
         </div>
       </div>
 
