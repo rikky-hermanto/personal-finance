@@ -40,7 +40,7 @@ dependencies = [
     "langchain-anthropic>=0.3,<1.0",
     # app/services/advisor.py imports langfuse.langchain, which needs the langchain
     # package itself. It used to arrive only through the eval stack; declare it.
-    "langchain>=0.3,<1.0",
+    "langchain>=1.3.9,<2.0",
     # Runtime advisor adapter; 3.x+ drops the client chat_model_factory.py relies on.
     "langchain-google-genai>=2.0,<3.0",
     "httpx>=0.27",
