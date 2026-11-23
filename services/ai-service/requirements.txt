@@ -1475,9 +1475,9 @@ langchain==0.3.30 \
     --hash=sha256:06599ec90fb550e0118b0ceab737667d2c0891fcc62ffce2058d21c945844448 \
     --hash=sha256:37e6fcce92faf70cc7bac23739d13d6c3b9a3282da4dbcc06cb7e78330ed406a
     # via ai-service (pyproject.toml)
-langchain-anthropic==0.3.22 \
-    --hash=sha256:17721b240342a1a3f70bf0b2ff33520ba60d69008e3b9433190a62a52ff87cf6 \
-    --hash=sha256:6c440278bd8012bc94ae341f416bfc724fdc5d2d2b69630fe6e82fa6ee9682ac
+langchain-anthropic==1.4.6 \
+    --hash=sha256:78942d4458d883b7d362438a095ed501ed84f44d402622404482481fc973b9da \
+    --hash=sha256:dbd412a956b6b8b0716d9d8460ef71f834a6731cdbfc59e6160482a4a9fb5200
     # via ai-service (pyproject.toml)
 langchain-core==0.3.86 \
     --hash=sha256:671cbc96a325fe47f7dbab421236ada2d437bc4bfad0038102264885d0b462e2 \

@@ -37,7 +37,7 @@ dependencies = [
     # moving means rewriting the agent model factory. Accepted in
     # docs/references/accepted-risks.md (PF-147); revisit as its own ticket.
     "langgraph>=0.2,<1.0",
-    "langchain-anthropic>=0.3,<1.0",
+    "langchain-anthropic>=1.4.6,<2.0",
     # app/services/advisor.py imports langfuse.langchain, which needs the langchain
     # package itself. It used to arrive only through the eval stack; declare it.
     "langchain>=0.3,<1.0",
