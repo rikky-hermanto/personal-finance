@@ -6,7 +6,8 @@ import { cn } from '@/lib/utils';
 import type { JourneyState } from '@/types/Journey';
 import { TIER_META } from '@/types/Journey';
 import { PixelPlant } from '@/components/journey/PixelPlant';
-import { stageFromScore, toGardenLevel } from '@/lib/journey/gardenSprite';
+import { stageFromScore } from '@/lib/journey/gardenSprite';
+import { spriteLevelFor, useJourneyStyle } from '@/hooks/useJourneyStyle';
 
 const PEAK_KEY = 'pf-journey-peak-stages';
 const LEVEL_KEYS = ['L1', 'L2', 'L3', 'L4', 'L5'] as const;
@@ -26,6 +27,7 @@ interface Props {
 
 export const LivingGardenHero = ({ state, topQuest }: Props) => {
   const peaks = useRef<Record<string, 0 | 1 | 2 | 3>>(loadPeaks());
+  const { style } = useJourneyStyle();
 
   const currentKey = `L${state.currentLevel}`;
   const currentScore = state.levelScores[currentKey] ?? 0;
@@ -82,7 +84,7 @@ export const LivingGardenHero = ({ state, topQuest }: Props) => {
       {/* Pixel plant — single, animated on stage change */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${currentKey}-${effectiveStage}`}
+          key={`${currentKey}-${style}-${effectiveStage}`}
           initial={{ opacity: 0, scale: 0.65, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.8, y: -6 }}
@@ -91,7 +93,7 @@ export const LivingGardenHero = ({ state, topQuest }: Props) => {
         >
           <PixelPlant
             levelKey={currentKey}
-            level={toGardenLevel(state.currentLevel)}
+            level={spriteLevelFor(style)}
             label={meta.label}
             stage={effectiveStage}
           />

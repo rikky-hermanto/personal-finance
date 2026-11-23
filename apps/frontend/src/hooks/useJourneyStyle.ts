@@ -1,21 +1,40 @@
 import { useState } from 'react';
+import type { GardenLevel } from '@/lib/journey/gardenSprite';
 
-export type JourneyStyle = 'tree' | 'skyline' | 'crystal';
+export type JourneyStyle = 'cherry' | 'bush' | 'maple';
 
-export const JOURNEY_STYLE_OPTIONS: { id: JourneyStyle; label: string; desc: string }[] = [
-  { id: 'tree',    label: 'Growing Tree',    desc: 'From roots to crown' },
-  { id: 'skyline', label: 'City Skyline',    desc: 'From house to landmark' },
-  { id: 'crystal', label: 'Diamond',         desc: 'From rough stone to gem' },
+/**
+ * The tree species drawn in the Journey garden hero. Each reuses one level's generated sprite
+ * sheets (see scripts/generate-garden-sprites.mjs), so `spriteLevel` picks the art, not the level.
+ */
+export const JOURNEY_STYLE_OPTIONS: {
+  id: JourneyStyle;
+  label: string;
+  desc: string;
+  spriteLevel: GardenLevel;
+}[] = [
+  { id: 'cherry', label: 'Cherry Blossom', desc: 'Pink petals in bloom', spriteLevel: 3 },
+  { id: 'bush',   label: 'Green Bush',     desc: 'Round and evergreen',  spriteLevel: 1 },
+  { id: 'maple',  label: 'Autumn Maple',   desc: 'Gold and amber leaves', spriteLevel: 4 },
 ];
 
+const DEFAULT_STYLE: JourneyStyle = 'cherry';
 const KEY = 'pf:journey-style';
+
+const isJourneyStyle = (v: string | null): v is JourneyStyle =>
+  JOURNEY_STYLE_OPTIONS.some((o) => o.id === v);
+
+export const spriteLevelFor = (style: JourneyStyle): GardenLevel =>
+  JOURNEY_STYLE_OPTIONS.find((o) => o.id === style)?.spriteLevel ?? 3;
 
 export function useJourneyStyle() {
   const [style, setStyleState] = useState<JourneyStyle>(() => {
     try {
-      return (localStorage.getItem(KEY) as JourneyStyle) ?? 'tree';
+      // Older saved values (tree, skyline, crystal) fall back to the default species.
+      const stored = localStorage.getItem(KEY);
+      return isJourneyStyle(stored) ? stored : DEFAULT_STYLE;
     } catch {
-      return 'tree';
+      return DEFAULT_STYLE;
     }
   });
 
