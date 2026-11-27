@@ -22,9 +22,9 @@ The 2026-11-27 baseline shows unit tests run 51.0% of the .NET API, 86.5% of the
 - [ ] The 9 skipped `CategoryRuleService` tests run against the harness and pass; `dotnet test` reports 0 skipped.
   > Not met: Phase 4. Only 8 of the 9 skipped tests are in `CategoryRuleServiceTests`; the ninth is in `CategoryPresetServiceTests`, which STEP 14 does not mention.
 - [ ] Every Supabase-backed write test asserts the request carries the caller's bearer token and sends no `user_id` (the owner comes from RLS, per CLAUDE.md "Auth").
-  > Not met: later phases. The "sends no `user_id`" part needs a decision first (checklist, decision 1).
+  > Not met: later phases. The "sends no `user_id`" part applies as worded in checklist decision 1.
 - [ ] docs/records/coverage/README.md has a **By module** section, and history.csv has one row per completed phase.
-  > Not met: the By module section exists; history.csv still has one row until Phase 1 is committed (STEP 4).
+  > Not met yet: the By module section exists and Phase 1 has its history row. Phases 2 to 6 still need theirs.
 - [ ] No production file changes, except fixes for bugs the tests expose. Each such fix is listed in Notes with the test that found it.
   > Not met: ticket-wide, so it stays open. It holds after Phase 1: nothing under `apps/api/src`, `apps/frontend/src` or `services/ai-service/app` changed.
 - [ ] The flaky `test_unique_artifacts_are_resumable_and_validate_dataset_identity` either passes 20 runs in a row or is fixed, with the cause in Notes.
@@ -223,9 +223,7 @@ npm run coverage -- --no-run
 
 ---
 
-### [!] STEP 4 — Document the harness and record the phase
-
-> **Failure:** the harness rule and the coverage run are done, but there is no new history.csv row: the script keeps one row per commit, the baseline was recorded on this same uncommitted HEAD (`d6bd0854+dirty`) so the run replaced it, and `/execute` commits nothing. See checklist item E.
+### [x] STEP 4 — Document the harness and record the phase
 
 Add a "Supabase-backed services" bullet under Testing Conventions in `.claude/rules/backend.md`: use `FakePostgrest` (link it), stub every table the method touches, and assert the bearer token and the absence of `user_id` on writes. Run `npm run coverage` and commit `docs/records/coverage/` with the harness.
 
@@ -444,21 +442,25 @@ Model: **Sonnet 5.5** · Effort: **medium**. Pure functions and stubbed fetch.
 
 ## ✅ Owner Review Checklist (G3)
 
-**State (Phase 1, 2026-11-27):** STEPs 1 to 3 are done. STEP 4 is open only for the new history row, which needs a commit. This was a hand run with no independent verifier. Everything is uncommitted on `main`. I did not start a loop worktree, because a worktree starts from the last commit and `scripts/coverage-report.mjs` was not committed yet, so the ticket is still in `backlog/`.
+**State (Phase 1, 2026-11-27):** STEPs 1 to 4 are done. Phase 1 is committed on `main` as `e8c18753`, and its history row is recorded. This was a hand run with no independent verifier. The owner asked for Phases 2 to 6 to run one subagent at a time on branch `loop/pf-158`.
 
 **Known defects to confirm** (found while building the harness; no production code was changed):
 
 - `CreateTransactionCommandHandler.cs` and `TransactionService.AddTransactionsAsync` insert a `Transaction` model straight into `transactions`. I found no caller of either in `apps/api/src`. They would fail on a real database: the request body carries `"AccountName":""`, which no migration creates as a column, and only the `pf_cashflow_mutator` role has INSERT on that table (`20261009100000_pf_s08_checked_cashflow_import.sql`). A mocked or faked test cannot catch this, because the fake accepts any body. This was read from the code and migrations, not run against a database. STEPs 5 and 8 plan to test both paths; deleting them may be the better choice.
 
-**Decisions needed before the later phases** (the plan text is unchanged):
+- Found after the Phase 1 commit, and fixed: `npm run coverage` failed when started from a lower-case drive letter (`c:\`). Vite could not load `harvestStyles.test.ts`, so 4 tests did not run and no history row was written. `scripts/coverage-report.mjs` now upper-cases the drive letter. Running that test directly with Vitest from such a terminal still fails.
+- Not fixed: when a Vitest test fails, no frontend coverage file is written, so `coverage-report.mjs` stops without recording, even though it first says coverage "is still recorded".
 
-1. **`user_id` on writes (before Phase 2).** The fifth acceptance criterion and STEP 8 say writes send no `user_id`. That is true only for the checked cashflow functions. Other writes must send it: the column has no default or trigger, and RLS only checks the value (`WITH CHECK (user_id = auth.uid())`). `CreateTransactionCommandHandler` also sets it. Recommended wording: "no `user_id` on checked cashflow calls; on direct writes, `user_id` equals the caller's id". The new rule in `.claude/rules/backend.md` already says this.
-2. **Module-row targets (before Phase 4).** STEPs 12 and 13 ask for the Assets and Investment & Desk rows to reach 75%. The rows include untested UI files, so without PF-038 their highest possible values are 38.4% and 58.0%. Recommended: apply those targets to the .NET column of the By module table.
-3. **Ninth skipped test (before Phase 4).** Add `CategoryPresetServiceTests` to STEP 14, or `Skipped: 0` cannot be reached.
+**Decisions for the later phases.** The owner approved these in chat on 2026-11-27, and Phases 2 to 6 follow them. The plan text above is unchanged.
+
+1. **`user_id` on writes.** The fifth acceptance criterion and STEP 8 say writes send no `user_id`. That applies to the checked cashflow functions only. On direct PostgREST writes, `user_id` equals the caller's id, because the column has no default or trigger and RLS only checks the value.
+2. **Module-row targets.** STEPs 12 and 13 apply their 75% targets to the .NET column of the By module table. With untested UI files included, the combined rows can reach at most 38.4% (Assets) and 58.0% (Investment & Desk).
+3. **Ninth skipped test.** STEP 14 also covers the skipped test in `CategoryPresetServiceTests`.
+4. **Unused insert paths.** Phase 2 deletes them, and anything only they use, if a second search finds no caller. It does not write tests for them.
 
 ### A. Before you start
 
-- ☐ You are on `main`. `git status` shows the new folder `apps/api/tests/PersonalFinance.Tests/Support/`, an edit to `.claude/rules/backend.md`, and the coverage-tracking files that were already uncommitted before this run. No Supabase, Docker or other service is needed.
+- ☐ Phase 1 is on `main`: `e8c18753`, followed by the coverage-script fix and the history-row commit. No Supabase, Docker or other service is needed.
 
 ### B. Read the code
 
@@ -478,7 +480,7 @@ Model: **Sonnet 5.5** · Effort: **medium**. Pure functions and stubbed fetch.
 
 ### E. Check what could not be proven here
 
-- ☐ After committing Phase 1, run `npm run coverage`. Pass: `docs/records/coverage/history.csv` has a second row with the new commit hash, and the `d6bd0854+dirty` row is still there. That first row now stands for the baseline: compared with the original, one more .NET line is covered (4948 to 4949, Domain 32.3% to 32.6%), the headline percentages are the same, and it gained the module columns. Then commit the two coverage files and tick STEP 4.
+- ☐ Open `docs/records/coverage/history.csv`. Pass: it has the `d6bd0854+dirty` row and the `e8c18753` row. The first row now stands for the baseline: compared with the original, one more .NET line is covered (4948 to 4949, Domain 32.3% to 32.6%), the headline percentages are the same, and it gained the module columns.
 - ☐ Open `docs/records/coverage/README.md`. Pass: By module shows six module rows plus AI service, and their covered and total lines add up to the "All three" row (8,931 of 32,251 in this run).
 
 ### F. Optional
@@ -488,4 +490,4 @@ Model: **Sonnet 5.5** · Effort: **medium**. Pure functions and stubbed fetch.
 ### G. Decide and close
 
 - ☐ Phase 1 is accepted when C and E pass. Do not move the ticket to `done/`: Phases 2 to 6 remain, and `/loop-accept` does not apply to this hand run.
-- ☐ Before Phase 2, answer decision 1 and the unused-insert question. To track Phase 2 on the board, commit first, then ask Claude to run the loop engine's `start --hand` for PF-158.
+- ☐ After Phase 6, review the commits on `loop/pf-158` before merging. Nothing is pushed or merged for you.
