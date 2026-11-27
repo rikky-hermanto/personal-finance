@@ -16,7 +16,11 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// With a lower-case drive letter, Vite resolves a root-absolute import.meta.glob to "c:\c:\..." and
+// that Vitest suite fails to load. VS Code often opens folders that way on Windows, so every suite
+// runs from the upper-case spelling.
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
+  .replace(/^[a-z]:/, (drive) => drive.toUpperCase());
 const outDir = path.join(root, "docs/records/coverage");
 const historyPath = path.join(outDir, "history.csv");
 const reportPath = path.join(outDir, "README.md");
