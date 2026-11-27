@@ -47,6 +47,7 @@ Commands run from `apps/frontend/` (not `src/`): `npm run dev` (port 8080), `npm
 
 ## Testing
 
-- **Unit:** Vitest runs pure logic under `src/lib/` in a node environment. Scripts: `test:desk`, `test:macro`, `test:journey`, `test:accounts`, `test:networth`; CI runs all five. Add a script (and a CI line) for a new area, and put the test next to the code as `name.test.ts`.
+- **Unit:** Vitest runs pure logic under `src/lib/` in a node environment. Per-area scripts (`test:desk`, `test:macro`, `test:journey`, …) are for local iteration; CI runs `npm run test:coverage`, which picks up every `src/**/*.test.ts` file, so a new test needs no CI line. Put the test next to the code as `name.test.ts`.
+- **Coverage:** `npm run coverage` from the repo root runs all three unit suites and updates [docs/records/coverage/](../../docs/records/coverage/README.md) (report plus `history.csv` trend). Commit both files when you want a point on the trend.
 - **Component tests:** not set up. There is no repo-wide `test` script and no React Testing Library yet (PF-038).
 - **E2E:** Playwright specs in `e2e/` are the main functional coverage: `npm run e2e`, `npm run e2e:ui`, or `npx playwright test e2e/health.spec.ts`. They need the full stack running and are not run in CI.

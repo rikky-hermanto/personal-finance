@@ -29,7 +29,13 @@ jobs:
           dotnet-version: 10.0.x
       - run: dotnet restore PersonalFinance.slnx
       - run: dotnet build PersonalFinance.slnx --no-restore
-      - run: dotnet test PersonalFinance.slnx --no-build --verbosity normal
+      - run: dotnet test PersonalFinance.slnx --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory TestResults/coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-dotnet
+          path: apps/api/TestResults/coverage
+          if-no-files-found: ignore
 
   frontend:
     name: frontend (lint + tsc + vitest + build)
@@ -49,14 +55,14 @@ jobs:
       - run: npm run lint
       - run: npx --no-install tsc --noEmit -p tsconfig.app.json
       - run: npx --no-install tsc --noEmit -p tsconfig.node.json
-      - run: npm run test:desk
-      - run: npm run test:macro
-      - run: npm run test:journey
-      - run: npm run test:accounts
-      - run: npm run test:networth
-      - run: npm run test:goals
-      - run: npm run test:chat
-      - run: npm run test:import
+      # Runs every src/lib suite once (the per-area test:* scripts remain for local use) with coverage.
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-frontend
+          path: apps/frontend/coverage/coverage-final.json
+          if-no-files-found: ignore
       - run: npm run build
 
   ai-service:
@@ -76,7 +82,41 @@ jobs:
       # PF-157: test against the versions that ship. The lock first, then the dev extras on top.
       - run: pip install --require-hashes -r requirements.txt
       - run: pip install -e ".[dev]"
-      - run: python -m pytest -q
+      - run: python -m pytest -q --cov --cov-report=term --cov-report=json:coverage.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-python
+          path: services/ai-service/coverage.json
+          if-no-files-found: ignore
+
+  # Combines the three coverage files into the same report `npm run coverage` writes locally and
+  # shows it on the run's summary page. Informational only: there is no coverage threshold.
+  coverage:
+    name: coverage report
+    needs: [api, frontend, ai-service]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-dotnet
+          path: apps/api/TestResults/coverage
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-frontend
+          path: apps/frontend/coverage
+      - uses: actions/download-artifact@v4
+        with:
+          name: coverage-python
+          path: services/ai-service
+      - run: node scripts/coverage-report.mjs --no-run
+      - run: cat docs/records/coverage/README.md >> "$GITHUB_STEP_SUMMARY"
 
   secrets:
     name: secrets (gitleaks)

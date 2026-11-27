@@ -125,3 +125,11 @@ docs/architecture/quartext-tech-alignment-matrix.md
 
 # Learning scratch files (PF-AI chapters) — hands-on aids, never committed
 services/ai-service/scratch/
+
+# Unit-test coverage output (the tracked summary lives in docs/records/coverage/)
+apps/api/TestResults/
+apps/frontend/coverage/
+services/ai-service/coverage.json
+services/ai-service/coverage.xml
+services/ai-service/.coverage
+services/ai-service/htmlcov/

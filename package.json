@@ -12,7 +12,8 @@
     "build": "cd apps/frontend && npm run build",
     "lint": "cd apps/frontend && npm run lint",
     "e2e": "cd apps/frontend && npx playwright test",
-    "e2e:ui": "cd apps/frontend && npx playwright test --ui"
+    "e2e:ui": "cd apps/frontend && npx playwright test --ui",
+    "coverage": "node scripts/coverage-report.mjs"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
