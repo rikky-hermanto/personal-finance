@@ -1,6 +1,7 @@
 using PersonalFinance.Application.Dtos;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Application.Constants;
+using PersonalFinance.Application.Services;
 using Microsoft.Extensions.Logging;
 using Supabase;
 using PersonalFinance.Domain.Entities;
@@ -42,7 +43,7 @@ public class DashboardService : IDashboardService
                 .Order("date", Ordering.Descending)
                 .Limit(1)
                 .Get();
-            baselineDate = latestTx.Models.FirstOrDefault()?.Date ?? DateTime.Now;
+            baselineDate = latestTx.Models.FirstOrDefault() is { } latest ? StatementDate.FromSdk(latest.Date) : DateTime.Now;
         }
 
         DateTime rangeStartDate;
@@ -56,7 +57,7 @@ public class DashboardService : IDashboardService
                 .Order("date", Ordering.Ascending)
                 .Limit(1)
                 .Get();
-            var earliestDate = earliestTx.Models.FirstOrDefault()?.Date ?? baselineDate;
+            var earliestDate = earliestTx.Models.FirstOrDefault() is { } earliest ? StatementDate.FromSdk(earliest.Date) : baselineDate;
             rangeStartDate = new DateTime(earliestDate.Year, earliestDate.Month, 1);
             monthCount = ((baselineDate.Year - rangeStartDate.Year) * 12) + baselineDate.Month - rangeStartDate.Month + 1;
         }
@@ -95,6 +96,7 @@ public class DashboardService : IDashboardService
 
             var result = await query.Get();
             var batch = result.Models;
+            foreach (var t in batch) t.Date = StatementDate.FromSdk(t.Date);
             allTransactions.AddRange(batch);
 
             _logger.LogDebug("Fetched batch of {Count} transactions. Total so far: {Total}", batch.Count, allTransactions.Count);
@@ -115,27 +117,31 @@ public class DashboardService : IDashboardService
         var currentRangeTxs = allTransactions.Where(t => t.Date >= rangeStartDate).ToList();
         var prevRangeTxs = allTransactions.Where(t => t.Date < rangeStartDate).ToList();
 
+        // Spending = Expense rows outside the Investing section (scoring-rubric.md "Spending vs
+        // saving"): money moved to saving or investing is not consumption. One rule for the totals,
+        // the monthly bars and the top categories, so they always agree.
+        var investingCategories = CashflowSectionMapping.CategoryToSection
+            .Where(kvp => kvp.Value == CashflowSection.Investing)
+            .Select(kvp => kvp.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        bool IsSpending(Transaction t) =>
+            t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)
+            && !investingCategories.Contains(t.Category ?? string.Empty);
+
         var currentIncome = currentRangeTxs.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
-        var currentExpenses = currentRangeTxs.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
+        var currentExpenses = currentRangeTxs.Where(IsSpending).Sum(t => t.AmountIdr);
         var currentNet = currentIncome - currentExpenses;
 
         var prevIncome = prevRangeTxs.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
-        var prevExpenses = prevRangeTxs.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
+        var prevExpenses = prevRangeTxs.Where(IsSpending).Sum(t => t.AmountIdr);
         var prevNet = prevIncome - prevExpenses;
 
         var incomeChange = prevIncome != 0 ? ((currentIncome - prevIncome) / prevIncome) * 100 : 0;
         var expenseChange = prevExpenses != 0 ? ((currentExpenses - prevExpenses) / prevExpenses) * 100 : 0;
         var netChange = prevNet != 0 ? ((currentNet - prevNet) / Math.Abs(prevNet)) * 100 : 0;
 
-        var investingCategories = CashflowSectionMapping.CategoryToSection
-            .Where(kvp => kvp.Value == CashflowSection.Investing)
-            .Select(kvp => kvp.Key)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var topCategories = currentRangeTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)
-                     && !string.IsNullOrEmpty(t.Category)
-                     && !investingCategories.Contains(t.Category))
+            .Where(t => IsSpending(t) && !string.IsNullOrEmpty(t.Category))
             .GroupBy(t => t.Category)
             .Select(g => new DashboardTopCategoryDto(
                 g.Key,
@@ -153,9 +159,7 @@ public class DashboardService : IDashboardService
             {
                 var monthly = currentRangeTxs.Where(t => t.Date.Year == targetDate.Year && t.Date.Month == targetDate.Month).ToList();
                 var inc = monthly.Where(t => t.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)).Sum(t => t.AmountIdr);
-                var exp = monthly.Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)
-                                          && !string.IsNullOrEmpty(t.Category)
-                                          && !investingCategories.Contains(t.Category)).Sum(t => t.AmountIdr);
+                var exp = monthly.Where(IsSpending).Sum(t => t.AmountIdr);
                 return new DashboardCashFlowDto(targetDate.ToString("MMM yy"), inc, exp, inc - exp);
             })
             .ToList();
@@ -195,7 +199,7 @@ public class DashboardService : IDashboardService
             .Order("date", Ordering.Descending)
             .Limit(1)
             .Get();
-        var baselineDate = latestTx.Models.FirstOrDefault()?.Date ?? DateTime.Now;
+        var baselineDate = latestTx.Models.FirstOrDefault() is { } latest ? StatementDate.FromSdk(latest.Date) : DateTime.Now;
 
         DateTime rangeStartDate;
         int monthCount;
@@ -207,7 +211,7 @@ public class DashboardService : IDashboardService
                 .Order("date", Ordering.Ascending)
                 .Limit(1)
                 .Get();
-            var earliestDate = earliestTx.Models.FirstOrDefault()?.Date ?? baselineDate;
+            var earliestDate = earliestTx.Models.FirstOrDefault() is { } earliest ? StatementDate.FromSdk(earliest.Date) : baselineDate;
             rangeStartDate = new DateTime(earliestDate.Year, earliestDate.Month, 1);
             monthCount = ((baselineDate.Year - rangeStartDate.Year) * 12) + baselineDate.Month - rangeStartDate.Month + 1;
         }
@@ -239,6 +243,7 @@ public class DashboardService : IDashboardService
 
             var result = await query.Get();
             var batch = result.Models;
+            foreach (var t in batch) t.Date = StatementDate.FromSdk(t.Date);
             allTransactions.AddRange(batch);
 
             if (batch.Count < pageSize) hasMore = false;
@@ -310,7 +315,14 @@ public class DashboardService : IDashboardService
             if (!sectionData[section].ContainsKey(tx.Category))
                 sectionData[section][tx.Category] = periods.ToDictionary(p => p, p => 0m);
 
-            sectionData[section][tx.Category][period] += tx.AmountIdr;
+            // Operating amounts stay positive here; the expense subsection is negated when built.
+            // Investing and financing carry their sign from the flow (IAS 7 statement of cash flows:
+            // cash out is negative): amount_idr is stored positive, so a DB (money out) row is negated.
+            var signedAmount = section is CashflowSection.Investing or CashflowSection.Financing
+                               && tx.Flow.Equals("DB", StringComparison.OrdinalIgnoreCase)
+                ? -tx.AmountIdr
+                : tx.AmountIdr;
+            sectionData[section][tx.Category][period] += signedAmount;
         }
 
         // 5. Build DTO
@@ -336,21 +348,11 @@ public class DashboardService : IDashboardService
         var opTotals = periods.ToDictionary(p => p, p => opIncTotals[p] + opExpTotals[p]);
         sections.Add(new StatementSectionDto("operating", "OPERATING CASH FLOW", operatingSubsections, opTotals));
 
-        // Investing Section
-        var invCategories = sectionData[CashflowSection.Investing]
-            .Select(kvp => new CashflowStatementCategoryDto(kvp.Key, kvp.Value)) // Keep original sign for now, mapping should handle it
-            .ToList();
-        // Adjust signs for investing: typically "Buy" is negative, "Sell" is positive.
-        // For simplicity, we'll assume the amount_idr in the DB reflects the flow correctly or we adjust based on Type.
-        // Actually, we should probably look at tx.Type during the loop. 
-        // Let's refine the loop to handle signs.
-
-        // Re-calculate Investing & Financing with proper signs
+        // Investing Section (values already signed by flow in the loop above)
         var invSubCategories = new List<CashflowStatementCategoryDto>();
         foreach (var kvp in sectionData[CashflowSection.Investing])
         {
             invSubCategories.Add(new CashflowStatementCategoryDto(kvp.Key, kvp.Value.ToDictionary(p => p.Key, p => p.Value)));
-            // In a real app, we'd check if it's Buy/Sell. For now we use the raw value.
         }
         var invTotals = periods.ToDictionary(p => p, p => invSubCategories.Sum(c => c.Values[p]));
         sections.Add(new StatementSectionDto("investing", "INVESTING CASH FLOW", new List<StatementSubsectionDto> {

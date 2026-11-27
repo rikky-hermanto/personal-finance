@@ -2,9 +2,6 @@ using PersonalFinance.Application.Dtos;
 
 public interface ITransactionService
 {
-    /// <summary>Adds only new (non-duplicate) transactions and returns the added transactions as DTOs.</summary>
-    Task<List<TransactionDto>> AddTransactionsAsync(IEnumerable<TransactionDto> transactionDtos);
-
     /// <summary>Returns transactions with running balance for an account and optional filters.</summary>
     Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(
         Guid? accountId = null,

@@ -21,16 +21,6 @@ public class TransactionService : ITransactionService
         _caller = caller;
     }
 
-    public async Task<List<TransactionDto>> AddTransactionsAsync(IEnumerable<TransactionDto> transactionDtos)
-    {
-        var entities = transactionDtos.Select(MapToEntity).ToList();
-        _logger.LogInformation("Adding {Count} transactions.", entities.Count);
-
-        var result = await _supabase.From<Transaction>().Insert(entities);
-        _logger.LogInformation("Supabase confirmed {ConfirmedCount} of {RequestedCount} transactions inserted.", result.Models.Count, entities.Count);
-        return result.Models.Select(t => MapToDto(t)).ToList();
-    }
-
     public async Task<List<TransactionDto>> FilterOutDuplicatesAsync(IEnumerable<TransactionDto> transactionDtos)
     {
         var tagged = await IdentifyDuplicatesAsync(transactionDtos);
@@ -166,14 +156,9 @@ public class TransactionService : ITransactionService
         return System.Text.RegularExpressions.Regex.Replace(lower, @"\s+", " ");
     }
 
-    private static DateTime StandardizeDate(DateTime date)
-    {
-        if (date.Kind == DateTimeKind.Utc) return date;
-        var localDate = date.Kind == DateTimeKind.Unspecified
-            ? DateTime.SpecifyKind(date, DateTimeKind.Local)
-            : date;
-        return localDate.ToUniversalTime();
-    }
+    // Same rule the read paths use (StatementDate), so a re-imported row's key matches the stored row's.
+    private static DateTime StandardizeDate(DateTime date) =>
+        PersonalFinance.Application.Services.StatementDate.FromSdk(date);
 
     public async Task<List<TransactionDto>> GetTransactionsWithBalanceAsync(
         Guid? accountId = null,
@@ -349,22 +334,6 @@ public class TransactionService : ITransactionService
             // Alias pair already exists — no-op
         }
     }
-
-    private Transaction MapToEntity(TransactionDto dto) => new()
-    {
-        UserId = _caller.UserId,
-        Date = dto.Date,
-        Description = dto.Description,
-        Remarks = dto.Remarks,
-        Flow = dto.Flow,
-        Type = dto.Type,
-        Category = dto.Category,
-        AccountId = dto.AccountId,
-        AmountIdr = dto.AmountIdr,
-        Currency = dto.Currency,
-        ExchangeRate = dto.ExchangeRate,
-        StatementBalance = dto.StatementBalance
-    };
 
     private async Task<Dictionary<Guid, string>> FetchAccountNameLookupAsync()
     {

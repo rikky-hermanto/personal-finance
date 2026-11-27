@@ -48,7 +48,7 @@ Create in `api/src/PersonalFinance.Application/Commands/`:
 
 ### 7. Validator
 Create `api/src/PersonalFinance.Application/Validation/Create{Entity}CommandValidator.cs`
-- Follow `CreateTransactionCommandValidator.cs` pattern
+- Follow `CreateAssetCommandValidator.cs` pattern
 - Use FluentValidation rules for each property
 
 ### 8. Service

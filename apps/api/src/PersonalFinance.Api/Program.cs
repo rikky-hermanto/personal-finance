@@ -172,7 +172,6 @@ namespace PersonalFinance.Api
                 var internalAiKey = builder.Configuration["AiService:InternalApiKey"];
                 if (!string.IsNullOrWhiteSpace(internalAiKey)) client.DefaultRequestHeaders.Add("X-Internal-Api-Key", internalAiKey);
             });
-            builder.Services.AddScoped<CsvTransactionParser>();
             builder.Services.AddScoped<BcaCsvParser>();
             builder.Services.AddScoped<NeoBankPdfParser>();
             builder.Services.AddScoped<DefaultCsvParser>();
@@ -254,12 +253,12 @@ namespace PersonalFinance.Api
             builder.Services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssemblyContaining<Program>();
-                cfg.RegisterServicesFromAssemblyContaining<CreateTransactionCommandHandler>();
+                cfg.RegisterServicesFromAssemblyContaining<RecalculateJourneyCommandHandler>();
                 cfg.AddOpenBehavior(typeof(PublishAssetUpdatedBehavior<,>));
             });
 
             // Register FluentValidation
-            builder.Services.AddValidatorsFromAssemblyContaining<CreateTransactionCommandValidator>();
+            builder.Services.AddValidatorsFromAssemblyContaining<CreateAccountCommandValidator>();
             builder.Services.AddValidatorsFromAssemblyContaining<CreateCategoryRuleCommandValidator>();
             builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
             builder.Services.AddFluentValidationAutoValidation();

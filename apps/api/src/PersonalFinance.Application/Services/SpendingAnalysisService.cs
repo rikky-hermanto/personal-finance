@@ -1,5 +1,6 @@
 using PersonalFinance.Application.Constants;
 using PersonalFinance.Application.Dtos;
+using PersonalFinance.Application.Services;
 using PersonalFinance.Domain.Entities;
 using Microsoft.Extensions.Logging;
 using System.Text.RegularExpressions;
@@ -41,17 +42,24 @@ public class SpendingAnalysisService : ISpendingAnalysisService
             .DefaultIfEmpty(0m)
             .Average();
 
-        // Already spent: all expenses in current month
+        // Already spent: this month's spending. Money moved to saving or investing is not spending
+        // (scoring-rubric.md "Spending vs saving"); it is accounted for once, in the savings goal.
         var alreadySpent = currentMonthTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+            .Where(IsSpending)
             .Sum(t => t.AmountIdr);
 
-        // Committed bills: recurring expenses not yet charged this month
+        // Committed bills: recurring spending not yet charged this month. A recurring investment
+        // debit is a savings goal, not a bill.
         var committedBills = DetectCommittedBills(trailingTxs, currentMonthTxs, trailingMonths);
 
-        // Median (not mean) monthly outflow to Investing-section categories — what the user actually
-        // sets aside for the future. Replaces the old hardcoded 0, which assumed nobody saves.
-        var savingsGoal = DetectSavingsGoal(trailingTxs, trailingMonths);
+        // Median (not mean) monthly outflow to Investing-section categories — what the user usually
+        // sets aside. If this month's investing already exceeds that, set aside the larger actual
+        // amount instead. Either way it is subtracted once: it never also counts as spent.
+        var usualSavings = DetectSavingsGoal(trailingTxs, trailingMonths);
+        var investedThisMonth = currentMonthTxs
+            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase) && IsInvesting(t))
+            .Sum(t => t.AmountIdr);
+        var savingsGoal = Math.Max(usualSavings, investedThisMonth);
 
         var daysRemaining = DateTime.DaysInMonth(today.Year, today.Month) - today.Day + 1;
         var numerator = incomeBaseline - committedBills - savingsGoal - alreadySpent;
@@ -82,8 +90,9 @@ public class SpendingAnalysisService : ISpendingAnalysisService
 
         var transactions = await FetchTransactionsAsync(fetchStart, today, accountId);
 
+        // Investment purchases are not spending, so they are never variance drivers.
         var expenses = transactions
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+            .Where(IsSpending)
             .ToList();
 
         var currentMonthExpenses = expenses.Where(t => t.Date >= currentMonthStart).ToList();
@@ -157,6 +166,7 @@ public class SpendingAnalysisService : ISpendingAnalysisService
                 query = query.Filter("account_id", Operator.Equals, accountId.Value.ToString());
 
             var result = await query.Get();
+            foreach (var t in result.Models) t.Date = StatementDate.FromSdk(t.Date);
             all.AddRange(result.Models);
 
             if (result.Models.Count < pageSize) hasMore = false;
@@ -172,11 +182,11 @@ public class SpendingAnalysisService : ISpendingAnalysisService
         List<DateTime> trailingMonths)
     {
         var trailingExpenses = trailingTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+            .Where(IsSpending)
             .ToList();
 
         var currentNormalizedKeys = currentMonthTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+            .Where(IsSpending)
             .Select(t => NormalizeDescription(t.Description))
             .ToHashSet();
 
@@ -196,18 +206,24 @@ public class SpendingAnalysisService : ISpendingAnalysisService
         return Regex.Replace(noSpecial, @"\s+", " ").Trim();
     }
 
+    private static readonly HashSet<string> InvestingCategories = CashflowSectionMapping.CategoryToSection
+        .Where(kv => kv.Value == CashflowSection.Investing)
+        .Select(kv => kv.Key)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private static bool IsInvesting(Transaction t) => InvestingCategories.Contains(t.Category ?? string.Empty);
+
+    /// <summary>Expense rows outside the Investing section (scoring-rubric.md "Spending vs saving").</summary>
+    private static bool IsSpending(Transaction t) =>
+        t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase) && !IsInvesting(t);
+
     private static decimal DetectSavingsGoal(List<Transaction> trailingTxs, List<DateTime> trailingMonths)
     {
-        var investingCategories = CashflowSectionMapping.CategoryToSection
-            .Where(kv => kv.Value == CashflowSection.Investing)
-            .Select(kv => kv.Key)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
         var monthlyTotals = trailingMonths
             .Select(m => trailingTxs
                 .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month)
                 .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-                .Where(t => investingCategories.Contains(t.Category))
+                .Where(IsInvesting)
                 .Sum(t => t.AmountIdr))
             .ToList();
 

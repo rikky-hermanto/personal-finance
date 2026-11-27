@@ -60,14 +60,19 @@ public sealed class FakePostgrest : IAsyncDisposable
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         var app = builder.Build();
         var fake = new FakePostgrest(app);
-        app.Map("/rest/v1/{**path}", fake.HandleAsync);
+        app.Map("/rest/v1/{**path}", ctx => fake.HandleAsync(ctx, storage: false));
+        app.Map("/storage/v1/{**path}", ctx => fake.HandleAsync(ctx, storage: true));
         await app.StartAsync();
         fake.Url = app.Services.GetRequiredService<IServer>()
             .Features.Get<IServerAddressesFeature>()!.Addresses.First();
         return fake;
     }
 
-    /// <summary>Stub a fixed response. Table is the PostgREST path, e.g. "transactions" or "rpc/upsert_harvest_months".</summary>
+    /// <summary>
+    /// Stub a fixed response. Table is the PostgREST path, e.g. "transactions" or
+    /// "rpc/upsert_harvest_months". Storage calls are keyed by their full path under /storage/v1,
+    /// e.g. "storage/object/bank-statements/u/BCA/file.csv".
+    /// </summary>
     public FakePostgrest On(string method, string table, string json, int status = 200, string? contentRange = null)
         => On(method, table, _ => new FakeResponse(json, status, contentRange));
 
@@ -93,13 +98,14 @@ public sealed class FakePostgrest : IAsyncDisposable
         return client;
     }
 
-    private async Task HandleAsync(HttpContext ctx)
+    private async Task HandleAsync(HttpContext ctx, bool storage)
     {
         using var reader = new StreamReader(ctx.Request.Body);
         var body = await reader.ReadToEndAsync();
         var path = (string?)ctx.Request.RouteValues["path"] ?? "";
         var segments = path.Split('/');
-        var table = segments[0] == "rpc" && segments.Length > 1 ? $"rpc/{segments[1]}" : segments[0];
+        var table = storage ? $"storage/{path}"
+            : segments[0] == "rpc" && segments.Length > 1 ? $"rpc/{segments[1]}" : segments[0];
         var recorded = new RecordedRequest(
             ctx.Request.Method, table, ctx.Request.QueryString.Value ?? "", body,
             ctx.Request.Headers.ToDictionary(h => h.Key, h => h.Value.ToString(), StringComparer.OrdinalIgnoreCase));

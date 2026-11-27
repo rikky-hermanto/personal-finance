@@ -1,0 +1,10 @@
+NEO BANK - REKENING KORAN
+Nama: JOHN DOE   No. Rekening: 0000000000
+Periode: 01 Apr 2025 - 30 Apr 2025
+Tanggal Keterangan Mutasi Saldo
+01 Apr 2025 03:09:22 Transfer Masuk BI-FAST 5.000.000,00 5.250.000,00
+02 Apr 2025 12:30:00 QRIS KOPI KENANGAN -45.500,00 5.204.500,00
+03 Apr 2025 Bunga Tabungan 1.234,56 5.205.734,56
+31 Abc 2025 10:00:00 Baris rusak 1,00 2,00
+15 Apr 2025 23:59:59 Pembayaran Tagihan PLN -1.000.000,50 4.205.734,06
+16 Apr 2025 Catatan tanpa saldo 10.000,00

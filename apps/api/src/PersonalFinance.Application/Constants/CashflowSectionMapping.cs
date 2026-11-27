@@ -49,6 +49,12 @@ public static class CashflowSectionMapping
         { "P2P Lending", CashflowSection.Investing },
         { "Emergency Fund", CashflowSection.Investing },
         { "Deposito", CashflowSection.Investing },
+        // Source: docs/references/finance-domain/scoring-rubric.md "Spending vs saving" — money moved
+        // to saving or investing is not consumption. Same set as JourneyScoringRules' savings outflows.
+        { "Investment", CashflowSection.Investing },
+        { "Savings Transfer", CashflowSection.Investing },
+        { "Investasi", CashflowSection.Investing },
+        { "Tabungan", CashflowSection.Investing },
 
         // FINANCING
         { "Loan", CashflowSection.Financing },

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using PersonalFinance.Application.Interfaces;
 using PersonalFinance.Domain.Entities;
 using PersonalFinance.Infrastructure.Supabase;
+using System.Globalization;
 using System.Text.Json;
 using static global::Supabase.Postgrest.Constants;
 
@@ -105,14 +106,29 @@ public class JisdorFxRateService(
         var json = await response.Content.ReadAsStringAsync(ct);
         var doc = JsonDocument.Parse(json);
 
-        // BI API response structure: { "data": { "rate": "16450.00" } }
+        // BI API response structure: { "data": { "rate": "16450.00" } } — the rate may also arrive as
+        // a JSON number. Parsed culture-invariantly: on an id-ID host "." is the thousands separator,
+        // so a culture-sensitive parse reads "16450.00" as 1,645,000.
         if (doc.RootElement.TryGetProperty("data", out var data) &&
-            data.TryGetProperty("rate", out var rateElement))
+            data.TryGetProperty("rate", out var rateElement) &&
+            TryReadRate(rateElement, out var rate) && rate > 0m)
         {
-            return decimal.Parse(rateElement.GetString() ?? "0");
+            return rate;
         }
 
         throw new InvalidOperationException($"Unexpected JISDOR response format for {currencyFrom}: {json}");
+    }
+
+    private static bool TryReadRate(JsonElement element, out decimal rate)
+    {
+        rate = 0m;
+        return element.ValueKind switch
+        {
+            JsonValueKind.Number => element.TryGetDecimal(out rate),
+            JsonValueKind.String => decimal.TryParse(element.GetString(), NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out rate),
+            _ => false,
+        };
     }
 
     private async Task CacheRateAsync(string from, string to, decimal rate, DateOnly rateDate, string source, CancellationToken ct)

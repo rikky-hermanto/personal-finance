@@ -87,8 +87,11 @@ public class NeoBankPdfParser : IBankStatementParser
                 var mutation = numberMatches[^2].Value;
                 var balance = numberMatches[^1].Value;
 
+                // The line is "<date> [<time>] <description> <mutation> <balance>". End the description
+                // where the mutation match itself starts: a text search for the mutation can land inside
+                // the balance ("100.000,00" is the tail of "1.100.000,00") and swallow the amount.
                 var descStart = dateTimeMatch.Length;
-                var descEnd = entry.LastIndexOf(mutation);  
+                var descEnd = numberMatches[^2].Index;
                 if (descEnd <= descStart) { LogSkip(entry, "Description extraction failed."); continue; }
 
                 var desc = entry.Substring(descStart, descEnd - descStart).Trim();
