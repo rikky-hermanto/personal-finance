@@ -26,7 +26,7 @@ dependencies = [
     "pgvector>=0.3",
     "flashrank>=0.2",
     "sse-starlette>=2.1",
-    "smolagents[litellm]>=1.9",
+    "smolagents[litellm]>=1.26.0",
     "litellm>=1.50",
     # Jev categorization is an opt-in backend. Keep the pre-1.0 SDK bounded so
     # response-model or retry-default changes require an explicit review.
