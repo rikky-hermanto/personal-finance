@@ -1,3 +1,33 @@
+---
+id: PF-158
+size: L
+flags: [Ready]
+sensitive: []
+rework: 0
+loopFailures: 0
+review: none
+recommended:
+  model: opus
+  effort: high
+  estimate5h: null
+  estimateWeek: null
+approved:
+  model: opus
+  effort: high
+  by: owner
+  at: 2026-11-27T02:44:37Z
+  at-label: 2026-11-27 10:44 Asia/Makassar
+  budgetOverride: true
+run:
+  worktree: .worktrees/pf-158
+  branch: loop/pf-158
+  slot: 2
+  fixRounds: 0
+  segments: 0
+  checkpoint: .loop/runs/PF-158/checkpoint.json
+  logs: .loop/runs/PF-158/
+---
+
 # PF-158 — Unit-test coverage per module
 
 > **GitHub Issue:** _(not created yet; supersedes #42 PF-034, #43 PF-035, #44 PF-036)_
@@ -14,7 +44,7 @@ The 2026-11-27 baseline shows unit tests run 51.0% of the .NET API, 86.5% of the
 ## Acceptance Criteria
 
 - [ ] `npm run coverage` reports .NET line coverage **≥ 75%** (baseline 51.0%), with no Application service below 60%.
-  > Not met: later phases. After Phase 1, .NET is 51.0%.
+  > Not met: later phases. After Phase 3, .NET is 75.5% (7,285 of 9,653 lines), but seven Application services are still below 60%.
 - [ ] AI service line coverage **≥ 93%** (baseline 86.5%); `app/providers/gemini.py` and `anthropic.py` each ≥ 80%, including the `max_tokens` truncation path.
   > Not met: Phase 5. Now 86.5%.
 - [ ] Frontend non-UI code (`src/lib`, `src/utils`, `src/api`) line coverage **≥ 85%** combined (baseline: 89.5% / 0% / 0%).
@@ -22,11 +52,11 @@ The 2026-11-27 baseline shows unit tests run 51.0% of the .NET API, 86.5% of the
 - [ ] The 9 skipped `CategoryRuleService` tests run against the harness and pass; `dotnet test` reports 0 skipped.
   > Not met: Phase 4. Only 8 of the 9 skipped tests are in `CategoryRuleServiceTests`; the ninth is in `CategoryPresetServiceTests`, which STEP 14 does not mention.
 - [ ] Every Supabase-backed write test asserts the request carries the caller's bearer token and sends no `user_id` (the owner comes from RLS, per CLAUDE.md "Auth").
-  > Not met: later phases. The "sends no `user_id`" part applies as worded in checklist decision 1.
+  > Not met: later phases. The "sends no `user_id`" part applies as worded in checklist decision 1. Phase 2's write tests follow decision 1: the checked cashflow functions send no `user_id`; the direct writes (`uploaded_files`, `wallet_account_aliases`, the delete-all filter, the FX cache) carry the caller's id or, for the shared FX cache, the service-role key.
 - [ ] docs/records/coverage/README.md has a **By module** section, and history.csv has one row per completed phase.
-  > Not met yet: the By module section exists and Phase 1 has its history row. Phases 2 to 6 still need theirs.
+  > Not met yet: the By module section exists and Phases 1 to 3 have history rows. Phases 4 to 6 still need theirs.
 - [ ] No production file changes, except fixes for bugs the tests expose. Each such fix is listed in Notes with the test that found it.
-  > Not met: ticket-wide, so it stays open. It holds after Phase 1: nothing under `apps/api/src`, `apps/frontend/src` or `services/ai-service/app` changed.
+  > Not met: ticket-wide, so it stays open. Phase 2 made no bug fixes. Its only production changes are the owner-approved deletions of decision 2 (see Notes), which also changed two assembly-marker types in `Program.cs`. Phase 3's only production change is the owner-approved `BucketsService` fix, listed in Notes with its tests.
 - [ ] The flaky `test_unique_artifacts_are_resumable_and_validate_dataset_identity` either passes 20 runs in a row or is fixed, with the cause in Notes.
   > Not met: Phase 5.
 
@@ -236,35 +266,39 @@ Add a "Supabase-backed services" bullet under Testing Conventions in `.claude/ru
 
 For every service step below: stub only the tables the method touches; assert both the returned DTO and the recorded requests (filters, ordering, pagination per PERF-02); add one test for an empty result and one for a PostgREST error (stub status 500, then assert the exception type and that `ex.Message` doesn't leak, per ERR-01). Expected amounts are `decimal` literals worked out by hand from formulas.md, with the formula cited in a comment on the assertion.
 
-### [ ] STEP 5 — `TransactionService` (191 uncovered lines, 31%)
+### [x] STEP 5 — `TransactionService` (191 uncovered lines, 31%)
 
 Cover: paged listing (default 50, max 200, page beyond the end), the date-range and account filters, the count query (`Content-Range`), the running-balance view `TransactionWithBalance`, and the update and delete paths publishing their MediatR events (verify `IMediator.Publish` with Moq). Closes PF-036 (#44).
 
 > **Why:** every Cashflow number reads through this service; a wrong filter silently drops transactions from totals.
 > **Check:** `TransactionService.cs` ≥ 80% in `npm run coverage`.
 
-### [ ] STEP 6 — `DashboardService` (254 lines, 3%) and `SpendingAnalysisService` (154 lines, 0%)
+### [!] STEP 6 — `DashboardService` (254 lines, 3%) and `SpendingAnalysisService` (154 lines, 0%)
+
+> **Failure:** coverage is met (99.6% and 100%), but 7 tests' hand-computed totals disagree with the code, so the step stops here (THINK-04). The failing tests are left in place; see Notes, "Phase 2 mismatches".
 
 Cover: income, expense and net per month; category breakdown sums matching the total; savings and investment transfers excluded from spending (as scoring-rubric.md defines spending); months with no data; and multi-currency rows using `AmountIdr` only. For each, build one hand-checked fixture of about 8 transactions whose totals you compute on paper first.
 
 > **Why:** these are the numbers on the Cashflow screen. A test that copies today's output proves nothing, so the expected values must come from the fixture worked out by hand.
 > **Check:** both files ≥ 75%. Any mismatch between hand totals and the code is a stop-and-ask, not an assertion change (THINK-04).
 
-### [ ] STEP 7 — `InsightService` (54% to ≥ 80%) and `TransactionPipelineService` (73% to ≥ 90%)
+### [x] STEP 7 — `InsightService` (54% to ≥ 80%) and `TransactionPipelineService` (73% to ≥ 90%)
 
 Fill the branches the current tests miss. To find them, read the lines with `hits="0"` for these files in `apps/api/TestResults/coverage/*/coverage.cobertura.xml`.
 
 > **Why:** both are already partly tested, so these are cheap points; the pipeline is the five-stage gate every import passes.
 > **Check:** targets met.
 
-### [ ] STEP 8 — Write paths: `SupabaseCashflowMutationService` (180 lines, 26%), `CreateTransactionCommandHandler` with its validator, `DeleteAllTransactionsCommandHandler`, `StorageService`
+### [x] STEP 8 — Write paths: `SupabaseCashflowMutationService` (180 lines, 26%), `CreateTransactionCommandHandler` with its validator, `DeleteAllTransactionsCommandHandler`, `StorageService`
 
 Cover: the request body contains no `user_id`; the bearer token is the caller's; validator rules (one passing and one failing case per rule, named `Validate_{Condition}_{Result}`); delete-all scoped by RLS (it sends no owner filter of its own; assert the request has no `user_id` in the query); storage upload path and content type.
 
 > **Why:** these are the writes. The owner-from-RLS rule is a security property; a test that pins it stops a future "helpful" `user_id` from being added.
 > **Check:** each file ≥ 80%.
 
-### [ ] STEP 9 — Parsers and external clients: `CsvTransactionParser` (0%), `NeoBankPdfParser` (6%), `JisdorFxRateService` (0%), `LlmExtractionClient` (68%), `TransactionsController` (37%)
+### [!] STEP 9 — Parsers and external clients: `CsvTransactionParser` (0%), `NeoBankPdfParser` (6%), `JisdorFxRateService` (0%), `LlmExtractionClient` (68%), `TransactionsController` (37%)
+
+> **Failure:** 3 tests fail on production defects that need a code fix (not made): `CsvTransactionParser` throws on every row, so it reaches only 63.4%; `JisdorFxRateService` reads the rate 100 times too high under the `id-ID` culture; `NeoBankPdfParser` corrupts a description when the balance text ends with the amount text. The other files are at 95.5% to 100%. The history row is the orchestrator's.
 
 Parsers: use the sanitized fixtures in `tests/PersonalFinance.Tests/Fixtures/` (add one sanitized NeoBank text fixture if none exists; never a real statement). JISDOR: stub its HTTP source with the existing `StubHandler` pattern and its Supabase cache with `FakePostgrest`. Controller: instantiate it with a mocked `IMediator` and services, covering each action's success path and the ERR-03 status mapping. Closes PF-035 (#43).
 
@@ -275,14 +309,18 @@ Parsers: use the sanitized fixtures in `tests/PersonalFinance.Tests/Fixtures/` (
 
 ## Phase 3 — Journey
 
-### [ ] STEP 10 — `JourneyScoringService` (232 lines, 37%)
+### [x] STEP 10 — `JourneyScoringService` (232 lines, 37%)
+
+> The check passes (89.4%), and `JourneyScoringServiceTests` now asserts that each of the four Cleared values scores exactly 70. The service reads no investments table, so there is no investment loading to test.
 
 The internal static scoring functions are already tested; cover the orchestration: snapshot loading from transactions, assets, liabilities and investments; each tier's indicators at the cleared (≥ 70) and mastered (100) boundaries from scoring-rubric.md (spend ratio 89% / 80%; cover 2.1 / 3 months; DTI 29.6% / 20%; savings rate 9% / 15%); DTI marked unevaluated when no debts are recorded or confirmed (FIN-04); the quest engine invoked on the same snapshot.
 
 > **Why:** this is the product's core. The boundary tests pin the published thresholds, so a change to scoring-rubric.md must come with a test change.
 > **Check:** ≥ 80%. Any threshold that differs from scoring-rubric.md is a stop-and-ask.
 
-### [ ] STEP 11 — `GoalService` (126 lines, 0%), `BucketsService` (204 lines, 0%), `BucketCalculator` (80%), `JourneyConfirmationService` (0%), `SupabaseQuestStore` (100 lines, 0%)
+### [x] STEP 11 — `GoalService` (126 lines, 0%), `BucketsService` (204 lines, 0%), `BucketCalculator` (80%), `JourneyConfirmationService` (0%), `SupabaseQuestStore` (100 lines, 0%)
+
+> Coverage is met (`BucketCalculator` 99.2%, `BucketsService` 97.5%, `GoalService`, `SupabaseQuestStore` and `JourneyConfirmationService` 100%). The tests found defects in `BucketsService`, fixed with the owner's approval on 2026-11-28 (Notes, "Phase 3 mismatches"). The Phase 3 history row (`b9663466`) is committed.
 
 Quest store: completions are append-only; assert it never issues a DELETE or a PATCH on `quest_completions` (CLAUDE.md "Quests"). Buckets and goals: filtered reads by kind and status, the progress arithmetic against hand-computed fixtures.
 
@@ -310,6 +348,8 @@ Portfolio review: AI service call stubbed with `StubHandler`; the disclosure (FI
 ### [ ] STEP 14 — Settings: un-skip `CategoryRuleServiceTests`; CategoryRules handlers and controller
 
 Remove `Skip = ...` from the 9 tests and rewrite their arrange steps on `FakePostgrest`. Keep their names and assertions; if an assertion must change, add a `// Reason:` comment (THINK-04). Add one test that categorization loads the rules once per batch, not once per row (PERF-01): assert exactly one GET to `category_rules`. Closes PF-034 (#42) for handlers and validators.
+
+Also bring `StatementImportService` (38.5% on 2026-11-28) to at least 60%. No other step targets it, and the first acceptance criterion needs every Application service at 60% or more. (Added 2026-11-28 with the owner's agreement.)
 
 > **Why:** these tests were written and then parked for want of exactly this harness.
 > **Check:** `dotnet test` reports `Skipped: 0`.
@@ -381,6 +421,49 @@ Use `vi.stubGlobal("fetch", vi.fn())`. For `authenticatedFetch.ts`: the bearer h
 - **`src/data/mockTransactions.ts`** (247 lines) is fixture data. If nothing in production imports it, exclude it from coverage in `vitest.config.ts` and say so; otherwise leave it.
 - **Old tickets:** when done, close #42 (PF-034), #43 (PF-035) and #44 (PF-036) as superseded by PF-158. #45 (PF-037, controller integration) is partly covered by the controller tests here; leave it open for `WebApplicationFactory` end-to-end auth tests.
 - **Bugs found:** list each production fix here with the test that exposed it.
+  - Phase 2 fixed none. The defects it found are listed under "Phase 2 mismatches" and "Phase 2 defects" below, each with its test.
+  - Phase 3 fixed `BucketsService`; each fix and its test are under "Phase 3 mismatches".
+- **Phase 2 deletions (owner decision 2).** A second search (all of the worktree except `bin`, `obj` and `node_modules`: production code, tests, DI registration, interface use, `Send(...)` calls, frontend and AI service) found no caller of `CreateTransactionCommand` (no `Send`, no endpoint, no test) or of `ITransactionService.AddTransactionsAsync` (no call in `src`, no Moq setup in `tests`). The only references were `Program.cs`, which used `CreateTransactionCommandHandler` and `CreateTransactionCommandValidator` as assembly markers, and documents. Deleted: `Application/Commands/CreateTransactionCommand.cs`, `Application/Commands/CreateTransactionCommandHandler.cs`, `Application/Validation/CreateTransactionCommandValidator.cs`, `AddTransactionsAsync` (interface and implementation), and the private `TransactionService.MapToEntity`, which only `AddTransactionsAsync` used. `Program.cs` now uses `RecalculateJourneyCommandHandler` and `CreateAccountCommandValidator` as markers for the same Application assembly, so the same handlers and validators are registered. `.claude/skills/add-endpoint/SKILL.md` now points at `CreateAssetCommandValidator.cs`. No tests existed for the deleted code, so none were removed. Kept, because something else uses them: `TransactionCreatedEvent` and `JourneyRecalcOnTransactionHandler` (used by `JourneyRecalcOwnerTests`); nothing publishes the event any more. Still stale: the AddTransactionsAsync references in `docs/architecture/sequences/*.html` and in the backlog plan `PF-130-submit-transactions-command-handler-todo.md`.
+- **Phase 2 deviation from STEP 8's wording.** `DeleteAllTransactionsCommandHandler` does send an owner filter (`user_id=eq.<caller>&id=gt.0`) on both deletes. The test pins the caller's id, following owner decision 1, instead of asserting no `user_id`. The handler has no caller either (no `Send` of `DeleteAllTransactionsCommand`; `DELETE /reset` uses `rpc/reset_cashflow`), and the migrations revoke direct DELETE on `transactions` from `authenticated`, so it would fail on a real database. It was tested, not deleted, because decision 2 does not cover it.
+- **Phase 2 mismatches (hand totals against code; tests left failing, THINK-04):**
+  - `DashboardServiceTests.GetDashboardDataAsync_InvestmentTransfer_IsNotCountedAsSpending` and `..._TopCategories_ExcludeTransfersAndSumToSpending`: an `Investment` expense (the rubric's savings outflow, and the pipeline's default category) is counted as spending in the monthly cash flow and the top categories, because `CashflowSectionMapping`'s Investing list (Stock, Mutual Fund, ...) does not include it. The summary and current-month `Expenses` count every Expense row, including the code's own Investing categories, so they never match the monthly figures or the rubric; top-category percentages divide by that larger total and do not add up to 100. The rubric's set {Investment, Savings Transfer, Investasi, Tabungan} and the code's Investing list do not overlap at all.
+  - `DashboardServiceTests.GetCashflowStatementAsync_Monthly_OutflowsAreNegativeInInvestingFinancingAndGrandTotal`: a stock purchase and a loan repayment appear as positive cash flow, so the grand total adds them instead of subtracting (+1,000,000 instead of −1,000,000 in the fixture).
+  - `DashboardServiceTests.GetDashboardDataAsync_LateEveningRowOnLastDay_CountsInItsStatementMonth`: the SDK converts `timestamptz` values to the host's local time and drops the kind (verified: `2026-03-31T20:00:00+00:00` reads back as `2026-04-01T04:00:00`, kind Unspecified, on this UTC+8 host). A row stored at 23:30Z on 31 March lands in April. It passes on a UTC host (CI, containers) and fails on this machine, which is where `npm start` runs the API. On UTC+8, any row stored at 16:00Z or later moves to the next day.
+  - `SpendingAnalysisServiceTests.GetSafeToSpendAsync_InvestmentAlreadyMadeThisMonth_IsNotAlsoCountedAsSpent`: this month's investment is subtracted twice, once as the savings goal and once as already spent.
+  - `SpendingAnalysisServiceTests.GetSafeToSpendAsync_RecurringInvestment_CountsAsSavingsGoalNotCommittedBill`: a recurring investment debit is also counted as a committed bill (1,352,667 instead of 186,000).
+  - `SpendingAnalysisServiceTests.GetVarianceExplainerAsync_InvestmentPurchases_AreNotSpendingDrivers`: investment purchases count as spending in the variance explainer.
+- **Phase 2 defects (need a production fix; tests left failing):**
+  - `StatementParserTests.CsvTransactionParser_ExportFormat_ParsesEveryColumnExactly`: `record["Amount (IDR)"]` on CsvHelper's dynamic record throws `RuntimeBinderException` for every row. The parser is registered in `Program.cs` but is not in the `IStatementImportService` parser map, so nothing reaches it in production.
+  - `JisdorFxRateServiceTests.GetRateToIdrAsync_IndonesianCulture_ParsesBankIndonesiaRateExactly`: `decimal.Parse` uses the current culture, so under `id-ID` the rate "16450.00" becomes 1,645,000. This host runs `en-US`, so it is latent here. The same method also fails if BI sends the rate as a JSON number.
+  - `StatementParserTests.NeoBankPdfParser_CreditWhoseAmountEndsTheBalance_KeepsDescriptionClean`: the description ends at `LastIndexOf(amount)`, which finds the amount inside the balance ("1.100.000,00" ends with "100.000,00"), giving "Refund Tokopedia 100.000,00 1.". Amounts are unaffected.
+- **Phase 2 observations (no test fails):**
+  - `GetTransactionPageAsync`'s count query is a plain `Get()`: it downloads every matching row with no `Range`, and the SDK sends `Prefer: count=estimated`, so above PostgREST's exact-count threshold the page total can be an estimate.
+  - `NeoBankPdfParser` marks the statement's WIB clock time as UTC, which is what feeds the late-evening case above.
+  - `LlmExtractionClient` carries `amount_idr`, `exchange_rate` and `statement_balance` as `double` before casting to `decimal` (FIN-01).
+  - `RegisterFileHashAsync` and `UpsertAliasAsync` have no production caller and insert directly into tables whose DML the migrations revoke. `UploadPreviewNEW` stores under the literal user "default-user", and the migrations drop the storage policies. Both were tested as written.
+  - `SpendingAnalysisService`'s −500,000 "warning" band has no cited source (FIN-02). The tests only assert "danger" far below it and "not ok" at zero.
+  - Services propagate `PostgrestException` unchanged. The "`ex.Message` doesn't leak" check therefore belongs to the exception middleware (STEP 15); the controller tests assert fixed bodies for the checked-function failures.
+  - `FakePostgrest` now also serves `/storage/v1/*` (keyed as `storage/<path>`), so `StorageService` runs on the harness.
+
+- **Orchestrator review of Phase 2 (2026-11-27).** A separate `dotnet test` run gave the same result: 1,098 passed, 9 skipped, and the same 10 tests failed. Per-file coverage matches (.NET 51.0% to 67.7%). Facts to use when fixing the findings:
+  - The saving and investing category lists disagree: `JourneyScoringRules.SavingsCategories`, the Investing section of `CashflowSectionMapping` (dashboard, safe-to-spend, variance and buckets use it) and the two lists in `InsightService`. The first two share no names.
+  - Presets apply automatically when no user rule matches (`CategoryRuleService`, layer 2b). Investment keywords give `Investment`. `TABUNGAN`, `AUTODEBET`, `AUTO DEBET`, `CICILAN` and `ANGSURAN` give `Saving` (migration `20260510000003`), which neither of the first two lists includes, although the scoring rubric says only `Investment` comes from a preset. `CICILAN` and `ANGSURAN` mean loan installments, so move them before treating `Saving` as saving.
+  - Safe-to-spend: in the failing "already invested" test, this month's investment equals the usual amount (1,000,000). Only dropping investments from "already spent" would pass that test, but would overstate the result whenever the month's investment is larger: with 3,000,000 invested it would leave 8,564,000 for the month instead of 6,564,000. Set aside the larger of the two amounts, and add a test for that case.
+  - The time-zone shift also reaches Journey: `JourneyScoringRules.MonthTotal` groups rows read the same way by `t.Date.Month`. No Phase 2 test covers this.
+- **Phase 3 mismatches (2026-11-28).** All were in `BucketsService`, with the tests in `Journey/BucketsServiceTests.cs`. The tests were left failing until the owner approved the fixes the same day (see "Fixes" below the list). Each item describes the behaviour before the fix.
+  1. `Read_TransactionDateRange_CoversTheWholeLastDay` (`close` and `current`): the upper bound is `date=lte.<day>T00:00:00` on a `timestamptz` column. Month close drops last-day rows that carry a clock time. The current view sends `+08:00` on this host, so it also drops today's date-only rows (stored at 00:00Z, after the bound of 16:00Z the day before).
+  2. `GetMonthCloseAsync_LateEveningRowOnLastDay_StaysInItsStatementMonth`: dates are not passed through `StatementDate.FromSdk`, the Phase 2 fix, so on UTC+8 a 20:00Z row moves to the next month (free spent 9,200,000 instead of 8,200,000). It passes on a UTC host.
+  3. `GetMonthCloseAsync_RefundInASpendingCategory_IsNotCountedAsSpending`: the biggest-driver sum includes every row in a category, whatever its type, so a 6,000,000 refund makes Shopping the driver instead of Food.
+  4. `GetMonthCloseAsync_CommittedBillRises_IsNotNamedAsTheFreeOverspendDriver`: committed items are not left out of the driver, so a rent rise names "Bill" as the cause of a free overspend that rent is not part of. The expected value rests on reading the build plan's "cause-attached" shortfall rule as meaning a cause within free spending; the owner should confirm it.
+  5. `GetMonthCloseAsync_Transfers_NameTheSourceAccount`: `Transaction.AccountName` is never filled. `transactions` stores only `account_id` (since migration `20260518000001`) and the service does not read `accounts`, so each transfer's source and each committed item's source are blank. The build plan (Ticket 3) asks for date, from, to and amount.
+  - **Fixes (all in `BucketsService.cs`):** (1) both reads use an exclusive end at UTC midnight (next month, or tomorrow); (2) dates pass through `StatementDate.FromSdk`; (3 and 4) free spending has one definition, `IsFreeSpend`, used by both totals and by both sides of the driver comparison, also pinned by `GetMonthCloseAsync_OneOffBillBesideACommittedOne_DriverCountsOnlyTheFreePart`; (5) account names are read from `accounts` for the owner, also pinned by `GetBucketsAsync_CommittedItem_NamesItsSourceAccount`.
+  - **A related fix made with them:** `Last7DayFreeSpend` summed eight calendar days while `BucketsCard.tsx` divides it by 7. Fixing mismatch 1 would have brought today back into the sum on UTC+8, so the window is now today and the six days before it (`GetBucketsAsync_LastSevenDays_CoversTodayAndTheSixDaysBefore`).
+- **Phase 3 observations (seen in the code, no test):**
+  - `BucketsService` still takes today from the host clock (`DateTime.Today`), not the registered `AppTimeProvider` (Asia/Jakarta). On a UTC host, between 00:00 and 07:00 in Jakarta it treats the previous day as today.
+  - `BucketsCard.tsx` shows a green check on month close even for "Some commitments were missed". With no commitments, `AllCommittedPaid` is true and the streak is 0, so it reads "Everything committed was paid. 0 months running." This conflicts with FIN-04. React component tests are not set up (PF-038).
+  - The committed streak cannot exceed 4, because only four months are read.
+  - `SpendingAnalysisService` and `InsightService` also pass today at midnight as an inclusive end date, so they likely share mismatch 1. `DashboardService` ends at 23:59:59.
+  - `GoalService.EarmarkedInAccountsAsync` and `ContributionsForAsync` read without paging. `supabase/config.toml` sets `max_rows = 1000`, so their totals would be cut short beyond 1,000 rows.
 
 ## Execution Notes
 
@@ -444,12 +527,34 @@ Model: **Sonnet 5.5** · Effort: **medium**. Pure functions and stubbed fetch.
 
 **State (Phase 1, 2026-11-27):** STEPs 1 to 4 are done. Phase 1 is committed on `main` as `e8c18753`, and its history row is recorded. This was a hand run with no independent verifier. The owner asked for Phases 2 to 6 to run one subagent at a time on branch `loop/pf-158`.
 
+**State (Phase 2, 2026-11-27):** STEPs 5, 7 and 8 are done; STEPs 6 and 9 are marked `[!]`. Their coverage is met except `CsvTransactionParser` (63.4%), but 10 tests fail on purpose: 7 money mismatches and 3 production defects (Notes). `dotnet test`: 1,098 passed, 10 failed, 9 skipped. .NET coverage rose from 51.0% to 67.7%. The work is uncommitted in `.worktrees/pf-158`; the orchestrator records the history row. No independent verifier has run.
+
+**State (Phase 3, 2026-11-28):** STEPs 10 and 11 are done. `dotnet test`: 1,185 passed, 0 failed, 9 skipped. `npm run coverage` exits 0, with .NET at 75.5%. Phase 3 is committed as `b9663466` and merged into `main` with the Phase 2 commits, at the owner's request and before the live checks in D and E. On the merged `main`, the .NET, pytest and Vitest suites, the lockfile check, lint, both type checks and the frontend build passed. Phase 3's only production change is `BucketsService.cs`. The fixes have not been checked against a real database or in the browser. This was a hand run with no independent verifier. The Phase 2 state above predates commit `7e21fc34`, whose message says it fixed six bugs, removed the unused `CsvTransactionParser` and left no failing tests. The STEP 6 and STEP 9 `[!]` marks and the Phase 2 Notes have not been updated.
+
+**Known defects to confirm (Phase 3).** The `BucketsService` defects the tests found are fixed (Notes, "Phase 3 mismatches"). Still open, none with a test:
+
+- `apps/frontend/src/components/buckets/BucketsCard.tsx` shows a green check whether or not commitments were paid, including when there are none (FIN-04). A .NET test cannot reach it, and React component tests are not set up.
+- `SpendingAnalysisService.cs` and `InsightService.cs` likely share the end-date gap. No test reads the query they send.
+- `BucketsService.cs` takes today from the host clock, not Asia/Jakarta. Its tests use the same host clock, so they cannot show this.
+
 **Known defects to confirm** (found while building the harness; no production code was changed):
 
 - `CreateTransactionCommandHandler.cs` and `TransactionService.AddTransactionsAsync` insert a `Transaction` model straight into `transactions`. I found no caller of either in `apps/api/src`. They would fail on a real database: the request body carries `"AccountName":""`, which no migration creates as a column, and only the `pf_cashflow_mutator` role has INSERT on that table (`20261009100000_pf_s08_checked_cashflow_import.sql`). A mocked or faked test cannot catch this, because the fake accepts any body. This was read from the code and migrations, not run against a database. STEPs 5 and 8 plan to test both paths; deleting them may be the better choice.
+  - Resolved in Phase 2: deleted under decision 2 (Notes, "Phase 2 deletions").
 
 - Found after the Phase 1 commit, and fixed: `npm run coverage` failed when started from a lower-case drive letter (`c:\`). Vite could not load `harvestStyles.test.ts`, so 4 tests did not run and no history row was written. `scripts/coverage-report.mjs` now upper-cases the drive letter. Running that test directly with Vitest from such a terminal still fails.
 - Not fixed: when a Vitest test fails, no frontend coverage file is written, so `coverage-report.mjs` stops without recording, even though it first says coverage "is still recorded".
+
+**Known defects to confirm (Phase 2).** Each has a failing test; none can be caught by the fake alone, because they are wrong arithmetic or parsing, not wrong requests. Decide for each whether the code or the documented rule is wrong:
+
+_Update (Phase 3 session): the `7e21fc34` commit message reports these fixed. The list is kept as the record of what Phase 2 found._
+
+- `Application/Services/DashboardService.cs`: Investment-category spending, summary expenses that include investing, top-category percentages, and positive investing and financing outflows in the cash-flow statement (4 tests).
+- `Application/Services/SpendingAnalysisService.cs`: investments subtracted twice in safe-to-spend, and counted as spending in the variance explainer (3 tests).
+- Host time zone: `timestamptz` values read back in local time, so on this UTC+8 machine late-evening rows move to the next day (1 test, passes on UTC hosts).
+- `Infrastructure/Services/JisdorFxRateService.cs`: culture-dependent `decimal.Parse` (1 test).
+- `Infrastructure/Parsers/CsvTransactionParser.cs`: throws on every row; also unused (1 test).
+- `Infrastructure/Parsers/NeoBankPdfParser.cs`: description cut at the wrong place (1 test).
 
 **Decisions for the later phases.** The owner approved these in chat on 2026-11-27, and Phases 2 to 6 follow them. The plan text above is unchanged.
 
@@ -461,6 +566,8 @@ Model: **Sonnet 5.5** · Effort: **medium**. Pure functions and stubbed fetch.
 ### A. Before you start
 
 - ☐ Phase 1 is on `main`: `e8c18753`, followed by the coverage-script fix and the history-row commit. No Supabase, Docker or other service is needed.
+- ☐ Phase 2: check out `loop/pf-158` with the Phase 2 commit. No service is needed.
+- ☐ Phase 3: check out `main` (.NET 10 SDK). Pass: `git show --stat b9663466` lists `BucketsService.cs` and four test files.
 
 ### B. Read the code
 
@@ -468,20 +575,38 @@ Model: **Sonnet 5.5** · Effort: **medium**. Pure functions and stubbed fetch.
 - ☐ `Support/FakePostgrestTests.cs`: 10 tests, made up of the 2 spike tests and 8 operations (the plan's 7 plus Upsert, which the services also use). The assertions were written from requests recorded from the real SDK. The response shapes follow PostgREST's documented behavior and were not compared against a running server.
 - ☐ `scripts/coverage-report.mjs`: the `MODULES` list. Pass: you agree with the first-match order (Settings, Journey, Investment & Desk, Cashflow, Assets). Patterns are the plan's, case-sensitive, so files such as `components/TransactionTable.tsx` and `api/liabilitiesApi.ts` count as Platform.
 - ☐ `.claude/rules/backend.md`, "Supabase-backed services" bullet. It differs from STEP 4's wording on `user_id` (decision 1).
+- ☐ Phase 2: the fixture tables in the doc comments of `Cashflow/DashboardServiceTests.cs` (`QuarterFixture`, `StatementRows`) and `Cashflow/SpendingAnalysisServiceTests.cs` (`BaseFixture`, `VarianceFixture`). Pass: you recompute each total from the table and get the asserted value.
+- ☐ Phase 2: the deletions in `git show --stat 7e21fc34` (including the three create-transaction files, plus edits to `ITransactionService.cs`, `TransactionService.cs`, `Program.cs`). Pass: `Program.cs` only swaps the two marker types, and `rg "CreateTransactionCommand|AddTransactionsAsync" apps` finds nothing.
+- ☐ Phase 3: `Journey/BucketsServiceTests.cs`, the month-close fixture table. Pass: you recompute from the table a free budget of 7,200,000, free spending of 8,200,000, an overspend of 1,000,000, 1,500,000 invested, and Food as the biggest driver.
+- ☐ Phase 3: `Journey/JourneyServicesTests.cs`, earmarked total. Pass: 2,000,000.50 - 500,000.25 + 1,000,000 = 2,500,000.25, with the closed goal left out.
+- ☐ Phase 3: `Services/JourneyScoringServiceTests.cs`, "Cleared bars". Pass: the four values match scoring-rubric.md, and each expects exactly 70.
+- ☐ Phase 3: `git show b9663466 -- apps/api/src`. Pass: only `BucketsService.cs` changed, and you accept that the seven-day total is today plus the six days before it.
+- ☐ Phase 3: `Journey/JourneyServicesTests.cs`, quest store tests. Pass: you accept that `InsertCompletionsAsync` sends no DELETE or PATCH, and that `MarkSeenAsync` does PATCH `quest_completions`, changing `seen_at` only. That is narrower than STEP 11's "never issues a DELETE or a PATCH".
+- ☐ Phase 3: `Journey/JourneyScoringOrchestratorTests.cs`, with `Commands/RecalculateJourneyCommandHandlerTests.cs` for the quest engine. Pass: DTI is `no_data` with no debts recorded or confirmed, and the engine receives the same snapshot instance that scoring returned.
 
 ### C. Run the tests
 
 - ☐ `cd apps/api && dotnet test tests/PersonalFinance.Tests --filter "FullyQualifiedName~FakePostgrestTests"`. Pass: 10 passed.
 - ☐ `npm run coverage` from the repo root. Pass: exit 0; .NET 893 passed and 9 skipped; pytest 385 passed; Vitest 170 passed.
+- ☐ Phase 3: `cd apps/api && dotnet build PersonalFinance.slnx && dotnet test --no-build`. Pass: 1,185 passed, 0 failed, 9 skipped. Build first: `--no-build` alone runs old binaries. This replaces the Phase 2 expected counts. The tests were run on a UTC+8 host only; CI covers UTC.
+- ☐ Phase 3: `cd apps/api && dotnet test tests/PersonalFinance.Tests --filter "FullyQualifiedName~Journey.BucketsServiceTests"`. Pass: 18 passed.
+- ☐ Phase 3: `npm run coverage` from the repo root (it rewrites `docs/records/coverage/`). Pass: exit 0, .NET 75.5%, and `BucketsService.cs` at 97.5%.
 
 ### D. Start the stack
 
 - ☐ Not needed for Phase 1: no production code changed.
+- ☐ Phase 2: optional. Start with `npm start` and open `/cashflow`; the app should load as before, since the deleted paths had no endpoint.
+- ☐ Phase 3: run `npm start` from the main checkout and open Buckets. Pass: the card loads with no error.
 
 ### E. Check what could not be proven here
 
 - ☐ Open `docs/records/coverage/history.csv`. Pass: it has the `d6bd0854+dirty` row and the `e8c18753` row. The first row now stands for the baseline: compared with the original, one more .NET line is covered (4948 to 4949, Domain 32.3% to 32.6%), the headline percentages are the same, and it gained the module columns.
 - ☐ Open `docs/records/coverage/README.md`. Pass: By module shows six module rows plus AI service, and their covered and total lines add up to the "All three" row (8,931 of 32,251 in this run).
+- ☐ Phase 2: with a Cashflow screen open on real data that includes an `Investment` row, compare the dashboard's monthly expense with the Journey spending indicator. Pass: you decide which definition the dashboard should use.
+- ☐ Phase 2: the PostgREST shapes for `Prefer: count=estimated` and for `timestamptz` output were read from the SDK, not from a running server. Optional: confirm both against local Supabase.
+- ☐ Phase 3: on that stack, add an expense dated today. Pass: free spending includes it.
+- ☐ Phase 3: open the committed list, and month close when it is shown. Pass: each row with a linked account shows the account's name.
+- ☐ Phase 3, optional: the Buckets writes are proven with a mock. Change the future plan amount in Buckets and reload. Pass: the new amount is still shown.
 
 ### F. Optional
 
@@ -490,4 +615,15 @@ Model: **Sonnet 5.5** · Effort: **medium**. Pure functions and stubbed fetch.
 ### G. Decide and close
 
 - ☐ Phase 1 is accepted when C and E pass. Do not move the ticket to `done/`: Phases 2 to 6 remain, and `/loop-accept` does not apply to this hand run.
-- ☐ After Phase 6, review the commits on `loop/pf-158` before merging. Nothing is pushed or merged for you.
+- ☐ Phase 2 is accepted when you have confirmed the `7e21fc34` fixes settle each defect above the way you want.
+- ☐ Decide whether to take the three open items above as follow-ups.
+- ☐ Phase 3 is accepted when C, D and E pass and you have reviewed the fix and the new tests.
+- ☐ Commit, history row and merge are done. The ticket stays in `in-progress` because Phases 4 to 6 remain.
+- ☐ Phases 1 to 3 are on `main`. After Phase 6, review the later commits on `loop/pf-158` before merging.
+
+## Loop Notes
+- 2026-11-27 12:01 Asia/Makassar Phase 2 committed (7e21fc34): 1,107 passed, 0 failed, 9 skipped; .NET 67.8%; 6 bugs fixed; starting Phase 3
+- 2026-11-27 16:55 Asia/Makassar Phase 3 done: Journey orchestration + GoalService + BucketsService + JourneyConfirmationService + SupabaseQuestStore covered. Gaps: STEP 11's 75% check not met (GoalService 36.5%, SupabaseQuestStore 41.0%, BucketsService 59.3%); STEP 10's Cleared values not asserted; Phase 3 history row not recorded; uncommitted.
+- 2026-11-28 11:43 Asia/Makassar Phase 3 follow-up: coverage targets met for all STEP 10 and 11 files (.NET 75.4%); STEP 11 now [!] because 6 new tests fail on 5 BucketsService defects (no production code changed); history row recorded with dotnet flagged failing; uncommitted.
+- 2026-11-28 11:53 Asia/Makassar Phase 3 BucketsService defects fixed with owner approval (plus the 7-day window): 1,185 passed, 0 failed, 9 skipped; .NET 75.5%; STEP 11 ticked; uncommitted; not checked against a real database or in the browser.
+- 2026-11-28 12:32 Asia/Makassar Phase 3 committed (b9663466) and merged into main with Phase 2 at the owner's request: 1,185 passed, 0 failed, 9 skipped; .NET 75.5%; history row recorded. Live Buckets checks not done.
