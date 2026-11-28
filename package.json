@@ -16,7 +16,7 @@
     "coverage": "node scripts/coverage-report.mjs"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
+    "concurrently": "^10.0.6",
     "supabase": "^2.98.2"
   }
 }
