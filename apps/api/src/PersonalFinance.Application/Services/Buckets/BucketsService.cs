@@ -23,8 +23,9 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         var today = DateTime.Today;
         var currentMonthStart = new DateTime(today.Year, today.Month, 1);
         var fetchStart = currentMonthStart.AddMonths(-3);
+        var tomorrow = today.AddDays(1);
 
-        var transactions = await FetchTransactionsAsync(fetchStart, today);
+        var transactions = await FetchTransactionsAsync(fetchStart, tomorrow);
         var currentMonthTxs = transactions.Where(t => t.Date >= currentMonthStart).ToList();
         var trailingTxs = transactions.Where(t => t.Date < currentMonthStart).ToList();
         var trailingMonths = Enumerable.Range(1, 3).Select(i => currentMonthStart.AddMonths(-i)).ToList();
@@ -47,17 +48,14 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         var softFloor = Math.Round(freeMedian * BucketDefaults.SoftFloorPct, 0);
 
         var freeSpent = currentMonthTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-            .Where(t => !BucketCalculator.IsInvestingCategory(t.Category))
-            .Where(t => !committedKeys.Contains(BucketCalculator.NormalizeDescription(t.Description)))
+            .Where(t => IsFreeSpend(t, committedKeys))
             .Sum(t => t.AmountIdr);
 
-        var last7Start = today.AddDays(-BucketDefaults.ForecastPaceWindowDays);
+        // Today and the six days before it: the card divides this total by ForecastPaceWindowDays.
+        var last7Start = today.AddDays(1 - BucketDefaults.ForecastPaceWindowDays);
         var last7DayFreeSpend = transactions
-            .Where(t => t.Date >= last7Start && t.Date <= today)
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-            .Where(t => !BucketCalculator.IsInvestingCategory(t.Category))
-            .Where(t => !committedKeys.Contains(BucketCalculator.NormalizeDescription(t.Description)))
+            .Where(t => t.Date >= last7Start && t.Date < tomorrow)
+            .Where(t => IsFreeSpend(t, committedKeys))
             .Sum(t => t.AmountIdr);
 
         var incomeArrivedThisMonth = currentMonthTxs
@@ -93,7 +91,8 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
             .FirstOrDefault()?
             .ToString("MMM d", CultureInfo.InvariantCulture);
 
-        var (biggestCategory, biggestAmount, biggestUsual) = FindBiggestDriver(currentMonthTxs, trailingTxs, trailingMonths);
+        var (biggestCategory, biggestAmount, biggestUsual) =
+            FindBiggestDriver(currentMonthTxs, trailingTxs, trailingMonths, committedKeys);
 
         logger.LogInformation(
             "Buckets derived: committed={Committed} future={Future} free={Free} income={Income} monthsAvailable={Months}",
@@ -132,9 +131,8 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         var closingMonthStart = currentMonthStart.AddMonths(-1);
         var closingTrailingMonths = Enumerable.Range(1, 3).Select(i => closingMonthStart.AddMonths(-i)).ToList();
         var fetchStart = closingTrailingMonths.Min();
-        var fetchEnd = closingMonthStart.AddMonths(1).AddDays(-1);
 
-        var transactions = await FetchTransactionsAsync(fetchStart, fetchEnd);
+        var transactions = await FetchTransactionsAsync(fetchStart, currentMonthStart);
         var closingMonthTxs = transactions.Where(t => t.Date.Year == closingMonthStart.Year && t.Date.Month == closingMonthStart.Month).ToList();
         var baselineTrailingTxs = transactions.Where(t => t.Date < closingMonthStart).ToList();
 
@@ -160,16 +158,15 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
 
         var freeBudget = Math.Round(incomeMedian - committedMedian - futurePlanned, 0);
         var freeSpent = closingMonthTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-            .Where(t => !BucketCalculator.IsInvestingCategory(t.Category))
-            .Where(t => !committedKeys.Contains(BucketCalculator.NormalizeDescription(t.Description)))
+            .Where(t => IsFreeSpend(t, committedKeys))
             .Sum(t => t.AmountIdr);
         var freeOverBy = Math.Max(0, Math.Round(freeSpent - freeBudget, 0));
 
         var allCommittedPaid = items.Count == 0 || items.All(i => i.Paid);
         var committedStreakMonths = ComputeCommittedStreak(transactions, closingMonthStart, closingTrailingMonths, committedKeys);
 
-        var (biggestCategory, biggestAmount, biggestUsual) = FindBiggestDriver(closingMonthTxs, baselineTrailingTxs, closingTrailingMonths);
+        var (biggestCategory, biggestAmount, biggestUsual) =
+            FindBiggestDriver(closingMonthTxs, baselineTrailingTxs, closingTrailingMonths, committedKeys);
 
         // Never suggest less than what's already planned — the fresh-start nudge should only ever
         // encourage saving more, bumping toward the historical median when it runs ahead of the plan.
@@ -252,24 +249,32 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         return streak;
     }
 
+    // Expenses that are neither investing nor a committed item.
+    private static bool IsFreeSpend(Transaction t, HashSet<string> committedKeys) =>
+        t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase)
+        && !BucketCalculator.IsInvestingCategory(t.Category)
+        && !committedKeys.Contains(BucketCalculator.NormalizeDescription(t.Description));
+
+    // The category whose free spending is furthest above its usual month. It explains FreeSpent, so
+    // both the month and its baseline come from the same free rows: never income or a committed item.
     private static (string? Category, decimal Amount, decimal Usual) FindBiggestDriver(
         List<Transaction> closingMonthTxs,
         List<Transaction> baselineTrailingTxs,
-        List<DateTime> closingTrailingMonths)
+        List<DateTime> closingTrailingMonths,
+        HashSet<string> committedKeys)
     {
-        var freeCategories = closingMonthTxs
-            .Where(t => t.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase) && !BucketCalculator.IsInvestingCategory(t.Category))
-            .Select(t => t.Category)
-            .Distinct();
+        var closingFree = closingMonthTxs.Where(t => IsFreeSpend(t, committedKeys)).ToList();
+        var baselineFree = baselineTrailingTxs.Where(t => IsFreeSpend(t, committedKeys)).ToList();
+        var freeCategories = closingFree.Select(t => t.Category).Distinct();
 
         string? bestCategory = null;
         decimal bestAmount = 0m, bestUsual = 0m, bestDelta = 0m;
 
         foreach (var cat in freeCategories)
         {
-            var currentSpend = closingMonthTxs.Where(t => t.Category == cat).Sum(t => t.AmountIdr);
+            var currentSpend = closingFree.Where(t => t.Category == cat).Sum(t => t.AmountIdr);
             var trailingAmounts = closingTrailingMonths
-                .Select(m => baselineTrailingTxs
+                .Select(m => baselineFree
                     .Where(t => t.Date.Year == m.Year && t.Date.Month == m.Month && t.Category == cat)
                     .Sum(t => t.AmountIdr))
                 .ToList();
@@ -288,7 +293,10 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         return (bestCategory, Math.Round(bestAmount, 0), Math.Round(bestUsual, 0));
     }
 
-    private async Task<List<Transaction>> FetchTransactionsAsync(DateTime start, DateTime end)
+    // Reads the calendar days from `from` up to, not including, `before`. transactions.date holds the
+    // statement's own clock time marked UTC (see StatementDate), so both bounds are UTC midnights and
+    // the exclusive end keeps rows timed later on the last day.
+    private async Task<List<Transaction>> FetchTransactionsAsync(DateTime from, DateTime before)
     {
         var all = new List<Transaction>();
         const int pageSize = 1000;
@@ -299,8 +307,8 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
         {
             var result = await supabase.From<Transaction>()
                 .Filter("user_id", Operator.Equals, caller.UserId.ToString())
-                .Filter("date", Operator.GreaterThanOrEqual, start)
-                .Filter("date", Operator.LessThanOrEqual, end)
+                .Filter("date", Operator.GreaterThanOrEqual, DateTime.SpecifyKind(from, DateTimeKind.Utc))
+                .Filter("date", Operator.LessThan, DateTime.SpecifyKind(before, DateTimeKind.Utc))
                 .Order("date", Ordering.Descending)
                 .Range(offset, offset + pageSize - 1)
                 .Get();
@@ -310,6 +318,23 @@ public class BucketsService(Supabase.Client supabase, ILogger<BucketsService> lo
             else offset += pageSize;
         }
 
+        // A transaction stores only account_id; the card shows the account's name.
+        var accountNames = await FetchAccountNamesAsync();
+        foreach (var t in all)
+        {
+            t.Date = StatementDate.FromSdk(t.Date);
+            t.AccountName = t.AccountId is { } id && accountNames.TryGetValue(id, out var name) ? name : string.Empty;
+        }
+
         return all;
+    }
+
+    private async Task<Dictionary<Guid, string>> FetchAccountNamesAsync()
+    {
+        var accounts = await supabase.From<Account>()
+            .Filter("user_id", Operator.Equals, caller.UserId.ToString())
+            .Get();
+
+        return accounts.Models.ToDictionary(a => a.Id, a => a.Name);
     }
 }

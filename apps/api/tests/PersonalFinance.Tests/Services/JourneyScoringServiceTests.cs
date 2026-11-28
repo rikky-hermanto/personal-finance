@@ -183,6 +183,37 @@ public class JourneyScoringServiceTests
         Assert.Equal(75m, Math.Round(score, 1));
     }
 
+    // ─── Cleared bars (scoring-rubric.md "Cleared / Mastered bars") ─────────────
+    // Each published Cleared value must score exactly 70, so a moved breakpoint fails here.
+
+    [Fact]
+    public void ScoreSpendRatio_AtClearedBar_Returns70()
+    {
+        // 50 + (0.95 - 0.89) / (0.95 - 0.80) × 50 = 50 + 20
+        Assert.Equal(70m, InvokeScoreSpendRatio(0.89m));
+    }
+
+    [Fact]
+    public void ScoreLiquidSavings_AtClearedBar_Returns70()
+    {
+        // 50 + (2.1 - 1.5) / (3.0 - 1.5) × 50 = 50 + 20
+        Assert.Equal(70m, InvokeScoreLiquidSavings(2.1m));
+    }
+
+    [Fact]
+    public void ScoreDti_AtClearedBar_Returns70()
+    {
+        // 50 + (0.36 - 0.296) / (0.36 - 0.20) × 50 = 50 + 20
+        Assert.Equal(70m, InvokeScoreDti(0.296m));
+    }
+
+    [Fact]
+    public void ScoreSavingsRate_AtClearedBar_Returns70()
+    {
+        // 50 + (0.09 - 0.05) / (0.15 - 0.05) × 50 = 50 + 20
+        Assert.Equal(70m, InvokeScoreSavingsRate(0.09m));
+    }
+
     // ─── Level Graduation Logic ─────────────────────────────────────────────────
 
     [Fact]
